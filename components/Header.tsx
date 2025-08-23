@@ -1,0 +1,100 @@
+
+import React from 'react';
+import { ViewType, Prioridad, Etapa, UserRole } from '../types';
+import { ETAPAS_KANBAN, ETAPAS } from '../constants';
+
+
+interface HeaderProps {
+    onSearch: (term: string) => void;
+    currentView: ViewType;
+    onViewChange: (view: ViewType) => void;
+    onFilterChange: (name: string, value: string) => void;
+    activeFilters: { priority: string, stage: string };
+    currentUserRole: UserRole;
+    onRoleChange: (role: UserRole) => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ onSearch, currentView, onViewChange, onFilterChange, activeFilters, currentUserRole, onRoleChange }) => {
+    
+    const viewOptions: { id: ViewType; label: string, adminOnly: boolean }[] = [
+        { id: 'kanban', label: 'Kanban', adminOnly: false },
+        { id: 'list', label: 'Lista', adminOnly: false },
+        { id: 'archived', label: 'Archivados', adminOnly: false },
+        { id: 'report', label: 'Reportes', adminOnly: true },
+    ];
+
+    const baseButtonClass = "px-4 py-2 rounded-md font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500";
+    const activeButtonClass = "bg-indigo-600 text-white";
+    const inactiveButtonClass = "bg-gray-700 text-gray-300 hover:bg-gray-600";
+
+    return (
+        <header className="bg-gray-800 shadow-md p-4 sticky top-0 z-10">
+            <div className="container mx-auto flex flex-wrap justify-between items-center gap-4">
+                <div className="flex items-center gap-4">
+                    <h1 className="text-2xl font-bold text-white">Gestor de Pedidos</h1>
+                     <select
+                        name="role"
+                        value={currentUserRole}
+                        onChange={(e) => onRoleChange(e.target.value as UserRole)}
+                        className="px-3 py-1 bg-gray-900 text-white border border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                        <option value="Administrador">Admin</option>
+                        <option value="Operador">Operador</option>
+                    </select>
+                </div>
+
+                <div className="flex items-center bg-gray-700 rounded-lg">
+                    {viewOptions.map(opt => {
+                        if (opt.adminOnly && currentUserRole !== 'Administrador') return null;
+                        return (
+                             <button
+                                key={opt.id}
+                                onClick={() => onViewChange(opt.id)}
+                                className={`${baseButtonClass} ${currentView === opt.id ? activeButtonClass : inactiveButtonClass}`}
+                            >
+                                {opt.label}
+                            </button>
+                        )
+                    })}
+                </div>
+
+                 <div className="flex items-center space-x-2">
+                    {(currentView === 'kanban' || currentView === 'list' || currentView === 'archived') && (
+                        <>
+                            <select
+                                name="priority"
+                                value={activeFilters.priority}
+                                onChange={(e) => onFilterChange(e.target.name, e.target.value)}
+                                className="px-4 py-2 bg-gray-700 text-white border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            >
+                                <option value="all">Toda Prioridad</option>
+                                {Object.values(Prioridad).map(p => <option key={p} value={p}>{p}</option>)}
+                            </select>
+                            
+                            {currentView !== 'archived' && (
+                                <select
+                                    name="stage"
+                                    value={activeFilters.stage}
+                                    onChange={(e) => onFilterChange(e.target.name, e.target.value)}
+                                    className="px-4 py-2 bg-gray-700 text-white border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                >
+                                    <option value="all">Toda Etapa</option>
+                                    {ETAPAS_KANBAN.map(etapaId => <option key={etapaId} value={etapaId}>{ETAPAS[etapaId].title}</option>)}
+                                </select>
+                            )}
+
+                            <input
+                                type="text"
+                                placeholder="Buscar..."
+                                className="w-48 sm:w-64 px-4 py-2 bg-gray-700 text-white border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                onChange={(e) => onSearch(e.target.value)}
+                            />
+                        </>
+                    )}
+                </div>
+            </div>
+        </header>
+    );
+};
+
+export default Header;

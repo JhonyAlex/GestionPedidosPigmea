@@ -1,0 +1,5 @@
+{
+  "name": "Gestor de Pedidos Pigmea",
+  "description": "Una aplicación Kanban para visualizar y gestionar el ciclo de vida de pedidos de impresión, incluyendo etapas, prioridades y archivado.",
+  "requestFramePermissions": []
+}
