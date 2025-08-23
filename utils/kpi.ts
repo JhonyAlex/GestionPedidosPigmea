@@ -1,7 +1,18 @@
-
 import { Pedido, EtapaInfo, Etapa } from '../types';
 
-const ETAPAS_PRODUCCION = [Etapa.IMPRESION, Etapa.LAMINADO, Etapa.CORTE];
+const ETAPAS_PRODUCCION = [
+    Etapa.IMPRESION_WM1,
+    Etapa.IMPRESION_GIAVE,
+    Etapa.IMPRESION_WM2,
+    Etapa.IMPRESION_ANON,
+    Etapa.POST_LAMINACION_SL2,
+    Etapa.POST_LAMINACION_NEXUS,
+    Etapa.POST_REBOBINADO_S2DT,
+    Etapa.POST_REBOBINADO_PROSLIT,
+    Etapa.POST_PERFORACION_MIC,
+    Etapa.POST_PERFORACION_MAC,
+    Etapa.POST_REBOBINADO_TEMAC,
+];
 
 /**
  * Parses a time string in HH:mm format to total minutes.

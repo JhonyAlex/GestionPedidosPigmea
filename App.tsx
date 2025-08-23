@@ -1,8 +1,7 @@
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 import { Pedido, Etapa, ViewType, UserRole, AuditEntry } from './types';
-import { ETAPAS_KANBAN, ETAPAS, PRIORIDAD_ORDEN } from './constants';
+import { KANBAN_FUNNELS, ETAPAS, PRIORIDAD_ORDEN } from './constants';
 import { initialPedidos } from './data/seedData';
 import KanbanColumn from './components/KanbanColumn';
 import PedidoModal from './components/PedidoModal';
@@ -131,21 +130,69 @@ const App: React.FC = () => {
             case 'kanban':
                 return (
                     <DragDropContext onDragEnd={handleDragEnd}>
-                        <main className="flex-grow p-4 md:p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {ETAPAS_KANBAN.map(etapaId => {
-                                const etapa = ETAPAS[etapaId];
-                                const pedidosEnEtapa = activePedidos.filter(p => p.etapaActual === etapaId);
-                                return (
-                                    <KanbanColumn
-                                        key={etapa.id}
-                                        etapa={etapa}
-                                        pedidos={pedidosEnEtapa}
-                                        onSelectPedido={setSelectedPedido}
-                                        onArchiveToggle={handleArchiveToggle}
-                                        currentUserRole={currentUserRole}
-                                    />
-                                );
-                            })}
+                        <main className="flex-grow p-4 md:p-8 flex flex-col gap-10">
+                            {/* Funnel de Impresión */}
+                            <section>
+                                <h2 className="text-3xl font-extrabold text-white mb-5 border-l-4 border-cyan-500 pl-4">Embudo de Impresión</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {KANBAN_FUNNELS.IMPRESION.stages.map(etapaId => {
+                                        const etapa = ETAPAS[etapaId];
+                                        const pedidosEnEtapa = activePedidos.filter(p => p.etapaActual === etapaId);
+                                        return (
+                                            <KanbanColumn
+                                                key={etapa.id}
+                                                etapa={etapa}
+                                                pedidos={pedidosEnEtapa}
+                                                onSelectPedido={setSelectedPedido}
+                                                onArchiveToggle={handleArchiveToggle}
+                                                currentUserRole={currentUserRole}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            </section>
+
+                            {/* Funnel de Post-Impresión */}
+                            <section>
+                                <h2 className="text-3xl font-extrabold text-white mb-5 border-l-4 border-indigo-500 pl-4">Embudo de Post-Impresión</h2>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-6">
+                                    {KANBAN_FUNNELS.POST_IMPRESION.stages.map(etapaId => {
+                                        const etapa = ETAPAS[etapaId];
+                                        const pedidosEnEtapa = activePedidos.filter(p => p.etapaActual === etapaId);
+                                        return (
+                                            <KanbanColumn
+                                                key={etapa.id}
+                                                etapa={etapa}
+                                                pedidos={pedidosEnEtapa}
+                                                onSelectPedido={setSelectedPedido}
+                                                onArchiveToggle={handleArchiveToggle}
+                                                currentUserRole={currentUserRole}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            </section>
+
+                            {/* Columna de Completado */}
+                             <section>
+                                <h2 className="text-3xl font-extrabold text-white mb-5 border-l-4 border-green-500 pl-4">Finalizado</h2>
+                                <div className="w-full md:w-1/2 lg:w-1/3 xl:w-1/4">
+                                     {(() => {
+                                        const etapa = ETAPAS[Etapa.COMPLETADO];
+                                        const pedidosEnEtapa = activePedidos.filter(p => p.etapaActual === Etapa.COMPLETADO);
+                                        return (
+                                            <KanbanColumn
+                                                key={etapa.id}
+                                                etapa={etapa}
+                                                pedidos={pedidosEnEtapa}
+                                                onSelectPedido={setSelectedPedido}
+                                                onArchiveToggle={handleArchiveToggle}
+                                                currentUserRole={currentUserRole}
+                                            />
+                                        );
+                                    })()}
+                                </div>
+                            </section>
                         </main>
                     </DragDropContext>
                 );

@@ -1,4 +1,3 @@
-
 import { Pedido, Prioridad, Etapa } from '../types';
 
 export const initialPedidos: Pedido[] = [
@@ -10,8 +9,8 @@ export const initialPedidos: Pedido[] = [
         maquinaImpresion: 'HP Latex 800W',
         metros: 150,
         fecha: '2024-07-20',
-        etapaActual: Etapa.IMPRESION,
-        etapasSecuencia: [{ etapa: Etapa.IMPRESION, fecha: '2024-07-20T10:00:00Z' }],
+        etapaActual: Etapa.IMPRESION_WM1,
+        etapasSecuencia: [{ etapa: Etapa.IMPRESION_WM1, fecha: '2024-07-20T10:00:00Z' }],
         prioridad: Prioridad.URGENTE,
         tipoImpresion: 'Lona PVC',
         tiempoProduccionPlanificado: '04:30',
@@ -25,8 +24,8 @@ export const initialPedidos: Pedido[] = [
         maquinaImpresion: 'Roland VG2-640',
         metros: 75,
         fecha: '2024-07-21',
-        etapaActual: Etapa.IMPRESION,
-        etapasSecuencia: [{ etapa: Etapa.IMPRESION, fecha: '2024-07-21T09:15:00Z' }],
+        etapaActual: Etapa.IMPRESION_GIAVE,
+        etapasSecuencia: [{ etapa: Etapa.IMPRESION_GIAVE, fecha: '2024-07-21T09:15:00Z' }],
         prioridad: Prioridad.ALTA,
         tipoImpresion: 'Vinilo Adhesivo',
         tiempoProduccionPlanificado: '02:00',
@@ -40,10 +39,10 @@ export const initialPedidos: Pedido[] = [
         maquinaImpresion: 'Epson SureColor S80600',
         metros: 200,
         fecha: '2024-07-22',
-        etapaActual: Etapa.LAMINADO,
+        etapaActual: Etapa.POST_LAMINACION_SL2,
         etapasSecuencia: [
-            { etapa: Etapa.IMPRESION, fecha: '2024-07-22T11:00:00Z' },
-            { etapa: Etapa.LAMINADO, fecha: '2024-07-22T15:30:00Z' },
+            { etapa: Etapa.IMPRESION_WM2, fecha: '2024-07-22T11:00:00Z' },
+            { etapa: Etapa.POST_LAMINACION_SL2, fecha: '2024-07-22T15:30:00Z' },
         ],
         prioridad: Prioridad.NORMAL,
         tipoImpresion: 'Papel Fotográfico',
@@ -58,11 +57,11 @@ export const initialPedidos: Pedido[] = [
         maquinaImpresion: 'HP Latex 800W',
         metros: 300,
         fecha: '2024-07-22',
-        etapaActual: Etapa.CORTE,
+        etapaActual: Etapa.POST_REBOBINADO_S2DT,
         etapasSecuencia: [
-            { etapa: Etapa.IMPRESION, fecha: '2024-07-22T08:00:00Z' },
-            { etapa: Etapa.LAMINADO, fecha: '2024-07-22T12:00:00Z' },
-            { etapa: Etapa.CORTE, fecha: '2024-07-22T16:00:00Z' },
+            { etapa: Etapa.IMPRESION_ANON, fecha: '2024-07-22T08:00:00Z' },
+            { etapa: Etapa.POST_LAMINACION_NEXUS, fecha: '2024-07-22T12:00:00Z' },
+            { etapa: Etapa.POST_REBOBINADO_S2DT, fecha: '2024-07-22T16:00:00Z' },
         ],
         prioridad: Prioridad.ALTA,
         tipoImpresion: 'Backlight',
@@ -79,8 +78,8 @@ export const initialPedidos: Pedido[] = [
         fecha: '2024-07-23',
         etapaActual: Etapa.COMPLETADO,
         etapasSecuencia: [
-            { etapa: Etapa.IMPRESION, fecha: '2024-07-23T09:00:00Z' },
-            { etapa: Etapa.CORTE, fecha: '2024-07-23T11:00:00Z' },
+            { etapa: Etapa.IMPRESION_WM1, fecha: '2024-07-23T09:00:00Z' },
+            { etapa: Etapa.POST_PERFORACION_MIC, fecha: '2024-07-23T11:00:00Z' },
             { etapa: Etapa.COMPLETADO, fecha: '2024-07-23T12:00:00Z' },
         ],
         prioridad: Prioridad.NORMAL,
@@ -98,7 +97,7 @@ export const initialPedidos: Pedido[] = [
         fecha: '2024-07-20',
         etapaActual: Etapa.ARCHIVADO,
         etapasSecuencia: [
-            { etapa: Etapa.IMPRESION, fecha: '2024-07-20T14:00:00Z' },
+            { etapa: Etapa.IMPRESION_WM1, fecha: '2024-07-20T14:00:00Z' },
             { etapa: Etapa.COMPLETADO, fecha: '2024-07-20T18:00:00Z' },
             { etapa: Etapa.ARCHIVADO, fecha: '2024-07-21T10:00:00Z' },
         ],
@@ -115,7 +114,10 @@ export const initialPedidos: Pedido[] = [
         const maquinas = ['HP Latex 800W', 'Roland VG2-640', 'Epson SureColor S80600'];
         const tipos = ['Lona PVC', 'Vinilo Adhesivo', 'Papel Fotográfico', 'Backlight', 'Lienzo'];
         const prioridades = Object.values(Prioridad);
-        const etapas = [Etapa.IMPRESION, Etapa.LAMINADO, Etapa.CORTE, Etapa.COMPLETADO];
+        const etapas = [
+            Etapa.IMPRESION_WM1, Etapa.IMPRESION_GIAVE, Etapa.POST_LAMINACION_NEXUS, Etapa.POST_REBOBINADO_PROSLIT, 
+            Etapa.POST_PERFORACION_MAC, Etapa.COMPLETADO
+        ];
         
         const etapaActual = etapas[i % etapas.length];
 
