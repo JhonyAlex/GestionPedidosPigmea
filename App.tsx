@@ -3,6 +3,7 @@ import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 import { Pedido, Etapa, ViewType, UserRole, AuditEntry } from './types';
 import { KANBAN_FUNNELS, ETAPAS, PRIORIDAD_ORDEN } from './constants';
 import { initialPedidos } from './data/seedData';
+import { getDateRange, DateFilterOption } from './utils/date';
 import KanbanColumn from './components/KanbanColumn';
 import PedidoModal from './components/PedidoModal';
 import Header from './components/Header';
@@ -16,6 +17,7 @@ const App: React.FC = () => {
     const [view, setView] = useState<ViewType>('kanban');
     const [searchTerm, setSearchTerm] = useState('');
     const [filters, setFilters] = useState<{ priority: string, stage: string }>({ priority: 'all', stage: 'all' });
+    const [dateFilter, setDateFilter] = useState<DateFilterOption>('all');
     const [currentUserRole, setCurrentUserRole] = useState<UserRole>('Administrador');
     const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
     
@@ -60,11 +62,13 @@ const App: React.FC = () => {
             if (a.secuenciaPedido !== b.secuenciaPedido) {
                 return a.secuenciaPedido - b.secuenciaPedido;
             }
-            return new Date(a.fecha).getTime() - new Date(b.fecha).getTime();
+            return new Date(a.fechaCreacion).getTime() - new Date(b.fechaCreacion).getTime();
         });
     }, [pedidos]);
 
     const filteredPedidos = useMemo(() => {
+        const dateRange = getDateRange(dateFilter);
+        
         return sortedPedidos.filter(p => {
             const searchTermMatch = !searchTerm ||
                 p.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -72,10 +76,15 @@ const App: React.FC = () => {
 
             const priorityMatch = filters.priority === 'all' || p.prioridad === filters.priority;
             const stageMatch = filters.stage === 'all' || p.etapaActual === filters.stage;
+            
+            const dateMatch = !dateRange || (
+                new Date(p.fechaCreacion) >= dateRange.start &&
+                new Date(p.fechaCreacion) <= dateRange.end
+            );
 
-            return searchTermMatch && priorityMatch && stageMatch;
+            return searchTermMatch && priorityMatch && stageMatch && dateMatch;
         });
-    }, [sortedPedidos, searchTerm, filters]);
+    }, [sortedPedidos, searchTerm, filters, dateFilter]);
 
     const activePedidos = useMemo(() => filteredPedidos.filter(p => p.etapaActual !== Etapa.ARCHIVADO), [filteredPedidos]);
     const archivedPedidos = useMemo(() => filteredPedidos.filter(p => p.etapaActual === Etapa.ARCHIVADO), [filteredPedidos]);
@@ -141,6 +150,10 @@ const App: React.FC = () => {
     const handleFilterChange = (name: string, value: string) => {
         setFilters(prev => ({ ...prev, [name]: value }));
     }
+    
+    const handleDateFilterChange = (value: string) => {
+        setDateFilter(value as DateFilterOption);
+    };
 
     const handleViewChange = (newView: ViewType) => {
         if (newView === 'report' && currentUserRole !== 'Administrador') {
@@ -255,6 +268,8 @@ const App: React.FC = () => {
                 onViewChange={handleViewChange}
                 onFilterChange={handleFilterChange}
                 activeFilters={filters}
+                onDateFilterChange={handleDateFilterChange}
+                activeDateFilter={dateFilter}
                 currentUserRole={currentUserRole}
                 onRoleChange={setCurrentUserRole}
             />

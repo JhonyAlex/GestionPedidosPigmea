@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Pedido, Prioridad, Etapa, UserRole } from '../types';
+import { Pedido, Prioridad, Etapa, UserRole, TipoImpresion } from '../types';
 import { calcularTiempoRealProduccion, parseTimeToMinutes, formatMinutesToHHMM } from '../utils/kpi';
 import { ETAPAS, KANBAN_FUNNELS } from '../constants';
 
@@ -21,7 +21,8 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        const valueToSet = e.target.type === 'number' ? parseInt(value, 10) || 0 : value;
+        setFormData(prev => ({ ...prev, [name]: valueToSet }));
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -125,7 +126,20 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                 </select>
 
                                 <label className="block mt-4 mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Tipo de Impresión</label>
-                                <input type="text" name="tipoImpresion" value={formData.tipoImpresion} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"/>
+                                <select name="tipoImpresion" value={formData.tipoImpresion} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50">
+                                    {Object.values(TipoImpresion).map(t => <option key={t} value={t}>{t}</option>)}
+                                </select>
+                                
+                                <div className="grid grid-cols-2 gap-4 mt-4">
+                                    <div>
+                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Desarrollo</label>
+                                        <input type="text" name="desarrollo" value={formData.desarrollo} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"/>
+                                    </div>
+                                    <div>
+                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Capa</label>
+                                        <input type="number" name="capa" value={formData.capa} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50" step="1" min="0"/>
+                                    </div>
+                                </div>
                             </div>
                             {/* Columna Derecha */}
                             <div>
@@ -144,9 +158,14 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                         <input type="text" name="tiempoProduccionPlanificado" value={formData.tiempoProduccionPlanificado} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"/>
                                     </div>
                                 </div>
-
-                                 <label className="block mt-4 mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Fecha</label>
-                                <input type="date" name="fecha" value={formData.fecha} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"/>
+                                <label className="block mt-4 mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Fecha de Entrega</label>
+                                <input type="date" name="fechaEntrega" value={formData.fechaEntrega} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"/>
+                                 <div className="mt-4">
+                                    <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Fecha de Creación</label>
+                                    <p className="w-full bg-gray-100 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm">
+                                        {new Date(formData.fechaCreacion).toLocaleString('es-ES', { dateStyle: 'long', timeStyle: 'short' })}
+                                    </p>
+                                </div>
                             </div>
                         </div>
 
@@ -157,10 +176,10 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                     </fieldset>
 
                     <div className="mt-8 flex justify-between items-center">
-                        {isReadOnly ? (
+                         {isReadOnly ? (
                             <span className="text-sm text-gray-500">Modo de solo lectura para Operador.</span>
                         ) : (
-                             <button type="button" onClick={handleArchiveClick} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200">
+                             <button type="button" onClick={handleArchiveClick} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled={pedido.etapaActual !== Etapa.COMPLETADO && pedido.etapaActual !== Etapa.ARCHIVADO}>
                                 {pedido.etapaActual === Etapa.ARCHIVADO ? 'Desarchivar' : 'Archivar'}
                             </button>
                         )}

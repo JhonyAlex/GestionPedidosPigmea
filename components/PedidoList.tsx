@@ -39,18 +39,20 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
                             <tr>
                                 <th scope="col" className="px-6 py-3">N° Pedido</th>
                                 <th scope="col" className="px-6 py-3">Cliente</th>
+                                <th scope="col" className="px-6 py-3">Desarrollo</th>
+                                <th scope="col" className="px-6 py-3 text-center">Capa</th>
                                 <th scope="col" className="px-6 py-3">Prioridad</th>
                                 <th scope="col" className="px-6 py-3">Etapa Actual</th>
                                 <th scope="col" className="px-6 py-3 text-right">Metros</th>
                                 <th scope="col" className="px-6 py-3 text-center">T. Planificado</th>
-                                <th scope="col" className="px-6 py-3 text-center">Fecha</th>
+                                <th scope="col" className="px-6 py-3 text-center">F. Entrega</th>
                                 <th scope="col" className="px-6 py-3 text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             {pedidos.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="text-center py-10 text-gray-500">
+                                    <td colSpan={10} className="text-center py-10 text-gray-500">
                                         No se encontraron pedidos.
                                     </td>
                                 </tr>
@@ -59,6 +61,8 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
                                 <tr key={pedido.id} className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
                                     <th scope="row" className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">{pedido.numeroPedido}</th>
                                     <td className="px-6 py-4">{pedido.cliente}</td>
+                                    <td className="px-6 py-4">{pedido.desarrollo}</td>
+                                    <td className="px-6 py-4 text-center">{pedido.capa}</td>
                                     <td className="px-6 py-4">
                                         <span className={`px-2 py-1 text-xs font-semibold rounded-full text-white ${PRIORIDAD_COLORS[pedido.prioridad].replace('border', 'bg').replace('-500', '-900')}`}>
                                             {pedido.prioridad}
@@ -67,7 +71,7 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
                                     <td className="px-6 py-4">{ETAPAS[pedido.etapaActual].title}</td>
                                     <td className="px-6 py-4 text-right">{pedido.metros} m</td>
                                     <td className="px-6 py-4 text-center">{pedido.tiempoProduccionPlanificado}</td>
-                                    <td className="px-6 py-4 text-center">{pedido.fecha}</td>
+                                    <td className="px-6 py-4 text-center">{pedido.fechaEntrega}</td>
                                     <td className="px-6 py-4 text-center">
                                         <div className="flex justify-center items-center space-x-3">
                                             <button onClick={() => onSelectPedido(pedido)} className="text-blue-500 hover:text-blue-400 dark:text-blue-400 dark:hover:text-blue-300" title="Ver/Editar">

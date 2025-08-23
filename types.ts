@@ -5,6 +5,11 @@ export enum Prioridad {
     BAJA = 'Baja',
 }
 
+export enum TipoImpresion {
+    SUPERFICIE = 'Superficie (SUP)',
+    TRANSPARENCIA = 'Transparencia (TTE)',
+}
+
 export enum Etapa {
     PENDIENTE = 'PENDIENTE',
 
@@ -40,11 +45,14 @@ export interface Pedido {
     cliente: string;
     maquinaImpresion: string;
     metros: number;
-    fecha: string; // YYYY-MM-DD
+    fechaCreacion: string; // ISO 8601 date string
+    fechaEntrega: string; // YYYY-MM-DD
     etapaActual: Etapa;
     etapasSecuencia: EtapaInfo[];
     prioridad: Prioridad;
-    tipoImpresion: string;
+    tipoImpresion: TipoImpresion;
+    desarrollo: string;
+    capa: number;
     tiempoProduccionPlanificado: string; // HH:mm
     observaciones: string;
 }

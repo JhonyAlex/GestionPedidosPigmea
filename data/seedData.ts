@@ -1,4 +1,4 @@
-import { Pedido, Prioridad, Etapa } from '../types';
+import { Pedido, Prioridad, Etapa, TipoImpresion } from '../types';
 
 export const initialPedidos: Pedido[] = [
     {
@@ -8,11 +8,14 @@ export const initialPedidos: Pedido[] = [
         cliente: 'Graficas Veloz',
         maquinaImpresion: 'HP Latex 800W',
         metros: 150,
-        fecha: '2024-07-20',
+        fechaCreacion: '2024-07-18T09:00:00Z',
+        fechaEntrega: '2024-07-20',
         etapaActual: Etapa.IMPRESION_WM1,
         etapasSecuencia: [{ etapa: Etapa.IMPRESION_WM1, fecha: '2024-07-20T10:00:00Z' }],
         prioridad: Prioridad.URGENTE,
-        tipoImpresion: 'Lona PVC',
+        tipoImpresion: TipoImpresion.SUPERFICIE,
+        desarrollo: '540',
+        capa: 1,
         tiempoProduccionPlanificado: '04:30',
         observaciones: 'Cliente necesita entrega antes del mediodía.',
     },
@@ -23,11 +26,14 @@ export const initialPedidos: Pedido[] = [
         cliente: 'PubliExpress',
         maquinaImpresion: 'Roland VG2-640',
         metros: 75,
-        fecha: '2024-07-21',
+        fechaCreacion: '2024-07-19T11:30:00Z',
+        fechaEntrega: '2024-07-21',
         etapaActual: Etapa.IMPRESION_GIAVE,
         etapasSecuencia: [{ etapa: Etapa.IMPRESION_GIAVE, fecha: '2024-07-21T09:15:00Z' }],
         prioridad: Prioridad.ALTA,
-        tipoImpresion: 'Vinilo Adhesivo',
+        tipoImpresion: TipoImpresion.TRANSPARENCIA,
+        desarrollo: '620',
+        capa: 2,
         tiempoProduccionPlanificado: '02:00',
         observaciones: 'Verificar colores corporativos. Pantone 286 C.',
     },
@@ -38,14 +44,17 @@ export const initialPedidos: Pedido[] = [
         cliente: 'Marketing Visual',
         maquinaImpresion: 'Epson SureColor S80600',
         metros: 200,
-        fecha: '2024-07-22',
+        fechaCreacion: '2024-07-20T14:00:00Z',
+        fechaEntrega: '2024-07-22',
         etapaActual: Etapa.POST_LAMINACION_SL2,
         etapasSecuencia: [
             { etapa: Etapa.IMPRESION_WM2, fecha: '2024-07-22T11:00:00Z' },
             { etapa: Etapa.POST_LAMINACION_SL2, fecha: '2024-07-22T15:30:00Z' },
         ],
         prioridad: Prioridad.NORMAL,
-        tipoImpresion: 'Papel Fotográfico',
+        tipoImpresion: TipoImpresion.SUPERFICIE,
+        desarrollo: 'N/A',
+        capa: 1,
         tiempoProduccionPlanificado: '06:00',
         observaciones: 'Laminado mate.',
     },
@@ -56,7 +65,8 @@ export const initialPedidos: Pedido[] = [
         cliente: 'Eventos Globales',
         maquinaImpresion: 'HP Latex 800W',
         metros: 300,
-        fecha: '2024-07-22',
+        fechaCreacion: '2024-07-20T16:00:00Z',
+        fechaEntrega: '2024-07-22',
         etapaActual: Etapa.POST_REBOBINADO_S2DT,
         etapasSecuencia: [
             { etapa: Etapa.IMPRESION_ANON, fecha: '2024-07-22T08:00:00Z' },
@@ -64,7 +74,9 @@ export const initialPedidos: Pedido[] = [
             { etapa: Etapa.POST_REBOBINADO_S2DT, fecha: '2024-07-22T16:00:00Z' },
         ],
         prioridad: Prioridad.ALTA,
-        tipoImpresion: 'Backlight',
+        tipoImpresion: TipoImpresion.TRANSPARENCIA,
+        desarrollo: '780',
+        capa: 3,
         tiempoProduccionPlanificado: '08:00',
         observaciones: 'Corte preciso para cajas de luz.',
     },
@@ -75,7 +87,8 @@ export const initialPedidos: Pedido[] = [
         cliente: 'Feria Anual',
         maquinaImpresion: 'Roland VG2-640',
         metros: 50,
-        fecha: '2024-07-23',
+        fechaCreacion: '2024-07-21T08:00:00Z',
+        fechaEntrega: '2024-07-23',
         etapaActual: Etapa.COMPLETADO,
         etapasSecuencia: [
             { etapa: Etapa.IMPRESION_WM1, fecha: '2024-07-23T09:00:00Z' },
@@ -83,7 +96,9 @@ export const initialPedidos: Pedido[] = [
             { etapa: Etapa.COMPLETADO, fecha: '2024-07-23T12:00:00Z' },
         ],
         prioridad: Prioridad.NORMAL,
-        tipoImpresion: 'Vinilo de corte',
+        tipoImpresion: TipoImpresion.SUPERFICIE,
+        desarrollo: '320',
+        capa: 1,
         tiempoProduccionPlanificado: '03:00',
         observaciones: 'Listo para recoger.',
     },
@@ -94,7 +109,8 @@ export const initialPedidos: Pedido[] = [
         cliente: 'Tiendas del Sur',
         maquinaImpresion: 'Epson SureColor S80600',
         metros: 120,
-        fecha: '2024-07-20',
+        fechaCreacion: '2024-07-18T10:00:00Z',
+        fechaEntrega: '2024-07-20',
         etapaActual: Etapa.ARCHIVADO,
         etapasSecuencia: [
             { etapa: Etapa.IMPRESION_WM1, fecha: '2024-07-20T14:00:00Z' },
@@ -102,7 +118,9 @@ export const initialPedidos: Pedido[] = [
             { etapa: Etapa.ARCHIVADO, fecha: '2024-07-21T10:00:00Z' },
         ],
         prioridad: Prioridad.BAJA,
-        tipoImpresion: 'Lienzo',
+        tipoImpresion: TipoImpresion.TRANSPARENCIA,
+        desarrollo: '450',
+        capa: 2,
         tiempoProduccionPlanificado: '05:00',
         observaciones: 'Entregado y facturado.',
     },
@@ -112,7 +130,7 @@ export const initialPedidos: Pedido[] = [
         const numero = `PED-2024-${(i + 7).toString().padStart(3, '0')}`;
         const clientes = ['Innovación Gráfica', 'Imprenta Rápida', 'Diseño Total', 'Comunica Visual'];
         const maquinas = ['HP Latex 800W', 'Roland VG2-640', 'Epson SureColor S80600'];
-        const tipos = ['Lona PVC', 'Vinilo Adhesivo', 'Papel Fotográfico', 'Backlight', 'Lienzo'];
+        const tipos = Object.values(TipoImpresion);
         const prioridades = Object.values(Prioridad);
         const etapas = [
             Etapa.IMPRESION_WM1, Etapa.IMPRESION_GIAVE, Etapa.POST_LAMINACION_NEXUS, Etapa.POST_REBOBINADO_PROSLIT, 
@@ -120,6 +138,9 @@ export const initialPedidos: Pedido[] = [
         ];
         
         const etapaActual = etapas[i % etapas.length];
+        const randomDay = (i % 10) + 20;
+        const fechaEntrega = `2024-07-${randomDay}`;
+        const fechaCreacion = new Date(`2024-07-${randomDay - Math.floor(Math.random()*3+1)}T12:00:00Z`);
 
         return {
             id: id,
@@ -128,11 +149,14 @@ export const initialPedidos: Pedido[] = [
             cliente: clientes[i % clientes.length],
             maquinaImpresion: maquinas[i % maquinas.length],
             metros: Math.floor(Math.random() * 200) + 20,
-            fecha: `2024-07-${(i % 10) + 20}`,
+            fechaCreacion: fechaCreacion.toISOString(),
+            fechaEntrega: fechaEntrega,
             etapaActual: etapaActual,
             etapasSecuencia: [{ etapa: etapaActual, fecha: new Date().toISOString() }],
             prioridad: prioridades[i % prioridades.length],
             tipoImpresion: tipos[i % tipos.length],
+            desarrollo: `${Math.floor(Math.random() * 500) + 300}`,
+            capa: Math.floor(Math.random() * 3) + 1,
             tiempoProduccionPlanificado: `${(i % 5) + 2}:00`,
             observaciones: `Observación de prueba para pedido ${numero}.`,
         };

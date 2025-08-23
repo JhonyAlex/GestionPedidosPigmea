@@ -1,6 +1,7 @@
 import React from 'react';
 import { ViewType, Prioridad, Etapa, UserRole } from '../types';
 import { ETAPAS_KANBAN, ETAPAS } from '../constants';
+import { DateFilterOption } from '../utils/date';
 
 
 interface HeaderProps {
@@ -9,17 +10,37 @@ interface HeaderProps {
     onViewChange: (view: ViewType) => void;
     onFilterChange: (name: string, value: string) => void;
     activeFilters: { priority: string, stage: string };
+    onDateFilterChange: (value: DateFilterOption) => void;
+    activeDateFilter: DateFilterOption;
     currentUserRole: UserRole;
     onRoleChange: (role: UserRole) => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onSearch, currentView, onViewChange, onFilterChange, activeFilters, currentUserRole, onRoleChange }) => {
+const Header: React.FC<HeaderProps> = ({ 
+    onSearch, 
+    currentView, 
+    onViewChange, 
+    onFilterChange, 
+    activeFilters, 
+    onDateFilterChange,
+    activeDateFilter,
+    currentUserRole, 
+    onRoleChange 
+}) => {
     
     const viewOptions: { id: ViewType; label: string, adminOnly: boolean }[] = [
         { id: 'kanban', label: 'Kanban', adminOnly: false },
         { id: 'list', label: 'Lista', adminOnly: false },
         { id: 'archived', label: 'Archivados', adminOnly: false },
         { id: 'report', label: 'Reportes', adminOnly: true },
+    ];
+
+    const dateFilterOptions: { value: DateFilterOption, label: string }[] = [
+        { value: 'all', label: 'Todas las Fechas' },
+        { value: 'this-week', label: 'Esta Semana' },
+        { value: 'last-week', label: 'Semana Pasada' },
+        { value: 'this-month', label: 'Este Mes' },
+        { value: 'last-month', label: 'Mes Pasado' },
     ];
 
     const baseButtonClass = "px-4 py-2 rounded-md font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 dark:focus:ring-offset-gray-800 focus:ring-indigo-500";
@@ -57,9 +78,18 @@ const Header: React.FC<HeaderProps> = ({ onSearch, currentView, onViewChange, on
                     })}
                 </div>
 
-                 <div className="flex items-center space-x-2">
+                 <div className="flex flex-wrap items-center gap-2">
                     {(currentView === 'kanban' || currentView === 'list' || currentView === 'archived') && (
                         <>
+                            <select
+                                name="date"
+                                value={activeDateFilter}
+                                onChange={(e) => onDateFilterChange(e.target.value as DateFilterOption)}
+                                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            >
+                                {dateFilterOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                            </select>
+
                             <select
                                 name="priority"
                                 value={activeFilters.priority}

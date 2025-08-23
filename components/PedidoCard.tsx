@@ -15,6 +15,13 @@ const ClockIcon = () => (
     </svg>
 );
 
+const CalendarIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1 inline-block">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" />
+    </svg>
+);
+
+
 const RulerIcon = () => (
      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1 inline-block">
         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
@@ -24,6 +31,18 @@ const RulerIcon = () => (
 const ArchiveBoxIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
         <path strokeLinecap="round" strokeLinejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
+    </svg>
+);
+
+const LayersIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1 inline-block">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6.429 9.75 2.25 12l4.179 2.25m0-4.5 5.571 3 5.571-3m-11.142 0L12 15.25l5.571-3m-5.571 0V3.375c0-.621-.504-1.125-1.125-1.125H9.75c-.621 0-1.125.504-1.125 1.125v11.875" />
+    </svg>
+);
+
+const CodeBracketIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1 inline-block">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M14.25 9.75 16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0 0 20.25 18V6A2.25 2.25 0 0 0 18 3.75H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z" />
     </svg>
 );
 
@@ -47,8 +66,15 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
                 </span>
             </div>
             <p className="text-gray-600 dark:text-gray-300 mt-1">{pedido.cliente}</p>
+            
+            <div className="text-sm text-gray-500 dark:text-gray-400 mt-3 grid grid-cols-2 gap-2 border-t border-gray-200 dark:border-gray-700 pt-2">
+                 <span className="flex items-center" title="Desarrollo"><CodeBracketIcon /> {pedido.desarrollo}</span>
+                 <span className="flex items-center" title="Capa"><LayersIcon /> {pedido.capa}</span>
+                 <span className="flex items-center" title="Metros"><RulerIcon /> {pedido.metros} m</span>
+                 <span className="flex items-center" title="Fecha Entrega"><CalendarIcon /> {pedido.fechaEntrega}</span>
+            </div>
+
             <div className="text-sm text-gray-500 dark:text-gray-400 mt-3 flex justify-between items-center">
-                <span className="flex items-center"><RulerIcon /> {pedido.metros} m</span>
                 <span className="flex items-center"><ClockIcon /> {pedido.tiempoProduccionPlanificado}</span>
                  {pedido.etapaActual === Etapa.COMPLETADO && currentUserRole === 'Administrador' && (
                     <button 
