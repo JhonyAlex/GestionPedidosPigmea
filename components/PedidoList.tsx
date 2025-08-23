@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Pedido, Etapa, UserRole } from '../types';
 import { ETAPAS, PRIORIDAD_COLORS } from '../constants';
@@ -33,10 +32,10 @@ const UnarchiveBoxIcon = () => (
 const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArchiveToggle, isArchivedView, currentUserRole }) => {
     return (
         <main className="flex-grow p-4 md:p-8">
-            <div className="bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left text-gray-300">
-                        <thead className="text-xs text-gray-400 uppercase bg-gray-700">
+                    <table className="w-full text-sm text-left text-gray-600 dark:text-gray-300">
+                        <thead className="text-xs text-gray-700 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-700">
                             <tr>
                                 <th scope="col" className="px-6 py-3">N° Pedido</th>
                                 <th scope="col" className="px-6 py-3">Cliente</th>
@@ -57,8 +56,8 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
                                 </tr>
                             ) : (
                                 pedidos.map((pedido) => (
-                                <tr key={pedido.id} className="bg-gray-800 border-b border-gray-700 hover:bg-gray-700 transition-colors duration-200">
-                                    <th scope="row" className="px-6 py-4 font-medium text-white whitespace-nowrap">{pedido.numeroPedido}</th>
+                                <tr key={pedido.id} className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                                    <th scope="row" className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">{pedido.numeroPedido}</th>
                                     <td className="px-6 py-4">{pedido.cliente}</td>
                                     <td className="px-6 py-4">
                                         <span className={`px-2 py-1 text-xs font-semibold rounded-full text-white ${PRIORIDAD_COLORS[pedido.prioridad].replace('border', 'bg').replace('-500', '-900')}`}>
@@ -71,18 +70,18 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
                                     <td className="px-6 py-4 text-center">{pedido.fecha}</td>
                                     <td className="px-6 py-4 text-center">
                                         <div className="flex justify-center items-center space-x-3">
-                                            <button onClick={() => onSelectPedido(pedido)} className="text-blue-400 hover:text-blue-300" title="Ver/Editar">
+                                            <button onClick={() => onSelectPedido(pedido)} className="text-blue-500 hover:text-blue-400 dark:text-blue-400 dark:hover:text-blue-300" title="Ver/Editar">
                                                 <EditIcon />
                                             </button>
                                             {currentUserRole === 'Administrador' && (
                                                 <>
                                                     {isArchivedView ? (
-                                                        <button onClick={() => onArchiveToggle(pedido)} className="text-green-400 hover:text-green-300" title="Desarchivar">
+                                                        <button onClick={() => onArchiveToggle(pedido)} className="text-green-500 hover:text-green-400 dark:text-green-400 dark:hover:text-green-300" title="Desarchivar">
                                                             <UnarchiveBoxIcon />
                                                         </button>
                                                     ) : (
                                                         pedido.etapaActual === Etapa.COMPLETADO && (
-                                                            <button onClick={() => onArchiveToggle(pedido)} className="text-yellow-400 hover:text-yellow-300" title="Archivar">
+                                                            <button onClick={() => onArchiveToggle(pedido)} className="text-yellow-500 hover:text-yellow-400 dark:text-yellow-400 dark:hover:text-yellow-300" title="Archivar">
                                                                 <ArchiveBoxIcon />
                                                             </button>
                                                         )

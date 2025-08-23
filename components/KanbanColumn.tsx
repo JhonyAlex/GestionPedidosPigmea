@@ -19,9 +19,14 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ etapa, pedidos, onSelectPed
     }, []);
 
     return (
-        <div className="flex flex-col bg-gray-800 rounded-xl shadow-lg h-full">
-            <div className={`p-4 rounded-t-xl ${etapa.color}`}>
-                <h2 className="text-xl font-bold text-white text-center">{etapa.title} ({pedidos.length})</h2>
+        <div className="flex flex-col bg-gray-200 dark:bg-gray-800 rounded-xl shadow-lg h-full">
+            <div className={`px-4 py-2 rounded-t-xl ${etapa.color}`}>
+                <div className="flex justify-center items-center gap-2">
+                    <h2 className="text-lg font-bold text-white">{etapa.title}</h2>
+                    <span className="bg-black bg-opacity-25 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                        {pedidos.length}
+                    </span>
+                </div>
             </div>
             {isMounted && (
                 <Droppable droppableId={etapa.id} isDropDisabled={currentUserRole === 'Operador' && etapa.id === 'COMPLETADO'}>
@@ -29,7 +34,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ etapa, pedidos, onSelectPed
                         <div
                             ref={provided.innerRef}
                             {...provided.droppableProps}
-                            className={`flex-grow p-4 transition-colors duration-200 ${snapshot.isDraggingOver ? 'bg-gray-700' : 'bg-gray-800'} rounded-b-xl overflow-y-auto`}
+                            className={`flex-grow p-4 transition-colors duration-200 ${snapshot.isDraggingOver ? 'bg-gray-300 dark:bg-gray-700' : 'bg-gray-200 dark:bg-gray-800'} rounded-b-xl overflow-y-auto`}
                             style={{ minHeight: '300px' }}
                         >
                             {pedidos.map((pedido, index) => (

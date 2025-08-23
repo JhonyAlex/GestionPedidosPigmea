@@ -39,21 +39,21 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
     return (
         <div 
             onClick={() => onSelectPedido(pedido)}
-            className={`bg-gray-900 rounded-lg p-4 cursor-pointer hover:bg-gray-700 transition-colors duration-200 border-l-4 ${priorityColor} shadow-md`}>
+            className={`bg-white dark:bg-gray-900 rounded-lg p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 border-l-4 ${priorityColor} shadow-md`}>
             <div className="flex justify-between items-start">
-                <h3 className="font-bold text-lg text-gray-100">{pedido.numeroPedido}</h3>
+                <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100">{pedido.numeroPedido}</h3>
                 <span className={`text-xs font-semibold px-2 py-1 rounded-full ${priorityColor.replace('border', 'bg').replace('-500','-900')} text-white`}>
                     {pedido.prioridad}
                 </span>
             </div>
-            <p className="text-gray-300 mt-1">{pedido.cliente}</p>
-            <div className="text-sm text-gray-400 mt-3 flex justify-between items-center">
+            <p className="text-gray-600 dark:text-gray-300 mt-1">{pedido.cliente}</p>
+            <div className="text-sm text-gray-500 dark:text-gray-400 mt-3 flex justify-between items-center">
                 <span className="flex items-center"><RulerIcon /> {pedido.metros} m</span>
                 <span className="flex items-center"><ClockIcon /> {pedido.tiempoProduccionPlanificado}</span>
                  {pedido.etapaActual === Etapa.COMPLETADO && currentUserRole === 'Administrador' && (
                     <button 
                         onClick={handleArchiveClick} 
-                        className="text-gray-400 hover:text-white transition-colors"
+                        className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors"
                         aria-label="Archivar Pedido"
                         title="Archivar Pedido"
                     >

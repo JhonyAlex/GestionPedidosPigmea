@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 import { Pedido, Etapa, ViewType, UserRole, AuditEntry } from './types';
 import { KANBAN_FUNNELS, ETAPAS, PRIORIDAD_ORDEN } from './constants';
@@ -8,6 +8,7 @@ import PedidoModal from './components/PedidoModal';
 import Header from './components/Header';
 import PedidoList from './components/PedidoList';
 import ReportView from './components/ReportView';
+import ThemeSwitcher from './components/ThemeSwitcher';
 
 const App: React.FC = () => {
     const [pedidos, setPedidos] = useState<Pedido[]>(initialPedidos);
@@ -17,6 +18,30 @@ const App: React.FC = () => {
     const [filters, setFilters] = useState<{ priority: string, stage: string }>({ priority: 'all', stage: 'all' });
     const [currentUserRole, setCurrentUserRole] = useState<UserRole>('Administrador');
     const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
+    
+    const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+        if (typeof window !== 'undefined' && localStorage.theme) {
+            return localStorage.theme as 'light' | 'dark';
+        }
+        if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            return 'dark';
+        }
+        return 'light';
+    });
+
+    useEffect(() => {
+        const root = window.document.documentElement;
+        if (theme === 'dark') {
+            root.classList.add('dark');
+        } else {
+            root.classList.remove('dark');
+        }
+        localStorage.setItem('theme', theme);
+    }, [theme]);
+    
+    const toggleTheme = () => {
+        setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+    };
 
     const logAction = useCallback((action: string) => {
         setAuditLog(prevLog => [
@@ -133,7 +158,7 @@ const App: React.FC = () => {
                         <main className="flex-grow p-4 md:p-8 flex flex-col gap-10">
                             {/* Funnel de Impresión */}
                             <section>
-                                <h2 className="text-3xl font-extrabold text-white mb-5 border-l-4 border-cyan-500 pl-4">Impresión</h2>
+                                <h2 className="text-3xl font-extrabold text-gray-800 dark:text-white mb-4 border-l-4 border-cyan-500 pl-4">Impresión</h2>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                     {KANBAN_FUNNELS.IMPRESION.stages.map(etapaId => {
                                         const etapa = ETAPAS[etapaId];
@@ -154,7 +179,7 @@ const App: React.FC = () => {
 
                             {/* Funnel de Post-Impresión */}
                             <section>
-                                <h2 className="text-3xl font-extrabold text-white mb-5 border-l-4 border-indigo-500 pl-4">Post-Impresión</h2>
+                                <h2 className="text-3xl font-extrabold text-gray-800 dark:text-white mb-4 border-l-4 border-indigo-500 pl-4">Post-Impresión</h2>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-6">
                                     {KANBAN_FUNNELS.POST_IMPRESION.stages.map(etapaId => {
                                         const etapa = ETAPAS[etapaId];
@@ -175,7 +200,7 @@ const App: React.FC = () => {
 
                             {/* Columna de Completado */}
                              <section>
-                                <h2 className="text-3xl font-extrabold text-white mb-5 border-l-4 border-green-500 pl-4">Finalizado</h2>
+                                <h2 className="text-3xl font-extrabold text-gray-800 dark:text-white mb-4 border-l-4 border-green-500 pl-4">Finalizado</h2>
                                 <div className="w-full md:w-1/2 lg:w-1/3 xl:w-1/4">
                                      {(() => {
                                         const etapa = ETAPAS[Etapa.COMPLETADO];
@@ -223,7 +248,7 @@ const App: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen text-white flex flex-col">
+        <div className="min-h-screen text-gray-900 dark:text-white flex flex-col">
             <Header
                 onSearch={setSearchTerm}
                 currentView={view}
@@ -243,6 +268,7 @@ const App: React.FC = () => {
                     currentUserRole={currentUserRole}
                 />
             )}
+            <ThemeSwitcher theme={theme} toggleTheme={toggleTheme} />
         </div>
     );
 };

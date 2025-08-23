@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface ChartData {
@@ -26,9 +25,9 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
     );
 
     return (
-        <div className="w-full h-full flex flex-col p-4 bg-gray-900/50 rounded-lg">
+        <div className="w-full h-full flex flex-col p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
             {/* Legend */}
-            <div className="flex justify-center gap-4 mb-4 text-xs">
+            <div className="flex justify-center gap-4 mb-4 text-xs text-gray-600 dark:text-gray-300">
                 <div className="flex items-center">
                     <span className="w-3 h-3 rounded-full bg-blue-500/70 mr-2"></span>
                     <span>Planificado</span>
@@ -45,15 +44,15 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
 
             <div className="flex-grow flex">
                 {/* Y-Axis */}
-                <div className="flex flex-col justify-between text-xs text-gray-400 pr-4 text-right">
+                <div className="flex flex-col justify-between text-xs text-gray-500 dark:text-gray-400 pr-4 text-right">
                     {yAxisLabels.reverse().map(label => <span key={label}>{label}</span>)}
                 </div>
                 
                 {/* Chart Area */}
-                <div className="w-full grid grid-cols-10 gap-2 border-l border-gray-700 pl-4 relative">
+                <div className="w-full grid grid-cols-10 gap-2 border-l border-gray-300 dark:border-gray-700 pl-4 relative">
                      {/* Y-Axis Grid Lines */}
                     {yAxisLabels.slice(1).map((_, index) => (
-                        <div key={index} className="col-span-10 border-t border-gray-700/50 absolute w-full" style={{ bottom: `${(index + 1) * (100 / yAxisSteps)}%` }}></div>
+                        <div key={index} className="col-span-10 border-t border-gray-300/50 dark:border-gray-700/50 absolute w-full" style={{ bottom: `${(index + 1) * (100 / yAxisSteps)}%` }}></div>
                     ))}
                     
                     {/* Bars */}
@@ -76,7 +75,7 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
                                     );
                                 })}
                             </div>
-                            <span className="text-[10px] text-gray-400 mt-1 transform -rotate-45 whitespace-nowrap">{label}</span>
+                            <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 transform -rotate-45 whitespace-nowrap">{label}</span>
                         </div>
                     ))}
                 </div>
