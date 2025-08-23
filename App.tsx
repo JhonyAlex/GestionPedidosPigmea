@@ -133,7 +133,7 @@ const App: React.FC = () => {
                         <main className="flex-grow p-4 md:p-8 flex flex-col gap-10">
                             {/* Funnel de Impresión */}
                             <section>
-                                <h2 className="text-3xl font-extrabold text-white mb-5 border-l-4 border-cyan-500 pl-4">Embudo de Impresión</h2>
+                                <h2 className="text-3xl font-extrabold text-white mb-5 border-l-4 border-cyan-500 pl-4">Impresión</h2>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                     {KANBAN_FUNNELS.IMPRESION.stages.map(etapaId => {
                                         const etapa = ETAPAS[etapaId];
@@ -154,7 +154,7 @@ const App: React.FC = () => {
 
                             {/* Funnel de Post-Impresión */}
                             <section>
-                                <h2 className="text-3xl font-extrabold text-white mb-5 border-l-4 border-indigo-500 pl-4">Embudo de Post-Impresión</h2>
+                                <h2 className="text-3xl font-extrabold text-white mb-5 border-l-4 border-indigo-500 pl-4">Post-Impresión</h2>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-6">
                                     {KANBAN_FUNNELS.POST_IMPRESION.stages.map(etapaId => {
                                         const etapa = ETAPAS[etapaId];
