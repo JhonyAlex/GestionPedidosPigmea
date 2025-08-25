@@ -1,7 +1,8 @@
-export type DateFilterOption = 'all' | 'this-week' | 'last-week' | 'this-month' | 'last-month';
+
+export type DateFilterOption = 'all' | 'this-week' | 'last-week' | 'this-month' | 'last-month' | 'custom';
 
 export const getDateRange = (filter: DateFilterOption): { start: Date, end: Date } | null => {
-    if (filter === 'all') {
+    if (filter === 'all' || filter === 'custom') {
         return null;
     }
 

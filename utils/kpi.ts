@@ -1,9 +1,20 @@
+
+
 import { Pedido, EtapaInfo, Etapa } from '../types';
+import { ETAPAS, KANBAN_FUNNELS } from '../constants';
+
+// To satisfy TypeScript since jspdf and jspdf-autotable are loaded from script tags
+declare global {
+    interface Window {
+        jspdf: any;
+    }
+}
+
 
 const ETAPAS_PRODUCCION = [
     Etapa.IMPRESION_WM1,
     Etapa.IMPRESION_GIAVE,
-    Etapa.IMPRESION_WM2,
+    Etapa.IMPRESION_WM3,
     Etapa.IMPRESION_ANON,
     Etapa.POST_LAMINACION_SL2,
     Etapa.POST_LAMINACION_NEXUS,
@@ -77,3 +88,192 @@ export const calcularTiempoRealProduccion = (pedido: Pedido): number => {
 
     return Math.round(totalMinutes);
 };
+
+/**
+ * Calculates the total time between two dates and formats it as a string.
+ * @param startDate The start date in ISO format.
+ * @param endDate The end date in ISO format.
+ * @returns A string in "X día(s), Y hora(s)" format.
+ */
+export const calculateTotalProductionTime = (startDate: string, endDate: string): string => {
+    const start = new Date(startDate).getTime();
+    const end = new Date(endDate).getTime();
+    if (isNaN(start) || isNaN(end) || end < start) return 'N/A';
+    
+    const durationMillis = end - start;
+    const totalHours = durationMillis / (1000 * 60 * 60);
+    const days = Math.floor(totalHours / 24);
+    const hours = Math.round(totalHours % 24);
+    
+    return `${days} día(s), ${hours} hora(s)`;
+};
+
+// --- PDF Generation ---
+
+// Palette of corporate, less pastel colors for client-based row coloring.
+const CLIENT_COLOR_PALETTE: number[][] = [
+    [191, 219, 254], // blue-200
+    [165, 243, 252], // cyan-200
+    [203, 213, 225], // slate-200
+    [167, 243, 208], // emerald-200
+    [199, 210, 254], // indigo-200
+    [229, 231, 235], // gray-200
+];
+
+const getNextStageTitle = (pedido: Pedido): string => {
+    const { etapaActual, secuenciaTrabajo } = pedido;
+    
+    if (!secuenciaTrabajo) return 'N/A';
+
+    const isPrinting = KANBAN_FUNNELS.IMPRESION.stages.includes(etapaActual);
+    const isPostPrinting = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(etapaActual);
+
+    if (isPrinting && secuenciaTrabajo.length > 0) {
+        return ETAPAS[secuenciaTrabajo[0]].title;
+    }
+
+    if (isPostPrinting) {
+        const currentIndex = secuenciaTrabajo.indexOf(etapaActual);
+        if (currentIndex > -1 && currentIndex < secuenciaTrabajo.length - 1) {
+            return ETAPAS[secuenciaTrabajo[currentIndex + 1]].title;
+        }
+        if (currentIndex === secuenciaTrabajo.length - 1) {
+            return ETAPAS[Etapa.COMPLETADO].title;
+        }
+    }
+    
+    return 'N/A';
+};
+
+
+export const generatePedidosPDF = (pedidos: Pedido[]) => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'pt', 'a4');
+
+    // --- Client Color Mapping ---
+    const clientColorMap = new Map<string, number[]>();
+    let colorIndex = 0;
+    const getClientColor = (clientName: string): number[] => {
+        if (!clientColorMap.has(clientName)) {
+            const color = CLIENT_COLOR_PALETTE[colorIndex % CLIENT_COLOR_PALETTE.length];
+            clientColorMap.set(clientName, color);
+            colorIndex++;
+        }
+        return clientColorMap.get(clientName)!;
+    };
+
+
+    // --- HEADER ---
+    doc.setFontSize(20);
+    doc.setFont(undefined, 'bold');
+    doc.text('PIGMEA S.L.', 40, 55);
+
+    // --- Document Title & Dynamic Subtitle ---
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(100);
+    const mainSubtitle = 'Planificación semanal';
+    let tableStartY = 90; // Default start Y for the table
+    doc.text(mainSubtitle, 40, 75);
+
+    // Dynamic subtitle part based on stages present in the exported list
+    const printingMachines = new Set<string>();
+    const postPrintingStages = new Set<string>();
+
+    pedidos.forEach(p => {
+        if (KANBAN_FUNNELS.IMPRESION.stages.includes(p.etapaActual)) {
+            printingMachines.add(ETAPAS[p.etapaActual].title);
+        } else if (KANBAN_FUNNELS.POST_IMPRESION.stages.includes(p.etapaActual)) {
+            postPrintingStages.add(ETAPAS[p.etapaActual].title);
+        }
+    });
+    
+    const subtitleParts: string[] = [];
+    if (printingMachines.size > 0) {
+        subtitleParts.push(`Impresión: ${Array.from(printingMachines).join(', ')}`);
+    }
+    if (postPrintingStages.size > 0) {
+        subtitleParts.push(`Post-Impresión: ${Array.from(postPrintingStages).join(', ')}`);
+    }
+    const dynamicSubtitle = subtitleParts.join(' | ');
+
+    if (dynamicSubtitle) {
+        doc.setFontSize(9);
+        doc.setTextColor(150);
+        doc.text(dynamicSubtitle, 40, 88, { 
+            maxWidth: 595 - 40 - 40, // Page width - left margin - right margin
+        });
+        tableStartY = 105; // Push the table down if the dynamic subtitle exists
+    }
+    
+    // Date
+    const today = new Date();
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(0); // Reset text color
+    doc.text(today.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric'}), 555, 50, { align: 'right' });
+
+    // Table
+    const tableColumn = [
+        "Cliente y Nº Pedido", "Metros", "Tipo Impresión", "Capa", "Camisa",
+        "Secuencia Actual", "Secuencia Siguiente", "Observaciones", "F. Creación", "F. Entrega"
+    ];
+    
+    const tableRows = pedidos.map(p => {
+        const fechaEntregaParts = p.fechaEntrega.split('-');
+        const formattedFechaEntrega = fechaEntregaParts.length === 3 ? `${fechaEntregaParts[2]}/${fechaEntregaParts[1]}/${fechaEntregaParts[0]}` : p.fechaEntrega;
+        
+        return [
+            { content: `${p.cliente}\n${p.numeroPedidoCliente}`, styles: { fontStyle: 'bold' }},
+            p.metros,
+            p.tipoImpresion.replace(' (SUP)', '').replace(' (TTE)', ''),
+            p.capa,
+            p.desarrollo,
+            ETAPAS[p.etapaActual].title,
+            getNextStageTitle(p),
+            p.observaciones,
+            new Date(p.fechaCreacion).toLocaleDateString('es-ES'),
+            formattedFechaEntrega,
+        ];
+    });
+    
+    doc.autoTable({
+        startY: tableStartY,
+        head: [tableColumn],
+        body: tableRows,
+        theme: 'grid',
+        styles: {
+            fontSize: 7,
+            cellPadding: 3,
+            valign: 'middle',
+            textColor: [31, 41, 55], // gray-800 for dark text
+        },
+        headStyles: {
+            fillColor: [45, 55, 72], // dark gray
+            textColor: 255,
+            fontStyle: 'bold',
+            halign: 'center',
+        },
+        columnStyles: {
+            0: { cellWidth: 80 }, // Cliente
+            7: { cellWidth: 90 }, // Observaciones
+        },
+        didParseCell: (data) => {
+            // Apply client-based row color
+            const pedido = pedidos[data.row.index];
+            if (pedido && data.section === 'body') {
+                const clientColor = getClientColor(pedido.cliente);
+                data.cell.styles.fillColor = clientColor;
+            }
+
+            // Center align all columns except the first and observations
+            if (data.column.index > 0 && data.column.index !== 7) {
+                data.cell.styles.halign = 'center';
+            }
+        },
+    });
+
+    // Save
+    const dateStr = today.toISOString().split('T')[0];
+    doc.save(`planificacion_semanal_${dateStr}.pdf`);
+}

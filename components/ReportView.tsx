@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Pedido, Prioridad, Etapa, AuditEntry } from '../types';
 import { parseTimeToMinutes, calcularTiempoRealProduccion } from '../utils/kpi';
@@ -24,7 +25,7 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, auditLog }) => {
             .slice(0, 10); // Get last 10 completed orders
 
         return {
-            labels: completed.map(p => p.numeroPedido),
+            labels: completed.map(p => p.numeroPedidoCliente),
             datasets: [
                 {
                     label: 'Tiempo Planificado (min)',
@@ -56,7 +57,7 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, auditLog }) => {
                              <ul className="space-y-3">
                                 {urgentPedidos.map(p => (
                                     <li key={p.id} className="p-3 bg-gray-100 dark:bg-gray-700 rounded-md">
-                                        <p className="font-semibold text-gray-800 dark:text-white">{p.numeroPedido}</p>
+                                        <p className="font-semibold text-gray-800 dark:text-white">{p.numeroPedidoCliente}</p>
                                         <p className="text-sm text-gray-600 dark:text-gray-300">{p.cliente}</p>
                                     </li>
                                 ))}

@@ -1,12 +1,13 @@
-import { Etapa, Prioridad, KanbanEtapa } from './types';
+import { Etapa, Prioridad, KanbanEtapa, EstadoCliché } from './types';
 
 export const ETAPAS: Record<Etapa, KanbanEtapa> = {
+    [Etapa.PREPARACION]: { id: Etapa.PREPARACION, title: 'Preparación', color: 'bg-yellow-500' },
     [Etapa.PENDIENTE]: { id: Etapa.PENDIENTE, title: 'Pendiente', color: 'bg-gray-500' },
     
     // Colores para el embudo de Impresión (tonos Cian/Azul)
-    [Etapa.IMPRESION_WM1]: { id: Etapa.IMPRESION_WM1, title: 'WM1', color: 'bg-cyan-600' },
+    [Etapa.IMPRESION_WM1]: { id: Etapa.IMPRESION_WM1, title: 'Windmöller 1', color: 'bg-cyan-600' },
     [Etapa.IMPRESION_GIAVE]: { id: Etapa.IMPRESION_GIAVE, title: 'GIAVE', color: 'bg-cyan-700' },
-    [Etapa.IMPRESION_WM2]: { id: Etapa.IMPRESION_WM2, title: 'WM2', color: 'bg-cyan-800' },
+    [Etapa.IMPRESION_WM3]: { id: Etapa.IMPRESION_WM3, title: 'Windmöller 3', color: 'bg-cyan-800' },
     [Etapa.IMPRESION_ANON]: { id: Etapa.IMPRESION_ANON, title: 'ANON', color: 'bg-cyan-900' },
 
     // Colores para el embudo de Post-Impresión (tonos variados: Indigo, Púrpura, Rosa)
@@ -22,13 +23,29 @@ export const ETAPAS: Record<Etapa, KanbanEtapa> = {
     [Etapa.ARCHIVADO]: { id: Etapa.ARCHIVADO, title: 'Archivado', color: 'bg-red-800' },
 };
 
+// Columnas para la nueva vista de Preparación
+export const PREPARACION_SUB_ETAPAS_IDS = {
+  MATERIAL_NO_DISPONIBLE: 'MATERIAL_NO_DISPONIBLE',
+  CLICHE_PENDIENTE: 'CLICHE_PENDIENTE',
+  CLICHE_REPETICION: 'CLICHE_REPETICION',
+  CLICHE_NUEVO: 'CLICHE_NUEVO',
+} as const;
+
+
+export const PREPARACION_COLUMNS = [
+    { id: PREPARACION_SUB_ETAPAS_IDS.MATERIAL_NO_DISPONIBLE, title: 'Material No Disponible', color: 'bg-red-500' },
+    { id: PREPARACION_SUB_ETAPAS_IDS.CLICHE_PENDIENTE, title: 'Cliché: Pendiente Cliente', color: 'bg-blue-500' },
+    { id: PREPARACION_SUB_ETAPAS_IDS.CLICHE_REPETICION, title: 'Cliché: Repetición/Cambio', color: 'bg-indigo-500' },
+    { id: PREPARACION_SUB_ETAPAS_IDS.CLICHE_NUEVO, title: 'Cliché: Nuevo', color: 'bg-purple-500' },
+];
+
 export const KANBAN_FUNNELS = {
     IMPRESION: {
         title: 'Impresión',
         stages: [
             Etapa.IMPRESION_WM1,
             Etapa.IMPRESION_GIAVE,
-            Etapa.IMPRESION_WM2,
+            Etapa.IMPRESION_WM3,
             Etapa.IMPRESION_ANON,
         ],
     },

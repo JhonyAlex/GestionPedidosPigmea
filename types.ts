@@ -10,13 +10,21 @@ export enum TipoImpresion {
     TRANSPARENCIA = 'Transparencia (TTE)',
 }
 
+export enum EstadoCliché {
+    PENDIENTE_CLIENTE = 'Pendiente cliente',
+    REPETICION_CAMBIO = 'Repetición/Cambio',
+    NUEVO = 'Nuevo',
+}
+
+
 export enum Etapa {
+    PREPARACION = 'PREPARACION',
     PENDIENTE = 'PENDIENTE',
 
     // Embudo Impresión
     IMPRESION_WM1 = 'IMPRESION_WM1',
     IMPRESION_GIAVE = 'IMPRESION_GIAVE',
-    IMPRESION_WM2 = 'IMPRESION_WM2',
+    IMPRESION_WM3 = 'IMPRESION_WM3',
     IMPRESION_ANON = 'IMPRESION_ANON',
 
     // Embudo Post-Impresión
@@ -38,15 +46,26 @@ export interface EtapaInfo {
     fecha: string; // ISO 8601 date string
 }
 
+export interface HistorialEntry {
+    timestamp: string; // ISO 8601
+    usuario: UserRole;
+    accion: string; // e.g., "Creación", "Cambio de Etapa", "Campo Actualizado"
+    detalles: string; // e.g., "Etapa movida de 'Preparación' a 'Impresión WM1'" or "Prioridad cambiada de 'Normal' a 'Alta'"
+}
+
+
 export interface Pedido {
     id: string;
     secuenciaPedido: number;
-    numeroPedido: string;
+    orden: number;
+    numeroRegistro: string; // Internal, system-generated
+    numeroPedidoCliente: string; // User-provided
     cliente: string;
     maquinaImpresion: string;
     metros: number;
     fechaCreacion: string; // ISO 8601 date string
     fechaEntrega: string; // YYYY-MM-DD
+    fechaFinalizacion?: string; // ISO 8601 date string
     etapaActual: Etapa;
     etapasSecuencia: EtapaInfo[];
     prioridad: Prioridad;
@@ -54,7 +73,13 @@ export interface Pedido {
     desarrollo: string;
     capa: number;
     tiempoProduccionPlanificado: string; // HH:mm
+    tiempoTotalProduccion?: string; // "X días, Y horas"
+    secuenciaTrabajo: Etapa[];
     observaciones: string;
+    historial: HistorialEntry[];
+    // Nuevos campos para la etapa de Preparación
+    materialDisponible?: boolean;
+    estadoCliché?: EstadoCliché;
 }
 
 export interface KanbanEtapa {
@@ -63,7 +88,7 @@ export interface KanbanEtapa {
     color: string;
 }
 
-export type ViewType = 'kanban' | 'list' | 'archived' | 'report';
+export type ViewType = 'preparacion' | 'kanban' | 'list' | 'archived' | 'report';
 
 export type UserRole = 'Administrador' | 'Operador';
 
