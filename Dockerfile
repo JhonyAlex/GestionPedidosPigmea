@@ -14,6 +14,9 @@ RUN cd backend && npm ci
 # Copy source code
 COPY . .
 
+# Install missing Vite dependencies explicitly
+RUN npm install @vitejs/plugin-react vite --save-dev
+
 # Build the frontend
 RUN npm run build
 
@@ -28,7 +31,4 @@ ENV PORT=8080
 
 # Start the backend server
 CMD ["node", "backend/index.js"]
-ENV PORT=8080
-
-# Start the server
 CMD ["node", "index.js"]
