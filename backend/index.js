@@ -283,7 +283,7 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor escuchando en el puerto ${PORT}`);
     console.log(`Firestore habilitado: ${firestoreEnabled}`);
     console.log(`Modo: ${firestoreEnabled ? 'Cloud/Firestore' : 'Local/Memory'}`);
