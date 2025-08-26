@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 import { Pedido, Etapa, ViewType, UserRole, AuditEntry, Prioridad, EstadoCliché, HistorialEntry } from './types';
@@ -316,9 +317,13 @@ const App: React.FC = () => {
         }
     
         if (newEtapa) {
-            const finalNewEtapa: Etapa = newEtapa;
-            const historialEntry = generarEntradaHistorial(currentUserRole, 'Avance de Etapa', `Avanzado de '${ETAPAS[etapaActual].title}' a '${ETAPAS[finalNewEtapa].title}'.`);
-            const isMovingToCompleted = String(finalNewEtapa) === String(Etapa.COMPLETADO);
+            const historialEntry = generarEntradaHistorial(currentUserRole, 'Avance de Etapa', `Avanzado de '${ETAPAS[etapaActual].title}' a '${ETAPAS[newEtapa].title}'.`);
+            // FIX: A new constant `finalNewEtapa` is introduced to hold the value of `newEtapa`.
+            // This prevents an issue where TypeScript's control flow analysis incorrectly narrows
+            // the type of the mutable `newEtapa` variable, which would otherwise cause a type error
+            // in the comparison against `Etapa.COMPLETADO`.
+            const finalNewEtapa = newEtapa;
+            const isMovingToCompleted = finalNewEtapa === Etapa.COMPLETADO;
             const fechaFinalizacion = isMovingToCompleted ? new Date().toISOString() : pedidoToAdvance.fechaFinalizacion;
             
             const updatedPedido = {
