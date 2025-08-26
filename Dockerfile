@@ -15,7 +15,7 @@ RUN cd backend && npm ci
 COPY . .
 
 # Install missing Vite dependencies explicitly
-RUN npm install @vitejs/plugin-react vite --save-dev
+RUN npm install @vitejs/plugin-react vite terser --save-dev
 
 # Build the frontend
 RUN npm run build
