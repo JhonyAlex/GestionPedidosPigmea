@@ -59,7 +59,12 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData);
+        const metrosValue = Number(formData.metros);
+        if (isNaN(metrosValue) || metrosValue <= 0) {
+            alert('Metros debe ser un número mayor a 0.');
+            return;
+        }
+        onSave({ ...formData, metros: metrosValue });
     };
     
     const handleArchiveClick = () => {
@@ -272,15 +277,23 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                 <input type="text" name="capa" value={formData.capa} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50" placeholder="Número o texto de capa"/>
                                             </div>
                                         </div>
-                                        <label className="block mt-4 mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Prioridad</label>
-                                        <select name="prioridad" value={formData.prioridad} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50">
-                                            {Object.values(Prioridad).map(p => <option key={p} value={p}>{p}</option>)}
-                                        </select>
+                                        <div className="grid grid-cols-2 gap-4 mt-4">
+                                            <div>
+                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Prioridad</label>
+                                                <select name="prioridad" value={formData.prioridad} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50">
+                                                    {Object.values(Prioridad).map(p => <option key={p} value={p}>{p}</option>)}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Camisa</label>
+                                                <input type="text" name="camisa" value={formData.camisa || ''} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50" placeholder="Información de la camisa"/>
+                                            </div>
+                                        </div>
 
                                         <div className="grid grid-cols-2 gap-4 mt-4">
                                             <div>
                                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Metros</label>
-                                                <input type="number" name="metros" value={formData.metros} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"/>
+                                                <input type="text" inputMode="numeric" pattern="[0-9]*" name="metros" value={formData.metros} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"/>
                                             </div>
                                             <div>
                                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Tiempo Prod. (HH:mm)</label>
@@ -306,11 +319,6 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                 <div className="md:col-span-2 mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
                                     <h3 className="text-xl font-semibold mb-4">Secuencia de Trabajo Post-Impresión</h3>
                                     <SequenceBuilder sequence={formData.secuenciaTrabajo || []} onChange={handleSequenceChange} isReadOnly={isReadOnly} />
-                                </div>
-
-                                <div className="md:col-span-2 mt-6">
-                                    <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Camisa</label>
-                                    <input type="text" name="camisa" value={formData.camisa || ''} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50" placeholder="Información de la camisa"/>
                                 </div>
 
                                 <div className="md:col-span-2 mt-6">

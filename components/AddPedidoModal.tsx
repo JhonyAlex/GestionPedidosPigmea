@@ -14,7 +14,7 @@ interface AddPedidoModalProps {
 const initialFormData = {
     cliente: '',
     numeroPedidoCliente: '',
-    metros: 0,
+    metros: '',
     fechaEntrega: '',
     prioridad: Prioridad.NORMAL,
     tipoImpresion: TipoImpresion.SUPERFICIE,
@@ -46,11 +46,12 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.cliente.trim() || !formData.numeroPedidoCliente.trim() || !formData.fechaEntrega || formData.metros <= 0) {
-            alert('Por favor, complete todos los campos obligatorios (Cliente, N° Pedido Cliente, Fecha Entrega, Metros).');
+        const metrosValue = Number(formData.metros);
+        if (!formData.cliente.trim() || !formData.numeroPedidoCliente.trim() || !formData.fechaEntrega || isNaN(metrosValue) || metrosValue <= 0) {
+            alert('Por favor, complete todos los campos obligatorios (Cliente, N° Pedido Cliente, Fecha Entrega, Metros). Metros debe ser un número mayor a 0.');
             return;
         }
-        onAdd({ pedidoData: formData, secuenciaTrabajo });
+        onAdd({ pedidoData: { ...formData, metros: metrosValue }, secuenciaTrabajo });
     };
 
     return (
@@ -106,7 +107,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
                             <div className="grid grid-cols-2 gap-4 mt-4">
                                 <div>
                                     <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Metros</label>
-                                    <input type="number" name="metros" value={formData.metros} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" min="1" required/>
+                                    <input type="text" inputMode="numeric" pattern="[0-9]*" name="metros" value={formData.metros} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" required/>
                                 </div>
                                 <div>
                                     <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Tiempo Prod. (HH:mm)</label>

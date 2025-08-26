@@ -62,7 +62,7 @@ export interface Pedido {
     numeroPedidoCliente: string; // User-provided
     cliente: string;
     maquinaImpresion: string;
-    metros: number;
+    metros: number | string;
     fechaCreacion: string; // ISO 8601 date string
     fechaEntrega: string; // YYYY-MM-DD
     fechaFinalizacion?: string; // ISO 8601 date string
