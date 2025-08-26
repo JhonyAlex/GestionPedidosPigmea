@@ -87,7 +87,12 @@ class ApiClient implements DataStore<Pedido> {
     }
 
     public async clear(): Promise<void> {
-        await apiFetch<void>('/pedidos/all', { method: 'DELETE' });
+        // Primero, obtenemos todos los pedidos existentes.
+        const pedidos = await this.getAll();
+        // Luego, creamos una promesa para cada operación de eliminación.
+        const deletePromises = pedidos.map(p => this.delete(p.id));
+        // Esperamos a que todas las promesas de eliminación se completen.
+        await Promise.all(deletePromises);
     }
 
     public async bulkInsert(items: Pedido[]): Promise<void> {
