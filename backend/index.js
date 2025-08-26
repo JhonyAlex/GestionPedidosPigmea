@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const { Firestore } = require('@google-cloud/firestore');
@@ -15,6 +16,8 @@ const pedidosCollection = db.collection('pedidos');
 // --- EXPRESS APP SETUP ---
 const app = express();
 app.use(cors()); // Enable CORS for all routes
+// ---- Servir el Frontend ----
+app.use(express.static(path.join(__dirname, 'dist')));
 app.use(express.json()); // Middleware to parse JSON bodies
 
 // --- API ROUTES ---
@@ -158,6 +161,11 @@ app.delete('/api/pedidos/all', async (req, res) => {
 
 // --- SERVER START ---
 const PORT = process.env.PORT || 8080;
+// Para cualquier otra petición que no sea de la API, servir el index.html
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+// ---- Fin de servir el Frontend ----
 app.listen(PORT, () => {
     console.log(`Servidor escuchando en el puerto ${PORT}`);
 });
