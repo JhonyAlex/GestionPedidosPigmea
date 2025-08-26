@@ -31,4 +31,3 @@ ENV PORT=8080
 
 # Start the backend server
 CMD ["node", "backend/index.js"]
-CMD ["node", "index.js"]
