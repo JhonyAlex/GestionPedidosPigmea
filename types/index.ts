@@ -95,9 +95,6 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
                                 </div>
                             </div>
 
-                            <label className="block mt-4 mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Camisa</label>
-                            <input type="text" name="camisa" value={formData.camisa} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" placeholder="Ingrese información de la camisa"/>
-
                             <label className="block mt-4 mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Prioridad</label>
                             <select name="prioridad" value={formData.prioridad} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5">
                                 {Object.values(Prioridad).map(p => <option key={p} value={p}>{p}</option>)}
@@ -134,6 +131,11 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
                     <div className="mt-6">
                         <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Observaciones</label>
                         <textarea name="observaciones" value={formData.observaciones} onChange={handleChange} rows={3} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"></textarea>
+                    </div>
+
+                    <div className="mt-6">
+                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Camisa</label>
+                        <input type="text" name="camisa" value={formData.camisa} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"/>
                     </div>
 
                     <div className="mt-8 flex justify-end items-center">
