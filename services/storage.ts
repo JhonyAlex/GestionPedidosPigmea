@@ -108,8 +108,8 @@ class MockApiClient implements DataStore<Pedido> {
     }
 
     private async simulateDelay<T>(data: T): Promise<T> {
-        // Simula la latencia de red
-        return new Promise(resolve => setTimeout(() => resolve(data), 200));
+        // Latencia reducida para mejorar la experiencia de drag and drop
+        return new Promise(resolve => setTimeout(() => resolve(data), 50));
     }
 
     public async init(): Promise<void> {

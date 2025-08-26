@@ -63,9 +63,12 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
     const movedPedido = pedidos.find(p => p.id === draggableId);
     if (!movedPedido) return;
 
+    // Actualización optimista inmediata para evitar el "salto"
+    let updatedPedido: Pedido;
+
     if (source.droppableId.startsWith('PREP_') && destination.droppableId.startsWith('PREP_')) {
         const destId = destination.droppableId.replace('PREP_', '');
-        let updatedPedido = { ...movedPedido, historial: [...movedPedido.historial] };
+        updatedPedido = { ...movedPedido, historial: [...movedPedido.historial] };
         let logDetails = '';
 
         if (destId === PREPARACION_SUB_ETAPAS_IDS.MATERIAL_NO_DISPONIBLE) {
@@ -89,9 +92,18 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
         const historialEntry = generarEntradaHistorial(currentUserRole, 'Actualización en Preparación', logDetails || 'Movido en vista de preparación');
         updatedPedido.historial.push(historialEntry);
 
-        await store.update(updatedPedido);
+        // Actualización optimista primero
         setPedidos(prev => prev.map(p => p.id === draggableId ? updatedPedido : p));
-        logAction(`Pedido ${movedPedido.numeroPedidoCliente} actualizado en Preparación.`);
+        
+        // Luego actualización en almacenamiento (en background)
+        try {
+            await store.update(updatedPedido);
+            logAction(`Pedido ${movedPedido.numeroPedidoCliente} actualizado en Preparación.`);
+        } catch (error) {
+            console.error('Error al actualizar el pedido:', error);
+            // Revertir en caso de error
+            setPedidos(prev => prev.map(p => p.id === draggableId ? movedPedido : p));
+        }
         return;
     }
 
@@ -101,11 +113,9 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
     
     const isMovingToCompleted = newEtapa === Etapa.COMPLETADO;
     const wasCompleted = movedPedido.etapaActual === Etapa.COMPLETADO;
-    // Fix: Simplified the logic to avoid redundant comparison that caused a TypeScript error.
-    // If moving to completed, set completion date. If moving *from* completed, clear it. Otherwise, keep it.
     const fechaFinalizacion = isMovingToCompleted ? new Date().toISOString() : (wasCompleted ? undefined : movedPedido.fechaFinalizacion);
 
-    const updatedPedido = { 
+    updatedPedido = { 
         ...movedPedido,
         etapaActual: newEtapa,
         etapasSecuencia: [...movedPedido.etapasSecuencia, { etapa: newEtapa, fecha: new Date().toISOString() }],
@@ -113,7 +123,17 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
         fechaFinalizacion,
         tiempoTotalProduccion: fechaFinalizacion ? calculateTotalProductionTime(movedPedido.fechaCreacion, fechaFinalizacion) : undefined
     };
-    await store.update(updatedPedido);
+
+    // Actualización optimista primero
     setPedidos(prev => prev.map(p => p.id === draggableId ? updatedPedido : p));
-    logAction(`Pedido ${movedPedido.numeroPedidoCliente} movido (manual) de ${ETAPAS[oldEtapa].title} a ${ETAPAS[newEtapa].title}.`);
+    
+    // Luego actualización en almacenamiento (en background)
+    try {
+        await store.update(updatedPedido);
+        logAction(`Pedido ${movedPedido.numeroPedidoCliente} movido (manual) de ${ETAPAS[oldEtapa].title} a ${ETAPAS[newEtapa].title}.`);
+    } catch (error) {
+        console.error('Error al actualizar el pedido:', error);
+        // Revertir en caso de error
+        setPedidos(prev => prev.map(p => p.id === draggableId ? movedPedido : p));
+    }
 };

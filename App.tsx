@@ -116,7 +116,7 @@ const App: React.FC = () => {
         // 1. Highlight in original position
         setHighlightedPedidoId(pedidoToAdvance.id);
     
-        // 2. Wait for render, then move
+        // 2. Move immediately for better UX
         setTimeout(async () => {
             const { etapaActual, secuenciaTrabajo, numeroPedidoCliente } = pedidoToAdvance;
             const newEtapa = calcularSiguienteEtapa(etapaActual, secuenciaTrabajo);
@@ -147,12 +147,12 @@ const App: React.FC = () => {
                 // 4. Set timer to remove highlight from new position
                 setTimeout(() => {
                     setHighlightedPedidoId(null);
-                }, 1000);
+                }, 800);
             } else {
                 // No move happened, clear highlight
                 setHighlightedPedidoId(null); 
             }
-        }, 100); // Delay for initial highlight render
+        }, 50); // Reduced delay for better responsiveness
     };
 
     const handleSavePedido = async (updatedPedido: Pedido) => {
@@ -176,7 +176,7 @@ const App: React.FC = () => {
         setPedidoToSend(null);
         setHighlightedPedidoId(pedidoToUpdate.id);
     
-        // 2. Wait for render, then move
+        // 2. Move immediately for better UX
         setTimeout(() => {
             // This function from the hook updates the DB and the `pedidos` state
             handleConfirmSendToPrintLogic(pedidoToUpdate, impresionEtapa, postImpresionSequence)
@@ -187,13 +187,13 @@ const App: React.FC = () => {
                         // 3. Set timer to remove highlight from new position
                         setTimeout(() => {
                             setHighlightedPedidoId(null);
-                        }, 1000);
+                        }, 800);
                     } else {
                         // If the update failed, remove the highlight
                         setHighlightedPedidoId(null);
                     }
                 });
-        }, 100); // Delay for initial highlight render
+        }, 50); // Reduced delay for better responsiveness
     };
     
     const handleArchiveToggle = async (pedido: Pedido) => {

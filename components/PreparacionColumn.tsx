@@ -34,7 +34,7 @@ const PreparacionColumn: React.FC<PreparacionColumnProps> = ({ columna, pedidos,
                         <div
                             ref={provided.innerRef}
                             {...provided.droppableProps}
-                            className={`flex-grow p-4 transition-colors duration-200 ${snapshot.isDraggingOver ? 'bg-gray-300 dark:bg-gray-700' : 'bg-gray-200 dark:bg-gray-800'} rounded-b-xl overflow-y-auto min-h-[300px] max-h-[48rem]`}
+                            className={`flex-grow p-4 transition-colors duration-150 ease-in-out ${snapshot.isDraggingOver ? 'bg-gray-300 dark:bg-gray-700' : 'bg-gray-200 dark:bg-gray-800'} rounded-b-xl overflow-y-auto min-h-[300px] max-h-[48rem]`}
                         >
                             {pedidos.map((pedido, index) => (
                                 <Draggable key={pedido.id} draggableId={pedido.id} index={index}>
@@ -43,7 +43,7 @@ const PreparacionColumn: React.FC<PreparacionColumnProps> = ({ columna, pedidos,
                                             ref={provided.innerRef}
                                             {...provided.draggableProps}
                                             {...provided.dragHandleProps}
-                                            className={`mb-4 ${snapshot.isDragging ? 'shadow-2xl' : ''}`}
+                                            className={`mb-4 transition-transform duration-150 ease-in-out ${snapshot.isDragging ? 'scale-105 shadow-2xl rotate-1' : 'scale-100'}`}
                                         >
                                             <PedidoCard 
                                                 pedido={pedido} 

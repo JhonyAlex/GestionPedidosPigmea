@@ -58,10 +58,21 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
              hasChanges = JSON.stringify(originalPedido) !== JSON.stringify(modifiedPedido);
         }
 
+        // Actualización optimista primero
+        if (hasChanges) {
+            setPedidos(prev => prev.map(p => p.id === modifiedPedido.id ? modifiedPedido : p));
+        }
 
-        await store.update(modifiedPedido);
-        setPedidos(prev => prev.map(p => p.id === modifiedPedido.id ? modifiedPedido : p));
-        return { modifiedPedido, hasChanges };
+        // Luego actualización en almacenamiento (en background)
+        try {
+            await store.update(modifiedPedido);
+            return { modifiedPedido, hasChanges };
+        } catch (error) {
+            console.error('Error al actualizar el pedido:', error);
+            // Revertir en caso de error
+            setPedidos(prev => prev.map(p => p.id === modifiedPedido.id ? originalPedido : p));
+            return undefined;
+        }
     };
 
     const handleAddPedido = async (data: { pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'maquinaImpresion' | 'secuenciaTrabajo' | 'orden' | 'historial'>; secuenciaTrabajo: Etapa[]; }) => {
@@ -104,9 +115,19 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
             historial: [...pedidoToUpdate.historial, historialEntry],
         };
         
-        const savedPedido = await store.update(updatedPedido);
-        setPedidos(prev => prev.map(p => p.id === savedPedido.id ? savedPedido : p));
-        return savedPedido;
+        // Actualización optimista primero
+        setPedidos(prev => prev.map(p => p.id === updatedPedido.id ? updatedPedido : p));
+        
+        // Luego actualización en almacenamiento (en background)
+        try {
+            const savedPedido = await store.update(updatedPedido);
+            return savedPedido;
+        } catch (error) {
+            console.error('Error al enviar a impresión:', error);
+            // Revertir en caso de error
+            setPedidos(prev => prev.map(p => p.id === updatedPedido.id ? pedidoToUpdate : p));
+            return undefined;
+        }
     };
 
     const handleArchiveToggle = async (pedido: Pedido) => {
