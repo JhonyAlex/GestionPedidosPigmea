@@ -148,20 +148,7 @@ const getNextStageTitle = (pedido: Pedido): string => {
 
 export const generatePedidosPDF = (pedidos: Pedido[]) => {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'pt', 'a4');
-
-    // --- Client Color Mapping ---
-    const clientColorMap = new Map<string, number[]>();
-    let colorIndex = 0;
-    const getClientColor = (clientName: string): number[] => {
-        if (!clientColorMap.has(clientName)) {
-            const color = CLIENT_COLOR_PALETTE[colorIndex % CLIENT_COLOR_PALETTE.length];
-            clientColorMap.set(clientName, color);
-            colorIndex++;
-        }
-        return clientColorMap.get(clientName)!;
-    };
-
+    const doc = new jsPDF('l', 'pt', 'a4'); // 'l' for landscape
 
     // --- HEADER ---
     doc.setFontSize(20);
@@ -201,22 +188,31 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
         doc.setFontSize(9);
         doc.setTextColor(150);
         doc.text(dynamicSubtitle, 40, 88, { 
-            maxWidth: 595 - 40 - 40, // Page width - left margin - right margin
+            maxWidth: 842 - 40 - 40, // Page width (landscape) - margins
         });
-        tableStartY = 105; // Push the table down if the dynamic subtitle exists
+        tableStartY = 105; 
     }
     
     // Date
     const today = new Date();
     doc.setFontSize(9);
     doc.setFont(undefined, 'normal');
-    doc.setTextColor(0); // Reset text color
-    doc.text(today.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric'}), 555, 50, { align: 'right' });
+    doc.setTextColor(0); 
+    doc.text(today.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric'}), 802, 50, { align: 'right' });
 
     // Table
     const tableColumn = [
-        "Cliente y Nº Pedido", "Metros", "Tipo Impresión", "Capa", "Camisa",
-        "Secuencia Actual", "Secuencia Siguiente", "Observaciones", "F. Creación", "F. Entrega"
+        "Desarrollo",
+        "Cliente y # Pedido",
+        "Metros",
+        "Tipo Impresión",
+        "Capa",
+        "Camisa",
+        "Secuencia Actual",
+        "Secuencia Siguiente",
+        "Observaciones",
+        "Fecha Creación",
+        "Fecha Entrega"
     ];
     
     const tableRows = pedidos.map(p => {
@@ -224,6 +220,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
         const formattedFechaEntrega = fechaEntregaParts.length === 3 ? `${fechaEntregaParts[2]}/${fechaEntregaParts[1]}/${fechaEntregaParts[0]}` : p.fechaEntrega;
         
         return [
+            p.desarrollo || '-',
             { content: `${p.cliente}\n${p.numeroPedidoCliente}`, styles: { fontStyle: 'bold' }},
             p.metros,
             p.tipoImpresion.replace(' (SUP)', '').replace(' (TTE)', ''),
@@ -246,29 +243,32 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             fontSize: 7,
             cellPadding: 3,
             valign: 'middle',
-            textColor: [31, 41, 55], // gray-800 for dark text
+            textColor: [31, 41, 55], 
         },
         headStyles: {
-            fillColor: [45, 55, 72], // dark gray
+            fillColor: [45, 55, 72], 
             textColor: 255,
             fontStyle: 'bold',
             halign: 'center',
         },
         columnStyles: {
-            0: { cellWidth: 80 }, // Cliente
-            7: { cellWidth: 90 }, // Observaciones
+            0: { cellWidth: 60 }, // Desarrollo
+            1: { cellWidth: 80 }, // Cliente y # Pedido
+            8: { cellWidth: 100 }, // Observaciones
         },
         didParseCell: (data) => {
-            // Apply client-based row color
-            const pedido = pedidos[data.row.index];
-            if (pedido && data.section === 'body') {
-                const clientColor = getClientColor(pedido.cliente);
-                data.cell.styles.fillColor = clientColor;
+            // Center align all columns except specific ones
+            if (![1, 8].includes(data.column.index)) {
+                data.cell.styles.halign = 'center';
             }
 
-            // Center align all columns except the first and observations
-            if (data.column.index > 0 && data.column.index !== 7) {
-                data.cell.styles.halign = 'center';
+            // Highlight 'Capa' cell if layer is 3 or more
+            const pedido = pedidos[data.row.index];
+            if (pedido && data.section === 'body' && data.column.index === 4) { // "Capa" column
+                const capaValue = pedido.capa;
+                if (capaValue && typeof capaValue === 'number' && capaValue >= 3) {
+                    data.cell.styles.fillColor = [254, 202, 202]; // light red (red-200)
+                }
             }
         },
     });
