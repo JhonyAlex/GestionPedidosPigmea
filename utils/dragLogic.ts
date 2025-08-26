@@ -2,7 +2,7 @@ import React from 'react';
 import { DropResult } from 'react-beautiful-dnd';
 import { Pedido, Etapa, UserRole, EstadoCliché, HistorialEntry } from '../types';
 import { ETAPAS, PREPARACION_SUB_ETAPAS_IDS } from '../constants';
-import { IndexedDBStore } from '../services/storage';
+import { store } from '../services/storage';
 import { calculateTotalProductionTime } from './kpi';
 
 
@@ -10,7 +10,6 @@ type ProcessDragEndArgs = {
   result: DropResult;
   pedidos: Pedido[];
   processedPedidos: Pedido[];
-  store: IndexedDBStore<Pedido>;
   currentUserRole: UserRole;
   generarEntradaHistorial: (usuario: UserRole, accion: string, detalles: string) => HistorialEntry;
   logAction: (action: string) => void;
@@ -23,7 +22,6 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
         result,
         pedidos,
         processedPedidos,
-        store,
         currentUserRole,
         generarEntradaHistorial,
         logAction,

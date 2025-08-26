@@ -10,9 +10,10 @@ interface KanbanColumnProps {
     onArchiveToggle: (pedido: Pedido) => void;
     currentUserRole: UserRole;
     onAdvanceStage: (pedido: Pedido) => void;
+    highlightedPedidoId: string | null;
 }
 
-const KanbanColumn: React.FC<KanbanColumnProps> = ({ etapa, pedidos, onSelectPedido, onArchiveToggle, currentUserRole, onAdvanceStage }) => {
+const KanbanColumn: React.FC<KanbanColumnProps> = ({ etapa, pedidos, onSelectPedido, onArchiveToggle, currentUserRole, onAdvanceStage, highlightedPedidoId }) => {
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
@@ -52,6 +53,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ etapa, pedidos, onSelectPed
                                                 onSelectPedido={onSelectPedido}
                                                 currentUserRole={currentUserRole} 
                                                 onAdvanceStage={onAdvanceStage}
+                                                highlightedPedidoId={highlightedPedidoId}
                                             />
                                         </div>
                                     )}

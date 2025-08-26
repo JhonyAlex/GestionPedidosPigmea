@@ -10,9 +10,10 @@ interface CompletedPedidosListProps {
     onSelectPedido: (pedido: Pedido) => void;
     onArchiveToggle: (pedido: Pedido) => void;
     currentUserRole: UserRole;
+    highlightedPedidoId: string | null;
 }
 
-const CompletedPedidosList: React.FC<CompletedPedidosListProps> = ({ pedidos, onSelectPedido, onArchiveToggle, currentUserRole }) => {
+const CompletedPedidosList: React.FC<CompletedPedidosListProps> = ({ pedidos, onSelectPedido, onArchiveToggle, currentUserRole, highlightedPedidoId }) => {
     return (
         <div className="flex flex-col bg-gray-200 dark:bg-gray-800 rounded-xl shadow-lg h-full">
             <div className="bg-green-600 px-4 py-2 rounded-t-xl">
@@ -46,7 +47,7 @@ const CompletedPedidosList: React.FC<CompletedPedidosListProps> = ({ pedidos, on
                                                         ref={provided.innerRef}
                                                         {...provided.draggableProps}
                                                         {...provided.dragHandleProps}
-                                                        className={`border-b border-gray-300 dark:border-gray-700 hover:bg-gray-300/50 dark:hover:bg-gray-900/50 ${snapshot.isDragging ? 'shadow-2xl' : ''}`}
+                                                        className={`border-b border-gray-300 dark:border-gray-700 hover:bg-gray-300/50 dark:hover:bg-gray-900/50 ${snapshot.isDragging ? 'shadow-2xl' : ''} ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''}`}
                                                     >
                                                         <th scope="row" className="px-4 py-2 font-medium text-gray-900 dark:text-white whitespace-nowrap">{pedido.numeroPedidoCliente}</th>
                                                         <td className="px-4 py-2">{pedido.cliente}</td>

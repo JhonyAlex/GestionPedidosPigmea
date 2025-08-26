@@ -1,35 +1,29 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Pedido, UserRole, Etapa, HistorialEntry, EstadoCliché } from '../types';
-import { initialPedidos } from '../data/seedData';
-import { IndexedDBStore } from '../services/storage';
+import { useState, useEffect } from 'react';
+import { Pedido, UserRole, Etapa, HistorialEntry } from '../types';
+import { store } from '../services/storage';
 import { ETAPAS } from '../constants';
 
 export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHistorial: (usuario: UserRole, accion: string, detalles: string) => HistorialEntry) => {
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
-    const [store, setStore] = useState<IndexedDBStore<Pedido> | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const initStore = async () => {
             setIsLoading(true);
-            const pedidoStore = new IndexedDBStore<Pedido>('GestorPedidosDB', 'pedidos');
-            await pedidoStore.init();
-            setStore(pedidoStore);
-    
-            let currentPedidos = await pedidoStore.getAll();
-            if (currentPedidos.length === 0) {
-                console.log("No data found in IndexedDB, populating with seed data.");
-                await pedidoStore.bulkInsert(initialPedidos);
-                currentPedidos = await pedidoStore.getAll();
+            try {
+                const currentPedidos = await store.getAll();
+                setPedidos(currentPedidos);
+            } catch (error) {
+                console.error("Failed to fetch data from backend:", error);
+                alert("No se pudo conectar al servidor. Por favor, asegúrese de que el backend esté en ejecución y sea accesible.");
+            } finally {
+                setIsLoading(false);
             }
-            setPedidos(currentPedidos);
-            setIsLoading(false);
         };
-        initStore().catch(console.error);
+        initStore();
     }, []);
 
-    const handleSavePedido = async (updatedPedido: Pedido) => {
-        if (!store) return;
+    const handleSavePedido = async (updatedPedido: Pedido, generateHistory = true) => {
         if (currentUserRole !== 'Administrador') {
             alert('Permiso denegado: Solo los administradores pueden modificar pedidos.');
             return;
@@ -39,33 +33,38 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
         if (!originalPedido) return;
 
         let modifiedPedido = { ...updatedPedido };
-        const newHistoryEntries: HistorialEntry[] = [];
-        const fieldsToCompare: Array<keyof Pedido> = ['numeroPedidoCliente', 'cliente', 'metros', 'fechaEntrega', 'prioridad', 'tipoImpresion', 'desarrollo', 'capa', 'tiempoProduccionPlanificado', 'observaciones', 'materialDisponible', 'estadoCliché', 'secuenciaTrabajo'];
+        let hasChanges = false;
+        
+        if (generateHistory) {
+            const newHistoryEntries: HistorialEntry[] = [];
+            const fieldsToCompare: Array<keyof Pedido> = ['numeroPedidoCliente', 'cliente', 'metros', 'fechaEntrega', 'prioridad', 'tipoImpresion', 'desarrollo', 'capa', 'tiempoProduccionPlanificado', 'observaciones', 'materialDisponible', 'estadoCliché', 'secuenciaTrabajo'];
 
-        fieldsToCompare.forEach(key => {
-             if (JSON.stringify(originalPedido[key]) !== JSON.stringify(modifiedPedido[key])) {
-                const formatValue = (val: any) => val === true ? 'Sí' : (val === false ? 'No' : (Array.isArray(val) ? val.map(v => ETAPAS[v]?.title || v).join(', ') || 'Vacía' : val || 'N/A'));
-                newHistoryEntries.push(generarEntradaHistorial(currentUserRole, `Campo Actualizado: ${key}`, `Cambiado de '${formatValue(originalPedido[key])}' a '${formatValue(modifiedPedido[key])}'.`));
+            fieldsToCompare.forEach(key => {
+                 if (JSON.stringify(originalPedido[key]) !== JSON.stringify(modifiedPedido[key])) {
+                    const formatValue = (val: any) => val === true ? 'Sí' : (val === false ? 'No' : (Array.isArray(val) ? val.map(v => ETAPAS[v]?.title || v).join(', ') || 'Vacía' : val || 'N/A'));
+                    newHistoryEntries.push(generarEntradaHistorial(currentUserRole, `Campo Actualizado: ${key}`, `Cambiado de '${formatValue(originalPedido[key])}' a '${formatValue(modifiedPedido[key])}'.`));
+                }
+            });
+            
+            if (originalPedido.etapaActual !== modifiedPedido.etapaActual) {
+                newHistoryEntries.push(generarEntradaHistorial(currentUserRole, 'Cambio de Etapa', `Movido de '${ETAPAS[originalPedido.etapaActual].title}' a '${ETAPAS[modifiedPedido.etapaActual].title}'.`));
             }
-        });
-        
-        const originalEtapa = originalPedido.etapaActual;
-        const modifiedEtapa = modifiedPedido.etapaActual;
-        if (originalEtapa !== modifiedEtapa) {
-            newHistoryEntries.push(generarEntradaHistorial(currentUserRole, 'Cambio de Etapa', `Movido de '${ETAPAS[originalEtapa].title}' a '${ETAPAS[modifiedEtapa].title}'.`));
+            
+            if (newHistoryEntries.length > 0) {
+                modifiedPedido.historial = [...(modifiedPedido.historial || []), ...newHistoryEntries];
+            }
+            hasChanges = newHistoryEntries.length > 0;
+        } else {
+             hasChanges = JSON.stringify(originalPedido) !== JSON.stringify(modifiedPedido);
         }
-        
-        if (newHistoryEntries.length > 0) {
-            modifiedPedido.historial = [...(modifiedPedido.historial || []), ...newHistoryEntries];
-        }
+
 
         await store.update(modifiedPedido);
         setPedidos(prev => prev.map(p => p.id === modifiedPedido.id ? modifiedPedido : p));
-        return { modifiedPedido, hasChanges: newHistoryEntries.length > 0 };
+        return { modifiedPedido, hasChanges };
     };
 
     const handleAddPedido = async (data: { pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'maquinaImpresion' | 'secuenciaTrabajo' | 'orden' | 'historial'>; secuenciaTrabajo: Etapa[]; }) => {
-        if (!store) return;
         const { pedidoData, secuenciaTrabajo } = data;
         const now = new Date();
         const newId = now.getTime().toString();
@@ -87,13 +86,12 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
             secuenciaTrabajo,
         };
 
-        await store.create(newPedido);
-        setPedidos(prev => [newPedido, ...prev]);
-        return newPedido;
+        const createdPedido = await store.create(newPedido);
+        setPedidos(prev => [createdPedido, ...prev]);
+        return createdPedido;
     };
 
     const handleConfirmSendToPrint = async (pedidoToUpdate: Pedido, impresionEtapa: Etapa, postImpresionSequence: Etapa[]) => {
-        if (!store) return;
         const detalles = `Movido de 'Preparación' a '${ETAPAS[impresionEtapa].title}'.`;
         const historialEntry = generarEntradaHistorial(currentUserRole, 'Enviado a Impresión', detalles);
         
@@ -106,13 +104,12 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
             historial: [...pedidoToUpdate.historial, historialEntry],
         };
         
-        await store.update(updatedPedido);
-        setPedidos(prev => prev.map(p => p.id === updatedPedido.id ? updatedPedido : p));
-        return updatedPedido;
+        const savedPedido = await store.update(updatedPedido);
+        setPedidos(prev => prev.map(p => p.id === savedPedido.id ? savedPedido : p));
+        return savedPedido;
     };
 
     const handleArchiveToggle = async (pedido: Pedido) => {
-        if (!store) return;
         if (currentUserRole !== 'Administrador') {
             alert('Permiso denegado.');
             return;
@@ -124,22 +121,81 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
         const historialAction = isArchived ? 'Desarchivado' : 'Archivado';
         
         const historialEntry = generarEntradaHistorial(currentUserRole, historialAction, `Pedido ${actionText}.`);
-        const updatedPedido = { ...pedido, etapaActual: newEtapa, historial: [...pedido.historial, historialEntry] };
+        const updatedPedidoData = { ...pedido, etapaActual: newEtapa, historial: [...pedido.historial, historialEntry] };
         
-        await store.update(updatedPedido);
+        const updatedPedido = await store.update(updatedPedidoData);
         setPedidos(prev => prev.map(p => p.id === pedido.id ? updatedPedido : p));
         return { updatedPedido, actionText };
+    };
+    
+    const handleExportData = async (pedidosToExport: Pedido[]) => {
+        try {
+            const jsonData = JSON.stringify(pedidosToExport, null, 2);
+            const blob = new Blob([jsonData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const dateStr = new Date().toISOString().slice(0, 10);
+            a.download = `pedidos_backup_${dateStr}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("Failed to export data:", error);
+            alert("Error al exportar los datos.");
+        }
+    };
+    
+    const handleImportData = (confirmCallback: (data: Pedido[]) => boolean) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = (event) => {
+            const file = (event.target as HTMLInputElement).files?.[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const text = e.target?.result;
+                    if (typeof text !== 'string') throw new Error("File content is not text.");
+                    
+                    const importedPedidos: Pedido[] = JSON.parse(text);
+                    if (!Array.isArray(importedPedidos) || !importedPedidos.every(p => p.id && p.numeroPedidoCliente)) {
+                        throw new Error("Invalid JSON format. Expected an array of orders.");
+                    }
+                    
+                    if (confirmCallback(importedPedidos)) {
+                        setIsLoading(true);
+                        await store.clear();
+                        await store.bulkInsert(importedPedidos);
+                        const freshData = await store.getAll();
+                        setPedidos(freshData);
+                        setIsLoading(false);
+                        alert("Datos importados con éxito.");
+                    }
+                } catch (error) {
+                    console.error("Failed to import data:", error);
+                    alert(`Error al importar los datos: ${(error as Error).message}`);
+                    setIsLoading(false);
+                }
+            };
+            reader.readAsText(file);
+        };
+        input.click();
     };
 
     return {
       pedidos,
       setPedidos,
-      store,
       isLoading,
       setIsLoading,
       handleSavePedido,
       handleAddPedido,
       handleConfirmSendToPrint,
       handleArchiveToggle,
+      handleExportData,
+      handleImportData,
     };
 };

@@ -9,6 +9,7 @@ interface PedidoCardProps {
     currentUserRole: UserRole;
     onAdvanceStage: (pedido: Pedido) => void;
     onSendToPrint?: (pedido: Pedido) => void; // Optional: for PreparacionView
+    highlightedPedidoId?: string | null;
 }
 
 const ClockIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1 inline-block"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>;
@@ -19,7 +20,7 @@ const ArrowRightCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill=
 const PaperClipIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1 inline-block"><path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3.375 3.375 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.122 2.122l7.81-7.81" /></svg>;
 
 
-const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSelectPedido, currentUserRole, onAdvanceStage, onSendToPrint }) => {
+const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSelectPedido, currentUserRole, onAdvanceStage, onSendToPrint, highlightedPedidoId }) => {
     const priorityColor = PRIORIDAD_COLORS[pedido.prioridad];
 
     const handleArchiveClick = (e: React.MouseEvent) => {
@@ -62,7 +63,7 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
     return (
         <div 
             onClick={() => onSelectPedido(pedido)}
-            className={`bg-white dark:bg-gray-900 rounded-lg p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 border-l-4 ${priorityColor} shadow-md`}>
+            className={`bg-white dark:bg-gray-900 rounded-lg p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 border-l-4 ${priorityColor} shadow-md ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''}`}>
             <div className="flex justify-between items-start">
                 <h3 className="font-bold text-base text-gray-800 dark:text-gray-100">{pedido.numeroPedidoCliente}</h3>
                 <span className={`text-xs font-semibold px-2 py-1 rounded-full ${priorityColor.replace('border', 'bg').replace('-500','-900')} text-white`}>

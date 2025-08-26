@@ -27,6 +27,7 @@ const App: React.FC = () => {
     const [currentUserRole, setCurrentUserRole] = useState<UserRole>('Administrador');
     const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
     const [pedidoToSend, setPedidoToSend] = useState<Pedido | null>(null);
+    const [highlightedPedidoId, setHighlightedPedidoId] = useState<string | null>(null);
 
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
         if (typeof window !== 'undefined' && localStorage.theme) {
@@ -48,13 +49,14 @@ const App: React.FC = () => {
     const {
         pedidos,
         setPedidos,
-        store,
         isLoading,
         setIsLoading,
         handleSavePedido: handleSavePedidoLogic,
         handleAddPedido: handleAddPedidoLogic,
         handleConfirmSendToPrint: handleConfirmSendToPrintLogic,
         handleArchiveToggle: handleArchiveToggleLogic,
+        handleExportData,
+        handleImportData,
     } = usePedidosManager(currentUserRole, generarEntradaHistorial);
 
     const {
@@ -97,13 +99,10 @@ const App: React.FC = () => {
     const archivedPedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual === Etapa.ARCHIVADO), [processedPedidos]);
 
     const handleDragEnd = useCallback(async (result: DropResult) => {
-        if (!store) return;
-        
         await procesarDragEnd({
           result,
           pedidos,
           processedPedidos,
-          store,
           currentUserRole,
           generarEntradaHistorial,
           logAction,
@@ -111,31 +110,49 @@ const App: React.FC = () => {
           setSortConfig: handleSort as any // Re-sorting is handled inside the hook, but we need to pass a function
         });
 
-    }, [pedidos, store, currentUserRole, processedPedidos, generarEntradaHistorial, logAction, handleSort, setPedidos]);
+    }, [pedidos, currentUserRole, processedPedidos, generarEntradaHistorial, logAction, handleSort, setPedidos]);
     
-    const handleAdvanceStage = async (pedidoToAdvance: Pedido) => {
-        if (!store) return;
-        const { etapaActual, secuenciaTrabajo, numeroPedidoCliente } = pedidoToAdvance;
-        const newEtapa = calcularSiguienteEtapa(etapaActual, secuenciaTrabajo);
+    const handleAdvanceStage = (pedidoToAdvance: Pedido) => {
+        // 1. Highlight in original position
+        setHighlightedPedidoId(pedidoToAdvance.id);
     
-        if (newEtapa) {
-            const historialEntry = generarEntradaHistorial(currentUserRole, 'Avance de Etapa', `Avanzado de '${ETAPAS[etapaActual].title}' a '${ETAPAS[newEtapa].title}'.`);
-            const isMovingToCompleted = newEtapa === Etapa.COMPLETADO;
-            const fechaFinalizacion = isMovingToCompleted ? new Date().toISOString() : pedidoToAdvance.fechaFinalizacion;
-            
-            const updatedPedido = {
-                ...pedidoToAdvance,
-                etapaActual: newEtapa,
-                etapasSecuencia: [...pedidoToAdvance.etapasSecuencia, { etapa: newEtapa, fecha: new Date().toISOString() }],
-                historial: [...pedidoToAdvance.historial, historialEntry],
-                fechaFinalizacion,
-                tiempoTotalProduccion: fechaFinalizacion ? calculateTotalProductionTime(pedidoToAdvance.fechaCreacion, fechaFinalizacion) : undefined
-            };
+        // 2. Wait for render, then move
+        setTimeout(async () => {
+            const { etapaActual, secuenciaTrabajo, numeroPedidoCliente } = pedidoToAdvance;
+            const newEtapa = calcularSiguienteEtapa(etapaActual, secuenciaTrabajo);
+        
+            if (newEtapa) {
+                const historialEntry = generarEntradaHistorial(currentUserRole, 'Avance de Etapa', `Avanzado de '${ETAPAS[etapaActual].title}' a '${ETAPAS[newEtapa].title}'.`);
+                const isMovingToCompleted = newEtapa === Etapa.COMPLETADO;
+                const fechaFinalizacion = isMovingToCompleted ? new Date().toISOString() : pedidoToAdvance.fechaFinalizacion;
+                
+                let updatedPedido = {
+                    ...pedidoToAdvance,
+                    etapaActual: newEtapa,
+                    etapasSecuencia: [...pedidoToAdvance.etapasSecuencia, { etapa: newEtapa, fecha: new Date().toISOString() }],
+                    historial: [...pedidoToAdvance.historial, historialEntry],
+                    fechaFinalizacion,
+                };
 
-            await store.update(updatedPedido);
-            setPedidos(prev => prev.map(p => p.id === pedidoToAdvance.id ? updatedPedido : p));
-            logAction(`Pedido ${numeroPedidoCliente} avanzado de ${ETAPAS[etapaActual].title} a ${ETAPAS[newEtapa].title}.`);
-        }
+                 if (fechaFinalizacion) {
+                    updatedPedido.tiempoTotalProduccion = calculateTotalProductionTime(pedidoToAdvance.fechaCreacion, fechaFinalizacion);
+                }
+    
+                // 3. Move the card
+                const result = await handleSavePedidoLogic(updatedPedido, false); // false to avoid double history entry
+                if (result) {
+                    logAction(`Pedido ${numeroPedidoCliente} avanzado de ${ETAPAS[etapaActual].title} a ${ETAPAS[newEtapa].title}.`);
+                }
+    
+                // 4. Set timer to remove highlight from new position
+                setTimeout(() => {
+                    setHighlightedPedidoId(null);
+                }, 1000);
+            } else {
+                // No move happened, clear highlight
+                setHighlightedPedidoId(null); 
+            }
+        }, 100); // Delay for initial highlight render
     };
 
     const handleSavePedido = async (updatedPedido: Pedido) => {
@@ -154,12 +171,29 @@ const App: React.FC = () => {
         }
     };
     
-    const handleConfirmSendToPrint = async (pedidoToUpdate: Pedido, impresionEtapa: Etapa, postImpresionSequence: Etapa[]) => {
-        const updatedPedido = await handleConfirmSendToPrintLogic(pedidoToUpdate, impresionEtapa, postImpresionSequence);
-        if (updatedPedido) {
-            logAction(`Pedido ${updatedPedido.numeroPedidoCliente} enviado a Impresión.`);
-            setPedidoToSend(null);
-        }
+    const handleConfirmSendToPrint = (pedidoToUpdate: Pedido, impresionEtapa: Etapa, postImpresionSequence: Etapa[]) => {
+        // 1. Close modal and highlight in original position
+        setPedidoToSend(null);
+        setHighlightedPedidoId(pedidoToUpdate.id);
+    
+        // 2. Wait for render, then move
+        setTimeout(() => {
+            // This function from the hook updates the DB and the `pedidos` state
+            handleConfirmSendToPrintLogic(pedidoToUpdate, impresionEtapa, postImpresionSequence)
+                .then(updatedPedido => {
+                    if (updatedPedido) {
+                        logAction(`Pedido ${updatedPedido.numeroPedidoCliente} enviado a Impresión.`);
+                        
+                        // 3. Set timer to remove highlight from new position
+                        setTimeout(() => {
+                            setHighlightedPedidoId(null);
+                        }, 1000);
+                    } else {
+                        // If the update failed, remove the highlight
+                        setHighlightedPedidoId(null);
+                    }
+                });
+        }, 100); // Delay for initial highlight render
     };
     
     const handleArchiveToggle = async (pedido: Pedido) => {
@@ -189,67 +223,18 @@ const App: React.FC = () => {
         }
     };
     
-    const handleExportData = async () => {
-        if (!store) return;
-        try {
-            const allPedidos = await store.getAll();
-            const jsonData = JSON.stringify(allPedidos, null, 2);
-            const blob = new Blob([jsonData], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            const dateStr = new Date().toISOString().slice(0, 10);
-            a.download = `pedidos_backup_${dateStr}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        } catch (error) {
-            console.error("Failed to export data:", error);
-            alert("Error al exportar los datos.");
-        }
-    };
-
-    const handleImportData = () => {
-        if (!store) return;
-
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';
-        input.onchange = (event) => {
-            const file = (event.target as HTMLInputElement).files?.[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const text = e.target?.result;
-                    if (typeof text !== 'string') throw new Error("File content is not text.");
-                    
-                    const importedPedidos: Pedido[] = JSON.parse(text);
-                    if (!Array.isArray(importedPedidos) || !importedPedidos.every(p => p.id && p.numeroPedidoCliente)) {
-                        throw new Error("Invalid JSON format. Expected an array of orders.");
-                    }
-
-                    if (window.confirm(`¿Está seguro de importar ${importedPedidos.length} pedidos? ESTA ACCIÓN BORRARÁ TODOS LOS DATOS ACTUALES.`)) {
-                        setIsLoading(true);
-                        await store.clear();
-                        await store.bulkInsert(importedPedidos);
-                        const freshData = await store.getAll();
-                        setPedidos(freshData);
-                        setIsLoading(false);
-                        alert("Datos importados con éxito.");
-                    }
-                } catch (error) {
-                    console.error("Failed to import data:", error);
-                    alert(`Error al importar los datos: ${(error as Error).message}`);
-                    setIsLoading(false);
-                }
-            };
-            reader.readAsText(file);
-        };
-        input.click();
-    };
+    const doExportData = async () => {
+        await handleExportData(pedidos);
+    }
+    
+    const doImportData = () => {
+        handleImportData((importedPedidos) => {
+             if (window.confirm(`¿Está seguro de importar ${importedPedidos.length} pedidos? ESTA ACCIÓN BORRARÁ TODOS LOS DATOS ACTUALES.`)) {
+                return true;
+            }
+            return false;
+        });
+    }
 
     const renderContent = () => {
         if (isLoading) {
@@ -284,6 +269,7 @@ const App: React.FC = () => {
                                         onArchiveToggle={handleArchiveToggle}
                                         currentUserRole={currentUserRole}
                                         onAdvanceStage={handleAdvanceStage}
+                                        highlightedPedidoId={highlightedPedidoId}
                                     />
                                 ))}
                             </div>
@@ -301,6 +287,7 @@ const App: React.FC = () => {
                                         onArchiveToggle={handleArchiveToggle}
                                         currentUserRole={currentUserRole}
                                         onAdvanceStage={handleAdvanceStage}
+                                        highlightedPedidoId={highlightedPedidoId}
                                     />
                                 ))}
                             </div>
@@ -314,6 +301,7 @@ const App: React.FC = () => {
                                     onSelectPedido={setSelectedPedido}
                                     onArchiveToggle={handleArchiveToggle}
                                     currentUserRole={currentUserRole}
+                                    highlightedPedidoId={highlightedPedidoId}
                                 />
                             </div>
                         </section>
@@ -329,6 +317,7 @@ const App: React.FC = () => {
                             onAdvanceStage={handleAdvanceStage}
                             sortConfig={sortConfig}
                             onSort={handleSort}
+                            highlightedPedidoId={highlightedPedidoId}
                         />;
             case 'archived':
                 return <PedidoList 
@@ -340,6 +329,7 @@ const App: React.FC = () => {
                             onAdvanceStage={handleAdvanceStage}
                             sortConfig={sortConfig}
                             onSort={handleSort}
+                            highlightedPedidoId={highlightedPedidoId}
                         />;
             case 'report':
                     if (currentUserRole !== 'Administrador') {
@@ -368,8 +358,8 @@ const App: React.FC = () => {
                     onRoleChange={setCurrentUserRole}
                     onAddPedido={() => setIsAddModalOpen(true)}
                     onExportPDF={handleExportPDF}
-                    onExportData={handleExportData}
-                    onImportData={handleImportData}
+                    onExportData={doExportData}
+                    onImportData={doImportData}
                 />
                 {renderContent()}
                 {selectedPedido && (

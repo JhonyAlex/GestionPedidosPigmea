@@ -25,6 +25,34 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/heroicons/2.1.1/24/outline/heroicons.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    @keyframes glow {
+      0%, 100% {
+        box-shadow: 0 0 2px theme('colors.cyan.200');
+        border-color: theme('colors.cyan.400');
+      }
+      50% {
+        box-shadow: 0 0 20px 5px theme('colors.cyan.400');
+        border-color: theme('colors.cyan.200');
+      }
+    }
+    .card-highlight {
+      animation: glow 1s ease-in-out;
+    }
+    .dark .card-highlight {
+       @keyframes glow-dark {
+        0%, 100% {
+          box-shadow: 0 0 3px theme('colors.indigo.400');
+          border-color: theme('colors.indigo.300');
+        }
+        50% {
+          box-shadow: 0 0 22px 6px theme('colors.indigo.500');
+          border-color: theme('colors.indigo.200');
+        }
+      }
+      animation-name: glow-dark;
+    }
+  </style>
 <script type="importmap">
 {
   "imports": {
