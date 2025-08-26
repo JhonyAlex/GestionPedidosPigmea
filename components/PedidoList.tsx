@@ -81,7 +81,7 @@ const PedidoRow = ({ pedido, onSelectPedido, onArchiveToggle, isArchivedView, cu
             {...provided.draggableProps}
             {...provided.dragHandleProps}
             role="row"
-            className={`grid ${gridTemplate} gap-x-6 items-center bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 ${snapshot.isDragging ? 'shadow-lg rounded-lg' : ''} ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''}`}
+            className={`grid ${gridTemplate} gap-x-6 items-center bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''}`}
         >
             <div role="cell" className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">{pedido.numeroPedidoCliente}</div>
             <div role="cell" className="px-6 py-4">{pedido.cliente}</div>

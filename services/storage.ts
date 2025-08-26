@@ -4,7 +4,7 @@ import { initialPedidos } from '../data/seedData';
 // --- CONFIGURACIÓN DE MODO ---
 // Cambia a 'false' para usar la API del backend real.
 // En 'true', la aplicación usará datos de ejemplo locales.
-const MODO_DESARROLLO = true;
+const MODO_DESARROLLO = false;
 
 // --- INTERFAZ COMÚN ---
 export interface DataStore<T extends { id: string }> {

@@ -63,7 +63,7 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
     return (
         <div 
             onClick={() => onSelectPedido(pedido)}
-            className={`bg-white dark:bg-gray-900 rounded-lg p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 border-l-4 ${priorityColor} shadow-md ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''}`}>
+            className={`bg-white dark:bg-gray-900 rounded-lg p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 border-l-4 ${priorityColor} shadow-md ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''}`}>
             <div className="flex justify-between items-start">
                 <h3 className="font-bold text-base text-gray-800 dark:text-gray-100">{pedido.numeroPedidoCliente}</h3>
                 <span className={`text-xs font-semibold px-2 py-1 rounded-full ${priorityColor.replace('border', 'bg').replace('-500','-900')} text-white`}>
@@ -88,7 +88,7 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
                      {canAdvance && currentUserRole === 'Administrador' && (
                         <button 
                             onClick={handleAdvanceClick} 
-                            className="text-green-500 dark:text-green-400 hover:text-green-600 dark:hover:text-green-300 transition-colors"
+                            className="text-green-500 dark:text-green-400 hover:text-green-600 dark:hover:text-green-300"
                             aria-label={advanceButtonTitle}
                             title={advanceButtonTitle}
                         >
@@ -98,7 +98,7 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
                      {pedido.etapaActual === Etapa.COMPLETADO && currentUserRole === 'Administrador' && (
                         <button 
                             onClick={handleArchiveClick} 
-                            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors"
+                            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white"
                             aria-label="Archivar Pedido"
                             title="Archivar Pedido"
                         >
