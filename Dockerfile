@@ -7,15 +7,12 @@ WORKDIR /app
 COPY package*.json ./
 COPY backend/package*.json ./backend/
 
-# Install all dependencies including devDependencies for build
-RUN npm install
-RUN cd backend && npm install
+# Install dependencies with clean cache
+RUN npm ci --include=dev
+RUN cd backend && npm ci
 
 # Copy source code
 COPY . .
-
-# Install devDependencies explicitly if they're missing
-RUN npm install --include=dev
 
 # Build the frontend
 RUN npm run build
@@ -25,6 +22,9 @@ RUN cp -r dist backend/
 
 # Expose port
 EXPOSE 8080
+
+# Set environment
+ENV PORT=8080
 
 # Start the backend server
 CMD ["node", "backend/index.js"]
