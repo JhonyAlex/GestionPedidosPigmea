@@ -19,7 +19,7 @@ const initialFormData = {
     prioridad: Prioridad.NORMAL,
     tipoImpresion: TipoImpresion.SUPERFICIE,
     desarrollo: '',
-    capa: 1,
+    capa: '',
     tiempoProduccionPlanificado: '00:00',
     observaciones: '',
     materialDisponible: false,
@@ -91,7 +91,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
                                 </div>
                                 <div>
                                     <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Capa</label>
-                                    <input type="number" name="capa" value={formData.capa} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" step="1" min="1"/>
+                                    <input type="text" name="capa" value={formData.capa} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" placeholder="Ingrese número o texto de capa"/>
                                 </div>
                             </div>
 

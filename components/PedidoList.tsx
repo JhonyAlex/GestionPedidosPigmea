@@ -73,7 +73,7 @@ const PedidoRow = ({ pedido, onSelectPedido, onArchiveToggle, isArchivedView, cu
         return { canAdvance: false, advanceButtonTitle: '' };
     }, [pedido]);
 
-    const gridTemplate = "grid-cols-[1.5fr_1.5fr_1fr_0.5fr_1fr_1.2fr_0.75fr_1fr_1fr_1fr]";
+    const gridTemplate = "grid-cols-[1.5fr_1.5fr_1fr_0.5fr_1fr_1fr_1.2fr_0.75fr_1fr_1fr_1fr]";
 
     return (
         <div
@@ -86,7 +86,8 @@ const PedidoRow = ({ pedido, onSelectPedido, onArchiveToggle, isArchivedView, cu
             <div role="cell" className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">{pedido.numeroPedidoCliente}</div>
             <div role="cell" className="px-6 py-4">{pedido.cliente}</div>
             <div role="cell" className="px-6 py-4">{pedido.desarrollo}</div>
-            <div role="cell" className="px-6 py-4 text-center">{pedido.capa}</div>
+            <div role="cell" className="px-6 py-4 text-center">{pedido.capa || '-'}</div>
+            <div role="cell" className="px-6 py-4">{pedido.camisa || '-'}</div>
             <div role="cell" className="px-6 py-4">
                 <span className={`px-2 py-1 text-xs font-semibold rounded-full text-white ${PRIORIDAD_COLORS[pedido.prioridad].replace('border', 'bg').replace('-500', '-900')}`}>
                     {pedido.prioridad}
@@ -134,7 +135,7 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
         setIsMounted(true);
     }, []);
 
-    const gridTemplate = "grid-cols-[1.5fr_1.5fr_1fr_0.5fr_1fr_1.2fr_0.75fr_1fr_1fr_1fr]";
+    const gridTemplate = "grid-cols-[1.5fr_1.5fr_1fr_0.5fr_1fr_1fr_1.2fr_0.75fr_1fr_1fr_1fr]";
 
     return (
         <main className="flex-grow p-4 md:p-8">
@@ -146,6 +147,7 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
                         <SortableHeader label="Cliente" sortKey="cliente" onSort={onSort} sortConfig={sortConfig} />
                         <SortableHeader label="Desarrollo" sortKey="desarrollo" onSort={onSort} sortConfig={sortConfig} />
                         <SortableHeader label="Capa" sortKey="capa" onSort={onSort} sortConfig={sortConfig} className="justify-center" />
+                        <SortableHeader label="Camisa" sortKey="camisa" onSort={onSort} sortConfig={sortConfig} />
                         <SortableHeader label="Prioridad" sortKey="prioridad" onSort={onSort} sortConfig={sortConfig} />
                         <SortableHeader label="Etapa Actual" sortKey="etapaActual" onSort={onSort} sortConfig={sortConfig} />
                         <SortableHeader label="Metros" sortKey="metros" onSort={onSort} sortConfig={sortConfig} className="justify-end" />

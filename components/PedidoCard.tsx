@@ -75,6 +75,11 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-gray-200 dark:border-gray-700 pt-2">
                  <span className="flex items-center" title="Metros"><RulerIcon /> {pedido.metros} m</span>
                  <span className="flex items-center" title="Fecha Entrega"><CalendarIcon /> {pedido.fechaEntrega}</span>
+                 {pedido.camisa && (
+                     <span className="flex items-center" title="Camisa">
+                        <PaperClipIcon /> {pedido.camisa}
+                     </span>
+                 )}
                  {pedido.etapaActual === Etapa.PREPARACION && (
                      <span className="flex items-center" title="Estado del Cliché">
                         <PaperClipIcon /> {pedido.estadoCliché || EstadoCliché.PENDIENTE_CLIENTE}

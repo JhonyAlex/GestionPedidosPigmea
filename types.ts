@@ -71,7 +71,7 @@ export interface Pedido {
     prioridad: Prioridad;
     tipoImpresion: TipoImpresion;
     desarrollo: string;
-    capa: number;
+    capa: string;
     tiempoProduccionPlanificado: string; // HH:mm
     tiempoTotalProduccion?: string; // "X días, Y horas"
     secuenciaTrabajo: Etapa[];
@@ -80,6 +80,7 @@ export interface Pedido {
     // Nuevos campos para la etapa de Preparación
     materialDisponible?: boolean;
     estadoCliché?: EstadoCliché;
+    camisa?: string;
 }
 
 export interface KanbanEtapa {

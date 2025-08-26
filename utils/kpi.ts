@@ -228,7 +228,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             p.metros,
             p.tipoImpresion.replace(' (SUP)', '').replace(' (TTE)', ''),
             p.capa,
-            p.desarrollo,
+            p.camisa || '-',
             ETAPAS[p.etapaActual].title,
             getNextStageTitle(p),
             p.observaciones,
