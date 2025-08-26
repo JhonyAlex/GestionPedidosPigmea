@@ -63,7 +63,7 @@ const Header: React.FC<HeaderProps> = ({
     
     const viewOptions: { id: ViewType; label: string, adminOnly: boolean }[] = [
         { id: 'preparacion', label: 'Preparación', adminOnly: false },
-        { id: 'kanban', label: 'Kanban', adminOnly: false },
+        { id: 'kanban', label: 'Producción', adminOnly: false },
         { id: 'list', label: 'Lista', adminOnly: false },
         { id: 'archived', label: 'Archivados', adminOnly: false },
         { id: 'report', label: 'Reportes', adminOnly: true },
@@ -92,7 +92,7 @@ const Header: React.FC<HeaderProps> = ({
         <header className="bg-white dark:bg-gray-800 shadow-md p-4 sticky top-0 z-40">
             <div className="container mx-auto flex flex-wrap justify-between items-center gap-4">
                 <div className="flex items-center gap-4">
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestor de Pedidos</h1>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Planning Pigmea</h1>
                      <select
                         name="role"
                         value={currentUserRole}

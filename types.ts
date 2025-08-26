@@ -97,3 +97,5 @@ export interface AuditEntry {
     userRole: UserRole;
     action: string;
 }
+
+export type DateField = 'fechaCreacion' | 'fechaEntrega' | 'fechaFinalizacion';
