@@ -10,8 +10,19 @@ const { initialPedidos } = require('./data');
 // --- FIRESTORE INITIALIZATION ---
 // In a Google Cloud environment (like Cloud Run), the library automatically
 // authenticates using the service account, so no config object is needed.
-const db = new Firestore();
-const pedidosCollection = db.collection('pedidos');
+let db;
+let pedidosCollection;
+
+try {
+    db = new Firestore({
+        projectId: process.env.GOOGLE_CLOUD_PROJECT || 'planning-pigmea-70067446729'
+    });
+    pedidosCollection = db.collection('pedidos');
+    console.log('Firestore initialized successfully');
+} catch (error) {
+    console.error('Failed to initialize Firestore:', error);
+    process.exit(1);
+}
 
 // --- EXPRESS APP SETUP ---
 const app = express();
@@ -25,8 +36,16 @@ app.use(express.json()); // Middleware to parse JSON bodies
 // GET /api/pedidos - Get all pedidos
 app.get('/api/pedidos', async (req, res) => {
     try {
+        console.log('Attempting to fetch pedidos from Firestore...');
+        
+        if (!pedidosCollection) {
+            throw new Error('Firestore collection not initialized');
+        }
+        
         const query = pedidosCollection.orderBy("secuenciaPedido", "desc");
         let snapshot = await query.get();
+
+        console.log(`Found ${snapshot.size} documents in Firestore`);
 
         // If the database is empty, seed it with initial data
         if (snapshot.empty) {
@@ -39,15 +58,26 @@ app.get('/api/pedidos', async (req, res) => {
             await batch.commit();
             // Re-fetch the data after seeding
             snapshot = await query.get();
-            console.log("Seeding complete.");
+            console.log(`Seeding complete. Now have ${snapshot.size} documents.`);
         }
 
         const pedidos = [];
-        snapshot.forEach(doc => pedidos.push(doc.data()));
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            if (data) {
+                pedidos.push(data);
+            }
+        });
+        
+        console.log(`Returning ${pedidos.length} pedidos to client`);
         res.status(200).json(pedidos);
     } catch (error) {
         console.error("Error fetching pedidos:", error);
-        res.status(500).json({ message: "Error interno del servidor al obtener los pedidos." });
+        console.error("Error stack:", error.stack);
+        res.status(500).json({ 
+            message: "Error interno del servidor al obtener los pedidos.",
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 });
 
