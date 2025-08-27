@@ -30,8 +30,7 @@ export const PREPARACION_SUB_ETAPAS_IDS = {
     CLICHE_PENDIENTE: 'CLICHE_PENDIENTE',
     CLICHE_REPETICION: 'CLICHE_REPETICION',
     CLICHE_NUEVO: 'CLICHE_NUEVO',
-} as const;
-
+};
 
 export const PREPARACION_SUB_ETAPAS: KanbanEtapa[] = [
     { id: PREPARACION_SUB_ETAPAS_IDS.MATERIAL_NO_DISPONIBLE as any, title: 'Material No Disponible', color: 'bg-red-500' },
