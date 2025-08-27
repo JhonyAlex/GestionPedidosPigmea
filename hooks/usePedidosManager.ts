@@ -3,6 +3,7 @@ import { Pedido, UserRole, Etapa, HistorialEntry } from '../types';
 import { store } from '../services/storage';
 import { ETAPAS } from '../constants';
 import { determinarEtapaPreparacion } from '../utils/preparacionLogic';
+import { calculateTotalProductionTime } from '../utils/kpi';
 
 export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHistorial: (usuario: UserRole, accion: string, detalles: string) => HistorialEntry) => {
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -60,6 +61,20 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
             
             if (originalPedido.etapaActual !== modifiedPedido.etapaActual) {
                 newHistoryEntries.push(generarEntradaHistorial(currentUserRole, 'Cambio de Etapa', `Movido de '${ETAPAS[originalPedido.etapaActual].title}' a '${ETAPAS[modifiedPedido.etapaActual].title}'.`));
+
+                modifiedPedido.etapasSecuencia = [...(originalPedido.etapasSecuencia || []), { etapa: modifiedPedido.etapaActual, fecha: new Date().toISOString() }];
+
+                const isMovingToCompleted = modifiedPedido.etapaActual === Etapa.COMPLETADO;
+                const wasCompleted = originalPedido.etapaActual === Etapa.COMPLETADO;
+
+                if (isMovingToCompleted) {
+                    const fechaFinalizacion = new Date().toISOString();
+                    modifiedPedido.fechaFinalizacion = fechaFinalizacion;
+                    modifiedPedido.tiempoTotalProduccion = calculateTotalProductionTime(modifiedPedido.fechaCreacion, fechaFinalizacion);
+                } else if (wasCompleted) {
+                    modifiedPedido.fechaFinalizacion = undefined;
+                    modifiedPedido.tiempoTotalProduccion = undefined;
+                }
             }
             
             if (newHistoryEntries.length > 0) {
