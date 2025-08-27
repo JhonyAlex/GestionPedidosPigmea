@@ -48,6 +48,11 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
         const newFullPedidosList = pedidos.map(p => {
             const newOrder = newOrderMap.get(p.id);
             if (newOrder !== undefined) {
+                const originalPedido = pedidos.find(op => op.id === p.id);
+                if (originalPedido && originalPedido.orden !== newOrder) {
+                    const historialEntry = generarEntradaHistorial(currentUserRole, 'Reordenamiento Manual', `Orden cambiado de ${originalPedido.orden} a ${newOrder}.`);
+                    return { ...p, orden: newOrder, historial: [...p.historial, historialEntry] };
+                }
                 return { ...p, orden: newOrder };
             } else {
                 return { ...p, orden: (p.orden || 0) + maxActiveOrder };
@@ -57,6 +62,15 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
         setPedidos(newFullPedidosList);
         setSortConfig('orden');
         logAction('Pedidos reordenados manualmente en la vista de lista.');
+        
+        // Actualización en background
+        const changedPedidos = newFullPedidosList.filter(p => newOrderMap.has(p.id));
+        Promise.all(changedPedidos.map(p => store.update(p))).catch(error => {
+            console.error("Error al actualizar pedidos reordenados:", error);
+            // Opcional: revertir cambios en caso de error
+            setPedidos(pedidos);
+        });
+
         return;
     }
 

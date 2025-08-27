@@ -20,7 +20,7 @@ const getHistoryIcon = (action: string) => {
     if (action.includes('Creación')) return <PlusCircleIcon />;
     if (action.includes('Etapa') || action.includes('Enviado')) return <ArrowPathIcon />;
     if (action.includes('Archivado') || action.includes('Desarchivado')) return <ArchiveBoxIcon />;
-     if (action.includes('Preparación')) return <PaperAirplaneIcon />;
+    if (action.includes('Preparación') || action.includes('Actualización en Preparación')) return <PaperAirplaneIcon />;
     return <PencilIcon />;
 };
 

@@ -37,7 +37,14 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
         
         if (generateHistory) {
             const newHistoryEntries: HistorialEntry[] = [];
-            const fieldsToCompare: Array<keyof Pedido> = ['numeroPedidoCliente', 'cliente', 'metros', 'fechaEntrega', 'prioridad', 'tipoImpresion', 'desarrollo', 'capa', 'tiempoProduccionPlanificado', 'observaciones', 'materialDisponible', 'estadoCliché', 'secuenciaTrabajo'];
+            const fieldsToCompare: Array<keyof Pedido> = [
+                'numeroPedidoCliente', 'cliente', 'metros', 'fechaEntrega', 'prioridad', 
+                'tipoImpresion', 'desarrollo', 'capa', 'tiempoProduccionPlanificado', 
+                'observaciones', 'materialDisponible', 'estadoCliché', 'secuenciaTrabajo',
+                'camisa', 'producto', 'materialCapasCantidad', 'materialCapas', 
+                'materialConsumoCantidad', 'materialConsumo', 'bobinaMadre', 'bobinaFinal', 
+                'minAdap', 'colores', 'maquinaImpresion', 'orden'
+            ];
 
             fieldsToCompare.forEach(key => {
                  if (JSON.stringify(originalPedido[key]) !== JSON.stringify(modifiedPedido[key])) {
@@ -163,6 +170,7 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
 
         try {
             await store.delete(pedidoId);
+            logAction(`Pedido ${pedidoToDelete.numeroPedidoCliente} eliminado permanentemente.`);
             return pedidoToDelete;
         } catch (error) {
             console.error('Error al eliminar el pedido:', error);
@@ -193,8 +201,10 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
             fechaCreacion: now.toISOString(),
             etapaActual: initialStage,
             etapasSecuencia: [{ etapa: initialStage, fecha: now.toISOString() }],
-            historial: [generarEntradaHistorial(currentUserRole, 'Creación', `Pedido duplicado desde ${pedidoToDuplicate.numeroPedidoCliente}.`)],
+            historial: [generarEntradaHistorial(currentUserRole, 'Creación', `Pedido duplicado desde ${pedidoToDuplicate.numeroPedidoCliente} (ID: ${pedidoToDuplicate.id}).`)],
             maquinaImpresion: '', // Reset machine
+            fechaFinalizacion: undefined,
+            tiempoTotalProduccion: undefined,
         };
     
         const createdPedido = await store.create(newPedido);
