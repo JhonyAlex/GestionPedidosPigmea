@@ -73,7 +73,7 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ f
                     {/* Grupo A: Material Capas */}
                     <div className="border-t border-gray-200 dark:border-gray-600 pt-4 md:col-span-2 grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="md:col-span-1">
-                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Nº Capas Material</label>
+                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Material (Láminas): Conteo</label>
                             <select
                                 name="materialCapasCantidad"
                                 value={formData.materialCapasCantidad || ''}
@@ -88,7 +88,7 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ f
                         <div className="md:col-span-3 grid grid-cols-2 gap-4">
                             {formData.materialCapasCantidad && Array.from({ length: formData.materialCapasCantidad }).map((_, index) => (
                                 <div key={index} className="grid grid-cols-2 gap-2 items-center">
-                                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 col-span-2">Capa {index + 1}</label>
+                                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 col-span-2">Lámina {index + 1}</label>
                                     <div>
                                         <input
                                             type="number"
@@ -119,7 +119,7 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ f
                     {/* Grupo B: Material Consumo */}
                     <div className="border-t border-gray-200 dark:border-gray-600 pt-4 md:col-span-2 grid grid-cols-1 md:grid-cols-4 gap-4">
                          <div className="md:col-span-1">
-                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Nº Consumibles</label>
+                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Material (Suministro): Conteo</label>
                             <select
                                 name="materialConsumoCantidad"
                                 value={formData.materialConsumoCantidad || ''}
@@ -134,7 +134,7 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ f
                         <div className="md:col-span-3 grid grid-cols-2 gap-4">
                             {formData.materialConsumoCantidad && Array.from({ length: formData.materialConsumoCantidad }).map((_, index) => (
                                 <div key={index} className="grid grid-cols-2 gap-2 items-center">
-                                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 col-span-2">Consumible {index + 1}</label>
+                                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 col-span-2">Material {index + 1}</label>
                                     <div>
                                         <input
                                             type="number"
