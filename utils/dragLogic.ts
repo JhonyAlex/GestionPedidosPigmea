@@ -99,10 +99,19 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
                 tempUpdatedPedido.clicheDisponible = false;
                 break;
             case PREPARACION_SUB_ETAPAS_IDS.CLICHE_PENDIENTE:
+                tempUpdatedPedido.materialDisponible = true;
+                tempUpdatedPedido.clicheDisponible = true;
+                tempUpdatedPedido.estadoCliché = EstadoCliché.PENDIENTE_CLIENTE;
+                break;
             case PREPARACION_SUB_ETAPAS_IDS.CLICHE_REPETICION:
+                tempUpdatedPedido.materialDisponible = true;
+                tempUpdatedPedido.clicheDisponible = true;
+                tempUpdatedPedido.estadoCliché = EstadoCliché.REPETICION_CAMBIO;
+                break;
             case PREPARACION_SUB_ETAPAS_IDS.CLICHE_NUEVO:
                 tempUpdatedPedido.materialDisponible = true;
                 tempUpdatedPedido.clicheDisponible = true;
+                tempUpdatedPedido.estadoCliché = EstadoCliché.NUEVO;
                 break;
         }
 
