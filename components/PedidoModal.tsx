@@ -374,15 +374,6 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                 </div>
                             </fieldset>
 
-                            <div className="border-t border-gray-200 dark:border-gray-700 mt-6 pt-6">
-                                <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">Configuración de Secuencia</h3>
-                                <SequenceBuilder
-                                    sequence={formData.secuenciaTrabajo || []}
-                                    onChange={handleSequenceChange}
-                                    isReadOnly={isReadOnly}
-                                />
-                            </div>
-
                             <div className="mt-8 flex justify-between items-center">
                                 {isReadOnly ? (
                                     <span className="text-sm text-gray-500">Modo de solo lectura para Operador.</span>

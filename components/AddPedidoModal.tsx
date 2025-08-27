@@ -149,11 +149,6 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
                         </div>
                     </div>
                     
-                    <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
-                        <h3 className="text-xl font-semibold mb-4">Secuencia de Post-Impresión</h3>
-                        <SequenceBuilder sequence={secuenciaTrabajo} onChange={setSecuenciaTrabajo} isReadOnly={false} />
-                    </div>
-
                     <SeccionDatosTecnicosDeMaterial
                         formData={formData}
                         onDataChange={handleDataChange}
