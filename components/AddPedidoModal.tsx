@@ -7,7 +7,7 @@ import SeccionDatosTecnicosDeMaterial from './SeccionDatosTecnicosDeMaterial';
 interface AddPedidoModalProps {
     onClose: () => void;
     onAdd: (data: {
-        pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'maquinaImpresion' | 'secuenciaTrabajo' | 'orden' | 'historial'>;
+        pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'subEtapaActual' | 'maquinaImpresion' | 'secuenciaTrabajo' | 'orden' | 'historial'>;
         secuenciaTrabajo: Etapa[];
     }) => void;
 }
@@ -24,6 +24,7 @@ const initialFormData = {
     tiempoProduccionPlanificado: '00:00',
     observaciones: '',
     materialDisponible: false,
+    clicheDisponible: false,
     estadoCliché: EstadoCliché.PENDIENTE_CLIENTE,
     camisa: '',
     // Nuevos campos
@@ -134,10 +135,16 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
                                     <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Fecha de Entrega</label>
                                     <input type="date" name="fechaEntrega" value={formData.fechaEntrega} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" required/>
                                 </div>
-                                 <div className="flex items-center justify-start pt-6">
-                                    <input type="checkbox" id="materialDisponible" name="materialDisponible" checked={formData.materialDisponible} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                                    <label htmlFor="materialDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Material Disponible</label>
-                                </div>
+                                 <div className="grid grid-cols-2 gap-y-4 pt-6">
+                                     <div className="flex items-center">
+                                        <input type="checkbox" id="materialDisponible" name="materialDisponible" checked={formData.materialDisponible} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                        <label htmlFor="materialDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Material Disponible</label>
+                                     </div>
+                                     <div className="flex items-center">
+                                        <input type="checkbox" id="clicheDisponible" name="clicheDisponible" checked={formData.clicheDisponible} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                        <label htmlFor="clicheDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Cliché Disponible</label>
+                                     </div>
+                                 </div>
                              </div>
                         </div>
                     </div>

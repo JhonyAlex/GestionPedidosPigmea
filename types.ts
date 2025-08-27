@@ -67,6 +67,7 @@ export interface Pedido {
     fechaEntrega: string; // YYYY-MM-DD
     fechaFinalizacion?: string; // ISO 8601 date string
     etapaActual: Etapa;
+    subEtapaActual?: string;
     etapasSecuencia: EtapaInfo[];
     prioridad: Prioridad;
     tipoImpresion: TipoImpresion;
@@ -79,6 +80,7 @@ export interface Pedido {
     historial: HistorialEntry[];
     // Nuevos campos para la etapa de Preparación
     materialDisponible?: boolean;
+    clicheDisponible?: boolean;
     estadoCliché?: EstadoCliché;
     camisa?: string;
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Pedido, UserRole, Etapa, HistorialEntry } from '../types';
 import { store } from '../services/storage';
 import { ETAPAS } from '../constants';
+import { determinarEtapaPreparacion } from '../utils/preparacionLogic';
 
 export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHistorial: (usuario: UserRole, accion: string, detalles: string) => HistorialEntry) => {
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -34,13 +35,20 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
 
         let modifiedPedido = { ...updatedPedido };
         let hasChanges = false;
+
+        if (modifiedPedido.etapaActual === Etapa.PREPARACION) {
+            const nuevaSubEtapa = determinarEtapaPreparacion(modifiedPedido);
+            if (modifiedPedido.subEtapaActual !== nuevaSubEtapa) {
+                modifiedPedido.subEtapaActual = nuevaSubEtapa;
+            }
+        }
         
         if (generateHistory) {
             const newHistoryEntries: HistorialEntry[] = [];
             const fieldsToCompare: Array<keyof Pedido> = [
                 'numeroPedidoCliente', 'cliente', 'metros', 'fechaEntrega', 'prioridad', 
                 'tipoImpresion', 'desarrollo', 'capa', 'tiempoProduccionPlanificado', 
-                'observaciones', 'materialDisponible', 'estadoCliché', 'secuenciaTrabajo',
+                'observaciones', 'materialDisponible', 'clicheDisponible', 'estadoCliché', 'secuenciaTrabajo',
                 'camisa', 'producto', 'materialCapasCantidad', 'materialCapas', 
                 'materialConsumoCantidad', 'materialConsumo', 'bobinaMadre', 'bobinaFinal', 
                 'minAdap', 'colores', 'maquinaImpresion', 'orden', 'minColor'
@@ -82,7 +90,7 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
         }
     };
 
-    const handleAddPedido = async (data: { pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'maquinaImpresion' | 'secuenciaTrabajo' | 'orden' | 'historial'>; secuenciaTrabajo: Etapa[]; }) => {
+    const handleAddPedido = async (data: { pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'subEtapaActual' | 'maquinaImpresion' | 'secuenciaTrabajo' | 'orden' | 'historial'>; secuenciaTrabajo: Etapa[]; }) => {
         const { pedidoData, secuenciaTrabajo } = data;
         const now = new Date();
         const newId = now.getTime().toString();
@@ -90,7 +98,7 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
         const initialStage = Etapa.PREPARACION;
         const maxOrder = Math.max(...pedidos.map(p => p.orden), 0);
 
-        const newPedido: Pedido = {
+        const tempPedido: Pedido = {
             ...pedidoData,
             id: newId,
             secuenciaPedido: parseInt(newId.slice(-6)),
@@ -102,6 +110,13 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
             historial: [generarEntradaHistorial(currentUserRole, 'Creación', 'Pedido creado en Preparación.')],
             maquinaImpresion: '',
             secuenciaTrabajo,
+        };
+
+        const initialSubEtapa = determinarEtapaPreparacion(tempPedido);
+
+        const newPedido: Pedido = {
+            ...tempPedido,
+            subEtapaActual: initialSubEtapa,
         };
 
         const createdPedido = await store.create(newPedido);
