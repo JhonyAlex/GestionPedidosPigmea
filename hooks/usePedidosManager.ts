@@ -43,7 +43,7 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
                 'observaciones', 'materialDisponible', 'estadoCliché', 'secuenciaTrabajo',
                 'camisa', 'producto', 'materialCapasCantidad', 'materialCapas', 
                 'materialConsumoCantidad', 'materialConsumo', 'bobinaMadre', 'bobinaFinal', 
-                'minAdap', 'colores', 'maquinaImpresion', 'orden'
+                'minAdap', 'colores', 'maquinaImpresion', 'orden', 'minColor'
             ];
 
             fieldsToCompare.forEach(key => {
@@ -170,7 +170,7 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
 
         try {
             await store.delete(pedidoId);
-            logAction(`Pedido ${pedidoToDelete.numeroPedidoCliente} eliminado permanentemente.`);
+            // Pedido eliminado permanentemente.
             return pedidoToDelete;
         } catch (error) {
             console.error('Error al eliminar el pedido:', error);

@@ -356,17 +356,17 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                     <SequenceBuilder sequence={formData.secuenciaTrabajo || []} onChange={handleSequenceChange} isReadOnly={isReadOnly} />
                                 </div>
 
+                                <SeccionDatosTecnicosDeMaterial
+                                    formData={formData}
+                                    onDataChange={handleDataChange}
+                                    isReadOnly={isReadOnly}
+                                />
+
                                 <div className="md:col-span-2 mt-6">
                                     <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Observaciones</label>
                                     <textarea name="observaciones" value={formData.observaciones} onChange={handleChange} rows={3} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"></textarea>
                                 </div>
                             </fieldset>
-
-                            <SeccionDatosTecnicosDeMaterial
-                                formData={formData}
-                                onDataChange={handleDataChange}
-                                isReadOnly={isReadOnly}
-                            />
 
                             <div className="border-t border-gray-200 dark:border-gray-700 mt-6 pt-6">
                                 <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">Configuración de Secuencia</h3>

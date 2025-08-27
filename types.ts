@@ -100,6 +100,8 @@ export interface Pedido {
     minAdap?: number | null;
     /** El número de colores utilizados en la impresión. */
     colores?: number | null;
+    /** Minutos por color. */
+    minColor?: number | null;
 }
 
 export interface KanbanEtapa {

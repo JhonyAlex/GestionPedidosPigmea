@@ -36,6 +36,7 @@ const initialFormData = {
     bobinaFinal: null,
     minAdap: null,
     colores: null,
+    minColor: null,
 };
 
 const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
@@ -146,15 +147,15 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
                         <SequenceBuilder sequence={secuenciaTrabajo} onChange={setSecuenciaTrabajo} isReadOnly={false} />
                     </div>
 
-                    <div className="mt-6">
-                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Observaciones</label>
-                        <textarea name="observaciones" value={formData.observaciones} onChange={handleChange} rows={3} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"></textarea>
-                    </div>
-
                     <SeccionDatosTecnicosDeMaterial
                         formData={formData}
                         onDataChange={handleDataChange}
                     />
+
+                    <div className="mt-6">
+                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Observaciones</label>
+                        <textarea name="observaciones" value={formData.observaciones} onChange={handleChange} rows={3} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"></textarea>
+                    </div>
 
                     <div className="border-t border-gray-200 dark:border-gray-700 mt-6 pt-6">
                         <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">Configuración de Secuencia de Trabajo</h3>

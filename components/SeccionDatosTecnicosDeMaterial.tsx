@@ -45,29 +45,34 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ f
     };
 
     return (
-        <div className="border-t border-gray-200 dark:border-gray-700 mt-6 pt-6">
-            <button
-                type="button"
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full flex justify-between items-center text-xl font-bold text-gray-800 dark:text-gray-200 mb-4"
-            >
-                Datos técnicos de material
-                {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
-            </button>
+        <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
+            <h3 className="text-lg font-semibold mb-2">Datos Técnicos de Material</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Columna Izquierda */}
+                <div>
+                    <div className="grid grid-cols-2 gap-4 items-end">
+                        <div>
+                            <label htmlFor="producto" className="block text-sm font-medium">Producto</label>
+                            <input type="text" id="producto" name="producto" value={formData.producto || ''} onChange={handleInputChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" disabled={isReadOnly} />
+                        </div>
+                        <div>
+                            <label htmlFor="materialCapasCantidad" className="block text-sm font-medium">Material láminas</label>
+                            <select id="materialCapasCantidad" name="materialCapasCantidad" value={formData.materialCapasCantidad || ''} onChange={handleInputChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" disabled={isReadOnly}>
+                                <option value="">0</option>
+                                {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}</option>)}
+                            </select>
+                        </div>
+                    </div>
 
-            {isExpanded && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                    {/* Producto */}
-                    <div className="md:col-span-2">
-                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Producto</label>
-                        <input
-                            type="text"
-                            name="producto"
-                            value={formData.producto || ''}
-                            onChange={handleInputChange}
-                            disabled={isReadOnly}
-                            className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
-                        />
+                    <div className="mt-4">
+                        <label htmlFor="materialConsumoCantidad" className="block text-sm font-medium">Material suministro</label>
+                        <select id="materialConsumoCantidad" name="materialConsumoCantidad" value={formData.materialConsumoCantidad || ''} onChange={handleInputChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" disabled={isReadOnly}>
+                            <option value="">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                        </select>
                     </div>
 
                     {/* Grupo A: Material Capas */}
@@ -160,7 +165,10 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ f
                             ))}
                         </div>
                     </div>
+                </div>
 
+                {/* Columna Derecha */}
+                <div>
                     {/* Bobinas, Minutos, Colores */}
                     <div className="border-t border-gray-200 dark:border-gray-600 pt-4 md:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div>
@@ -174,9 +182,13 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ f
                             {renderValidationMessage(formData.bobinaFinal)}
                         </div>
                         <div>
-                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Min. Adaptación</label>
+                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Min. Adap</label>
                             <input type="number" name="minAdap" value={formData.minAdap || ''} onChange={handleInputChange} disabled={isReadOnly} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" />
                             {renderValidationMessage(formData.minAdap)}
+                        </div>
+                        <div>
+                            <label htmlFor="minColor" className="block text-sm font-medium">Min. Color</label>
+                            <input type="number" name="minColor" value={formData.minColor || ''} onChange={handleInputChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" disabled={isReadOnly} />
                         </div>
                         <div>
                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Colores</label>
@@ -185,7 +197,7 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ f
                         </div>
                     </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 };
