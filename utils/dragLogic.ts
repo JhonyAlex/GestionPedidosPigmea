@@ -85,12 +85,26 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
     if (source.droppableId.startsWith('PREP_') && destination.droppableId.startsWith('PREP_')) {
         const destId = destination.droppableId.replace('PREP_', '');
 
-        // Optimistically update the sub-stage.
-        // The handleSavePedido logic will then recalculate and enforce the correct stage.
-        const tempUpdatedPedido = {
+        let tempUpdatedPedido = {
             ...movedPedido,
             subEtapaActual: destId,
         };
+
+        switch (destId) {
+            case PREPARACION_SUB_ETAPAS_IDS.MATERIAL_NO_DISPONIBLE:
+                tempUpdatedPedido.materialDisponible = false;
+                break;
+            case PREPARACION_SUB_ETAPAS_IDS.CLICHE_NO_DISPONIBLE:
+                tempUpdatedPedido.materialDisponible = true;
+                tempUpdatedPedido.clicheDisponible = false;
+                break;
+            case PREPARACION_SUB_ETAPAS_IDS.CLICHE_PENDIENTE:
+            case PREPARACION_SUB_ETAPAS_IDS.CLICHE_REPETICION:
+            case PREPARACION_SUB_ETAPAS_IDS.CLICHE_NUEVO:
+                tempUpdatedPedido.materialDisponible = true;
+                tempUpdatedPedido.clicheDisponible = true;
+                break;
+        }
 
         // Immediately update the UI for a smooth drag-and-drop experience.
         setPedidos(prev => prev.map(p => p.id === draggableId ? tempUpdatedPedido : p));
