@@ -90,20 +90,10 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
                 updatedPedido.materialDisponible = false;
                 logDetails = 'Cambiado a "Material No Disponible"';
             }
-        } else if (destId === PREPARACION_SUB_ETAPAS_IDS.CLICHE_NO_DISPONIBLE) {
-            if (!updatedPedido.materialDisponible) updatedPedido.materialDisponible = true;
-            if (updatedPedido.clicheDisponible) {
-                updatedPedido.clicheDisponible = false;
-                logDetails = 'Cambiado a "Cliché no disponible"';
-            }
         } else {
             if (!updatedPedido.materialDisponible) {
                 updatedPedido.materialDisponible = true;
                 logDetails = 'Cambiado a "Material Disponible"';
-            }
-            if (!updatedPedido.clicheDisponible) {
-                updatedPedido.clicheDisponible = true;
-                logDetails = logDetails ? `${logDetails} y "Cliché Disponible"` : 'Cambiado a "Cliché Disponible"';
             }
             if (destId === PREPARACION_SUB_ETAPAS_IDS.CLICHE_PENDIENTE && updatedPedido.estadoCliché !== EstadoCliché.PENDIENTE_CLIENTE) {
                 updatedPedido.estadoCliché = EstadoCliché.PENDIENTE_CLIENTE;

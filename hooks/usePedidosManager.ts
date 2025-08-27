@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Pedido, UserRole, Etapa, HistorialEntry } from '../types';
 import { store } from '../services/storage';
 import { ETAPAS } from '../constants';
-import { determinarSubEtapaPreparacion } from '../utils/preparacionLogic';
 
 export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHistorial: (usuario: UserRole, accion: string, detalles: string) => HistorialEntry) => {
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -44,7 +43,7 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
                 'observaciones', 'materialDisponible', 'estadoCliché', 'secuenciaTrabajo',
                 'camisa', 'producto', 'materialCapasCantidad', 'materialCapas', 
                 'materialConsumoCantidad', 'materialConsumo', 'bobinaMadre', 'bobinaFinal', 
-                'minAdap', 'colores', 'maquinaImpresion', 'orden', 'minColor', 'clicheDisponible'
+                'minAdap', 'colores', 'maquinaImpresion', 'orden', 'minColor'
             ];
 
             fieldsToCompare.forEach(key => {
@@ -64,13 +63,6 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
             hasChanges = newHistoryEntries.length > 0;
         } else {
              hasChanges = JSON.stringify(originalPedido) !== JSON.stringify(modifiedPedido);
-        }
-
-        // Lógica de enrutamiento automático para preparación
-        if (modifiedPedido.etapaActual === Etapa.PREPARACION) {
-            const subEtapa = determinarSubEtapaPreparacion(modifiedPedido);
-            // Aquí no se actualiza la etapa, se asume que el dragLogic lo maneja
-            // o que el estado ya es correcto. El guardado es para persistir los checkboxes.
         }
 
         // Actualización optimista primero

@@ -25,19 +25,18 @@ export const ETAPAS: Record<Etapa, KanbanEtapa> = {
 
 // Columnas para la nueva vista de Preparación
 export const PREPARACION_SUB_ETAPAS_IDS = {
-    MATERIAL_NO_DISPONIBLE: 'MATERIAL_NO_DISPONIBLE',
-    CLICHE_NO_DISPONIBLE: 'CLICHE_NO_DISPONIBLE',
-    CLICHE_PENDIENTE: 'CLICHE_PENDIENTE',
-    CLICHE_REPETICION: 'CLICHE_REPETICION',
-    CLICHE_NUEVO: 'CLICHE_NUEVO',
-};
+  MATERIAL_NO_DISPONIBLE: 'MATERIAL_NO_DISPONIBLE',
+  CLICHE_PENDIENTE: 'CLICHE_PENDIENTE',
+  CLICHE_REPETICION: 'CLICHE_REPETICION',
+  CLICHE_NUEVO: 'CLICHE_NUEVO',
+} as const;
 
-export const PREPARACION_SUB_ETAPAS: KanbanEtapa[] = [
-    { id: PREPARACION_SUB_ETAPAS_IDS.MATERIAL_NO_DISPONIBLE as any, title: 'Material No Disponible', color: 'bg-red-500' },
-    { id: PREPARACION_SUB_ETAPAS_IDS.CLICHE_NO_DISPONIBLE as any, title: 'Cliché no disponible', color: 'bg-yellow-500' },
-    { id: PREPARACION_SUB_ETAPAS_IDS.CLICHE_PENDIENTE as any, title: 'Cliché: Pendiente Cliente', color: 'bg-blue-500' },
-    { id: PREPARACION_SUB_ETAPAS_IDS.CLICHE_REPETICION as any, title: 'Cliché: Repetición/Cambio', color: 'bg-purple-500' },
-    { id: PREPARACION_SUB_ETAPAS_IDS.CLICHE_NUEVO as any, title: 'Cliché: Nuevo', color: 'bg-green-500' },
+
+export const PREPARACION_COLUMNS = [
+    { id: PREPARACION_SUB_ETAPAS_IDS.MATERIAL_NO_DISPONIBLE, title: 'Material No Disponible', color: 'bg-red-500' },
+    { id: PREPARACION_SUB_ETAPAS_IDS.CLICHE_PENDIENTE, title: 'Cliché: Pendiente Cliente', color: 'bg-blue-500' },
+    { id: PREPARACION_SUB_ETAPAS_IDS.CLICHE_REPETICION, title: 'Cliché: Repetición/Cambio', color: 'bg-indigo-500' },
+    { id: PREPARACION_SUB_ETAPAS_IDS.CLICHE_NUEVO, title: 'Cliché: Nuevo', color: 'bg-purple-500' },
 ];
 
 export const KANBAN_FUNNELS = {
