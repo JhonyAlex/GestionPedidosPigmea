@@ -12,6 +12,7 @@ class Pedido extends Model
     protected $fillable = [
         // ...existing code...
         'camisa',
+        'antivaho',
     ];
 
     // ...existing code...

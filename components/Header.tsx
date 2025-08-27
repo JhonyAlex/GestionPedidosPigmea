@@ -12,6 +12,8 @@ interface HeaderProps {
     onViewChange: (view: ViewType) => void;
     onFilterChange: (name: string, value: string) => void;
     activeFilters: { priority: string, stage: string, dateField: keyof Pedido };
+    antivahoFilter: 'all' | 'con' | 'sin';
+    onAntivahoFilterChange: (value: 'all' | 'con' | 'sin') => void;
     onDateFilterChange: (value: DateFilterOption) => void;
     activeDateFilter: DateFilterOption;
     customDateRange: { start: string; end: string };
@@ -49,6 +51,8 @@ const Header: React.FC<HeaderProps> = ({
     onViewChange, 
     onFilterChange, 
     activeFilters, 
+    antivahoFilter,
+    onAntivahoFilterChange,
     onDateFilterChange,
     activeDateFilter,
     customDateRange,
@@ -212,6 +216,17 @@ const Header: React.FC<HeaderProps> = ({
                             >
                                 <option value="all">Toda Prioridad</option>
                                 {Object.values(Prioridad).map(p => <option key={p} value={p}>{p}</option>)}
+                            </select>
+
+                            <select
+                                name="antivaho"
+                                value={antivahoFilter}
+                                onChange={(e) => onAntivahoFilterChange(e.target.value as 'all' | 'con' | 'sin')}
+                                className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            >
+                                <option value="all">Antivaho (Todos)</option>
+                                <option value="con">Con Antivaho</option>
+                                <option value="sin">Sin Antivaho</option>
                             </select>
                             
                             {currentView !== 'archived' && currentView !== 'preparacion' && (

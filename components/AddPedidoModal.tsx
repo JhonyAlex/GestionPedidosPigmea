@@ -27,6 +27,7 @@ const initialFormData = {
     clicheDisponible: false,
     estadoCliché: EstadoCliché.PENDIENTE_CLIENTE,
     camisa: '',
+    antivaho: false,
     // Nuevos campos
     producto: null,
     materialCapasCantidad: null,
@@ -97,6 +98,11 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
                             <select name="tipoImpresion" value={formData.tipoImpresion} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5">
                                 {Object.values(TipoImpresion).map(t => <option key={t} value={t}>{t}</option>)}
                             </select>
+
+                            <div className="flex items-center justify-start pt-6">
+                                <input type="checkbox" id="antivaho" name="antivaho" checked={formData.antivaho} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                <label htmlFor="antivaho" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Antivaho</label>
+                            </div>
                             
                         </div>
                         {/* Columna Derecha */}

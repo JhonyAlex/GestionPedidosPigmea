@@ -7,12 +7,14 @@ import { getDateRange, DateFilterOption } from '../utils/date';
 export const useFiltrosYOrden = (pedidos: Pedido[]) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filters, setFilters] = useState<{ priority: string, stage: string, dateField: DateField }>({ priority: 'all', stage: 'all', dateField: 'fechaCreacion' });
+    const [antivahoFilter, setAntivahoFilter] = useState<'all' | 'con' | 'sin'>('all');
     const [dateFilter, setDateFilter] = useState<DateFilterOption>('all');
     const [customDateRange, setCustomDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
     const [sortConfig, setSortConfig] = useState<{ key: keyof Pedido, direction: 'ascending' | 'descending' }>({ key: 'prioridad', direction: 'ascending' });
 
     const handleFilterChange = (name: string, value: string) => setFilters(prev => ({ ...prev, [name]: value }));
     const handleDateFilterChange = (value: string) => setDateFilter(value as DateFilterOption);
+    const handleAntivahoFilterChange = (value: 'all' | 'con' | 'sin') => setAntivahoFilter(value);
     const handleCustomDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setCustomDateRange(prev => ({ ...prev, [name]: value }));
@@ -67,8 +69,9 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
             const stageMatch = filters.stage === 'all' || p.etapaActual === filters.stage;
             const dateToFilter = p[filters.dateField];
             const dateMatch = !dateRange || (dateToFilter && new Date(dateToFilter) >= dateRange.start && new Date(dateToFilter) <= dateRange.end);
+            const antivahoMatch = antivahoFilter === 'all' || (antivahoFilter === 'con' && p.antivaho) || (antivahoFilter === 'sin' && !p.antivaho);
 
-            return searchTermMatch && priorityMatch && stageMatch && dateMatch;
+            return searchTermMatch && priorityMatch && stageMatch && dateMatch && antivahoMatch;
         });
 
         if (sortConfig.key) {
@@ -124,6 +127,8 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         setSearchTerm,
         filters,
         handleFilterChange,
+        antivahoFilter,
+        handleAntivahoFilterChange,
         dateFilter,
         handleDateFilterChange,
         customDateRange,
