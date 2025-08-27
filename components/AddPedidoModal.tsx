@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Pedido, Prioridad, TipoImpresion, Etapa, EstadoCliché } from '../types';
 import { KANBAN_FUNNELS, ETAPAS } from '../constants';
 import SequenceBuilder from './SequenceBuilder';
+import SeccionDatosTecnicosDeMaterial from './SeccionDatosTecnicosDeMaterial';
 
 interface AddPedidoModalProps {
     onClose: () => void;
@@ -25,14 +26,27 @@ const initialFormData = {
     materialDisponible: false,
     estadoCliché: EstadoCliché.PENDIENTE_CLIENTE,
     camisa: '',
+    // Nuevos campos
+    producto: null,
+    materialCapasCantidad: null,
+    materialCapas: null,
+    materialConsumoCantidad: null,
+    materialConsumo: null,
+    bobinaMadre: null,
+    bobinaFinal: null,
+    minAdap: null,
+    colores: null,
 };
 
 const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
-    const [formData, setFormData] = useState(initialFormData);
+    const [formData, setFormData] = useState<any>(initialFormData);
     const [secuenciaTrabajo, setSecuenciaTrabajo] = useState<Etapa[]>([]);
 
+    const handleDataChange = (field: keyof Pedido, value: any) => {
+        setFormData((prev: any) => ({ ...prev, [field]: value }));
+    };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
         
         if (type === 'checkbox') {
@@ -135,6 +149,20 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
                     <div className="mt-6">
                         <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Observaciones</label>
                         <textarea name="observaciones" value={formData.observaciones} onChange={handleChange} rows={3} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"></textarea>
+                    </div>
+
+                    <SeccionDatosTecnicosDeMaterial
+                        formData={formData}
+                        onDataChange={handleDataChange}
+                    />
+
+                    <div className="border-t border-gray-200 dark:border-gray-700 mt-6 pt-6">
+                        <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">Configuración de Secuencia de Trabajo</h3>
+                        <SequenceBuilder
+                            sequence={secuenciaTrabajo}
+                            onChange={setSecuenciaTrabajo}
+                            isReadOnly={false}
+                        />
                     </div>
 
                     <div className="mt-8 flex justify-end items-center">

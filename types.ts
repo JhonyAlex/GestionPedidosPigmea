@@ -81,6 +81,25 @@ export interface Pedido {
     materialDisponible?: boolean;
     estadoCliché?: EstadoCliché;
     camisa?: string;
+
+    /** El nombre o código del producto final. */
+    producto?: string | null;
+    /** El número de capas de material que componen el producto. */
+    materialCapasCantidad?: 1 | 2 | 3 | 4 | null;
+    /** Un array que detalla las propiedades de cada capa de material. */
+    materialCapas?: Array<{ micras?: number | null; densidad?: number | null }> | null;
+    /** El número de consumibles o materiales adicionales necesarios. */
+    materialConsumoCantidad?: 1 | 2 | 3 | 4 | null;
+    /** Un array que detalla el consumo de materiales. */
+    materialConsumo?: Array<{ necesario?: number | null; recibido?: string | null }> | null;
+    /** El diámetro o medida de la bobina madre. */
+    bobinaMadre?: number | null;
+    /** El diámetro o medida de la bobina final. */
+    bobinaFinal?: number | null;
+    /** Tiempo de adaptación en minutos. */
+    minAdap?: number | null;
+    /** El número de colores utilizados en la impresión. */
+    colores?: number | null;
 }
 
 export interface KanbanEtapa {
