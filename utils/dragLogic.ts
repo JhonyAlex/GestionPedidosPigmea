@@ -126,6 +126,16 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
 
     const newEtapa = destination.droppableId as Etapa;
     const oldEtapa = source.droppableId as Etapa;
+
+    // Prevent crashes if a drag occurs between incompatible column types
+    // (e.g., from a 'PREP_' column to a main kanban column).
+    if (!ETAPAS[newEtapa] || !ETAPAS[oldEtapa]) {
+        console.warn('Ignored invalid drag-and-drop operation between incompatible columns:', source.droppableId, '->', destination.droppableId);
+        // It's better to let the UI revert the change visually than to crash the app.
+        // A more robust solution would involve preventing these drags via `isDropDisabled`.
+        return;
+    }
+
     const historialEntry = generarEntradaHistorial(currentUserRole, 'Cambio de Etapa', `Movido de '${ETAPAS[oldEtapa].title}' a '${ETAPAS[newEtapa].title}'.`);
     
     const isMovingToCompleted = newEtapa === Etapa.COMPLETADO;
