@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Pedido, Etapa, UserRole, EstadoCliché } from '../types';
 import { PRIORIDAD_COLORS, KANBAN_FUNNELS } from '../constants';
+import { SparklesIcon } from './Icons';
 
 const ClockIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1 inline-block"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>;
 const CalendarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1 inline-block"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" /></svg>;
@@ -66,9 +67,16 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
             className={`bg-white dark:bg-gray-900 rounded-lg p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 border-l-4 ${priorityColor} shadow-md ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''}`}>
             <div className="flex justify-between items-start">
                 <h3 className="font-bold text-base text-gray-800 dark:text-gray-100">{pedido.numeroPedidoCliente}</h3>
-                <span className={`text-xs font-semibold px-2 py-1 rounded-full ${priorityColor.replace('border', 'bg').replace('-500','-900')} text-white`}>
-                    {pedido.prioridad}
-                </span>
+                <div className="flex items-center">
+                    {pedido.antivaho && (
+                        <span className="text-xs font-semibold px-2 py-1 rounded-full bg-blue-200 text-blue-800 ml-2" title="Antivaho">
+                            <SparklesIcon className="w-4 h-4 inline-block" />
+                        </span>
+                    )}
+                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${priorityColor.replace('border', 'bg').replace('-500','-900')} text-white`}>
+                        {pedido.prioridad}
+                    </span>
+                </div>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-300">{pedido.cliente}</p>
             

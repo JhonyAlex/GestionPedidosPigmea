@@ -66,6 +66,8 @@ const App: React.FC = () => {
       setSearchTerm,
       filters,
       handleFilterChange,
+      antivahoFilter,
+      handleAntivahoFilterChange,
       dateFilter,
       handleDateFilterChange,
       customDateRange,
@@ -371,6 +373,8 @@ const App: React.FC = () => {
                     onViewChange={handleViewChange}
                     onFilterChange={handleFilterChange}
                     activeFilters={filters}
+                    antivahoFilter={antivahoFilter}
+                    onAntivahoFilterChange={handleAntivahoFilterChange}
                     onDateFilterChange={handleDateFilterChange}
                     activeDateFilter={dateFilter}
                     customDateRange={customDateRange}

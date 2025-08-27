@@ -208,6 +208,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
         "Tipo Impresión",
         "Capa",
         "Camisa",
+        "Antivaho",
         "Secuencia Actual",
         "Secuencia Siguiente",
         "Observaciones",
@@ -226,6 +227,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             p.tipoImpresion.replace(' (SUP)', '').replace(' (TTE)', ''),
             p.capa,
             p.camisa || '-',
+            p.antivaho ? 'Sí' : 'No',
             ETAPAS[p.etapaActual].title,
             getNextStageTitle(p),
             p.observaciones,
@@ -254,11 +256,12 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
         columnStyles: {
             0: { cellWidth: 60 }, // Desarrollo
             1: { cellWidth: 80 }, // Cliente y # Pedido
-            8: { cellWidth: 100 }, // Observaciones
+            6: { cellWidth: 50 }, // Antivaho
+            9: { cellWidth: 100 }, // Observaciones
         },
         didParseCell: (data) => {
             // Center align all columns except specific ones
-            if (![1, 8].includes(data.column.index)) {
+            if (![1, 9].includes(data.column.index)) {
                 data.cell.styles.halign = 'center';
             }
 

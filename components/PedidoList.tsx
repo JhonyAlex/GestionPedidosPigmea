@@ -4,6 +4,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Droppable, Draggable } from 'react-beautiful-dnd';
 import { Pedido, Etapa, UserRole } from '../types';
 import { ETAPAS, PRIORIDAD_COLORS, KANBAN_FUNNELS } from '../constants';
+import { SparklesIcon } from './Icons';
 
 interface PedidoListProps {
     pedidos: Pedido[];
@@ -73,7 +74,7 @@ const PedidoRow = ({ pedido, onSelectPedido, onArchiveToggle, isArchivedView, cu
         return { canAdvance: false, advanceButtonTitle: '' };
     }, [pedido]);
 
-    const gridTemplate = "grid-cols-[1.5fr_1.5fr_1fr_0.5fr_1fr_1fr_1.2fr_0.75fr_1fr_1fr_1fr]";
+    const gridTemplate = "grid-cols-[1.5fr_1.5fr_1fr_0.5fr_1fr_0.5fr_1fr_1.2fr_0.75fr_1fr_1fr_1fr]";
 
     return (
         <div
@@ -88,6 +89,9 @@ const PedidoRow = ({ pedido, onSelectPedido, onArchiveToggle, isArchivedView, cu
             <div role="cell" className="px-6 py-4">{pedido.desarrollo}</div>
             <div role="cell" className="px-6 py-4 text-center">{pedido.capa || '-'}</div>
             <div role="cell" className="px-6 py-4">{pedido.camisa || '-'}</div>
+            <div role="cell" className="px-6 py-4 text-center">
+                {pedido.antivaho && <SparklesIcon className="w-5 h-5 text-blue-500" title="Antivaho Activado" />}
+            </div>
             <div role="cell" className="px-6 py-4">
                 <span className={`px-2 py-1 text-xs font-semibold rounded-full text-white ${PRIORIDAD_COLORS[pedido.prioridad].replace('border', 'bg').replace('-500', '-900')}`}>
                     {pedido.prioridad}
@@ -135,7 +139,7 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
         setIsMounted(true);
     }, []);
 
-    const gridTemplate = "grid-cols-[1.5fr_1.5fr_1fr_0.5fr_1fr_1fr_1.2fr_0.75fr_1fr_1fr_1fr]";
+    const gridTemplate = "grid-cols-[1.5fr_1.5fr_1fr_0.5fr_1fr_0.5fr_1fr_1.2fr_0.75fr_1fr_1fr_1fr]";
 
     return (
         <main className="flex-grow p-4 md:p-8">
@@ -148,6 +152,7 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
                         <SortableHeader label="Desarrollo" sortKey="desarrollo" onSort={onSort} sortConfig={sortConfig} />
                         <SortableHeader label="Capa" sortKey="capa" onSort={onSort} sortConfig={sortConfig} className="justify-center" />
                         <SortableHeader label="Camisa" sortKey="camisa" onSort={onSort} sortConfig={sortConfig} />
+                        <SortableHeader label="Antivaho" sortKey="antivaho" onSort={onSort} sortConfig={sortConfig} className="justify-center" />
                         <SortableHeader label="Prioridad" sortKey="prioridad" onSort={onSort} sortConfig={sortConfig} />
                         <SortableHeader label="Etapa Actual" sortKey="etapaActual" onSort={onSort} sortConfig={sortConfig} />
                         <SortableHeader label="Metros" sortKey="metros" onSort={onSort} sortConfig={sortConfig} className="justify-end" />

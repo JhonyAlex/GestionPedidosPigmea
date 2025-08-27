@@ -48,7 +48,7 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
                 'observaciones', 'materialDisponible', 'clicheDisponible', 'estadoCliché', 'secuenciaTrabajo',
                 'camisa', 'producto', 'materialCapasCantidad', 'materialCapas', 
                 'materialConsumoCantidad', 'materialConsumo', 'bobinaMadre', 'bobinaFinal', 
-                'minAdap', 'colores', 'maquinaImpresion', 'orden', 'minColor', 'subEtapaActual'
+                'minAdap', 'colores', 'maquinaImpresion', 'orden', 'minColor', 'subEtapaActual', 'antivaho'
             ];
 
             fieldsToCompare.forEach(key => {
@@ -107,6 +107,7 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
             historial: [generarEntradaHistorial(currentUserRole, 'Creación', 'Pedido creado en Preparación.')],
             maquinaImpresion: '',
             secuenciaTrabajo,
+            antivaho: false,
         };
 
         const initialSubEtapa = determinarEtapaPreparacion(tempPedido);
@@ -122,28 +123,48 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
     };
 
     const handleConfirmSendToPrint = async (pedidoToUpdate: Pedido, impresionEtapa: Etapa, postImpresionSequence: Etapa[]) => {
-        const detalles = `Movido de 'Preparación' a '${ETAPAS[impresionEtapa].title}'.`;
-        const historialEntry = generarEntradaHistorial(currentUserRole, 'Enviado a Impresión', detalles);
+        let updatedPedido;
+
+        if (pedidoToUpdate.antivaho) {
+            // Logic for Antivaho: Skip printing
+            const primeraEtapaPostImpresion = postImpresionSequence.length > 0 ? postImpresionSequence[0] : Etapa.COMPLETADO;
+            const detalles = `Movido de 'Preparación' directamente a '${ETAPAS[primeraEtapaPostImpresion].title}' (Antivaho activado).`;
+            const historialEntry = generarEntradaHistorial(currentUserRole, 'Salto a Post-Impresión', detalles);
+
+            updatedPedido = {
+                ...pedidoToUpdate,
+                etapaActual: primeraEtapaPostImpresion,
+                maquinaImpresion: 'N/A (Antivaho)',
+                secuenciaTrabajo: postImpresionSequence,
+                etapasSecuencia: [...pedidoToUpdate.etapasSecuencia, { etapa: primeraEtapaPostImpresion, fecha: new Date().toISOString() }],
+                historial: [...pedidoToUpdate.historial, historialEntry],
+            };
+
+        } else {
+            // Standard logic: Send to printing
+            const detalles = `Movido de 'Preparación' a '${ETAPAS[impresionEtapa].title}'.`;
+            const historialEntry = generarEntradaHistorial(currentUserRole, 'Enviado a Impresión', detalles);
+
+            updatedPedido = {
+                ...pedidoToUpdate,
+                etapaActual: impresionEtapa,
+                maquinaImpresion: ETAPAS[impresionEtapa].title,
+                secuenciaTrabajo: postImpresionSequence,
+                etapasSecuencia: [...pedidoToUpdate.etapasSecuencia, { etapa: impresionEtapa, fecha: new Date().toISOString() }],
+                historial: [...pedidoToUpdate.historial, historialEntry],
+            };
+        }
         
-        const updatedPedido = {
-            ...pedidoToUpdate,
-            etapaActual: impresionEtapa,
-            maquinaImpresion: ETAPAS[impresionEtapa].title,
-            secuenciaTrabajo: postImpresionSequence,
-            etapasSecuencia: [...pedidoToUpdate.etapasSecuencia, { etapa: impresionEtapa, fecha: new Date().toISOString() }],
-            historial: [...pedidoToUpdate.historial, historialEntry],
-        };
-        
-        // Actualización optimista primero
+        // Optimistic update first
         setPedidos(prev => prev.map(p => p.id === updatedPedido.id ? updatedPedido : p));
         
-        // Luego actualización en almacenamiento (en background)
+        // Then update in storage (in background)
         try {
             const savedPedido = await store.update(updatedPedido);
             return savedPedido;
         } catch (error) {
             console.error('Error al enviar a impresión:', error);
-            // Revertir en caso de error
+            // Revert on error
             setPedidos(prev => prev.map(p => p.id === updatedPedido.id ? pedidoToUpdate : p));
             return undefined;
         }

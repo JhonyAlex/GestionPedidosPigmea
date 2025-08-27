@@ -286,20 +286,28 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                             </div>
                                         </div>
                                         
-                                        <label className="block mt-4 mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Máquina de Impresión</label>
-                                        <select
-                                            value={printingStageValue}
-                                            onChange={handlePrintingStageChange}
-                                            className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
-                                            disabled={isReadOnly || !isCurrentlyInPrinting}
-                                        >
-                                            <option value="" disabled>Seleccione una máquina</option>
-                                            {printingStages.map(stageId => (
-                                                <option key={stageId} value={stageId}>
-                                                    {ETAPAS[stageId].title}
-                                                </option>
-                                            ))}
-                                        </select>
+                                        <div className="grid grid-cols-2 gap-4 items-center">
+                                            <div>
+                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Máquina de Impresión</label>
+                                                <select
+                                                    value={printingStageValue}
+                                                    onChange={handlePrintingStageChange}
+                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                                    disabled={isReadOnly || !isCurrentlyInPrinting}
+                                                >
+                                                    <option value="" disabled>Seleccione una máquina</option>
+                                                    {printingStages.map(stageId => (
+                                                        <option key={stageId} value={stageId}>
+                                                            {ETAPAS[stageId].title}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className="flex items-center justify-start pt-6">
+                                                <input type="checkbox" id="antivaho" name="antivaho" checked={!!formData.antivaho} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                                <label htmlFor="antivaho" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Antivaho</label>
+                                            </div>
+                                        </div>
 
                                         <label className="block mt-4 mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Tipo de Impresión</label>
                                         <select name="tipoImpresion" value={formData.tipoImpresion} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50">
@@ -383,7 +391,19 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                             {pedido.etapaActual === Etapa.ARCHIVADO ? 'Desarchivar' : 'Archivar'}
                                         </button>
                                         {pedido.etapaActual === Etapa.PREPARACION ? (
-                                            <button type="button" onClick={handleSendToPrintClick} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!formData.materialDisponible} title={!formData.materialDisponible ? "El material debe estar disponible para enviar a impresión" : "Enviar a Impresión"}>
+                                            <button
+                                                type="button"
+                                                onClick={handleSendToPrintClick}
+                                                className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                disabled={!formData.materialDisponible || !!formData.antivaho}
+                                                title={
+                                                    !formData.materialDisponible
+                                                        ? "El material debe estar disponible para enviar a impresión"
+                                                        : !!formData.antivaho
+                                                        ? "No se puede enviar a impresión un pedido con Antivaho activado"
+                                                        : "Enviar a Impresión"
+                                                }
+                                            >
                                                 Enviar a Impresión
                                             </button>
                                         ) : (
