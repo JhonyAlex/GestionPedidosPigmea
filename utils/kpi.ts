@@ -266,7 +266,8 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             const pedido = pedidos[data.row.index];
             if (pedido && data.section === 'body' && data.column.index === 4) { // "Capa" column
                 const capaValue = pedido.capa;
-                if (capaValue && typeof capaValue === 'number' && capaValue >= 3) {
+                const numericCapa = parseInt(capaValue, 10);
+                if (!isNaN(numericCapa) && numericCapa >= 3) {
                     data.cell.styles.fillColor = [254, 202, 202]; // light red (red-200)
                 }
             }
