@@ -149,6 +149,29 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
         return { updatedPedido, actionText };
     };
 
+    const handleDeletePedido = async (pedidoId: string) => {
+        if (currentUserRole !== 'Administrador') {
+            alert('Permiso denegado: Solo los administradores pueden eliminar pedidos.');
+            return;
+        }
+        
+        const pedidoToDelete = pedidos.find(p => p.id === pedidoId);
+        if (!pedidoToDelete) return;
+
+        // Optimistic deletion
+        setPedidos(prev => prev.filter(p => p.id !== pedidoId));
+
+        try {
+            await store.delete(pedidoId);
+            return pedidoToDelete;
+        } catch (error) {
+            console.error('Error al eliminar el pedido:', error);
+            // Revert on error
+            setPedidos(prev => [...prev, pedidoToDelete].sort((a, b) => b.orden - a.orden));
+            return undefined;
+        }
+    };
+
     const handleDuplicatePedido = async (pedidoToDuplicate: Pedido) => {
         if (currentUserRole !== 'Administrador') {
             alert('Permiso denegado: Solo los administradores pueden duplicar pedidos.');
@@ -247,6 +270,7 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
       handleConfirmSendToPrint,
       handleArchiveToggle,
       handleDuplicatePedido,
+      handleDeletePedido,
       handleExportData,
       handleImportData,
     };

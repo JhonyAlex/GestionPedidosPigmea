@@ -56,6 +56,7 @@ const App: React.FC = () => {
         handleConfirmSendToPrint: handleConfirmSendToPrintLogic,
         handleArchiveToggle: handleArchiveToggleLogic,
         handleDuplicatePedido: handleDuplicatePedidoLogic,
+        handleDeletePedido: handleDeletePedidoLogic,
         handleExportData,
         handleImportData,
     } = usePedidosManager(currentUserRole, generarEntradaHistorial);
@@ -217,6 +218,14 @@ const App: React.FC = () => {
         }
     };
 
+    const handleDeletePedido = async (pedidoId: string) => {
+        const deletedPedido = await handleDeletePedidoLogic(pedidoId);
+        if (deletedPedido) {
+            logAction(`Pedido ${deletedPedido.numeroPedidoCliente} eliminado.`);
+            setSelectedPedido(null); // Cierra el modal
+        }
+    };
+
     const handleViewChange = (newView: ViewType) => {
         if (newView === 'report' && currentUserRole !== 'Administrador') {
             alert('Permiso denegado.');
@@ -261,7 +270,6 @@ const App: React.FC = () => {
                     <PreparacionView
                         pedidos={preparacionPedidos}
                         onSelectPedido={setSelectedPedido}
-                        onDuplicate={handleDuplicatePedido}
                         currentUserRole={currentUserRole}
                         onSendToPrint={setPedidoToSend}
                     />
@@ -279,7 +287,6 @@ const App: React.FC = () => {
                                         pedidos={activePedidos.filter(p => p.etapaActual === etapaId)}
                                         onSelectPedido={setSelectedPedido}
                                         onArchiveToggle={handleArchiveToggle}
-                                        onDuplicate={handleDuplicatePedido}
                                         currentUserRole={currentUserRole}
                                         onAdvanceStage={handleAdvanceStage}
                                         highlightedPedidoId={highlightedPedidoId}
@@ -298,7 +305,6 @@ const App: React.FC = () => {
                                         pedidos={activePedidos.filter(p => p.etapaActual === etapaId)}
                                         onSelectPedido={setSelectedPedido}
                                         onArchiveToggle={handleArchiveToggle}
-                                        onDuplicate={handleDuplicatePedido}
                                         currentUserRole={currentUserRole}
                                         onAdvanceStage={handleAdvanceStage}
                                         highlightedPedidoId={highlightedPedidoId}
@@ -383,6 +389,7 @@ const App: React.FC = () => {
                         onSave={handleSavePedido}
                         onArchiveToggle={handleArchiveToggle}
                         onDuplicate={handleDuplicatePedido}
+                        onDelete={handleDeletePedido}
                         currentUserRole={currentUserRole}
                         onAdvanceStage={handleAdvanceStage}
                         onSendToPrint={setPedidoToSend}
