@@ -51,7 +51,7 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
                 'observaciones', 'materialDisponible', 'clicheDisponible', 'estadoCliché', 'secuenciaTrabajo',
                 'camisa', 'producto', 'materialCapasCantidad', 'materialCapas', 
                 'materialConsumoCantidad', 'materialConsumo', 'bobinaMadre', 'bobinaFinal', 
-                'minAdap', 'colores', 'maquinaImpresion', 'orden', 'minColor'
+                'minAdap', 'colores', 'maquinaImpresion', 'orden', 'minColor', 'subEtapaActual'
             ];
 
             fieldsToCompare.forEach(key => {

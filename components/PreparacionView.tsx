@@ -1,7 +1,7 @@
 import React from 'react';
 import { Droppable } from 'react-beautiful-dnd';
-import { Pedido, UserRole, EstadoCliché } from '../types';
-import { PREPARACION_COLUMNS, PREPARACION_SUB_ETAPAS_IDS } from '../constants';
+import { Pedido, UserRole, Etapa } from '../types';
+import { PREPARACION_COLUMNS } from '../constants';
 import PreparacionColumn from './PreparacionColumn';
 
 interface PreparacionViewProps {
@@ -13,12 +13,12 @@ interface PreparacionViewProps {
 
 const PreparacionView: React.FC<PreparacionViewProps> = ({ pedidos, onSelectPedido, currentUserRole, onSendToPrint }) => {
 
-    const pedidosPorColumna: Record<string, Pedido[]> = {
-        [PREPARACION_SUB_ETAPAS_IDS.MATERIAL_NO_DISPONIBLE]: pedidos.filter(p => !p.materialDisponible),
-        [PREPARACION_SUB_ETAPAS_IDS.CLICHE_PENDIENTE]: pedidos.filter(p => p.materialDisponible && p.estadoCliché === EstadoCliché.PENDIENTE_CLIENTE),
-        [PREPARACION_SUB_ETAPAS_IDS.CLICHE_REPETICION]: pedidos.filter(p => p.materialDisponible && p.estadoCliché === EstadoCliché.REPETICION_CAMBIO),
-        [PREPARACION_SUB_ETAPAS_IDS.CLICHE_NUEVO]: pedidos.filter(p => p.materialDisponible && p.estadoCliché === EstadoCliché.NUEVO),
-    };
+    const pedidosPorColumna = pedidos.reduce((acc, pedido) => {
+        if (pedido.etapaActual === Etapa.PREPARACION && pedido.subEtapaActual) {
+            (acc[pedido.subEtapaActual] = acc[pedido.subEtapaActual] || []).push(pedido);
+        }
+        return acc;
+    }, {} as Record<string, Pedido[]>);
 
     return (
         <main className="flex-grow p-4 md:p-8">

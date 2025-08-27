@@ -14,6 +14,7 @@ type ProcessDragEndArgs = {
   generarEntradaHistorial: (usuario: UserRole, accion: string, detalles: string) => HistorialEntry;
   logAction: (action: string) => void;
   setPedidos: React.Dispatch<React.SetStateAction<Pedido[]>>;
+  handleSavePedido: (pedido: Pedido) => Promise<any>;
   setSortConfig: (key: keyof Pedido) => void;
 };
 
@@ -26,6 +27,7 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
         generarEntradaHistorial,
         logAction,
         setPedidos,
+        handleSavePedido,
         setSortConfig
     } = args;
 
@@ -82,42 +84,20 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
 
     if (source.droppableId.startsWith('PREP_') && destination.droppableId.startsWith('PREP_')) {
         const destId = destination.droppableId.replace('PREP_', '');
-        updatedPedido = { ...movedPedido, historial: [...movedPedido.historial] };
-        let logDetails = '';
 
-        if (destId === PREPARACION_SUB_ETAPAS_IDS.MATERIAL_NO_DISPONIBLE) {
-            if (updatedPedido.materialDisponible) {
-                updatedPedido.materialDisponible = false;
-                logDetails = 'Cambiado a "Material No Disponible"';
-            }
-        } else {
-            if (!updatedPedido.materialDisponible) {
-                updatedPedido.materialDisponible = true;
-                logDetails = 'Cambiado a "Material Disponible"';
-            }
-            if (destId === PREPARACION_SUB_ETAPAS_IDS.CLICHE_PENDIENTE && updatedPedido.estadoCliché !== EstadoCliché.PENDIENTE_CLIENTE) {
-                updatedPedido.estadoCliché = EstadoCliché.PENDIENTE_CLIENTE;
-            } else if (destId === PREPARACION_SUB_ETAPAS_IDS.CLICHE_REPETICION && updatedPedido.estadoCliché !== EstadoCliché.REPETICION_CAMBIO) {
-                updatedPedido.estadoCliché = EstadoCliché.REPETICION_CAMBIO;
-            } else if (destId === PREPARACION_SUB_ETAPAS_IDS.CLICHE_NUEVO && updatedPedido.estadoCliché !== EstadoCliché.NUEVO) {
-                updatedPedido.estadoCliché = EstadoCliché.NUEVO;
-            }
-        }
-        const historialEntry = generarEntradaHistorial(currentUserRole, 'Actualización en Preparación', logDetails || 'Movido en vista de preparación');
-        updatedPedido.historial.push(historialEntry);
+        // Optimistically update the sub-stage.
+        // The handleSavePedido logic will then recalculate and enforce the correct stage.
+        const tempUpdatedPedido = {
+            ...movedPedido,
+            subEtapaActual: destId,
+        };
 
-        // Actualización optimista primero
-        setPedidos(prev => prev.map(p => p.id === draggableId ? updatedPedido : p));
+        // Immediately update the UI for a smooth drag-and-drop experience.
+        setPedidos(prev => prev.map(p => p.id === draggableId ? tempUpdatedPedido : p));
+
+        // Persist the change and let the hook's logic handle the final state.
+        await handleSavePedido(tempUpdatedPedido);
         
-        // Luego actualización en almacenamiento (en background)
-        try {
-            await store.update(updatedPedido);
-            logAction(`Pedido ${movedPedido.numeroPedidoCliente} actualizado en Preparación.`);
-        } catch (error) {
-            console.error('Error al actualizar el pedido:', error);
-            // Revertir en caso de error
-            setPedidos(prev => prev.map(p => p.id === draggableId ? movedPedido : p));
-        }
         return;
     }
 

@@ -109,10 +109,11 @@ const App: React.FC = () => {
           generarEntradaHistorial,
           logAction,
           setPedidos,
+          handleSavePedido: handleSavePedidoLogic,
           setSortConfig: handleSort as any // Re-sorting is handled inside the hook, but we need to pass a function
         });
 
-    }, [pedidos, currentUserRole, processedPedidos, generarEntradaHistorial, logAction, handleSort, setPedidos]);
+    }, [pedidos, currentUserRole, processedPedidos, generarEntradaHistorial, logAction, handleSort, setPedidos, handleSavePedidoLogic]);
     
     const handleAdvanceStage = (pedidoToAdvance: Pedido) => {
         // 1. Highlight in original position
