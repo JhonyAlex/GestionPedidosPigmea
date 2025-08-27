@@ -37,10 +37,7 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
         let hasChanges = false;
 
         if (modifiedPedido.etapaActual === Etapa.PREPARACION) {
-            const nuevaSubEtapa = determinarEtapaPreparacion(modifiedPedido);
-            if (modifiedPedido.subEtapaActual !== nuevaSubEtapa) {
-                modifiedPedido.subEtapaActual = nuevaSubEtapa;
-            }
+            modifiedPedido.subEtapaActual = determinarEtapaPreparacion(modifiedPedido);
         }
         
         if (generateHistory) {
