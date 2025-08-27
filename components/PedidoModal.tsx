@@ -1,9 +1,10 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Pedido, Prioridad, Etapa, UserRole, TipoImpresion, EstadoCliché } from '../types';
 import { calcularTiempoRealProduccion, parseTimeToMinutes, formatMinutesToHHMM } from '../utils/kpi';
 import { ETAPAS, KANBAN_FUNNELS } from '../constants';
 import SequenceBuilder from './SequenceBuilder';
+
+const DuplicateIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m9.75 0h-3.375c-.621 0-1.125.504-1.125 1.125v6.75c0 .621.504 1.125 1.125 1.125h3.375c.621 0 1.125-.504 1.125-1.125v-6.75a1.125 1.125 0 0 0-1.125-1.125Z" /></svg>;
 
 // Icons for history
 const PencilIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>;
@@ -27,12 +28,13 @@ interface PedidoModalProps {
     onClose: () => void;
     onSave: (pedido: Pedido) => void;
     onArchiveToggle: (pedido: Pedido) => void;
+    onDuplicate: (pedido: Pedido) => void;
     currentUserRole: UserRole;
     onAdvanceStage: (pedido: Pedido) => void;
     onSendToPrint: (pedido: Pedido) => void;
 }
 
-const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onArchiveToggle, currentUserRole, onAdvanceStage, onSendToPrint }) => {
+const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onArchiveToggle, currentUserRole, onAdvanceStage, onSendToPrint, onDuplicate }) => {
     const [formData, setFormData] = useState<Pedido>(pedido);
     const [activeTab, setActiveTab] = useState<'detalles' | 'historial'>('detalles');
     const isReadOnly = currentUserRole === 'Operador';
@@ -80,6 +82,13 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         onSendToPrint(pedido);
         onClose();
     }
+
+    const handleDuplicateClick = () => {
+        if (window.confirm(`¿Está seguro de que desea duplicar el pedido ${pedido.numeroPedidoCliente}?`)) {
+            onDuplicate(pedido);
+            onClose();
+        }
+    };
 
     const performanceData = useMemo(() => {
         const tiempoRealMin = calcularTiempoRealProduccion(pedido);
@@ -160,7 +169,14 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50">
             <div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg shadow-2xl p-8 w-full max-w-5xl max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-center mb-1">
-                    <h2 className="text-3xl font-bold">Pedido: {pedido.numeroPedidoCliente}</h2>
+                    <div className="flex items-center gap-4">
+                        <h2 className="text-3xl font-bold">Pedido: {pedido.numeroPedidoCliente}</h2>
+                        {currentUserRole === 'Administrador' && (
+                            <button onClick={handleDuplicateClick} title="Duplicar Pedido" className="text-gray-500 hover:text-indigo-500 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors">
+                                <DuplicateIcon />
+                            </button>
+                        )}
+                    </div>
                     <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-3xl leading-none">&times;</button>
                 </div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 font-mono">Registro Interno: {pedido.numeroRegistro}</p>

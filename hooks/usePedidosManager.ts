@@ -148,6 +148,36 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
         setPedidos(prev => prev.map(p => p.id === pedido.id ? updatedPedido : p));
         return { updatedPedido, actionText };
     };
+
+    const handleDuplicatePedido = async (pedidoToDuplicate: Pedido) => {
+        if (currentUserRole !== 'Administrador') {
+            alert('Permiso denegado: Solo los administradores pueden duplicar pedidos.');
+            return;
+        }
+    
+        const now = new Date();
+        const newId = now.getTime().toString();
+        const numeroRegistro = `REG-${now.toISOString().slice(0, 19).replace(/[-:T]/g, '')}-${newId.slice(-4)}`;
+        const initialStage = Etapa.PREPARACION;
+        const maxOrder = Math.max(...pedidos.map(p => p.orden), 0);
+    
+        const newPedido: Pedido = {
+            ...pedidoToDuplicate,
+            id: newId,
+            secuenciaPedido: parseInt(newId.slice(-6)),
+            orden: maxOrder + 1,
+            numeroRegistro: numeroRegistro,
+            fechaCreacion: now.toISOString(),
+            etapaActual: initialStage,
+            etapasSecuencia: [{ etapa: initialStage, fecha: now.toISOString() }],
+            historial: [generarEntradaHistorial(currentUserRole, 'Creación', `Pedido duplicado desde ${pedidoToDuplicate.numeroPedidoCliente}.`)],
+            maquinaImpresion: '', // Reset machine
+        };
+    
+        const createdPedido = await store.create(newPedido);
+        setPedidos(prev => [createdPedido, ...prev]);
+        return createdPedido;
+    };
     
     const handleExportData = async (pedidosToExport: Pedido[]) => {
         try {
@@ -216,6 +246,7 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
       handleAddPedido,
       handleConfirmSendToPrint,
       handleArchiveToggle,
+      handleDuplicatePedido,
       handleExportData,
       handleImportData,
     };

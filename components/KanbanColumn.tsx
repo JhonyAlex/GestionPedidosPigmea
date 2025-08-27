@@ -8,12 +8,13 @@ interface KanbanColumnProps {
     pedidos: Pedido[];
     onSelectPedido: (pedido: Pedido) => void;
     onArchiveToggle: (pedido: Pedido) => void;
+    onDuplicate: (pedido: Pedido) => void;
     currentUserRole: UserRole;
     onAdvanceStage: (pedido: Pedido) => void;
     highlightedPedidoId: string | null;
 }
 
-const KanbanColumn: React.FC<KanbanColumnProps> = ({ etapa, pedidos, onSelectPedido, onArchiveToggle, currentUserRole, onAdvanceStage, highlightedPedidoId }) => {
+const KanbanColumn: React.FC<KanbanColumnProps> = ({ etapa, pedidos, onSelectPedido, onArchiveToggle, currentUserRole, onAdvanceStage, highlightedPedidoId, onDuplicate }) => {
     // Eliminado delay artificial, renderiza directamente
     const isMounted = true;
 
@@ -48,6 +49,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ etapa, pedidos, onSelectPed
                                                 pedido={pedido} 
                                                 onArchiveToggle={onArchiveToggle} 
                                                 onSelectPedido={onSelectPedido}
+                                                onDuplicate={onDuplicate}
                                                 currentUserRole={currentUserRole} 
                                                 onAdvanceStage={onAdvanceStage}
                                                 highlightedPedidoId={highlightedPedidoId}

@@ -7,11 +7,12 @@ import PreparacionColumn from './PreparacionColumn';
 interface PreparacionViewProps {
     pedidos: Pedido[];
     onSelectPedido: (pedido: Pedido) => void;
+    onDuplicate: (pedido: Pedido) => void;
     currentUserRole: UserRole;
     onSendToPrint: (pedido: Pedido) => void;
 }
 
-const PreparacionView: React.FC<PreparacionViewProps> = ({ pedidos, onSelectPedido, currentUserRole, onSendToPrint }) => {
+const PreparacionView: React.FC<PreparacionViewProps> = ({ pedidos, onSelectPedido, currentUserRole, onSendToPrint, onDuplicate }) => {
 
     const pedidosPorColumna: Record<string, Pedido[]> = {
         [PREPARACION_SUB_ETAPAS_IDS.MATERIAL_NO_DISPONIBLE]: pedidos.filter(p => !p.materialDisponible),
@@ -30,6 +31,7 @@ const PreparacionView: React.FC<PreparacionViewProps> = ({ pedidos, onSelectPedi
                         columna={columna}
                         pedidos={pedidosPorColumna[columna.id] || []}
                         onSelectPedido={onSelectPedido}
+                        onDuplicate={onDuplicate}
                         currentUserRole={currentUserRole}
                         onSendToPrint={onSendToPrint}
                     />

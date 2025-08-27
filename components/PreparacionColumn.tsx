@@ -7,11 +7,12 @@ interface PreparacionColumnProps {
     columna: { id: string; title: string; color: string; };
     pedidos: Pedido[];
     onSelectPedido: (pedido: Pedido) => void;
+    onDuplicate: (pedido: Pedido) => void;
     currentUserRole: UserRole;
     onSendToPrint: (pedido: Pedido) => void;
 }
 
-const PreparacionColumn: React.FC<PreparacionColumnProps> = ({ columna, pedidos, onSelectPedido, currentUserRole, onSendToPrint }) => {
+const PreparacionColumn: React.FC<PreparacionColumnProps> = ({ columna, pedidos, onSelectPedido, currentUserRole, onSendToPrint, onDuplicate }) => {
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
@@ -49,6 +50,7 @@ const PreparacionColumn: React.FC<PreparacionColumnProps> = ({ columna, pedidos,
                                                 pedido={pedido} 
                                                 onArchiveToggle={() => {}} // No archive in prep view
                                                 onSelectPedido={onSelectPedido}
+                                                onDuplicate={onDuplicate}
                                                 currentUserRole={currentUserRole} 
                                                 onAdvanceStage={() => {}} // Advance is handled by onSendToPrint
                                                 onSendToPrint={onSendToPrint}

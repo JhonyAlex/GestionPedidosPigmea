@@ -2,25 +2,27 @@ import React, { useMemo } from 'react';
 import { Pedido, Etapa, UserRole, EstadoCliché } from '../types';
 import { PRIORIDAD_COLORS, KANBAN_FUNNELS } from '../constants';
 
-interface PedidoCardProps {
-    pedido: Pedido;
-    onArchiveToggle: (pedido: Pedido) => void;
-    onSelectPedido: (pedido: Pedido) => void;
-    currentUserRole: UserRole;
-    onAdvanceStage: (pedido: Pedido) => void;
-    onSendToPrint?: (pedido: Pedido) => void; // Optional: for PreparacionView
-    highlightedPedidoId?: string | null;
-}
-
 const ClockIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1 inline-block"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>;
 const CalendarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1 inline-block"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" /></svg>;
 const RulerIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1 inline-block"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" /></svg>;
 const ArchiveBoxIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" /></svg>;
 const ArrowRightCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12.75 15l3-3m0 0l-3-3m3 3h-7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>;
 const PaperClipIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1 inline-block"><path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3.375 3.375 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.122 2.122l7.81-7.81" /></svg>;
+const DuplicateIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m9.75 0h-3.375c-.621 0-1.125.504-1.125 1.125v6.75c0 .621.504 1.125 1.125 1.125h3.375c.621 0 1.125-.504 1.125-1.125v-6.75a1.125 1.125 0 0 0-1.125-1.125Z" /></svg>;
 
 
-const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSelectPedido, currentUserRole, onAdvanceStage, onSendToPrint, highlightedPedidoId }) => {
+interface PedidoCardProps {
+    pedido: Pedido;
+    onArchiveToggle: (pedido: Pedido) => void;
+    onSelectPedido: (pedido: Pedido) => void;
+    onDuplicate: (pedido: Pedido) => void;
+    currentUserRole: UserRole;
+    onAdvanceStage: (pedido: Pedido) => void;
+    onSendToPrint?: (pedido: Pedido) => void; // Optional: for PreparacionView
+    highlightedPedidoId?: string | null;
+}
+
+const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSelectPedido, currentUserRole, onAdvanceStage, onSendToPrint, highlightedPedidoId, onDuplicate }) => {
     const priorityColor = PRIORIDAD_COLORS[pedido.prioridad];
 
     const handleArchiveClick = (e: React.MouseEvent) => {
@@ -36,6 +38,13 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
             onAdvanceStage(pedido);
         }
     }
+
+    const handleDuplicateClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (window.confirm(`¿Está seguro de que desea duplicar el pedido ${pedido.numeroPedidoCliente}?`)) {
+            onDuplicate(pedido);
+        }
+    };
 
     const { canAdvance, advanceButtonTitle } = useMemo(() => {
         if (pedido.etapaActual === Etapa.PREPARACION && !!pedido.materialDisponible) {
@@ -90,6 +99,16 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
             <div className="text-sm text-gray-500 dark:text-gray-400 mt-2 flex justify-between items-center">
                 <span className="flex items-center text-xs"><ClockIcon /> {pedido.tiempoProduccionPlanificado}</span>
                 <div className="flex items-center gap-1">
+                     {currentUserRole === 'Administrador' && (
+                        <button
+                            onClick={handleDuplicateClick}
+                            className="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300"
+                            aria-label="Duplicar Pedido"
+                            title="Duplicar Pedido"
+                        >
+                            <DuplicateIcon />
+                        </button>
+                    )}
                      {canAdvance && currentUserRole === 'Administrador' && (
                         <button 
                             onClick={handleAdvanceClick} 
