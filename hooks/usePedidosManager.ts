@@ -279,8 +279,27 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
                     
                     if (confirmCallback(importedPedidos)) {
                         setIsLoading(true);
+
+                        // Sanitize and process imported data
+                        const sanitizedPedidos = importedPedidos.map(p => {
+                            let sanitizedPedido = { ...p };
+
+                            // 1. Ensure etapaActual is valid
+                            if (!ETAPAS[sanitizedPedido.etapaActual]) {
+                                console.warn(`Pedido importado con etapa inválida: ${sanitizedPedido.numeroPedidoCliente} (${sanitizedPedido.etapaActual}). Se moverá a Pendiente.`);
+                                sanitizedPedido.etapaActual = Etapa.PENDIENTE;
+                            }
+
+                            // 2. Ensure subEtapaActual is correct for PREPARACION stage
+                            if (sanitizedPedido.etapaActual === Etapa.PREPARACION) {
+                                sanitizedPedido.subEtapaActual = determinarEtapaPreparacion(sanitizedPedido);
+                            }
+
+                            return sanitizedPedido;
+                        });
+
                         await store.clear();
-                        await store.bulkInsert(importedPedidos);
+                        await store.bulkInsert(sanitizedPedidos);
                         const freshData = await store.getAll();
                         setPedidos(freshData);
                         setIsLoading(false);
