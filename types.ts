@@ -79,6 +79,7 @@ export interface Pedido {
     historial: HistorialEntry[];
     // Nuevos campos para la etapa de Preparación
     materialDisponible?: boolean;
+    clicheDisponible?: boolean;
     estadoCliché?: EstadoCliché;
     camisa?: string;
 

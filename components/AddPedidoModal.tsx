@@ -26,6 +26,7 @@ const initialFormData = {
     materialDisponible: false,
     estadoCliché: EstadoCliché.PENDIENTE_CLIENTE,
     camisa: '',
+    clicheDisponible: false,
     // Nuevos campos
     producto: null,
     materialCapasCantidad: null,
@@ -138,12 +139,16 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
                                     <input type="checkbox" id="materialDisponible" name="materialDisponible" checked={formData.materialDisponible} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                     <label htmlFor="materialDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Material Disponible</label>
                                 </div>
+                                <div className="flex items-center justify-start pt-6">
+                                    <input type="checkbox" id="clicheDisponible" name="clicheDisponible" checked={formData.clicheDisponible} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                    <label htmlFor="clicheDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Cliché Disponible</label>
+                                </div>
                              </div>
                         </div>
                     </div>
                     
                     <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
-                        <h3 className="text-xl font-semibold mb-4">Secuencia de Post-Impresión</h3>
+                        <h3 className="text-xl font-semibold mb-4">Configuración de Secuencia</h3>
                         <SequenceBuilder sequence={secuenciaTrabajo} onChange={setSecuenciaTrabajo} isReadOnly={false} />
                     </div>
 

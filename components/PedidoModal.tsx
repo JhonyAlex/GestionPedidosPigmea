@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Pedido, Prioridad, Etapa, UserRole, TipoImpresion, EstadoCliché } from '../types';
 import { calcularTiempoRealProduccion, parseTimeToMinutes, formatMinutesToHHMM } from '../utils/kpi';
 import { ETAPAS, KANBAN_FUNNELS } from '../constants';
 import SequenceBuilder from './SequenceBuilder';
 import SeccionDatosTecnicosDeMaterial from './SeccionDatosTecnicosDeMaterial';
+import { determinarSubEtapaPreparacion } from '../utils/preparacionLogic';
 
 const DuplicateIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m9.75 0h-3.375c-.621 0-1.125.504-1.125 1.125v6.75c0 .621.504 1.125 1.125 1.125h3.375c.621 0 1.125-.504 1.125-1.125v-6.75a1.125 1.125 0 0 0-1.125-1.125Z" /></svg>;
 const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>;
@@ -20,7 +21,7 @@ const getHistoryIcon = (action: string) => {
     if (action.includes('Creación')) return <PlusCircleIcon />;
     if (action.includes('Etapa') || action.includes('Enviado')) return <ArrowPathIcon />;
     if (action.includes('Archivado') || action.includes('Desarchivado')) return <ArchiveBoxIcon />;
-    if (action.includes('Preparación') || action.includes('Actualización en Preparación')) return <PaperAirplaneIcon />;
+     if (action.includes('Preparación') || action.includes('Actualización en Preparación')) return <PaperAirplaneIcon />;
     return <PencilIcon />;
 };
 
@@ -41,10 +42,27 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     const [formData, setFormData] = useState<Pedido>(pedido);
     const [activeTab, setActiveTab] = useState<'detalles' | 'historial'>('detalles');
     const isReadOnly = currentUserRole === 'Operador';
+    const isFirstRun = useRef(true);
 
     useEffect(() => {
         setFormData(pedido);
+        isFirstRun.current = true; // Reset on new pedido to prevent auto-save on open
     }, [pedido]);
+
+    // Auto-save on preparation checkbox change for immediate stage recalculation
+    useEffect(() => {
+        if (isReadOnly || isFirstRun.current) {
+            isFirstRun.current = false;
+            return;
+        }
+
+        if (pedido.etapaActual === Etapa.PREPARACION) {
+            if (formData.materialDisponible !== pedido.materialDisponible || formData.clicheDisponible !== pedido.clicheDisponible) {
+                 onSave(formData);
+            }
+        }
+    }, [formData.materialDisponible, formData.clicheDisponible, pedido, onSave, isReadOnly]);
+
 
     const handleDataChange = (field: keyof Pedido, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -55,10 +73,10 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         
         if (type === 'checkbox') {
             const { checked } = e.target as HTMLInputElement;
-            setFormData(prev => ({ ...prev, [name]: checked }));
+            handleDataChange(name as keyof Pedido, checked);
         } else {
             const valueToSet = type === 'number' ? parseInt(value, 10) || 0 : value;
-            setFormData(prev => ({ ...prev, [name]: valueToSet }));
+            handleDataChange(name as keyof Pedido, valueToSet);
         }
     };
 
@@ -263,6 +281,10 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                 <input type="checkbox" id="materialDisponible" name="materialDisponible" checked={!!formData.materialDisponible} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                                 <label htmlFor="materialDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Material Disponible</label>
                                             </div>
+                                            <div className="flex items-center justify-start pt-6">
+                                                <input type="checkbox" id="clicheDisponible" name="clicheDisponible" checked={!!formData.clicheDisponible} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                                <label htmlFor="clicheDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Cliché Disponible</label>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -367,15 +389,6 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                     <textarea name="observaciones" value={formData.observaciones} onChange={handleChange} rows={3} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"></textarea>
                                 </div>
                             </fieldset>
-
-                            <div className="border-t border-gray-200 dark:border-gray-700 mt-6 pt-6">
-                                <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">Configuración de Secuencia</h3>
-                                <SequenceBuilder
-                                    sequence={formData.secuenciaTrabajo || []}
-                                    onChange={handleSequenceChange}
-                                    isReadOnly={isReadOnly}
-                                />
-                            </div>
 
                             <div className="mt-8 flex justify-between items-center">
                                 {isReadOnly ? (
