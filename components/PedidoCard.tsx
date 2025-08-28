@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Pedido, Etapa, UserRole, EstadoCliché } from '../types';
+import { Pedido, Etapa, UserRole, EstadoCliché, Prioridad } from '../types';
 import { PRIORIDAD_COLORS, KANBAN_FUNNELS } from '../constants';
 import { SparklesIcon } from './Icons';
 
@@ -22,7 +22,8 @@ interface PedidoCardProps {
 }
 
 const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSelectPedido, currentUserRole, onAdvanceStage, onSendToPrint, highlightedPedidoId }) => {
-    const priorityColor = PRIORIDAD_COLORS[pedido.prioridad];
+    // Usar valor por defecto si la prioridad no existe en PRIORIDAD_COLORS
+    const priorityColor = PRIORIDAD_COLORS[pedido.prioridad] || PRIORIDAD_COLORS[Prioridad.NORMAL] || 'border-blue-500';
 
     const handleArchiveClick = (e: React.MouseEvent) => {
         e.stopPropagation();

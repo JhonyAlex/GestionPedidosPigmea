@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { Droppable, Draggable } from 'react-beautiful-dnd';
-import { Pedido, Etapa, UserRole } from '../types';
+import { Pedido, Etapa, UserRole, Prioridad } from '../types';
 import { ETAPAS, PRIORIDAD_COLORS, KANBAN_FUNNELS } from '../constants';
 import { SparklesIcon } from './Icons';
 
@@ -93,7 +93,7 @@ const PedidoRow = ({ pedido, onSelectPedido, onArchiveToggle, isArchivedView, cu
                 {pedido.antivaho && <SparklesIcon className="w-5 h-5 text-blue-500" title="Antivaho Activado" />}
             </div>
             <div role="cell" className="px-6 py-4">
-                <span className={`px-2 py-1 text-xs font-semibold rounded-full text-white ${PRIORIDAD_COLORS[pedido.prioridad].replace('border', 'bg').replace('-500', '-900')}`}>
+                <span className={`px-2 py-1 text-xs font-semibold rounded-full text-white ${(PRIORIDAD_COLORS[pedido.prioridad] || PRIORIDAD_COLORS[Prioridad.NORMAL] || 'border-blue-500').replace('border', 'bg').replace('-500', '-900')}`}>
                     {pedido.prioridad}
                 </span>
             </div>

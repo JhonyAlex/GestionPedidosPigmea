@@ -4,16 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Planning Pigmea</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class', // Enable class-based dark mode
-      theme: {
-        extend: {},
-      },
-      plugins: [],
-    }
-  </script>
   <script>
     // Prevents FOUC (Flash of Unstyled Content) or FOIT (Flash of Incorrect Theme)
     if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
