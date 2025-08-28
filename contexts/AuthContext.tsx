@@ -13,17 +13,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Cargar usuario del localStorage al iniciar
     useEffect(() => {
-        const savedUser = localStorage.getItem('pigmea_user');
-        if (savedUser) {
+        const loadUserFromStorage = () => {
             try {
-                const userData = JSON.parse(savedUser);
-                setUser(userData);
+                if (typeof window !== 'undefined') {
+                    const savedUser = localStorage.getItem('pigmea_user');
+                    if (savedUser) {
+                        const userData = JSON.parse(savedUser);
+                        setUser(userData);
+                    }
+                }
             } catch (error) {
                 console.error('Error parsing saved user:', error);
-                localStorage.removeItem('pigmea_user');
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('pigmea_user');
+                }
+            } finally {
+                setLoading(false);
             }
-        }
-        setLoading(false);
+        };
+
+        loadUserFromStorage();
     }, []);
 
     const login = async (username: string, password: string): Promise<AuthResponse> => {
@@ -42,7 +51,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
             if (data.success && data.user) {
                 setUser(data.user);
-                localStorage.setItem('pigmea_user', JSON.stringify(data.user));
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('pigmea_user', JSON.stringify(data.user));
+                }
                 return { success: true, user: data.user, message: data.message };
             } else {
                 return { success: false, message: data.error || 'Error en el login' };
@@ -71,7 +82,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
             if (data.success && data.user) {
                 setUser(data.user);
-                localStorage.setItem('pigmea_user', JSON.stringify(data.user));
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('pigmea_user', JSON.stringify(data.user));
+                }
                 return { success: true, user: data.user, message: data.message };
             } else {
                 return { success: false, message: data.error || 'Error en el registro' };
@@ -86,7 +99,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const logout = () => {
         setUser(null);
-        localStorage.removeItem('pigmea_user');
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('pigmea_user');
+        }
     };
 
     const value: AuthContextType = {
