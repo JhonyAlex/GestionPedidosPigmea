@@ -1,6 +1,7 @@
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
+const SQLiteClient = require('./sqlite-client');
 
 // Check if we're in a Cloud environment
 const isCloudEnvironment = process.env.GOOGLE_CLOUD_PROJECT || process.env.K_SERVICE;
@@ -14,6 +15,8 @@ console.log('Environment check:', {
 
 let db, pedidosCollection;
 let firestoreEnabled = false;
+let sqliteClient = null;
+let sqliteEnabled = false;
 
 // Try to initialize Firestore only in cloud environment
 if (isCloudEnvironment) {
@@ -29,11 +32,15 @@ if (isCloudEnvironment) {
         console.log('Firestore initialized successfully');
     } catch (error) {
         console.error('Failed to initialize Firestore:', error.message);
-        console.error('Firestore will be disabled, using in-memory storage');
+        console.error('Firestore will be disabled, falling back to SQLite');
         firestoreEnabled = false;
     }
-} else {
-    console.log('Not in cloud environment, using in-memory storage');
+}
+
+// Initialize SQLite if not using Firestore
+if (!firestoreEnabled) {
+    console.log('Initializing SQLite database...');
+    sqliteClient = new SQLiteClient();
 }
 
 // --- DATA (Fallback for non-cloud environments) ---
@@ -50,9 +57,10 @@ app.use(express.json());
 app.get('/health', (req, res) => {
     res.status(200).json({
         status: 'healthy',
+        timestamp: new Date().toISOString(),
         firestoreEnabled,
-        environment: process.env.NODE_ENV,
-        timestamp: new Date().toISOString()
+        sqliteEnabled,
+        inMemoryFallback: !firestoreEnabled && !sqliteEnabled
     });
 });
 
@@ -62,38 +70,19 @@ app.get('/health', (req, res) => {
 app.get('/api/pedidos', async (req, res) => {
     try {
         console.log('GET /api/pedidos requested');
-        console.log('Firestore enabled:', firestoreEnabled);
+        console.log('Storage status:', { firestoreEnabled, sqliteEnabled });
         
         if (firestoreEnabled && pedidosCollection) {
             console.log('Using Firestore...');
-            const query = pedidosCollection.orderBy("secuenciaPedido", "desc");
-            let snapshot = await query.get();
+            const snapshot = await pedidosCollection.get();
             console.log(`Found ${snapshot.size} documents in Firestore`);
-
-            // If the database is empty, seed it with initial data
-            if (snapshot.empty) {
-                console.log("No data found in Firestore, populating with seed data.");
-                const batch = db.batch();
-                initialPedidos.forEach(pedido => {
-                    const docRef = pedidosCollection.doc(pedido.id);
-                    batch.set(docRef, pedido);
-                });
-                await batch.commit();
-                console.log("Seeding complete, re-fetching data...");
-                snapshot = await query.get();
-                console.log(`After seeding: ${snapshot.size} documents`);
-            }
-
-            const pedidos = [];
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                if (data) {
-                    pedidos.push(data);
-                }
-            });
-            
-            console.log(`Returning ${pedidos.length} pedidos from Firestore`);
+            const pedidos = snapshot.docs.map(doc => doc.data()).sort((a, b) => b.secuenciaPedido - a.secuenciaPedido);
             return res.status(200).json(pedidos);
+        } else if (sqliteEnabled && sqliteClient) {
+            console.log('Using SQLite...');
+            const pedidos = await sqliteClient.getAll();
+            console.log(`Found ${pedidos.length} pedidos in SQLite`);
+            return res.status(200).json(pedidos.sort((a, b) => b.secuenciaPedido - a.secuenciaPedido));
         } else {
             console.log('Using in-memory storage...');
             console.log(`Returning ${inMemoryPedidos.length} pedidos from memory`);
@@ -106,6 +95,7 @@ app.get('/api/pedidos', async (req, res) => {
             message: "Error interno del servidor al obtener los pedidos.",
             error: process.env.NODE_ENV === 'development' ? error.message : undefined,
             firestoreEnabled,
+            sqliteEnabled,
             timestamp: new Date().toISOString()
         });
     }
@@ -122,6 +112,13 @@ app.get('/api/pedidos/:id', async (req, res) => {
             const docSnap = await docRef.get();
             if (docSnap.exists) {
                 res.status(200).json(docSnap.data());
+            } else {
+                res.status(404).json({ message: 'Pedido no encontrado' });
+            }
+        } else if (sqliteEnabled && sqliteClient) {
+            const pedido = await sqliteClient.findById(pedidoId);
+            if (pedido) {
+                res.status(200).json(pedido);
             } else {
                 res.status(404).json({ message: 'Pedido no encontrado' });
             }
@@ -151,6 +148,8 @@ app.post('/api/pedidos', async (req, res) => {
         
         if (firestoreEnabled && pedidosCollection) {
             await pedidosCollection.doc(newPedido.id).set(newPedido);
+        } else if (sqliteEnabled && sqliteClient) {
+            await sqliteClient.create(newPedido);
         } else {
             inMemoryPedidos.unshift(newPedido);
         }
@@ -175,6 +174,8 @@ app.put('/api/pedidos/:id', async (req, res) => {
         
         if (firestoreEnabled && pedidosCollection) {
             await pedidosCollection.doc(pedidoId).set(updatedPedido);
+        } else if (sqliteEnabled && sqliteClient) {
+            await sqliteClient.update(updatedPedido);
         } else {
             const index = inMemoryPedidos.findIndex(p => p.id === pedidoId);
             if (index !== -1) {
@@ -206,6 +207,8 @@ app.delete('/api/pedidos/:id', async (req, res) => {
             }
 
             await docRef.delete();
+        } else if (sqliteEnabled && sqliteClient) {
+            await sqliteClient.delete(pedidoId);
         } else {
             const index = inMemoryPedidos.findIndex(p => p.id === pedidoId);
             if (index === -1) {
@@ -238,6 +241,8 @@ app.post('/api/pedidos/bulk', async (req, res) => {
                 batch.set(docRef, item);
             });
             await batch.commit();
+        } else if (sqliteEnabled && sqliteClient) {
+            await sqliteClient.bulkInsert(items);
         } else {
             inMemoryPedidos = [...items];
         }
@@ -264,6 +269,8 @@ app.delete('/api/pedidos/all', async (req, res) => {
                 batch.delete(doc.ref);
             });
             await batch.commit();
+        } else if (sqliteEnabled && sqliteClient) {
+            await sqliteClient.clear();
         } else {
             inMemoryPedidos = [];
         }
@@ -283,8 +290,48 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor escuchando en el puerto ${PORT}`);
-    console.log(`Firestore habilitado: ${firestoreEnabled}`);
-    console.log(`Modo: ${firestoreEnabled ? 'Cloud/Firestore' : 'Local/Memory'}`);
+// Initialize and start server
+async function startServer() {
+    try {
+        // Initialize SQLite if needed
+        if (sqliteClient && !sqliteEnabled) {
+            await sqliteClient.init();
+            sqliteEnabled = true;
+            console.log('SQLite database initialized successfully');
+        }
+    } catch (error) {
+        console.error('Failed to initialize SQLite:', error.message);
+        console.error('SQLite will be disabled, using in-memory storage');
+        sqliteEnabled = false;
+    }
+
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`Servidor escuchando en el puerto ${PORT}`);
+        console.log(`Firestore habilitado: ${firestoreEnabled}`);
+        console.log(`SQLite habilitado: ${sqliteEnabled}`);
+        console.log(`Modo: ${firestoreEnabled ? 'Cloud/Firestore' : sqliteEnabled ? 'Local/SQLite' : 'Local/Memory'}`);
+    });
+}
+
+// Start the server
+startServer().catch(error => {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+    console.log('SIGTERM received, shutting down gracefully');
+    if (sqliteClient) {
+        await sqliteClient.close();
+    }
+    process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+    console.log('SIGINT received, shutting down gracefully');
+    if (sqliteClient) {
+        await sqliteClient.close();
+    }
+    process.exit(0);
 });
