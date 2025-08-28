@@ -69,7 +69,9 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
             const stageMatch = filters.stage === 'all' || p.etapaActual === filters.stage;
             const dateToFilter = p[filters.dateField];
             const dateMatch = !dateRange || (dateToFilter && new Date(dateToFilter) >= dateRange.start && new Date(dateToFilter) <= dateRange.end);
-            const antivahoMatch = antivahoFilter === 'all' || (antivahoFilter === 'con' && p.antivaho) || (antivahoFilter === 'sin' && !p.antivaho);
+            const antivahoMatch = antivahoFilter === 'all' || 
+                (antivahoFilter === 'con' && p.antivaho === true) || 
+                (antivahoFilter === 'sin' && p.antivaho !== true);
 
             return searchTermMatch && priorityMatch && stageMatch && dateMatch && antivahoMatch;
         });
