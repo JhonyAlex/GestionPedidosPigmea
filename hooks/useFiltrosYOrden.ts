@@ -121,7 +121,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         
         return filtered;
 
-    }, [pedidos, searchTerm, filters, dateFilter, sortConfig, customDateRange]);
+    }, [pedidos, searchTerm, filters, antivahoFilter, dateFilter, sortConfig, customDateRange]);
 
     return {
         processedPedidos,
