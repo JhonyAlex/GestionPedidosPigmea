@@ -514,65 +514,6 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, auditLog }) => {
                     </div>
                 </div>
             </div>
-
-            {/* Stage Status Report */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                <h2 className="text-xl font-bold text-red-600 dark:text-red-400 mb-4">Reporte de Estado de Etapas</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Material No Disponible */}
-                    <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">Material No Disponible</h3>
-                        <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stageStatusData.materialNoDisponible}</p>
-                    </div>
-
-                    {/* Pendiente Cliché */}
-                    <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">Pendiente Cliché</h3>
-                        <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stageStatusData.pendienteCliche}</p>
-                    </div>
-
-                    {/* Antivaho Pendiente */}
-                    <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">Antivaho Pendiente</h3>
-                        <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stageStatusData.antivahoPendiente}</p>
-                    </div>
-                </div>
-
-                {/* Production Stages Breakdown */}
-                <div className="mt-4">
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">Desglose por Etapa de Producción</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {stageStatusData.etapasProduccion.map(etapa => (
-                            <div key={etapa.key} className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
-                                <h4 className="font-semibold text-gray-800 dark:text-white">{etapa.label}</h4>
-                                <p className="text-xl font-bold text-gray-900 dark:text-gray-300">{etapa.count}</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            {/* Stage Status Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center">
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Material No Disponible</h3>
-                    <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stageStatusData.materialNoDisponible}</p>
-                </div>
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center">
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Pendiente Cliché</h3>
-                    <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{stageStatusData.pendienteCliche}</p>
-                </div>
-                {stageStatusData.etapasProduccion.map((etapa) => (
-                    <div key={etapa.key} className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center">
-                        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">{etapa.label}</h3>
-                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{etapa.count}</p>
-                    </div>
-                ))}
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center">
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Antivaho Pendiente</h3>
-                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{stageStatusData.antivahoPendiente}</p>
-                </div>
-            </div>
         </main>
     );
 };
