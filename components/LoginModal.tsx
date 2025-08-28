@@ -75,18 +75,6 @@ const LoginModal: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white dark:bg-gray-800 rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl">
                 <div className="text-center mb-6">
-                    <div className="mb-4">
-                        <img 
-                            src="https://www.pigmea.es/wp-content/uploads/2018/05/logo.png" 
-                            alt="Pigmea Logo" 
-                            className="h-16 mx-auto dark:hidden"
-                        />
-                        <img 
-                            src="https://www.pigmea.es/wp-content/uploads/2018/05/logo-white.png" 
-                            alt="Pigmea Logo" 
-                            className="h-16 mx-auto hidden dark:block"
-                        />
-                    </div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
                         Planning Pigmea
                     </h1>
