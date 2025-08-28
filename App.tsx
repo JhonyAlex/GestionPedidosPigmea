@@ -15,9 +15,12 @@ import ThemeSwitcher from './components/ThemeSwitcher';
 import CompletedPedidosList from './components/CompletedPedidosList';
 import PreparacionView from './components/PreparacionView';
 import EnviarAImpresionModal from './components/EnviarAImpresionModal';
+import NotificationCenter from './components/NotificationCenter';
+import ConnectedUsers from './components/ConnectedUsers';
 import { calcularSiguienteEtapa } from './utils/etapaLogic';
 import { procesarDragEnd } from './utils/dragLogic';
 import { usePedidosManager } from './hooks/usePedidosManager';
+import { useWebSocket } from './hooks/useWebSocket';
 import { useFiltrosYOrden } from './hooks/useFiltrosYOrden';
 
 
@@ -39,6 +42,16 @@ const App: React.FC = () => {
         }
         return 'light';
     });
+
+    // 🚀 WebSocket connection
+    const currentUserId = `Usuario-${currentUserRole}-${Date.now().toString().slice(-6)}`;
+    const { 
+        isConnected, 
+        notifications, 
+        connectedUsers, 
+        removeNotification, 
+        emitActivity 
+    } = useWebSocket(currentUserId, currentUserRole);
 
     const generarEntradaHistorial = useCallback((usuario: UserRole, accion: string, detalles: string): HistorialEntry => ({
         timestamp: new Date().toISOString(),
@@ -152,6 +165,11 @@ const App: React.FC = () => {
         const result = await handleSavePedidoLogic(updatedPedido);
         if (result?.hasChanges) {
             logAction(`Pedido ${result.modifiedPedido.numeroPedidoCliente} actualizado.`);
+            // 🚀 Emitir actividad WebSocket
+            emitActivity('pedido-edited', { 
+                pedidoId: result.modifiedPedido.id, 
+                numeroCliente: result.modifiedPedido.numeroPedidoCliente 
+            });
         }
         setSelectedPedido(null);
     };
@@ -161,6 +179,11 @@ const App: React.FC = () => {
         if (newPedido) {
             logAction(`Nuevo pedido ${newPedido.numeroPedidoCliente} creado.`);
             setIsAddModalOpen(false);
+            // 🚀 Emitir actividad WebSocket
+            emitActivity('pedido-created', { 
+                pedidoId: newPedido.id, 
+                numeroCliente: newPedido.numeroPedidoCliente 
+            });
         }
     };
     
@@ -409,6 +432,18 @@ const App: React.FC = () => {
                     pedido={antivahoModalState.pedido}
                 />
                 <ThemeSwitcher theme={theme} toggleTheme={toggleTheme} />
+                
+                {/* 🚀 WebSocket Components */}
+                <NotificationCenter
+                    notifications={notifications}
+                    onRemoveNotification={removeNotification}
+                    isConnected={isConnected}
+                />
+                <ConnectedUsers
+                    users={connectedUsers}
+                    currentUser={currentUserId}
+                    isConnected={isConnected}
+                />
             </div>
         </DragDropContext>
     );

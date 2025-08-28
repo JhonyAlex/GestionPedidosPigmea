@@ -1,6 +1,8 @@
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
+const { createServer } = require('http');
+const { Server } = require('socket.io');
 const SQLiteClient = require('./sqlite-client');
 
 // Check if we're in a Cloud environment
@@ -49,6 +51,14 @@ let inMemoryPedidos = [...initialPedidos];
 
 // --- EXPRESS APP SETUP ---
 const app = express();
+const server = createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: process.env.NODE_ENV === 'production' ? false : ["http://localhost:3000", "http://localhost:5173"],
+        methods: ["GET", "POST", "PUT", "DELETE"]
+    }
+});
+
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'dist')));
 app.use(express.json());
@@ -60,9 +70,102 @@ app.get('/health', (req, res) => {
         timestamp: new Date().toISOString(),
         firestoreEnabled,
         sqliteEnabled,
-        inMemoryFallback: !firestoreEnabled && !sqliteEnabled
+        inMemoryFallback: !firestoreEnabled && !sqliteEnabled,
+        websocketConnections: io.engine.clientsCount
     });
 });
+
+// --- WEBSOCKET SETUP ---
+let connectedUsers = new Map(); // userId -> { socketId, userRole, joinedAt }
+
+io.on('connection', (socket) => {
+    console.log(`🔌 Cliente conectado: ${socket.id}`);
+    
+    // Manejar autenticación del usuario
+    socket.on('authenticate', (userData) => {
+        const { userId, userRole } = userData;
+        connectedUsers.set(userId, {
+            socketId: socket.id,
+            userRole: userRole || 'Operador',
+            joinedAt: new Date().toISOString()
+        });
+        
+        socket.userId = userId;
+        socket.userRole = userRole;
+        
+        console.log(`👤 Usuario autenticado: ${userId} (${userRole})`);
+        
+        // Notificar a otros usuarios sobre la nueva conexión
+        socket.broadcast.emit('user-connected', {
+            userId,
+            userRole,
+            connectedUsers: Array.from(connectedUsers.entries()).map(([id, data]) => ({
+                userId: id,
+                userRole: data.userRole,
+                joinedAt: data.joinedAt
+            }))
+        });
+        
+        // Enviar lista de usuarios conectados al usuario que se acaba de conectar
+        socket.emit('users-list', {
+            connectedUsers: Array.from(connectedUsers.entries()).map(([id, data]) => ({
+                userId: id,
+                userRole: data.userRole,
+                joinedAt: data.joinedAt
+            }))
+        });
+    });
+    
+    // Manejar desconexión
+    socket.on('disconnect', () => {
+        console.log(`🔌 Cliente desconectado: ${socket.id}`);
+        
+        if (socket.userId) {
+            connectedUsers.delete(socket.userId);
+            
+            // Notificar a otros usuarios sobre la desconexión
+            socket.broadcast.emit('user-disconnected', {
+                userId: socket.userId,
+                connectedUsers: Array.from(connectedUsers.entries()).map(([id, data]) => ({
+                    userId: id,
+                    userRole: data.userRole,
+                    joinedAt: data.joinedAt
+                }))
+            });
+        }
+    });
+    
+    // Manejar eventos de presencia (usuario está escribiendo, viendo, etc.)
+    socket.on('user-activity', (activityData) => {
+        socket.broadcast.emit('user-activity-received', {
+            userId: socket.userId,
+            userRole: socket.userRole,
+            ...activityData
+        });
+    });
+});
+
+// Función para emitir eventos a todos los clientes conectados
+function broadcastToClients(event, data) {
+    io.emit(event, {
+        ...data,
+        timestamp: new Date().toISOString(),
+        serverTime: Date.now()
+    });
+}
+
+// Función para emitir eventos a usuarios específicos por rol
+function broadcastToRole(userRole, event, data) {
+    Array.from(connectedUsers.entries())
+        .filter(([_, userData]) => userData.userRole === userRole)
+        .forEach(([userId, userData]) => {
+            io.to(userData.socketId).emit(event, {
+                ...data,
+                timestamp: new Date().toISOString(),
+                serverTime: Date.now()
+            });
+        });
+}
 
 // --- API ROUTES ---
 
@@ -154,6 +257,12 @@ app.post('/api/pedidos', async (req, res) => {
             inMemoryPedidos.unshift(newPedido);
         }
         
+        // 🔥 EVENTO WEBSOCKET: Nuevo pedido creado
+        broadcastToClients('pedido-created', {
+            pedido: newPedido,
+            message: `Nuevo pedido creado: ${newPedido.numeroPedidoCliente}`
+        });
+        
         res.status(201).json(newPedido);
     } catch (error) {
         console.error("Error creating pedido:", error);
@@ -172,18 +281,47 @@ app.put('/api/pedidos/:id', async (req, res) => {
             return res.status(400).json({ message: 'El ID del pedido no coincide.' });
         }
         
+        // Obtener el pedido anterior para comparar cambios
+        let previousPedido = null;
         if (firestoreEnabled && pedidosCollection) {
-            await pedidosCollection.doc(pedidoId).set(updatedPedido);
+            const docRef = pedidosCollection.doc(pedidoId);
+            const docSnap = await docRef.get();
+            previousPedido = docSnap.exists ? docSnap.data() : null;
+            await docRef.set(updatedPedido);
         } else if (sqliteEnabled && sqliteClient) {
+            previousPedido = await sqliteClient.findById(pedidoId);
             await sqliteClient.update(updatedPedido);
         } else {
             const index = inMemoryPedidos.findIndex(p => p.id === pedidoId);
             if (index !== -1) {
+                previousPedido = { ...inMemoryPedidos[index] };
                 inMemoryPedidos[index] = updatedPedido;
             } else {
                 return res.status(404).json({ message: 'Pedido no encontrado para actualizar.' });
             }
         }
+        
+        // 🔥 EVENTO WEBSOCKET: Pedido actualizado
+        const changes = [];
+        if (previousPedido) {
+            // Detectar cambios importantes
+            if (previousPedido.etapaActual !== updatedPedido.etapaActual) {
+                changes.push(`Etapa: ${previousPedido.etapaActual} → ${updatedPedido.etapaActual}`);
+            }
+            if (previousPedido.prioridad !== updatedPedido.prioridad) {
+                changes.push(`Prioridad: ${previousPedido.prioridad} → ${updatedPedido.prioridad}`);
+            }
+            if (previousPedido.cliente !== updatedPedido.cliente) {
+                changes.push(`Cliente: ${previousPedido.cliente} → ${updatedPedido.cliente}`);
+            }
+        }
+        
+        broadcastToClients('pedido-updated', {
+            pedido: updatedPedido,
+            previousPedido,
+            changes,
+            message: `Pedido actualizado: ${updatedPedido.numeroPedidoCliente}${changes.length > 0 ? ` (${changes.join(', ')})` : ''}`
+        });
         
         res.status(200).json(updatedPedido);
     } catch (error) {
@@ -198,24 +336,40 @@ app.delete('/api/pedidos/:id', async (req, res) => {
         const pedidoId = req.params.id;
         console.log(`DELETE /api/pedidos/${pedidoId} requested`);
         
+        // Obtener el pedido antes de eliminarlo
+        let deletedPedido = null;
+        
         if (firestoreEnabled && pedidosCollection) {
             const docRef = pedidosCollection.doc(pedidoId);
             const docSnap = await docRef.get();
-
+            
             if (!docSnap.exists) {
                 return res.status(404).json({ message: 'Pedido no encontrado para eliminar.' });
             }
-
+            
+            deletedPedido = docSnap.data();
             await docRef.delete();
         } else if (sqliteEnabled && sqliteClient) {
+            deletedPedido = await sqliteClient.findById(pedidoId);
+            if (!deletedPedido) {
+                return res.status(404).json({ message: 'Pedido no encontrado para eliminar.' });
+            }
             await sqliteClient.delete(pedidoId);
         } else {
             const index = inMemoryPedidos.findIndex(p => p.id === pedidoId);
             if (index === -1) {
                 return res.status(404).json({ message: 'Pedido no encontrado para eliminar.' });
             }
+            deletedPedido = { ...inMemoryPedidos[index] };
             inMemoryPedidos.splice(index, 1);
         }
+        
+        // 🔥 EVENTO WEBSOCKET: Pedido eliminado
+        broadcastToClients('pedido-deleted', {
+            pedidoId,
+            deletedPedido,
+            message: `Pedido eliminado: ${deletedPedido?.numeroPedidoCliente || pedidoId}`
+        });
         
         res.status(204).send();
     } catch (error) {
@@ -305,11 +459,12 @@ async function startServer() {
         sqliteEnabled = false;
     }
 
-    app.listen(PORT, '0.0.0.0', () => {
-        console.log(`Servidor escuchando en el puerto ${PORT}`);
-        console.log(`Firestore habilitado: ${firestoreEnabled}`);
-        console.log(`SQLite habilitado: ${sqliteEnabled}`);
-        console.log(`Modo: ${firestoreEnabled ? 'Cloud/Firestore' : sqliteEnabled ? 'Local/SQLite' : 'Local/Memory'}`);
+    server.listen(PORT, '0.0.0.0', () => {
+        console.log(`🚀 Servidor escuchando en el puerto ${PORT}`);
+        console.log(`📡 WebSocket habilitado con ${io.engine.clientsCount} conexiones`);
+        console.log(`🗄️ Firestore habilitado: ${firestoreEnabled}`);
+        console.log(`💾 SQLite habilitado: ${sqliteEnabled}`);
+        console.log(`🎯 Modo: ${firestoreEnabled ? 'Cloud/Firestore' : sqliteEnabled ? 'Local/SQLite' : 'Local/Memory'}`);
     });
 }
 
