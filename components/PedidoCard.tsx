@@ -33,6 +33,9 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
         e.stopPropagation();
         if (pedido.etapaActual === Etapa.PREPARACION && onSendToPrint) {
             onSendToPrint(pedido);
+        } else if (pedido.antivaho && !pedido.antivahoRealizado && KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual)) {
+            // Para pedidos con antivaho en post-impresión, abrir modal de reconfirmación
+            onAdvanceStage(pedido);
         } else {
             onAdvanceStage(pedido);
         }
@@ -54,8 +57,12 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
             if (currentIndex > -1 && currentIndex < pedido.secuenciaTrabajo.length - 1) {
                 return { canAdvance: true, advanceButtonTitle: 'Siguiente Etapa' };
             }
-             if (currentIndex > -1 && currentIndex === pedido.secuenciaTrabajo.length -1) {
+            if (currentIndex > -1 && currentIndex === pedido.secuenciaTrabajo.length -1) {
                 return { canAdvance: true, advanceButtonTitle: 'Marcar como Completado' };
+            }
+            // Para pedidos con antivaho en post-impresión, permitir "continuar" para reconfirmar
+            if (pedido.antivaho && !pedido.antivahoRealizado) {
+                return { canAdvance: true, advanceButtonTitle: 'Continuar Secuencia' };
             }
         }
         return { canAdvance: false, advanceButtonTitle: '' };

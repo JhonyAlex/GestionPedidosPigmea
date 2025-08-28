@@ -135,8 +135,15 @@ export const usePedidosManager = (
             secuenciaTrabajo: postImpresionSequence,
         };
         
-        // Si el pedido tiene antivaho y se envía a post-impresión, marcar como realizado
-        if (pedidoToUpdate.antivaho && KANBAN_FUNNELS.POST_IMPRESION.stages.includes(impresionEtapa)) {
+        // Determinar si es una reconfirmación desde post-impresión
+        const isReconfirmationFromPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedidoToUpdate.etapaActual);
+        
+        // Marcar antivahoRealizado en dos casos:
+        // 1. Primera vez desde preparación a post-impresión
+        // 2. Reconfirmación desde post-impresión (cualquier destino)
+        if (pedidoToUpdate.antivaho && 
+            ((pedidoToUpdate.etapaActual === 'PREPARACION' && KANBAN_FUNNELS.POST_IMPRESION.stages.includes(impresionEtapa)) ||
+             isReconfirmationFromPostImpresion)) {
             updatedPedido.antivahoRealizado = true;
         }
         
@@ -285,11 +292,9 @@ export const usePedidosManager = (
     const handleUpdatePedidoEtapa = async (pedido: Pedido, newEtapa: Etapa) => {
         const fromPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual);
         const toImpresion = KANBAN_FUNNELS.IMPRESION.stages.includes(newEtapa);
-        const fromImpresion = KANBAN_FUNNELS.IMPRESION.stages.includes(pedido.etapaActual);
-        const toPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(newEtapa);
 
         // Si el pedido tiene antivaho realizado y se intenta mover desde post-impresión a impresión,
-        // mostrar el modal de confirmación como si fuera la primera vez
+        // mostrar el modal de confirmación
         if (pedido.antivaho && pedido.antivahoRealizado && fromPostImpresion && toImpresion) {
             setAntivahoModalState({ isOpen: true, pedido: pedido, toEtapa: newEtapa });
             return;
@@ -307,11 +312,6 @@ export const usePedidosManager = (
             updatedPedido.antivahoRealizado = false;
         }
 
-        // Si se mueve de impresión a post-impresión y tiene antivaho, marcarlo como realizado
-        if (pedido.antivaho && fromImpresion && toPostImpresion) {
-            updatedPedido.antivahoRealizado = true;
-        }
-
         if (toImpresion) {
             updatedPedido.maquinaImpresion = ETAPAS[newEtapa]?.title;
         }
@@ -324,9 +324,12 @@ export const usePedidosManager = (
     const handleConfirmAntivaho = async () => {
         if (!antivahoModalState.pedido || !antivahoModalState.toEtapa) return;
 
+        // Determinar si es una reconfirmación desde post-impresión
+        const isReconfirmationFromPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(antivahoModalState.pedido.etapaActual);
+
         const updatedPedido = {
             ...antivahoModalState.pedido,
-            antivahoRealizado: true,
+            antivahoRealizado: true, // Siempre marcar como realizado al confirmar
         };
 
         // Si se está moviendo a preparación, resetear el estado de antivaho
@@ -346,8 +349,9 @@ export const usePedidosManager = (
             
             await handleSavePedido(finalUpdatedPedido);
             
-            // Si se está enviando a impresión después de confirmar antivaho, abrir el modal de envío
-            if (KANBAN_FUNNELS.IMPRESION.stages.includes(antivahoModalState.toEtapa)) {
+            // Si es una reconfirmación desde post-impresión, no abrir el modal de envío
+            // Solo abrir el modal si se está enviando a impresión desde preparación
+            if (!isReconfirmationFromPostImpresion && KANBAN_FUNNELS.IMPRESION.stages.includes(antivahoModalState.toEtapa)) {
                 setPedidoToSend(finalUpdatedPedido);
             }
         }

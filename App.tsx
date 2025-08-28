@@ -124,6 +124,13 @@ const App: React.FC = () => {
     }, [pedidos, currentUserRole, processedPedidos, generarEntradaHistorial, logAction, handleSort, setPedidos, handleSavePedidoLogic, handleUpdatePedidoEtapa]);
     
     const handleAdvanceStage = async (pedidoToAdvance: Pedido) => {
+        // Si es un pedido con antivaho no realizado en post-impresión, abrir modal de reconfirmación
+        if (pedidoToAdvance.antivaho && !pedidoToAdvance.antivahoRealizado && 
+            KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedidoToAdvance.etapaActual)) {
+            setPedidoToSend(pedidoToAdvance);
+            return;
+        }
+
         const { etapaActual, secuenciaTrabajo } = pedidoToAdvance;
         const newEtapa = calcularSiguienteEtapa(etapaActual, secuenciaTrabajo);
 
