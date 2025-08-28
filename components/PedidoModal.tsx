@@ -87,7 +87,9 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     };
 
     const handleSendToPrintClick = () => {
-        onSendToPrint(pedido);
+        // Asegurar que se guarden los cambios antes de enviar a impresión
+        const updatedPedido = { ...pedido, ...formData };
+        onSendToPrint(updatedPedido);
         onClose();
     }
 
@@ -393,16 +395,18 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                 type="button"
                                                 onClick={handleSendToPrintClick}
                                                 className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                disabled={!formData.materialDisponible || !!formData.antivaho}
+                                                disabled={!formData.materialDisponible || (!!formData.antivaho && (!formData.secuenciaTrabajo || formData.secuenciaTrabajo.length === 0))}
                                                 title={
                                                     !formData.materialDisponible
                                                         ? "El material debe estar disponible para enviar a impresión"
+                                                        : (!!formData.antivaho && (!formData.secuenciaTrabajo || formData.secuenciaTrabajo.length === 0))
+                                                        ? "Debe definir la secuencia de trabajo para pedidos con Antivaho"
                                                         : !!formData.antivaho
-                                                        ? "No se puede enviar a impresión un pedido con Antivaho activado"
+                                                        ? "Enviar a Post-Impresión (Antivaho)"
                                                         : "Enviar a Impresión"
                                                 }
                                             >
-                                                Enviar a Impresión
+                                                {!!formData.antivaho ? "Enviar a Post-Impresión" : "Enviar a Impresión"}
                                             </button>
                                         ) : (
                                             !printingStages.includes(pedido.etapaActual) && (

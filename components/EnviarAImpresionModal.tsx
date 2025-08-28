@@ -19,7 +19,13 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onConfirm(pedido, impresionEtapa, postImpresionSequence);
+        
+        // Si el pedido tiene antivaho, enviar directamente a post-impresión
+        if (pedido.antivaho && postImpresionSequence.length > 0) {
+            onConfirm(pedido, postImpresionSequence[0], postImpresionSequence.slice(1));
+        } else {
+            onConfirm(pedido, impresionEtapa, postImpresionSequence);
+        }
     };
 
     return (
@@ -30,34 +36,46 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
                     <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-3xl leading-none">&times;</button>
                 </div>
                 <p className="mb-6 text-gray-600 dark:text-gray-300">
-                    Configura la etapa inicial de impresión y la secuencia de post-impresión para el pedido <span className="font-bold">{pedido.numeroPedidoCliente}</span>.
+                    {pedido.antivaho 
+                        ? `Este pedido tiene antivaho activado y será enviado directamente a post-impresión. Configure la secuencia para el pedido ${pedido.numeroPedidoCliente}.`
+                        : `Configura la etapa inicial de impresión y la secuencia de post-impresión para el pedido ${pedido.numeroPedidoCliente}.`
+                    }
                 </p>
 
                 <form onSubmit={handleSubmit}>
                     <div className="space-y-6">
-                        <div>
-                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Máquina de Impresión (Etapa Inicial)</label>
-                             <select 
-                                value={impresionEtapa} 
-                                onChange={(e) => setImpresionEtapa(e.target.value as Etapa)} 
-                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
-                                required
-                            >
-                                {KANBAN_FUNNELS.IMPRESION.stages.map(stageId => (
-                                    <option key={stageId} value={stageId}>
-                                        {ETAPAS[stageId].title}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                        {!pedido.antivaho && (
+                            <div>
+                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Máquina de Impresión (Etapa Inicial)</label>
+                                 <select 
+                                    value={impresionEtapa} 
+                                    onChange={(e) => setImpresionEtapa(e.target.value as Etapa)} 
+                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
+                                    required
+                                >
+                                    {KANBAN_FUNNELS.IMPRESION.stages.map(stageId => (
+                                        <option key={stageId} value={stageId}>
+                                            {ETAPAS[stageId].title}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                         
                         <div>
-                            <h3 className="text-lg font-semibold mb-2">Secuencia de Post-Impresión</h3>
+                            <h3 className="text-lg font-semibold mb-2">
+                                {pedido.antivaho ? 'Secuencia de Post-Impresión (Antivaho)' : 'Secuencia de Post-Impresión'}
+                            </h3>
                             <SequenceBuilder 
                                 sequence={postImpresionSequence} 
                                 onChange={setPostImpresionSequence} 
                                 isReadOnly={false} 
                             />
+                            {pedido.antivaho && postImpresionSequence.length === 0 && (
+                                <p className="text-red-600 dark:text-red-400 text-sm mt-2">
+                                    Debe definir al menos una etapa de post-impresión para pedidos con antivaho.
+                                </p>
+                            )}
                         </div>
                     </div>
                     
@@ -65,8 +83,12 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
                         <button type="button" onClick={onClose} className="bg-gray-500 hover:bg-gray-400 text-white dark:bg-gray-600 dark:hover:bg-gray-500 font-bold py-2 px-4 rounded transition-colors duration-200">
                             Cancelar
                         </button>
-                        <button type="submit" className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200">
-                            Confirmar y Enviar
+                        <button 
+                            type="submit" 
+                            className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={pedido.antivaho && postImpresionSequence.length === 0}
+                        >
+                            {pedido.antivaho ? "Confirmar y Enviar a Post-Impresión" : "Confirmar y Enviar"}
                         </button>
                     </div>
                 </form>

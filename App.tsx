@@ -399,6 +399,7 @@ const App: React.FC = () => {
                     isOpen={antivahoModalState.isOpen}
                     onConfirm={handleConfirmAntivaho}
                     onCancel={handleCancelAntivaho}
+                    pedido={antivahoModalState.pedido}
                 />
                 <ThemeSwitcher theme={theme} toggleTheme={toggleTheme} />
             </div>

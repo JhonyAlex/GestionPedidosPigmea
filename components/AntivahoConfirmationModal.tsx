@@ -4,16 +4,29 @@ interface AntivahoConfirmationModalProps {
     isOpen: boolean;
     onConfirm: () => void;
     onCancel: () => void;
+    pedido?: {
+        numeroPedidoCliente: string;
+        antivahoRealizado?: boolean;
+    } | null;
 }
 
-const AntivahoConfirmationModal: React.FC<AntivahoConfirmationModalProps> = ({ isOpen, onConfirm, onCancel }) => {
+const AntivahoConfirmationModal: React.FC<AntivahoConfirmationModalProps> = ({ isOpen, onConfirm, onCancel, pedido }) => {
     if (!isOpen) return null;
+
+    const isRedo = pedido?.antivahoRealizado;
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Confirmación de Antivaho</h2>
-                <p className="text-gray-700 dark:text-gray-300 mb-6">¿Se ha realizado el proceso de antivaho para este pedido?</p>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                    {isRedo ? 'Reconfirmación de Antivaho' : 'Confirmación de Antivaho'}
+                </h2>
+                <p className="text-gray-700 dark:text-gray-300 mb-6">
+                    {isRedo 
+                        ? `El pedido ${pedido?.numeroPedidoCliente} ya tiene el antivaho realizado. ¿Desea continuar con el cambio de etapa como si fuera un pedido en preparación nuevamente?`
+                        : `¿Se ha realizado el proceso de antivaho para el pedido ${pedido?.numeroPedidoCliente}?`
+                    }
+                </p>
                 <div className="flex justify-end gap-4">
                     <button
                         onClick={onCancel}
@@ -25,7 +38,7 @@ const AntivahoConfirmationModal: React.FC<AntivahoConfirmationModalProps> = ({ i
                         onClick={onConfirm}
                         className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors"
                     >
-                        Sí, continuar
+                        {isRedo ? 'Sí, continuar' : 'Sí, antivaho realizado'}
                     </button>
                 </div>
             </div>

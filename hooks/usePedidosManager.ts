@@ -54,7 +54,7 @@ export const usePedidosManager = (
                 'observaciones', 'materialDisponible', 'clicheDisponible', 'estadoCliché', 'secuenciaTrabajo',
                 'camisa', 'producto', 'materialCapasCantidad', 'materialCapas', 
                 'materialConsumoCantidad', 'materialConsumo', 'bobinaMadre', 'bobinaFinal', 
-                'minAdap', 'colores', 'maquinaImpresion', 'orden', 'minColor', 'subEtapaActual', 'antivaho'
+                'minAdap', 'colores', 'maquinaImpresion', 'orden', 'minColor', 'subEtapaActual', 'antivaho', 'antivahoRealizado'
             ];
 
             fieldsToCompare.forEach(key => {
@@ -130,10 +130,15 @@ export const usePedidosManager = (
     };
 
     const handleConfirmSendToPrint = async (pedidoToUpdate: Pedido, impresionEtapa: Etapa, postImpresionSequence: Etapa[]) => {
-        const updatedPedido = {
+        let updatedPedido = {
             ...pedidoToUpdate,
             secuenciaTrabajo: postImpresionSequence,
         };
+        
+        // Si el pedido tiene antivaho y se envía a post-impresión, marcar como realizado
+        if (pedidoToUpdate.antivaho && KANBAN_FUNNELS.POST_IMPRESION.stages.includes(impresionEtapa)) {
+            updatedPedido.antivahoRealizado = true;
+        }
         
         // Use the centralized stage update handler
         await handleUpdatePedidoEtapa(updatedPedido, impresionEtapa);
@@ -280,7 +285,17 @@ export const usePedidosManager = (
     const handleUpdatePedidoEtapa = async (pedido: Pedido, newEtapa: Etapa) => {
         const fromPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual);
         const toImpresion = KANBAN_FUNNELS.IMPRESION.stages.includes(newEtapa);
+        const fromImpresion = KANBAN_FUNNELS.IMPRESION.stages.includes(pedido.etapaActual);
+        const toPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(newEtapa);
 
+        // Si el pedido tiene antivaho realizado y se intenta mover desde post-impresión a impresión,
+        // mostrar el modal de confirmación como si fuera la primera vez
+        if (pedido.antivaho && pedido.antivahoRealizado && fromPostImpresion && toImpresion) {
+            setAntivahoModalState({ isOpen: true, pedido: pedido, toEtapa: newEtapa });
+            return;
+        }
+
+        // Si el pedido tiene antivaho pero no está realizado y se mueve de post-impresión a impresión
         if (pedido.antivaho && !pedido.antivahoRealizado && fromPostImpresion && toImpresion) {
             setAntivahoModalState({ isOpen: true, pedido: pedido, toEtapa: newEtapa });
             return;
@@ -290,6 +305,11 @@ export const usePedidosManager = (
         let updatedPedido = { ...pedido };
         if (newEtapa === Etapa.PREPARACION) {
             updatedPedido.antivahoRealizado = false;
+        }
+
+        // Si se mueve de impresión a post-impresión y tiene antivaho, marcarlo como realizado
+        if (pedido.antivaho && fromImpresion && toPostImpresion) {
+            updatedPedido.antivahoRealizado = true;
         }
 
         if (toImpresion) {
@@ -302,19 +322,37 @@ export const usePedidosManager = (
     };
 
     const handleConfirmAntivaho = async () => {
-        if (!antivahoModalState.pedido) return;
+        if (!antivahoModalState.pedido || !antivahoModalState.toEtapa) return;
 
         const updatedPedido = {
             ...antivahoModalState.pedido,
             antivahoRealizado: true,
         };
 
-        const result = await handleSavePedido(updatedPedido);
-        setAntivahoModalState({ isOpen: false, pedido: null, toEtapa: null });
-
-        if (result?.modifiedPedido) {
-            setPedidoToSend(result.modifiedPedido);
+        // Si se está moviendo a preparación, resetear el estado de antivaho
+        if (antivahoModalState.toEtapa === Etapa.PREPARACION) {
+            updatedPedido.antivahoRealizado = false;
         }
+
+        const result = await handleSavePedido(updatedPedido);
+        
+        // Después de actualizar el pedido, proceder con el cambio de etapa
+        if (result?.modifiedPedido) {
+            const finalUpdatedPedido = { ...result.modifiedPedido, etapaActual: antivahoModalState.toEtapa };
+            
+            if (KANBAN_FUNNELS.IMPRESION.stages.includes(antivahoModalState.toEtapa)) {
+                finalUpdatedPedido.maquinaImpresion = ETAPAS[antivahoModalState.toEtapa]?.title;
+            }
+            
+            await handleSavePedido(finalUpdatedPedido);
+            
+            // Si se está enviando a impresión después de confirmar antivaho, abrir el modal de envío
+            if (KANBAN_FUNNELS.IMPRESION.stages.includes(antivahoModalState.toEtapa)) {
+                setPedidoToSend(finalUpdatedPedido);
+            }
+        }
+
+        setAntivahoModalState({ isOpen: false, pedido: null, toEtapa: null });
     };
 
     const handleCancelAntivaho = () => {
