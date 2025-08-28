@@ -59,7 +59,9 @@ const App: React.FC = () => {
         handleDeletePedido: handleDeletePedidoLogic,
         handleExportData,
         handleImportData,
-    } = usePedidosManager(currentUserRole, generarEntradaHistorial);
+        handleUpdatePedidoEtapa,
+        AntivahoConfirmationModal,
+    } = usePedidosManager(currentUserRole, generarEntradaHistorial, setPedidoToSend);
 
     const {
       processedPedidos,
@@ -112,52 +114,28 @@ const App: React.FC = () => {
           logAction,
           setPedidos,
           handleSavePedido: handleSavePedidoLogic,
+          handleUpdatePedidoEtapa,
           setSortConfig: handleSort as any // Re-sorting is handled inside the hook, but we need to pass a function
         });
 
-    }, [pedidos, currentUserRole, processedPedidos, generarEntradaHistorial, logAction, handleSort, setPedidos, handleSavePedidoLogic]);
+    }, [pedidos, currentUserRole, processedPedidos, generarEntradaHistorial, logAction, handleSort, setPedidos, handleSavePedidoLogic, handleUpdatePedidoEtapa]);
     
-    const handleAdvanceStage = (pedidoToAdvance: Pedido) => {
-        // 1. Highlight in original position
-        setHighlightedPedidoId(pedidoToAdvance.id);
-    
-        // 2. Move immediately for better UX
-        setTimeout(async () => {
-            const { etapaActual, secuenciaTrabajo, numeroPedidoCliente } = pedidoToAdvance;
-            const newEtapa = calcularSiguienteEtapa(etapaActual, secuenciaTrabajo);
-        
-            if (newEtapa) {
-                const historialEntry = generarEntradaHistorial(currentUserRole, 'Avance de Etapa', `Avanzado de '${ETAPAS[etapaActual].title}' a '${ETAPAS[newEtapa].title}'.`);
-                const isMovingToCompleted = newEtapa === Etapa.COMPLETADO;
-                const fechaFinalizacion = isMovingToCompleted ? new Date().toISOString() : pedidoToAdvance.fechaFinalizacion;
-                
-                let updatedPedido = {
-                    ...pedidoToAdvance,
-                    etapaActual: newEtapa,
-                    etapasSecuencia: [...pedidoToAdvance.etapasSecuencia, { etapa: newEtapa, fecha: new Date().toISOString() }],
-                    historial: [...pedidoToAdvance.historial, historialEntry],
-                    fechaFinalizacion,
-                };
+    const handleAdvanceStage = async (pedidoToAdvance: Pedido) => {
+        const { etapaActual, secuenciaTrabajo } = pedidoToAdvance;
+        const newEtapa = calcularSiguienteEtapa(etapaActual, secuenciaTrabajo);
 
-                 if (fechaFinalizacion) {
-                    updatedPedido.tiempoTotalProduccion = calculateTotalProductionTime(pedidoToAdvance.fechaCreacion, fechaFinalizacion);
-                }
-    
-                // 3. Move the card
-                const result = await handleSavePedidoLogic(updatedPedido, false); // false to avoid double history entry
-                if (result) {
-                    logAction(`Pedido ${numeroPedidoCliente} avanzado de ${ETAPAS[etapaActual].title} a ${ETAPAS[newEtapa].title}.`);
-                }
-    
-                // 4. Set timer to remove highlight from new position
-                setTimeout(() => {
-                    setHighlightedPedidoId(null);
-                }, 800);
-            } else {
-                // No move happened, clear highlight
-                setHighlightedPedidoId(null); 
-            }
-        }, 50); // Reduced delay for better responsiveness
+        if (newEtapa) {
+            // Highlight effect
+            setHighlightedPedidoId(pedidoToAdvance.id);
+
+            await handleUpdatePedidoEtapa(pedidoToAdvance, newEtapa);
+
+            logAction(`Pedido ${pedidoToAdvance.numeroPedidoCliente} avanzado de ${ETAPAS[etapaActual].title} a ${ETAPAS[newEtapa].title}.`);
+
+            setTimeout(() => {
+                setHighlightedPedidoId(null);
+            }, 800);
+        }
     };
 
     const handleSavePedido = async (updatedPedido: Pedido) => {
@@ -398,6 +376,7 @@ const App: React.FC = () => {
                         currentUserRole={currentUserRole}
                         onAdvanceStage={handleAdvanceStage}
                         onSendToPrint={setPedidoToSend}
+                        onUpdateEtapa={handleUpdatePedidoEtapa}
                     />
                 )}
                 {isAddModalOpen && (
@@ -413,6 +392,7 @@ const App: React.FC = () => {
                         onConfirm={handleConfirmSendToPrint}
                     />
                 )}
+                <AntivahoConfirmationModal />
                 <ThemeSwitcher theme={theme} toggleTheme={toggleTheme} />
             </div>
         </DragDropContext>

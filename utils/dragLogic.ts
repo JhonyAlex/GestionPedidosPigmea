@@ -15,6 +15,7 @@ type ProcessDragEndArgs = {
   logAction: (action: string) => void;
   setPedidos: React.Dispatch<React.SetStateAction<Pedido[]>>;
   handleSavePedido: (pedido: Pedido) => Promise<any>;
+  handleUpdatePedidoEtapa: (pedido: Pedido, newEtapa: Etapa) => Promise<void>;
   setSortConfig: (key: keyof Pedido) => void;
 };
 
@@ -28,6 +29,7 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
         logAction,
         setPedidos,
         handleSavePedido,
+        handleUpdatePedidoEtapa,
         setSortConfig
     } = args;
 
@@ -126,31 +128,9 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
 
     const newEtapa = destination.droppableId as Etapa;
     const oldEtapa = source.droppableId as Etapa;
-    const historialEntry = generarEntradaHistorial(currentUserRole, 'Cambio de Etapa', `Movido de '${ETAPAS[oldEtapa].title}' a '${ETAPAS[newEtapa].title}'.`);
     
-    const isMovingToCompleted = newEtapa === Etapa.COMPLETADO;
-    const wasCompleted = movedPedido.etapaActual === Etapa.COMPLETADO;
-    const fechaFinalizacion = isMovingToCompleted ? new Date().toISOString() : (wasCompleted ? undefined : movedPedido.fechaFinalizacion);
-
-    updatedPedido = { 
-        ...movedPedido,
-        etapaActual: newEtapa,
-        etapasSecuencia: [...movedPedido.etapasSecuencia, { etapa: newEtapa, fecha: new Date().toISOString() }],
-        historial: [...movedPedido.historial, historialEntry],
-        fechaFinalizacion,
-        tiempoTotalProduccion: fechaFinalizacion ? calculateTotalProductionTime(movedPedido.fechaCreacion, fechaFinalizacion) : undefined
-    };
-
-    // Actualización optimista primero
-    setPedidos(prev => prev.map(p => p.id === draggableId ? updatedPedido : p));
+    // Use the centralized stage change handler
+    await handleUpdatePedidoEtapa(movedPedido, newEtapa);
     
-    // Luego actualización en almacenamiento (en background)
-    try {
-        await store.update(updatedPedido);
-        logAction(`Pedido ${movedPedido.numeroPedidoCliente} movido (manual) de ${ETAPAS[oldEtapa].title} a ${ETAPAS[newEtapa].title}.`);
-    } catch (error) {
-        console.error('Error al actualizar el pedido:', error);
-        // Revertir en caso de error
-        setPedidos(prev => prev.map(p => p.id === draggableId ? movedPedido : p));
-    }
+    logAction(`Pedido ${movedPedido.numeroPedidoCliente} movido (manual) de ${ETAPAS[oldEtapa].title} a ${ETAPAS[newEtapa].title}.`);
 };

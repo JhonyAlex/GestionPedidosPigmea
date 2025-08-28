@@ -1,12 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Pedido, UserRole, Etapa, HistorialEntry } from '../types';
 import { store } from '../services/storage';
-import { ETAPAS } from '../constants';
+import { ETAPAS, KANBAN_FUNNELS } from '../constants';
 import { determinarEtapaPreparacion } from '../utils/preparacionLogic';
+import AntivahoConfirmationModal from '../components/AntivahoConfirmationModal';
 
-export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHistorial: (usuario: UserRole, accion: string, detalles: string) => HistorialEntry) => {
+export const usePedidosManager = (
+    currentUserRole: UserRole,
+    generarEntradaHistorial: (usuario: UserRole, accion: string, detalles: string) => HistorialEntry,
+    setPedidoToSend: React.Dispatch<React.SetStateAction<Pedido | null>>
+) => {
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [antivahoModalState, setAntivahoModalState] = useState<{ isOpen: boolean; pedido: Pedido | null; toEtapa: Etapa | null }>({ isOpen: false, pedido: null, toEtapa: null });
 
     useEffect(() => {
         const initStore = async () => {
@@ -107,7 +113,8 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
             historial: [generarEntradaHistorial(currentUserRole, 'Creación', 'Pedido creado en Preparación.')],
             maquinaImpresion: '',
             secuenciaTrabajo,
-            antivaho: false,
+            antivaho: pedidoData.antivaho || false,
+            antivahoRealizado: false,
         };
 
         const initialSubEtapa = determinarEtapaPreparacion(tempPedido);
@@ -123,51 +130,17 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
     };
 
     const handleConfirmSendToPrint = async (pedidoToUpdate: Pedido, impresionEtapa: Etapa, postImpresionSequence: Etapa[]) => {
-        let updatedPedido;
-
-        if (pedidoToUpdate.antivaho) {
-            // Logic for Antivaho: Skip printing
-            const primeraEtapaPostImpresion = postImpresionSequence.length > 0 ? postImpresionSequence[0] : Etapa.COMPLETADO;
-            const detalles = `Movido de 'Preparación' directamente a '${ETAPAS[primeraEtapaPostImpresion].title}' (Antivaho activado).`;
-            const historialEntry = generarEntradaHistorial(currentUserRole, 'Salto a Post-Impresión', detalles);
-
-            updatedPedido = {
-                ...pedidoToUpdate,
-                etapaActual: primeraEtapaPostImpresion,
-                maquinaImpresion: 'N/A (Antivaho)',
-                secuenciaTrabajo: postImpresionSequence,
-                etapasSecuencia: [...pedidoToUpdate.etapasSecuencia, { etapa: primeraEtapaPostImpresion, fecha: new Date().toISOString() }],
-                historial: [...pedidoToUpdate.historial, historialEntry],
-            };
-
-        } else {
-            // Standard logic: Send to printing
-            const detalles = `Movido de 'Preparación' a '${ETAPAS[impresionEtapa].title}'.`;
-            const historialEntry = generarEntradaHistorial(currentUserRole, 'Enviado a Impresión', detalles);
-
-            updatedPedido = {
-                ...pedidoToUpdate,
-                etapaActual: impresionEtapa,
-                maquinaImpresion: ETAPAS[impresionEtapa].title,
-                secuenciaTrabajo: postImpresionSequence,
-                etapasSecuencia: [...pedidoToUpdate.etapasSecuencia, { etapa: impresionEtapa, fecha: new Date().toISOString() }],
-                historial: [...pedidoToUpdate.historial, historialEntry],
-            };
-        }
+        const updatedPedido = {
+            ...pedidoToUpdate,
+            secuenciaTrabajo: postImpresionSequence,
+        };
         
-        // Optimistic update first
-        setPedidos(prev => prev.map(p => p.id === updatedPedido.id ? updatedPedido : p));
+        // Use the centralized stage update handler
+        await handleUpdatePedidoEtapa(updatedPedido, impresionEtapa);
         
-        // Then update in storage (in background)
-        try {
-            const savedPedido = await store.update(updatedPedido);
-            return savedPedido;
-        } catch (error) {
-            console.error('Error al enviar a impresión:', error);
-            // Revert on error
-            setPedidos(prev => prev.map(p => p.id === updatedPedido.id ? pedidoToUpdate : p));
-            return undefined;
-        }
+        // Find the latest version of the pedido after update
+        const finalPedido = pedidos.find(p => p.id === pedidoToUpdate.id);
+        return finalPedido || updatedPedido;
     };
 
     const handleArchiveToggle = async (pedido: Pedido) => {
@@ -238,6 +211,7 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
             maquinaImpresion: '', // Reset machine
             fechaFinalizacion: undefined,
             tiempoTotalProduccion: undefined,
+            antivahoRealizado: false, // Reset antivaho status
         };
     
         const createdPedido = await store.create(newPedido);
@@ -303,6 +277,52 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
         input.click();
     };
 
+    const handleUpdatePedidoEtapa = async (pedido: Pedido, newEtapa: Etapa) => {
+        const fromPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual);
+        const toImpresion = KANBAN_FUNNELS.IMPRESION.stages.includes(newEtapa);
+
+        if (pedido.antivaho && !pedido.antivahoRealizado && fromPostImpresion && toImpresion) {
+            setAntivahoModalState({ isOpen: true, pedido: pedido, toEtapa: newEtapa });
+            return;
+        }
+
+        // Logic to reset antivahoRealizado if moving to PREPARACION
+        let updatedPedido = { ...pedido };
+        if (newEtapa === Etapa.PREPARACION) {
+            updatedPedido.antivahoRealizado = false;
+        }
+
+        // Add machine info if moving to printing
+        const toImpresion = KANBAN_FUNNELS.IMPRESION.stages.includes(newEtapa);
+        if (toImpresion) {
+            updatedPedido.maquinaImpresion = ETAPAS[newEtapa]?.title;
+        }
+
+        // Proceed with the stage change
+        updatedPedido.etapaActual = newEtapa;
+        await handleSavePedido(updatedPedido);
+    };
+
+    const handleConfirmAntivaho = async () => {
+        if (!antivahoModalState.pedido) return;
+
+        const updatedPedido = {
+            ...antivahoModalState.pedido,
+            antivahoRealizado: true,
+        };
+
+        const result = await handleSavePedido(updatedPedido);
+        setAntivahoModalState({ isOpen: false, pedido: null, toEtapa: null });
+
+        if (result?.modifiedPedido) {
+            setPedidoToSend(result.modifiedPedido);
+        }
+    };
+
+    const handleCancelAntivaho = () => {
+        setAntivahoModalState({ isOpen: false, pedido: null, toEtapa: null });
+    };
+
     return {
       pedidos,
       setPedidos,
@@ -316,5 +336,13 @@ export const usePedidosManager = (currentUserRole: UserRole, generarEntradaHisto
       handleDeletePedido,
       handleExportData,
       handleImportData,
+      handleUpdatePedidoEtapa,
+      AntivahoConfirmationModal: () => (
+        <AntivahoConfirmationModal
+            isOpen={antivahoModalState.isOpen}
+            onConfirm={handleConfirmAntivaho}
+            onCancel={handleCancelAntivaho}
+        />
+      ),
     };
 };

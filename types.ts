@@ -84,6 +84,7 @@ export interface Pedido {
     estadoCliché?: EstadoCliché;
     camisa?: string;
     antivaho?: boolean;
+    antivahoRealizado?: boolean;
 
     /** El nombre o código del producto final. */
     producto?: string | null;
