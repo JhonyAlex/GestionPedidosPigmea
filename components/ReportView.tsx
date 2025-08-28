@@ -219,6 +219,49 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, auditLog }) => {
         };
     }, [pedidos]);
 
+    // Stage Status Data
+    const stageStatusData = useMemo(() => {
+        const materialNoDisponible = pedidos.filter(p => 
+            p.etapaActual === Etapa.PREPARACION && p.materialDisponible === false
+        ).length;
+
+        const pendienteCliche = pedidos.filter(p => 
+            p.etapaActual === Etapa.PREPARACION && p.clicheDisponible === false
+        ).length;
+
+        const etapasProduccion = [
+            { key: Etapa.PENDIENTE, label: 'Pendiente', count: pedidos.filter(p => p.etapaActual === Etapa.PENDIENTE).length },
+            { key: Etapa.IMPRESION_WM1, label: 'Impresión WM1', count: pedidos.filter(p => p.etapaActual === Etapa.IMPRESION_WM1).length },
+            { key: Etapa.IMPRESION_GIAVE, label: 'Impresión GIAVE', count: pedidos.filter(p => p.etapaActual === Etapa.IMPRESION_GIAVE).length },
+            { key: Etapa.IMPRESION_WM3, label: 'Impresión WM3', count: pedidos.filter(p => p.etapaActual === Etapa.IMPRESION_WM3).length },
+            { key: Etapa.IMPRESION_ANON, label: 'Impresión ANON', count: pedidos.filter(p => p.etapaActual === Etapa.IMPRESION_ANON).length },
+            { key: Etapa.POST_LAMINACION_SL2, label: 'Post Laminación SL2', count: pedidos.filter(p => p.etapaActual === Etapa.POST_LAMINACION_SL2).length },
+            { key: Etapa.POST_LAMINACION_NEXUS, label: 'Post Laminación NEXUS', count: pedidos.filter(p => p.etapaActual === Etapa.POST_LAMINACION_NEXUS).length },
+            { key: Etapa.POST_REBOBINADO_S2DT, label: 'Post Rebobinado S2DT', count: pedidos.filter(p => p.etapaActual === Etapa.POST_REBOBINADO_S2DT).length },
+            { key: Etapa.POST_REBOBINADO_PROSLIT, label: 'Post Rebobinado PROSLIT', count: pedidos.filter(p => p.etapaActual === Etapa.POST_REBOBINADO_PROSLIT).length },
+            { key: Etapa.POST_PERFORACION_MIC, label: 'Post Perforación MIC', count: pedidos.filter(p => p.etapaActual === Etapa.POST_PERFORACION_MIC).length },
+            { key: Etapa.POST_PERFORACION_MAC, label: 'Post Perforación MAC', count: pedidos.filter(p => p.etapaActual === Etapa.POST_PERFORACION_MAC).length },
+            { key: Etapa.POST_REBOBINADO_TEMAC, label: 'Post Rebobinado TEMAC', count: pedidos.filter(p => p.etapaActual === Etapa.POST_REBOBINADO_TEMAC).length },
+        ];
+
+        const antivahoPendiente = pedidos.filter(p => {
+            const etapasPost = [
+                Etapa.POST_LAMINACION_SL2, Etapa.POST_LAMINACION_NEXUS,
+                Etapa.POST_REBOBINADO_S2DT, Etapa.POST_REBOBINADO_PROSLIT,
+                Etapa.POST_PERFORACION_MIC, Etapa.POST_PERFORACION_MAC,
+                Etapa.POST_REBOBINADO_TEMAC
+            ];
+            return etapasPost.includes(p.etapaActual) && p.antivahoRealizado === false;
+        }).length;
+
+        return {
+            materialNoDisponible,
+            pendienteCliche,
+            etapasProduccion,
+            antivahoPendiente
+        };
+    }, [pedidos]);
+
     return (
         <main className="flex-grow p-4 md:p-8 space-y-8">
             {/* KPI Cards */}
@@ -328,6 +371,206 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, auditLog }) => {
                     <div className="h-[400px] w-full">
                         <BarChart data={clientAnalysisData} />
                     </div>
+                </div>
+            </div>
+
+            {/* Stage Status Report */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                <h2 className="text-xl font-bold text-red-600 dark:text-red-400 mb-4">Reporte de Estado de Etapas</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Material No Disponible */}
+                    <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">Material No Disponible</h3>
+                        <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stageStatusData.materialNoDisponible}</p>
+                    </div>
+
+                    {/* Pendiente Cliché */}
+                    <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">Pendiente Cliché</h3>
+                        <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stageStatusData.pendienteCliche}</p>
+                    </div>
+
+                    {/* Antivaho Pendiente */}
+                    <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">Antivaho Pendiente</h3>
+                        <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stageStatusData.antivahoPendiente}</p>
+                    </div>
+                </div>
+
+                {/* Production Stages Breakdown */}
+                <div className="mt-4">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">Desglose por Etapa de Producción</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {stageStatusData.etapasProduccion.map(etapa => (
+                            <div key={etapa.key} className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
+                                <h4 className="font-semibold text-gray-800 dark:text-white">{etapa.label}</h4>
+                                <p className="text-xl font-bold text-gray-900 dark:text-gray-300">{etapa.count}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Stage Status Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Material No Disponible</h3>
+                    <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stageStatusData.materialNoDisponible}</p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Pendiente Cliché</h3>
+                    <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{stageStatusData.pendienteCliche}</p>
+                </div>
+                {stageStatusData.etapasProduccion.map((etapa) => (
+                    <div key={etapa.key} className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center">
+                        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">{etapa.label}</h3>
+                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{etapa.count}</p>
+                    </div>
+                ))}
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Antivaho Pendiente</h3>
+                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{stageStatusData.antivahoPendiente}</p>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Urgent Orders & Audit Log */}
+                <div className="lg:col-span-1 space-y-8">
+                    {/* Urgent Orders */}
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                        <h2 className="text-xl font-bold text-red-500 dark:text-red-400 mb-4">Pedidos Urgentes Activos</h2>
+                        {urgentPedidos.length > 0 ? (
+                             <ul className="space-y-3">
+                                {urgentPedidos.map(p => (
+                                    <li key={p.id} className="p-3 bg-gray-100 dark:bg-gray-700 rounded-md">
+                                        <p className="font-semibold text-gray-800 dark:text-white">{p.numeroPedidoCliente}</p>
+                                        <p className="text-sm text-gray-600 dark:text-gray-300">{p.cliente}</p>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-gray-500 dark:text-gray-400">No hay pedidos urgentes activos.</p>
+                        )}
+                    </div>
+                    {/* Audit Log */}
+                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                        <h2 className="text-xl font-bold text-indigo-500 dark:text-indigo-400 mb-4">Registro de Auditoría</h2>
+                        <div className="h-96 overflow-y-auto pr-2">
+                             <ul className="space-y-3 text-sm">
+                                {auditLog.map((log, index) => (
+                                    <li key={index} className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-md">
+                                        <p className="font-mono text-gray-700 dark:text-gray-300">
+                                            <span className="font-semibold text-teal-600 dark:text-teal-400">{log.userRole}</span>: {log.action}
+                                        </p>
+                                        <p className="text-xs text-gray-500 mt-1">{new Date(log.timestamp).toLocaleString()}</p>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                {/* Performance Chart */}
+                <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                    <h2 className="text-xl font-bold text-blue-500 dark:text-blue-400 mb-4">Análisis Plan vs. Real (Últimos 10 Completados)</h2>
+                     <div className="h-[500px] w-full">
+                         <BarChart data={performanceChartData} />
+                     </div>
+                </div>
+            </div>
+
+            {/* Additional Reports */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Stage Analysis */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                    <h2 className="text-xl font-bold text-purple-500 dark:text-purple-400 mb-4">Análisis de Etapas (Cuellos de Botella)</h2>
+                    <div className="h-[400px] w-full">
+                        <BarChart data={stageAnalysisData} />
+                    </div>
+                </div>
+
+                {/* Monthly Trends */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                    <h2 className="text-xl font-bold text-cyan-500 dark:text-cyan-400 mb-4">Tendencias Mensuales</h2>
+                    <div className="h-[400px] w-full">
+                        <LineChart data={monthlyTrendsData} />
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* User Performance */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                    <h2 className="text-xl font-bold text-amber-500 dark:text-amber-400 mb-4">Rendimiento por Usuario</h2>
+                    <div className="h-[400px] w-full">
+                        <BarChart data={userPerformanceData} />
+                    </div>
+                </div>
+
+                {/* Client Analysis */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                    <h2 className="text-xl font-bold text-pink-500 dark:text-pink-400 mb-4">Análisis por Cliente (Top 10)</h2>
+                    <div className="h-[400px] w-full">
+                        <BarChart data={clientAnalysisData} />
+                    </div>
+                </div>
+            </div>
+
+            {/* Stage Status Report */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                <h2 className="text-xl font-bold text-red-600 dark:text-red-400 mb-4">Reporte de Estado de Etapas</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Material No Disponible */}
+                    <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">Material No Disponible</h3>
+                        <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stageStatusData.materialNoDisponible}</p>
+                    </div>
+
+                    {/* Pendiente Cliché */}
+                    <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">Pendiente Cliché</h3>
+                        <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stageStatusData.pendienteCliche}</p>
+                    </div>
+
+                    {/* Antivaho Pendiente */}
+                    <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">Antivaho Pendiente</h3>
+                        <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stageStatusData.antivahoPendiente}</p>
+                    </div>
+                </div>
+
+                {/* Production Stages Breakdown */}
+                <div className="mt-4">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">Desglose por Etapa de Producción</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {stageStatusData.etapasProduccion.map(etapa => (
+                            <div key={etapa.key} className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
+                                <h4 className="font-semibold text-gray-800 dark:text-white">{etapa.label}</h4>
+                                <p className="text-xl font-bold text-gray-900 dark:text-gray-300">{etapa.count}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Stage Status Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Material No Disponible</h3>
+                    <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stageStatusData.materialNoDisponible}</p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Pendiente Cliché</h3>
+                    <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{stageStatusData.pendienteCliche}</p>
+                </div>
+                {stageStatusData.etapasProduccion.map((etapa) => (
+                    <div key={etapa.key} className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center">
+                        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">{etapa.label}</h3>
+                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{etapa.count}</p>
+                    </div>
+                ))}
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Antivaho Pendiente</h3>
+                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{stageStatusData.antivahoPendiente}</p>
                 </div>
             </div>
         </main>
