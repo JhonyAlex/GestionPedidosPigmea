@@ -28,18 +28,12 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
         <div className="w-full h-full flex flex-col p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
             {/* Legend */}
             <div className="flex justify-center gap-4 mb-4 text-xs text-gray-600 dark:text-gray-300">
-                <div className="flex items-center">
-                    <span className="w-3 h-3 rounded-full bg-blue-500/70 mr-2"></span>
-                    <span>Planificado</span>
-                </div>
-                 <div className="flex items-center">
-                    <span className="w-3 h-3 rounded-full bg-green-500/70 mr-2"></span>
-                    <span>Real (A tiempo)</span>
-                </div>
-                <div className="flex items-center">
-                    <span className="w-3 h-3 rounded-full bg-red-500/70 mr-2"></span>
-                    <span>Real (Retrasado)</span>
-                </div>
+                {data.datasets.map((dataset, index) => (
+                    <div key={index} className="flex items-center">
+                        <span className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: typeof dataset.backgroundColor === 'string' ? dataset.backgroundColor : 'rgba(59, 130, 246, 0.7)' }}></span>
+                        <span>{dataset.label}</span>
+                    </div>
+                ))}
             </div>
 
             <div className="flex-grow flex">
