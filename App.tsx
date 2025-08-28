@@ -17,6 +17,9 @@ import PreparacionView from './components/PreparacionView';
 import EnviarAImpresionModal from './components/EnviarAImpresionModal';
 import NotificationCenter from './components/NotificationCenter';
 import ConnectedUsers from './components/ConnectedUsers';
+import LoginModal from './components/LoginModal';
+import UserInfo from './components/UserInfo';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { calcularSiguienteEtapa } from './utils/etapaLogic';
 import { procesarDragEnd } from './utils/dragLogic';
 import { usePedidosManager } from './hooks/usePedidosManager';
@@ -24,11 +27,11 @@ import { useWebSocket } from './hooks/useWebSocket';
 import { useFiltrosYOrden } from './hooks/useFiltrosYOrden';
 
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
+    const { user, isAuthenticated, loading } = useAuth();
     const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [view, setView] = useState<ViewType>('preparacion');
-    const [currentUserRole, setCurrentUserRole] = useState<UserRole>('Administrador');
     const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
     const [pedidoToSend, setPedidoToSend] = useState<Pedido | null>(null);
     const [highlightedPedidoId, setHighlightedPedidoId] = useState<string | null>(null);
@@ -43,10 +46,29 @@ const App: React.FC = () => {
         return 'light';
     });
 
-    // 🚀 WebSocket connection - Generar ID estable
-    const [currentUserId] = useState(() => 
-        `Usuario-${currentUserRole}-${Date.now().toString().slice(-6)}`
-    );
+    // Mostrar pantalla de carga mientras se verifica la autenticación
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mb-4"></div>
+                    <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300">
+                        Cargando Planning Pigmea...
+                    </h2>
+                </div>
+            </div>
+        );
+    }
+
+    // Mostrar modal de login si no está autenticado
+    if (!isAuthenticated || !user) {
+        return <LoginModal />;
+    }
+
+    // Usuario autenticado - usar sus datos
+    const currentUserRole = user.role;
+    const currentUserId = `${user.username}-${user.id.slice(-6)}`;
+
     const { 
         isConnected, 
         notifications, 
@@ -392,8 +414,6 @@ const App: React.FC = () => {
                     activeDateFilter={dateFilter}
                     customDateRange={customDateRange}
                     onCustomDateChange={handleCustomDateChange}
-                    currentUserRole={currentUserRole}
-                    onRoleChange={setCurrentUserRole}
                     onAddPedido={() => setIsAddModalOpen(true)}
                     onExportPDF={handleExportPDF}
                     onExportData={doExportData}
@@ -448,6 +468,15 @@ const App: React.FC = () => {
                 />
             </div>
         </DragDropContext>
+    );
+};
+
+// Componente App principal con AuthProvider
+const App: React.FC = () => {
+    return (
+        <AuthProvider>
+            <AppContent />
+        </AuthProvider>
     );
 };
 

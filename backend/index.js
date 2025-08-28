@@ -218,6 +218,167 @@ function broadcastToRole(userRole, event, data) {
 
 // --- API ROUTES ---
 
+// === RUTAS DE AUTENTICACIÓN ===
+
+// POST /api/auth/login - Autenticar usuario
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        
+        if (!username || !password) {
+            return res.status(400).json({ 
+                error: 'Usuario y contraseña son requeridos' 
+            });
+        }
+
+        // Solo usar SQLite para autenticación (simple y directo)
+        if (!sqliteClient) {
+            return res.status(500).json({ 
+                error: 'Sistema de autenticación no disponible' 
+            });
+        }
+
+        const user = await sqliteClient.findUserByUsername(username);
+        
+        if (!user) {
+            return res.status(401).json({ 
+                error: 'Usuario no encontrado' 
+            });
+        }
+
+        // Comparación simple de contraseña (sin hash para simplicidad)
+        if (user.password !== password) {
+            return res.status(401).json({ 
+                error: 'Contraseña incorrecta' 
+            });
+        }
+
+        // Actualizar último login
+        await sqliteClient.updateUserLastLogin(username);
+
+        // Devolver datos del usuario (sin contraseña)
+        const userData = {
+            id: user.id,
+            username: user.username,
+            role: user.role,
+            displayName: user.displayName || user.username
+        };
+
+        console.log(`✅ Login exitoso: ${username} (${user.role})`);
+        
+        res.status(200).json({
+            success: true,
+            user: userData,
+            message: 'Login exitoso'
+        });
+
+    } catch (error) {
+        console.error('Error en login:', error);
+        res.status(500).json({ 
+            error: 'Error interno del servidor' 
+        });
+    }
+});
+
+// POST /api/auth/register - Registrar nuevo usuario
+app.post('/api/auth/register', async (req, res) => {
+    try {
+        const { username, password, role = 'Operador', displayName } = req.body;
+        
+        if (!username || !password) {
+            return res.status(400).json({ 
+                error: 'Usuario y contraseña son requeridos' 
+            });
+        }
+
+        if (username.length < 3) {
+            return res.status(400).json({ 
+                error: 'El usuario debe tener al menos 3 caracteres' 
+            });
+        }
+
+        if (password.length < 3) {
+            return res.status(400).json({ 
+                error: 'La contraseña debe tener al menos 3 caracteres' 
+            });
+        }
+
+        if (!sqliteClient) {
+            return res.status(500).json({ 
+                error: 'Sistema de autenticación no disponible' 
+            });
+        }
+
+        // Verificar si el usuario ya existe
+        const existingUser = await sqliteClient.findUserByUsername(username);
+        if (existingUser) {
+            return res.status(409).json({ 
+                error: 'El nombre de usuario ya existe' 
+            });
+        }
+
+        // Crear nuevo usuario
+        const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const newUser = {
+            id: userId,
+            username: username.trim(),
+            password: password, // Sin hash para simplicidad
+            role: role,
+            displayName: displayName?.trim() || username.trim()
+        };
+
+        await sqliteClient.createUser(newUser);
+
+        // Devolver datos del usuario (sin contraseña)
+        const userData = {
+            id: newUser.id,
+            username: newUser.username,
+            role: newUser.role,
+            displayName: newUser.displayName
+        };
+
+        console.log(`✅ Usuario registrado: ${username} (${role})`);
+
+        res.status(201).json({
+            success: true,
+            user: userData,
+            message: 'Usuario creado exitosamente'
+        });
+
+    } catch (error) {
+        console.error('Error en registro:', error);
+        res.status(500).json({ 
+            error: error.message || 'Error interno del servidor' 
+        });
+    }
+});
+
+// GET /api/auth/users - Obtener lista de usuarios (solo para administradores)
+app.get('/api/auth/users', async (req, res) => {
+    try {
+        if (!sqliteClient) {
+            return res.status(500).json({ 
+                error: 'Sistema de autenticación no disponible' 
+            });
+        }
+
+        const users = await sqliteClient.getAllUsers();
+        
+        res.status(200).json({
+            success: true,
+            users: users
+        });
+
+    } catch (error) {
+        console.error('Error obteniendo usuarios:', error);
+        res.status(500).json({ 
+            error: 'Error interno del servidor' 
+        });
+    }
+});
+
+// === RUTAS DE PEDIDOS ===
+
 // GET /api/pedidos - Get all pedidos
 app.get('/api/pedidos', async (req, res) => {
     try {

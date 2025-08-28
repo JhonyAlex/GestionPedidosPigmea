@@ -125,3 +125,42 @@ export interface AuditEntry {
 }
 
 export type DateField = 'fechaCreacion' | 'fechaEntrega' | 'fechaFinalizacion';
+
+// === TIPOS DE AUTENTICACIÓN ===
+
+export interface User {
+    id: string;
+    username: string;
+    role: UserRole;
+    displayName: string;
+    createdAt?: string;
+    lastLogin?: string;
+}
+
+export interface LoginRequest {
+    username: string;
+    password: string;
+}
+
+export interface RegisterRequest {
+    username: string;
+    password: string;
+    role?: UserRole;
+    displayName?: string;
+}
+
+export interface AuthResponse {
+    success: boolean;
+    user?: User;
+    message: string;
+    error?: string;
+}
+
+export interface AuthContextType {
+    user: User | null;
+    isAuthenticated: boolean;
+    login: (username: string, password: string) => Promise<AuthResponse>;
+    register: (userData: RegisterRequest) => Promise<AuthResponse>;
+    logout: () => void;
+    loading: boolean;
+}

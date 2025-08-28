@@ -4,6 +4,8 @@ import React from 'react';
 import { ViewType, Prioridad, Etapa, UserRole, Pedido } from '../types';
 import { ETAPAS_KANBAN, ETAPAS } from '../constants';
 import { DateFilterOption } from '../utils/date';
+import UserInfo from './UserInfo';
+import { useAuth } from '../contexts/AuthContext';
 
 
 interface HeaderProps {
@@ -18,8 +20,6 @@ interface HeaderProps {
     activeDateFilter: DateFilterOption;
     customDateRange: { start: string; end: string };
     onCustomDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    currentUserRole: UserRole;
-    onRoleChange: (role: UserRole) => void;
     onAddPedido: () => void;
     onExportPDF: () => void;
     onExportData: () => void;
@@ -57,13 +57,13 @@ const Header: React.FC<HeaderProps> = ({
     activeDateFilter,
     customDateRange,
     onCustomDateChange,
-    currentUserRole, 
-    onRoleChange,
     onAddPedido,
     onExportPDF,
     onExportData,
     onImportData
 }) => {
+    const { user } = useAuth();
+    const currentUserRole = user?.role || 'Operador';
     
     const viewOptions: { id: ViewType; label: string, adminOnly: boolean }[] = [
         { id: 'preparacion', label: 'Preparación', adminOnly: false },
@@ -97,15 +97,7 @@ const Header: React.FC<HeaderProps> = ({
             <div className="container mx-auto flex flex-wrap justify-between items-center gap-4">
                 <div className="flex items-center gap-4">
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Planning Pigmea</h1>
-                     <select
-                        name="role"
-                        value={currentUserRole}
-                        onChange={(e) => onRoleChange(e.target.value as UserRole)}
-                        className="px-3 py-1 bg-gray-200 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                        <option value="Administrador">Admin</option>
-                        <option value="Operador">Operador</option>
-                    </select>
+                    <UserInfo />
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
