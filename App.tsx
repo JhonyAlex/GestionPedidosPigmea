@@ -7,6 +7,7 @@ import { calculateTotalProductionTime, generatePedidosPDF } from './utils/kpi';
 import KanbanColumn from './components/KanbanColumn';
 import PedidoModal from './components/PedidoModal';
 import AddPedidoModal from './components/AddPedidoModal';
+import AntivahoConfirmationModal from './components/AntivahoConfirmationModal';
 import Header from './components/Header';
 import PedidoList from './components/PedidoList';
 import ReportView from './components/ReportView';
