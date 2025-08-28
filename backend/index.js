@@ -69,14 +69,63 @@ app.get('/health', (req, res) => {
         status: 'healthy',
         timestamp: new Date().toISOString(),
         firestoreEnabled,
-        sqliteEnabled,
-        inMemoryFallback: !firestoreEnabled && !sqliteEnabled,
-        websocketConnections: io.engine.clientsCount
+        sqliteEnabled: !!sqliteClient,
+        inMemoryFallback: !firestoreEnabled && !sqliteClient,
+        websocketConnections: io.engine.clientsCount,
+        connectedUsers: connectedUsers.size
+    });
+});
+
+// Reset users endpoint
+app.post('/api/reset-users', (req, res) => {
+    resetConnectedUsers();
+    res.status(200).json({
+        message: 'Usuarios conectados reseteados',
+        timestamp: new Date().toISOString()
     });
 });
 
 // --- WEBSOCKET SETUP ---
 let connectedUsers = new Map(); // userId -> { socketId, userRole, joinedAt }
+
+// Función para limpiar usuarios fantasma periodicamente
+function cleanupGhostUsers() {
+    const now = Date.now();
+    const CLEANUP_INTERVAL = 30000; // 30 segundos
+    
+    Array.from(connectedUsers.entries()).forEach(([userId, userData]) => {
+        const joinedAt = new Date(userData.joinedAt).getTime();
+        const timeDiff = now - joinedAt;
+        
+        // Si el usuario lleva más de 30 segundos y no tiene socket válido
+        if (timeDiff > CLEANUP_INTERVAL) {
+            const socket = io.sockets.sockets.get(userData.socketId);
+            if (!socket || !socket.connected) {
+                console.log(`🧹 Limpiando usuario fantasma: ${userId}`);
+                connectedUsers.delete(userId);
+            }
+        }
+    });
+    
+    // Emitir lista actualizada
+    io.emit('users-list', {
+        connectedUsers: Array.from(connectedUsers.entries()).map(([id, data]) => ({
+            userId: id,
+            userRole: data.userRole,
+            joinedAt: data.joinedAt
+        }))
+    });
+}
+
+// Limpiar usuarios fantasma cada 10 segundos
+setInterval(cleanupGhostUsers, 10000);
+
+// Función para reset completo de usuarios conectados
+function resetConnectedUsers() {
+    console.log('🔄 Reseteando lista de usuarios conectados...');
+    connectedUsers.clear();
+    io.emit('users-list', { connectedUsers: [] });
+}
 
 io.on('connection', (socket) => {
     console.log(`🔌 Cliente conectado: ${socket.id}`);

@@ -14,13 +14,12 @@ export const useWebSocket = (userId: string, userRole: UserRole): UseWebSocketRe
   const [isConnected, setIsConnected] = useState(false);
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [connectedUsers, setConnectedUsers] = useState<ConnectedUser[]>([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Autenticar usuario cuando se conecte
-    if (webSocketService.isSocketConnected()) {
-      webSocketService.authenticate(userId, userRole);
-      setIsConnected(true);
-    }
+    // Obtener datos iniciales
+    setNotifications(webSocketService.getNotifications());
+    setConnectedUsers(webSocketService.getConnectedUsers());
 
     // Suscribirse a notificaciones
     const unsubscribeNotifications = webSocketService.subscribeToNotifications((newNotifications) => {
@@ -32,27 +31,32 @@ export const useWebSocket = (userId: string, userRole: UserRole): UseWebSocketRe
       setConnectedUsers(users);
     });
 
-    // Obtener datos iniciales
-    setNotifications(webSocketService.getNotifications());
-    setConnectedUsers(webSocketService.getConnectedUsers());
+    return () => {
+      unsubscribeNotifications();
+      unsubscribeUsers();
+    };
+  }, []);
 
-    // Verificar conexión periódicamente
+  useEffect(() => {
+    // Verificar conexión y autenticar
     const connectionCheck = setInterval(() => {
       const connected = webSocketService.isSocketConnected();
       setIsConnected(connected);
       
-      // Re-autenticar si se reconectó
-      if (connected && !isConnected) {
+      // Autenticar solo si está conectado pero no autenticado
+      if (connected && !isAuthenticated) {
+        console.log('🔐 Autenticando usuario:', userId, userRole);
         webSocketService.authenticate(userId, userRole);
+        setIsAuthenticated(true);
+      } else if (!connected) {
+        setIsAuthenticated(false);
       }
-    }, 1000);
+    }, 2000); // Verificar cada 2 segundos en lugar de cada segundo
 
     return () => {
-      unsubscribeNotifications();
-      unsubscribeUsers();
       clearInterval(connectionCheck);
     };
-  }, [userId, userRole, isConnected]);
+  }, [userId, userRole, isAuthenticated]);
 
   const removeNotification = useCallback((id: string) => {
     webSocketService.removeNotification(id);

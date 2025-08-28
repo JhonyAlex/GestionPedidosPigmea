@@ -43,8 +43,10 @@ const App: React.FC = () => {
         return 'light';
     });
 
-    // 🚀 WebSocket connection
-    const currentUserId = `Usuario-${currentUserRole}-${Date.now().toString().slice(-6)}`;
+    // 🚀 WebSocket connection - Generar ID estable
+    const [currentUserId] = useState(() => 
+        `Usuario-${currentUserRole}-${Date.now().toString().slice(-6)}`
+    );
     const { 
         isConnected, 
         notifications, 
