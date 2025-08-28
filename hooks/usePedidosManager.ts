@@ -292,8 +292,6 @@ export const usePedidosManager = (
             updatedPedido.antivahoRealizado = false;
         }
 
-        // Add machine info if moving to printing
-        const toImpresion = KANBAN_FUNNELS.IMPRESION.stages.includes(newEtapa);
         if (toImpresion) {
             updatedPedido.maquinaImpresion = ETAPAS[newEtapa]?.title;
         }
@@ -337,12 +335,8 @@ export const usePedidosManager = (
       handleExportData,
       handleImportData,
       handleUpdatePedidoEtapa,
-      AntivahoConfirmationModal: () => (
-        <AntivahoConfirmationModal
-            isOpen={antivahoModalState.isOpen}
-            onConfirm={handleConfirmAntivaho}
-            onCancel={handleCancelAntivaho}
-        />
-      ),
+      antivahoModalState,
+      handleConfirmAntivaho,
+      handleCancelAntivaho,
     };
 };

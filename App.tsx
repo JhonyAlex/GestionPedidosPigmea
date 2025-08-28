@@ -60,7 +60,9 @@ const App: React.FC = () => {
         handleExportData,
         handleImportData,
         handleUpdatePedidoEtapa,
-        AntivahoConfirmationModal,
+        antivahoModalState,
+        handleConfirmAntivaho,
+        handleCancelAntivaho,
     } = usePedidosManager(currentUserRole, generarEntradaHistorial, setPedidoToSend);
 
     const {
@@ -392,7 +394,11 @@ const App: React.FC = () => {
                         onConfirm={handleConfirmSendToPrint}
                     />
                 )}
-                <AntivahoConfirmationModal />
+                <AntivahoConfirmationModal
+                    isOpen={antivahoModalState.isOpen}
+                    onConfirm={handleConfirmAntivaho}
+                    onCancel={handleCancelAntivaho}
+                />
                 <ThemeSwitcher theme={theme} toggleTheme={toggleTheme} />
             </div>
         </DragDropContext>
