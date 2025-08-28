@@ -35,9 +35,10 @@ interface PedidoModalProps {
     currentUserRole: UserRole;
     onAdvanceStage: (pedido: Pedido) => void;
     onSendToPrint: (pedido: Pedido) => void;
+    onUpdateEtapa: (pedido: Pedido, newEtapa: Etapa) => void;
 }
 
-const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onArchiveToggle, currentUserRole, onAdvanceStage, onSendToPrint, onDuplicate, onDelete }) => {
+const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onArchiveToggle, currentUserRole, onAdvanceStage, onSendToPrint, onDuplicate, onDelete, onUpdateEtapa }) => {
     const [formData, setFormData] = useState<Pedido>(pedido);
     const [activeTab, setActiveTab] = useState<'detalles' | 'historial'>('detalles');
     const isReadOnly = currentUserRole === 'Operador';
@@ -168,11 +169,8 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     
     const handleRevertToPrinting = (newStage: Etapa) => {
         if (!printingStages.includes(newStage)) return;
-         onSave({
-             ...formData,
-             etapaActual: newStage,
-             maquinaImpresion: ETAPAS[newStage]?.title || formData.maquinaImpresion,
-         });
+        onUpdateEtapa(pedido, newStage);
+        onClose();
     }
 
     const sortedHistory = useMemo(() => {

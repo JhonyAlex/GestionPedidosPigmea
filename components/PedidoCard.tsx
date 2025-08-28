@@ -69,7 +69,7 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
                 <h3 className="font-bold text-base text-gray-800 dark:text-gray-100">{pedido.numeroPedidoCliente}</h3>
                 <div className="flex items-center">
                     {pedido.antivaho && (
-                        <span className="text-xs font-semibold px-2 py-1 rounded-full bg-blue-200 text-blue-800 ml-2" title="Antivaho">
+                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ml-2 ${pedido.antivahoRealizado ? 'bg-green-200 text-green-800' : 'bg-blue-200 text-blue-800'}`} title={pedido.antivahoRealizado ? "Antivaho Realizado" : "Antivaho"}>
                             <SparklesIcon className="w-4 h-4 inline-block" />
                         </span>
                     )}
