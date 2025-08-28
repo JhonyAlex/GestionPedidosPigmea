@@ -54,7 +54,8 @@ class WebSocketService {
 
   private connect() {
     // Detectar la URL del servidor
-    const isDevelopment = process.env.NODE_ENV !== 'production';
+    const isDevelopment = typeof window !== 'undefined' && 
+                         (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
     const serverUrl = isDevelopment 
       ? 'http://localhost:8080' 
       : window.location.origin;

@@ -20,7 +20,10 @@ export interface DataStore<T extends { id: string }> {
 
 // --- MODO DE PRODUCCIÓN (API REAL) ---
 
-const API_BASE_URL = '/api';
+// Detectar entorno y configurar URL base
+const isDevelopment = typeof window !== 'undefined' && 
+                     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const API_BASE_URL = isDevelopment ? 'http://localhost:8080/api' : '/api';
 
 async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     try {
