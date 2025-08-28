@@ -17,9 +17,6 @@ export const usePedidosManager = (
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [antivahoModalState, setAntivahoModalState] = useState<{ isOpen: boolean; pedido: Pedido | null; toEtapa: Etapa | null }>({ isOpen: false, pedido: null, toEtapa: null });
-    
-    // Rastrear pedidos creados localmente para evitar duplicados en sincronización
-    const [locallyCreatedPedidos, setLocallyCreatedPedidos] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         const initStore = async () => {
@@ -45,20 +42,20 @@ export const usePedidosManager = (
             const unsubscribeCreated = subscribeToPedidoCreated((newPedido: Pedido) => {
                 console.log('🔄 Sincronizando nuevo pedido:', newPedido.numeroPedidoCliente);
                 
-                // No agregar si fue creado localmente (evitar duplicados)
-                if (locallyCreatedPedidos.has(newPedido.id)) {
-                    console.log('⏭️ Omitiendo pedido creado localmente:', newPedido.numeroPedidoCliente);
-                    return;
-                }
-                
-                setPedidos(current => {
-                    // Verificar si el pedido ya existe para evitar duplicados
-                    const exists = current.some(p => p.id === newPedido.id);
-                    if (!exists) {
-                        return [...current, newPedido];
-                    }
-                    return current;
-                });
+                // Pequeño delay para permitir que el estado local se actualice primero
+                setTimeout(() => {
+                    setPedidos(current => {
+                        // Verificar si el pedido ya existe para evitar duplicados
+                        const exists = current.some(p => p.id === newPedido.id);
+                        if (!exists) {
+                            console.log('✅ Agregando pedido desde sincronización:', newPedido.numeroPedidoCliente);
+                            return [...current, newPedido];
+                        } else {
+                            console.log('⏭️ Pedido ya existe, omitiendo:', newPedido.numeroPedidoCliente);
+                            return current;
+                        }
+                    });
+                }, 100); // 100ms delay para que el estado local se procese primero
             });
             unsubscribeFunctions.push(unsubscribeCreated);
         }
@@ -87,7 +84,7 @@ export const usePedidosManager = (
         return () => {
             unsubscribeFunctions.forEach(unsubscribe => unsubscribe());
         };
-    }, [subscribeToPedidoCreated, subscribeToPedidoUpdated, subscribeToPedidoDeleted, locallyCreatedPedidos]);
+    }, [subscribeToPedidoCreated, subscribeToPedidoUpdated, subscribeToPedidoDeleted]);
 
     const handleSavePedido = async (updatedPedido: Pedido, generateHistory = true) => {
         if (currentUserRole !== 'Administrador') {
@@ -184,21 +181,7 @@ export const usePedidosManager = (
         };
 
         const createdPedido = await store.create(newPedido);
-        
-        // Marcar como creado localmente para evitar duplicados en sincronización
-        setLocallyCreatedPedidos(prev => new Set(prev).add(createdPedido.id));
-        
         setPedidos(prev => [createdPedido, ...prev]);
-        
-        // Limpiar el rastro después de un tiempo para evitar acumulación
-        setTimeout(() => {
-            setLocallyCreatedPedidos(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(createdPedido.id);
-                return newSet;
-            });
-        }, 5000); // 5 segundos debería ser suficiente para que llegue la sincronización
-        
         return createdPedido;
     };
 
