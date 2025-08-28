@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { UserRole } from '../types';
+import { UserRole, Pedido } from '../types';
 import webSocketService, { NotificationData, ConnectedUser } from '../services/websocket';
 
 export interface UseWebSocketReturn {
@@ -8,6 +8,10 @@ export interface UseWebSocketReturn {
   connectedUsers: ConnectedUser[];
   removeNotification: (id: string) => void;
   emitActivity: (activity: string, data?: any) => void;
+  // Callbacks para sincronización de datos
+  subscribeToPedidoCreated: (callback: (pedido: Pedido) => void) => () => void;
+  subscribeToPedidoUpdated: (callback: (pedido: Pedido) => void) => () => void;
+  subscribeToPedidoDeleted: (callback: (pedidoId: string) => void) => () => void;
 }
 
 export const useWebSocket = (userId: string, userRole: UserRole): UseWebSocketReturn => {
@@ -71,6 +75,10 @@ export const useWebSocket = (userId: string, userRole: UserRole): UseWebSocketRe
     notifications,
     connectedUsers,
     removeNotification,
-    emitActivity
+    emitActivity,
+    // Callbacks para sincronización de datos
+    subscribeToPedidoCreated: webSocketService.subscribeToPedidoCreated.bind(webSocketService),
+    subscribeToPedidoUpdated: webSocketService.subscribeToPedidoUpdated.bind(webSocketService),
+    subscribeToPedidoDeleted: webSocketService.subscribeToPedidoDeleted.bind(webSocketService)
   };
 };

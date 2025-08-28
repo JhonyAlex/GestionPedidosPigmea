@@ -8,7 +8,11 @@ import AntivahoConfirmationModal from '../components/AntivahoConfirmationModal';
 export const usePedidosManager = (
     currentUserRole: UserRole,
     generarEntradaHistorial: (usuario: UserRole, accion: string, detalles: string) => HistorialEntry,
-    setPedidoToSend: React.Dispatch<React.SetStateAction<Pedido | null>>
+    setPedidoToSend: React.Dispatch<React.SetStateAction<Pedido | null>>,
+    // Agregamos los callbacks de sincronización
+    subscribeToPedidoCreated?: (callback: (pedido: Pedido) => void) => () => void,
+    subscribeToPedidoUpdated?: (callback: (pedido: Pedido) => void) => () => void,
+    subscribeToPedidoDeleted?: (callback: (pedidoId: string) => void) => () => void
 ) => {
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -29,6 +33,51 @@ export const usePedidosManager = (
         };
         initStore();
     }, []);
+
+    // Configurar listeners para sincronización en tiempo real
+    useEffect(() => {
+        const unsubscribeFunctions: (() => void)[] = [];
+
+        if (subscribeToPedidoCreated) {
+            const unsubscribeCreated = subscribeToPedidoCreated((newPedido: Pedido) => {
+                console.log('🔄 Sincronizando nuevo pedido:', newPedido.numeroPedidoCliente);
+                setPedidos(current => {
+                    // Verificar si el pedido ya existe para evitar duplicados
+                    const exists = current.some(p => p.id === newPedido.id);
+                    if (!exists) {
+                        return [...current, newPedido];
+                    }
+                    return current;
+                });
+            });
+            unsubscribeFunctions.push(unsubscribeCreated);
+        }
+
+        if (subscribeToPedidoUpdated) {
+            const unsubscribeUpdated = subscribeToPedidoUpdated((updatedPedido: Pedido) => {
+                console.log('🔄 Sincronizando pedido actualizado:', updatedPedido.numeroPedidoCliente);
+                setPedidos(current => 
+                    current.map(p => p.id === updatedPedido.id ? updatedPedido : p)
+                );
+            });
+            unsubscribeFunctions.push(unsubscribeUpdated);
+        }
+
+        if (subscribeToPedidoDeleted) {
+            const unsubscribeDeleted = subscribeToPedidoDeleted((deletedPedidoId: string) => {
+                console.log('🔄 Sincronizando pedido eliminado:', deletedPedidoId);
+                setPedidos(current => 
+                    current.filter(p => p.id !== deletedPedidoId)
+                );
+            });
+            unsubscribeFunctions.push(unsubscribeDeleted);
+        }
+
+        // Cleanup function
+        return () => {
+            unsubscribeFunctions.forEach(unsubscribe => unsubscribe());
+        };
+    }, [subscribeToPedidoCreated, subscribeToPedidoUpdated, subscribeToPedidoDeleted]);
 
     const handleSavePedido = async (updatedPedido: Pedido, generateHistory = true) => {
         if (currentUserRole !== 'Administrador') {

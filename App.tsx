@@ -58,7 +58,10 @@ const AppContent: React.FC = () => {
         notifications, 
         connectedUsers, 
         removeNotification, 
-        emitActivity 
+        emitActivity,
+        subscribeToPedidoCreated,
+        subscribeToPedidoUpdated,
+        subscribeToPedidoDeleted
     } = useWebSocket(currentUserId, currentUserRole);
 
     const generarEntradaHistorial = useCallback((usuario: UserRole, accion: string, detalles: string): HistorialEntry => ({
@@ -85,7 +88,14 @@ const AppContent: React.FC = () => {
         antivahoModalState,
         handleConfirmAntivaho,
         handleCancelAntivaho,
-    } = usePedidosManager(currentUserRole, generarEntradaHistorial, setPedidoToSend);
+    } = usePedidosManager(
+        currentUserRole, 
+        generarEntradaHistorial, 
+        setPedidoToSend,
+        subscribeToPedidoCreated,
+        subscribeToPedidoUpdated,
+        subscribeToPedidoDeleted
+    );
 
     const {
       processedPedidos,

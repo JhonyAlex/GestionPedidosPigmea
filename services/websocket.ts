@@ -42,6 +42,11 @@ class WebSocketService {
   private notificationListeners: ((notifications: NotificationData[]) => void)[] = [];
   private connectedUsers: ConnectedUser[] = [];
   private connectedUsersListeners: ((users: ConnectedUser[]) => void)[] = [];
+  
+  // Callbacks para sincronización de datos en tiempo real
+  private pedidoCreatedListeners: ((pedido: Pedido) => void)[] = [];
+  private pedidoUpdatedListeners: ((pedido: Pedido) => void)[] = [];
+  private pedidoDeletedListeners: ((pedidoId: string) => void)[] = [];
 
   constructor() {
     this.connect();
@@ -121,6 +126,9 @@ class WebSocketService {
         autoClose: true,
         duration: 5000
       });
+      
+      // Notificar a los listeners para sincronización automática
+      this.notifyPedidoCreatedListeners(data.pedido);
     });
 
     this.socket.on('pedido-updated', (data) => {
@@ -134,6 +142,9 @@ class WebSocketService {
           duration: 4000
         });
       }
+      
+      // Notificar a los listeners para sincronización automática
+      this.notifyPedidoUpdatedListeners(data.pedido);
     });
 
     this.socket.on('pedido-deleted', (data) => {
@@ -145,6 +156,9 @@ class WebSocketService {
         autoClose: true,
         duration: 4000
       });
+      
+      // Notificar a los listeners para sincronización automática
+      this.notifyPedidoDeletedListeners(data.pedidoId);
     });
 
     // Eventos de usuarios
@@ -268,6 +282,50 @@ class WebSocketService {
 
   private notifyConnectedUsersListeners() {
     this.connectedUsersListeners.forEach(listener => listener([...this.connectedUsers]));
+  }
+
+  // Métodos para suscripción a cambios de datos
+  public subscribeToPedidoCreated(callback: (pedido: Pedido) => void): () => void {
+    this.pedidoCreatedListeners.push(callback);
+    return () => {
+      const index = this.pedidoCreatedListeners.indexOf(callback);
+      if (index > -1) {
+        this.pedidoCreatedListeners.splice(index, 1);
+      }
+    };
+  }
+
+  public subscribeToPedidoUpdated(callback: (pedido: Pedido) => void): () => void {
+    this.pedidoUpdatedListeners.push(callback);
+    return () => {
+      const index = this.pedidoUpdatedListeners.indexOf(callback);
+      if (index > -1) {
+        this.pedidoUpdatedListeners.splice(index, 1);
+      }
+    };
+  }
+
+  public subscribeToPedidoDeleted(callback: (pedidoId: string) => void): () => void {
+    this.pedidoDeletedListeners.push(callback);
+    return () => {
+      const index = this.pedidoDeletedListeners.indexOf(callback);
+      if (index > -1) {
+        this.pedidoDeletedListeners.splice(index, 1);
+      }
+    };
+  }
+
+  // Métodos para notificar cambios
+  private notifyPedidoCreatedListeners(pedido: Pedido) {
+    this.pedidoCreatedListeners.forEach(listener => listener(pedido));
+  }
+
+  private notifyPedidoUpdatedListeners(pedido: Pedido) {
+    this.pedidoUpdatedListeners.forEach(listener => listener(pedido));
+  }
+
+  private notifyPedidoDeletedListeners(pedidoId: string) {
+    this.pedidoDeletedListeners.forEach(listener => listener(pedidoId));
   }
 
   public disconnect() {
