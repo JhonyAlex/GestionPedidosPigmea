@@ -53,16 +53,18 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
             return { canAdvance: true, advanceButtonTitle: 'Iniciar Post-Impresión' };
         }
         if (isPostPrinting) {
+            // Para pedidos con antivaho en post-impresión, permitir "continuar" para reconfirmar
+            // Esta condición debe ir ANTES que las condiciones de secuencia normal
+            if (pedido.antivaho && !pedido.antivahoRealizado) {
+                return { canAdvance: true, advanceButtonTitle: 'Continuar Secuencia' };
+            }
+            
             const currentIndex = pedido.secuenciaTrabajo?.indexOf(pedido.etapaActual) ?? -1;
             if (currentIndex > -1 && currentIndex < pedido.secuenciaTrabajo.length - 1) {
                 return { canAdvance: true, advanceButtonTitle: 'Siguiente Etapa' };
             }
             if (currentIndex > -1 && currentIndex === pedido.secuenciaTrabajo.length -1) {
                 return { canAdvance: true, advanceButtonTitle: 'Marcar como Completado' };
-            }
-            // Para pedidos con antivaho en post-impresión, permitir "continuar" para reconfirmar
-            if (pedido.antivaho && !pedido.antivahoRealizado) {
-                return { canAdvance: true, advanceButtonTitle: 'Continuar Secuencia' };
             }
         }
         return { canAdvance: false, advanceButtonTitle: '' };
