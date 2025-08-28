@@ -29,6 +29,8 @@ import { useFiltrosYOrden } from './hooks/useFiltrosYOrden';
 
 const AppContent: React.FC = () => {
     const { user, isAuthenticated, loading } = useAuth();
+    
+    // Estados locales - siempre llamar antes de returns condicionales
     const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [view, setView] = useState<ViewType>('preparacion');
@@ -46,29 +48,11 @@ const AppContent: React.FC = () => {
         return 'light';
     });
 
-    // Mostrar pantalla de carga mientras se verifica la autenticación
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mb-4"></div>
-                    <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300">
-                        Cargando Planning Pigmea...
-                    </h2>
-                </div>
-            </div>
-        );
-    }
+    // Valores derivados del usuario (o valores por defecto)
+    const currentUserRole = user?.role || 'Operador';
+    const currentUserId = user ? `${user.username}-${user.id.slice(-6)}` : 'guest-user';
 
-    // Mostrar modal de login si no está autenticado
-    if (!isAuthenticated || !user) {
-        return <LoginModal />;
-    }
-
-    // Usuario autenticado - usar sus datos
-    const currentUserRole = user.role;
-    const currentUserId = `${user.username}-${user.id.slice(-6)}`;
-
+    // Hooks personalizados - siempre llamar antes de returns condicionales
     const { 
         isConnected, 
         notifications, 
@@ -126,7 +110,9 @@ const AppContent: React.FC = () => {
         } else {
             root.classList.remove('dark');
         }
-        localStorage.setItem('theme', theme);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('theme', theme);
+        }
     }, [theme]);
     
     const toggleTheme = () => {
@@ -292,6 +278,26 @@ const AppContent: React.FC = () => {
             }
             return false;
         });
+    }
+
+    // Renderizado condicional DESPUÉS de todos los hooks
+    // Mostrar pantalla de carga mientras se verifica la autenticación
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mb-4"></div>
+                    <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300">
+                        Cargando Planning Pigmea...
+                    </h2>
+                </div>
+            </div>
+        );
+    }
+
+    // Mostrar modal de login si no está autenticado
+    if (!isAuthenticated || !user) {
+        return <LoginModal />;
     }
 
     const renderContent = () => {

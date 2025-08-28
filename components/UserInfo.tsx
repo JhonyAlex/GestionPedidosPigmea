@@ -5,8 +5,6 @@ const UserInfo: React.FC = () => {
     const { user, logout } = useAuth();
     const [showDropdown, setShowDropdown] = useState(false);
 
-    if (!user) return null;
-
     const handleLogout = () => {
         logout();
         setShowDropdown(false);
@@ -24,6 +22,11 @@ const UserInfo: React.FC = () => {
                 return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
         }
     };
+
+    // Renderizar condicionalmente después de definir todos los hooks
+    if (!user) {
+        return null;
+    }
 
     return (
         <div className="relative">
