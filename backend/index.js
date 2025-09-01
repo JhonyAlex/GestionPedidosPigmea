@@ -304,6 +304,49 @@ app.get('/api/auth/users', async (req, res) => {
     }
 });
 
+// === RUTAS DE AUDITORÍA ===
+
+// GET /api/audit - Get audit log
+app.get('/api/audit', async (req, res) => {
+    try {
+        if (!dbClient.pool) {
+            return res.status(200).json([]); // Retornar array vacío si no hay BD
+        }
+        const limit = parseInt(req.query.limit) || 100;
+        const auditLog = await dbClient.getAuditLog(limit);
+        res.status(200).json(auditLog);
+    } catch (error) {
+        console.error('Error obteniendo log de auditoría:', error);
+        res.status(500).json({ 
+            error: 'Error interno del servidor' 
+        });
+    }
+});
+
+// POST /api/audit - Add audit entry
+app.post('/api/audit', async (req, res) => {
+    try {
+        if (!dbClient.pool) {
+            return res.status(200).json({ message: 'Auditoría omitida - sin BD' }); // Respuesta silenciosa
+        }
+        const { userRole, action, pedidoId, details } = req.body;
+        
+        if (!userRole || !action) {
+            return res.status(400).json({ 
+                error: 'userRole y action son requeridos' 
+            });
+        }
+
+        const auditEntry = await dbClient.logAuditAction(userRole, action, pedidoId, details);
+        res.status(201).json(auditEntry);
+    } catch (error) {
+        console.error('Error creando entrada de auditoría:', error);
+        res.status(500).json({ 
+            error: 'Error interno del servidor' 
+        });
+    }
+});
+
 // === RUTAS DE PEDIDOS ===
 
 // GET /api/pedidos - Get all pedidos
@@ -486,19 +529,27 @@ app.get('*', (req, res) => {
 // Initialize and start server
 async function startServer() {
     try {
-        // Inicializar PostgreSQL
-        await dbClient.init();
+        // Inicializar PostgreSQL solo si hay configuración
+        if (process.env.NODE_ENV === 'production' || process.env.DATABASE_URL || process.env.DB_HOST) {
+            await dbClient.init();
+            console.log('🐘 PostgreSQL conectado');
+        } else {
+            console.log('⚠️ Ejecutando en modo de desarrollo local sin base de datos');
+        }
         
     } catch (error) {
         console.error('❌ Error al inicializar PostgreSQL:', error.message);
-        console.error('El servidor no puede continuar sin base de datos');
-        process.exit(1);
+        if (process.env.NODE_ENV === 'production') {
+            console.error('El servidor no puede continuar sin base de datos en producción');
+            process.exit(1);
+        } else {
+            console.log('⚠️ Continuando sin base de datos en modo desarrollo');
+        }
     }
 
     // Iniciar el servidor HTTP
     server.listen(PORT, '0.0.0.0', () => {
         console.log(`🚀 Servidor ejecutándose en puerto ${PORT}`);
-        console.log(`🐘 PostgreSQL conectado`);
     });
 }
 

@@ -94,6 +94,18 @@ class PostgreSQLClient {
                 );
             `);
 
+            // Tabla de auditoría
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS audit_log (
+                    id SERIAL PRIMARY KEY,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    user_role VARCHAR(50) NOT NULL,
+                    action TEXT NOT NULL,
+                    pedido_id VARCHAR(255),
+                    details JSONB
+                );
+            `);
+
             // Índices para mejorar performance
             await client.query(`
                 CREATE INDEX IF NOT EXISTS idx_pedidos_etapa ON pedidos(etapa_actual);
@@ -101,6 +113,8 @@ class PostgreSQLClient {
                 CREATE INDEX IF NOT EXISTS idx_pedidos_fecha_entrega ON pedidos(fecha_entrega);
                 CREATE INDEX IF NOT EXISTS idx_pedidos_secuencia ON pedidos(secuencia_pedido);
                 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+                CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp);
+                CREATE INDEX IF NOT EXISTS idx_audit_user_role ON audit_log(user_role);
             `);
 
             // Función para actualizar updated_at automáticamente
@@ -416,6 +430,42 @@ class PostgreSQLClient {
     }
 
     // === UTILIDADES ===
+
+    // Métodos de auditoría
+    async logAuditAction(userRole, action, pedidoId = null, details = null) {
+        const client = await this.pool.connect();
+        
+        try {
+            const result = await client.query(
+                'INSERT INTO audit_log (user_role, action, pedido_id, details) VALUES ($1, $2, $3, $4) RETURNING *',
+                [userRole, action, pedidoId, details]
+            );
+            return result.rows[0];
+        } finally {
+            client.release();
+        }
+    }
+
+    async getAuditLog(limit = 100) {
+        const client = await this.pool.connect();
+        
+        try {
+            const result = await client.query(
+                'SELECT * FROM audit_log ORDER BY timestamp DESC LIMIT $1',
+                [limit]
+            );
+            return result.rows.map(row => ({
+                id: row.id,
+                timestamp: row.timestamp.toISOString(),
+                userRole: row.user_role,
+                action: row.action,
+                pedidoId: row.pedido_id,
+                details: row.details
+            }));
+        } finally {
+            client.release();
+        }
+    }
 
     async getStats() {
         if (!this.isInitialized) {

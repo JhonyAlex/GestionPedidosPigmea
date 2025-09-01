@@ -48,10 +48,8 @@ export const usePedidosManager = (
                         // Verificar si el pedido ya existe para evitar duplicados
                         const exists = current.some(p => p.id === newPedido.id);
                         if (!exists) {
-                            console.log('✅ Agregando pedido desde sincronización:', newPedido.numeroPedidoCliente);
                             return [...current, newPedido];
                         } else {
-                            console.log('⏭️ Pedido ya existe, omitiendo:', newPedido.numeroPedidoCliente);
                             return current;
                         }
                     });

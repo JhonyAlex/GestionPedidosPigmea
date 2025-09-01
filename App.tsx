@@ -25,6 +25,7 @@ import { procesarDragEnd } from './utils/dragLogic';
 import { usePedidosManager } from './hooks/usePedidosManager';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useFiltrosYOrden } from './hooks/useFiltrosYOrden';
+import { auditService } from './services/audit';
 
 
 const AppContent: React.FC = () => {
@@ -129,12 +130,29 @@ const AppContent: React.FC = () => {
         setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
     };
 
-    const logAction = useCallback((action: string) => {
+    const logAction = useCallback(async (action: string, pedidoId?: string) => {
+        // Agregar al estado local para respuesta inmediata
         setAuditLog(prevLog => {
             const newEntry = { timestamp: new Date().toISOString(), userRole: currentUserRole, action };
             return [newEntry, ...prevLog];
         });
+        
+        // Persistir en base de datos
+        await auditService.logAction(currentUserRole, action, pedidoId);
     }, [currentUserRole]);
+
+    // Cargar registros de auditoría al iniciar
+    useEffect(() => {
+        const loadAuditLog = async () => {
+            try {
+                const savedAuditLog = await auditService.getAuditLog(100);
+                setAuditLog(savedAuditLog);
+            } catch (error) {
+                console.error('Error cargando log de auditoría:', error);
+            }
+        };
+        loadAuditLog();
+    }, []);
 
     const preparacionPedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual === Etapa.PREPARACION), [processedPedidos]);
     const activePedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual !== Etapa.ARCHIVADO && p.etapaActual !== Etapa.PREPARACION), [processedPedidos]);
@@ -173,7 +191,7 @@ const AppContent: React.FC = () => {
 
             await handleUpdatePedidoEtapa(pedidoToAdvance, newEtapa);
 
-            logAction(`Pedido ${pedidoToAdvance.numeroPedidoCliente} avanzado de ${ETAPAS[etapaActual].title} a ${ETAPAS[newEtapa].title}.`);
+            logAction(`Pedido ${pedidoToAdvance.numeroPedidoCliente} avanzado de ${ETAPAS[etapaActual].title} a ${ETAPAS[newEtapa].title}.`, pedidoToAdvance.id);
 
             setTimeout(() => {
                 setHighlightedPedidoId(null);
@@ -184,7 +202,7 @@ const AppContent: React.FC = () => {
     const handleSavePedido = async (updatedPedido: Pedido) => {
         const result = await handleSavePedidoLogic(updatedPedido);
         if (result?.hasChanges) {
-            logAction(`Pedido ${result.modifiedPedido.numeroPedidoCliente} actualizado.`);
+            logAction(`Pedido ${result.modifiedPedido.numeroPedidoCliente} actualizado.`, result.modifiedPedido.id);
             // 🚀 Emitir actividad WebSocket
             emitActivity('pedido-edited', { 
                 pedidoId: result.modifiedPedido.id, 
@@ -197,7 +215,7 @@ const AppContent: React.FC = () => {
     const handleAddPedido = async (data: { pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'maquinaImpresion' | 'secuenciaTrabajo' | 'orden' | 'historial'>; secuenciaTrabajo: Etapa[]; }) => {
         const newPedido = await handleAddPedidoLogic(data);
         if (newPedido) {
-            logAction(`Nuevo pedido ${newPedido.numeroPedidoCliente} creado.`);
+            logAction(`Nuevo pedido ${newPedido.numeroPedidoCliente} creado.`, newPedido.id);
             setIsAddModalOpen(false);
             // 🚀 Emitir actividad WebSocket
             emitActivity('pedido-created', { 
@@ -218,7 +236,7 @@ const AppContent: React.FC = () => {
             handleConfirmSendToPrintLogic(pedidoToUpdate, impresionEtapa, postImpresionSequence)
                 .then(updatedPedido => {
                     if (updatedPedido) {
-                        logAction(`Pedido ${updatedPedido.numeroPedidoCliente} enviado a Impresión.`);
+                        logAction(`Pedido ${updatedPedido.numeroPedidoCliente} enviado a Impresión.`, updatedPedido.id);
                         
                         // 3. Set timer to remove highlight from new position
                         setTimeout(() => {
@@ -235,7 +253,7 @@ const AppContent: React.FC = () => {
     const handleArchiveToggle = async (pedido: Pedido) => {
         const result = await handleArchiveToggleLogic(pedido);
         if (result) {
-            logAction(`Pedido ${result.updatedPedido.numeroPedidoCliente} ${result.actionText}.`);
+            logAction(`Pedido ${result.updatedPedido.numeroPedidoCliente} ${result.actionText}.`, result.updatedPedido.id);
             if (selectedPedido && selectedPedido.id === pedido.id) {
                 setSelectedPedido(null);
             }
@@ -245,7 +263,7 @@ const AppContent: React.FC = () => {
     const handleDuplicatePedido = async (pedidoToDuplicate: Pedido) => {
         const newPedido = await handleDuplicatePedidoLogic(pedidoToDuplicate);
         if (newPedido) {
-            logAction(`Pedido ${pedidoToDuplicate.numeroPedidoCliente} duplicado como ${newPedido.numeroPedidoCliente}.`);
+            logAction(`Pedido ${pedidoToDuplicate.numeroPedidoCliente} duplicado como ${newPedido.numeroPedidoCliente}.`, newPedido.id);
             setSelectedPedido(null); // Cierra el modal actual
             // Opcional: abrir el modal del nuevo pedido duplicado
             // setSelectedPedido(newPedido);
@@ -255,7 +273,7 @@ const AppContent: React.FC = () => {
     const handleDeletePedido = async (pedidoId: string) => {
         const deletedPedido = await handleDeletePedidoLogic(pedidoId);
         if (deletedPedido) {
-            logAction(`Pedido ${deletedPedido.numeroPedidoCliente} eliminado.`);
+            logAction(`Pedido ${deletedPedido.numeroPedidoCliente} eliminado.`, deletedPedido.id);
             setSelectedPedido(null); // Cierra el modal
         }
     };

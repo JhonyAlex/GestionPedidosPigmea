@@ -49,7 +49,6 @@ export const useWebSocket = (userId: string, userRole: UserRole): UseWebSocketRe
       
       // Autenticar solo si está conectado pero no autenticado
       if (connected && !isAuthenticated) {
-        console.log('🔐 Autenticando usuario:', userId, userRole);
         webSocketService.authenticate(userId, userRole);
         setIsAuthenticated(true);
       } else if (!connected) {

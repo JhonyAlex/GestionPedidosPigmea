@@ -119,9 +119,12 @@ export type ViewType = 'preparacion' | 'kanban' | 'list' | 'archived' | 'report'
 export type UserRole = 'Administrador' | 'Operador';
 
 export interface AuditEntry {
+    id?: number;
     timestamp: string;
     userRole: UserRole;
     action: string;
+    pedidoId?: string;
+    details?: any;
 }
 
 export type DateField = 'fechaCreacion' | 'fechaEntrega' | 'fechaFinalizacion';

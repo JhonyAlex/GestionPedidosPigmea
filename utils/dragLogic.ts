@@ -12,7 +12,7 @@ type ProcessDragEndArgs = {
   processedPedidos: Pedido[];
   currentUserRole: UserRole;
   generarEntradaHistorial: (usuario: UserRole, accion: string, detalles: string) => HistorialEntry;
-  logAction: (action: string) => void;
+  logAction: (action: string, pedidoId?: string) => void;
   setPedidos: React.Dispatch<React.SetStateAction<Pedido[]>>;
   handleSavePedido: (pedido: Pedido) => Promise<any>;
   handleUpdatePedidoEtapa: (pedido: Pedido, newEtapa: Etapa) => Promise<void>;
@@ -132,5 +132,5 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
     // Use the centralized stage change handler
     await handleUpdatePedidoEtapa(movedPedido, newEtapa);
     
-    logAction(`Pedido ${movedPedido.numeroPedidoCliente} movido (manual) de ${ETAPAS[oldEtapa].title} a ${ETAPAS[newEtapa].title}.`);
+    logAction(`Pedido ${movedPedido.numeroPedidoCliente} movido (manual) de ${ETAPAS[oldEtapa].title} a ${ETAPAS[newEtapa].title}.`, movedPedido.id);
 };

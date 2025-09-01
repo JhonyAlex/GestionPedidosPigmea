@@ -60,8 +60,6 @@ class WebSocketService {
       ? 'http://localhost:8080' 
       : window.location.origin;
 
-    console.log('🔌 Conectando a WebSocket:', serverUrl);
-
     this.socket = io(serverUrl, {
       autoConnect: true,
       reconnection: true,
@@ -78,7 +76,6 @@ class WebSocketService {
 
     // Eventos de conexión
     this.socket.on('connect', () => {
-      console.log('✅ Conectado a WebSocket:', this.socket?.id);
       this.isConnected = true;
       this.reconnectAttempts = 0;
       
@@ -192,13 +189,11 @@ class WebSocketService {
     });
 
     this.socket.on('users-list', (data) => {
-      console.log('👥 Lista de usuarios:', data);
       this.connectedUsers = data.connectedUsers;
       this.notifyConnectedUsersListeners();
     });
 
     this.socket.on('user-activity-received', (data) => {
-      console.log('🎯 Actividad de usuario:', data);
       // Puedes manejar actividades específicas aquí
     });
   }
@@ -206,7 +201,6 @@ class WebSocketService {
   // Métodos públicos
   public authenticate(userId: string, userRole: UserRole) {
     if (this.socket && this.isConnected) {
-      console.log('🔐 Autenticando usuario:', userId, userRole);
       this.socket.emit('authenticate', { userId, userRole });
     }
   }
