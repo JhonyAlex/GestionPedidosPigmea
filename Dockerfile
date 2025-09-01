@@ -7,9 +7,9 @@ WORKDIR /app
 COPY package*.json ./
 COPY backend/package*.json ./backend/
 
-# Install dependencies with clean cache
-RUN npm ci --include=dev
-RUN cd backend && npm ci
+# Install dependencies
+RUN npm install
+RUN cd backend && npm install
 
 # Copy source code
 COPY . .
