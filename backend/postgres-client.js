@@ -5,26 +5,28 @@ class PostgreSQLClient {
         this.pool = null;
         this.isInitialized = false;
         
-        // Configuración de conexión
-        this.config = {
-            host: process.env.DB_HOST || 'localhost',
-            port: parseInt(process.env.DB_PORT) || 5432,
-            database: process.env.DB_NAME || 'gestion_pedidos',
-            user: process.env.DB_USER || 'pigmea_user',
-            password: process.env.DB_PASSWORD,
-            // Configuraciones adicionales para producción
-            ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-            max: 20, // máximo de conexiones en el pool
-            idleTimeoutMillis: 30000,
-            connectionTimeoutMillis: 2000,
-        };
-
-        // También soportar DATABASE_URL (formato común en clouds)
+        // Priorizar DATABASE_URL si está disponible
         if (process.env.DATABASE_URL) {
+            console.log('🔗 Usando DATABASE_URL para conexión');
             this.config = {
                 connectionString: process.env.DATABASE_URL,
                 ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
                 max: 20,
+                idleTimeoutMillis: 30000,
+                connectionTimeoutMillis: 2000,
+            };
+        } else {
+            console.log('🔗 Usando variables individuales para conexión');
+            // Configuración de conexión individual
+            this.config = {
+                host: process.env.DB_HOST || 'localhost',
+                port: parseInt(process.env.DB_PORT) || 5432,
+                database: process.env.DB_NAME || 'gestion_pedidos',
+                user: process.env.DB_USER || 'pigmea_user',
+                password: process.env.DB_PASSWORD,
+                // Configuraciones adicionales para producción
+                ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+                max: 20, // máximo de conexiones en el pool
                 idleTimeoutMillis: 30000,
                 connectionTimeoutMillis: 2000,
             };
