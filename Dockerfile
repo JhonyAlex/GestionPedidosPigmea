@@ -23,17 +23,11 @@ RUN npm run build
 # Copy built frontend to backend's dist directory
 RUN cp -r dist backend/
 
-# Create persistent data directory
-RUN mkdir -p /app/backend/data
-
 # Expose port
 EXPOSE 8080
 
 # Set environment
 ENV PORT=8080
-
-# Create volume mount point for data persistence
-VOLUME ["/app/backend/data"]
 
 # Start the backend server
 CMD ["node", "backend/index.js"]
