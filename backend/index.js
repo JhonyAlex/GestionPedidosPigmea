@@ -3,7 +3,14 @@ const express = require('express');
 const cors = require('cors');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 const PostgreSQLClient = require('./postgres-client');
+
+// Importar rutas administrativas
+const adminAuthRoutes = require('./admin/routes/auth');
+const adminUserRoutes = require('./admin/routes/users');
 
 // Inicializar el cliente de PostgreSQL
 const dbClient = new PostgreSQLClient();
@@ -13,14 +20,56 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: process.env.NODE_ENV === 'production' ? false : ["http://localhost:3000", "http://localhost:5173"],
-        methods: ["GET", "POST", "PUT", "DELETE"]
+        origin: process.env.NODE_ENV === 'production' ? false : [
+            "http://localhost:3000", 
+            "http://localhost:5173",
+            "http://localhost:3001" // Admin panel
+        ],
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
     }
 });
 
-app.use(cors());
+// Seguridad y middleware
+app.use(helmet({
+    contentSecurityPolicy: false, // Deshabilitar para desarrollo
+    crossOriginEmbedderPolicy: false
+}));
+app.use(compression());
+
+// Rate limiting para rutas administrativas
+const adminLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 100, // máximo 100 requests por ventana
+    message: {
+        error: 'Demasiadas solicitudes desde esta IP, intenta de nuevo más tarde.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Rate limiting más estricto para login
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 5, // máximo 5 intentos de login por ventana
+    message: {
+        error: 'Demasiados intentos de login, intenta de nuevo más tarde.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+app.use(cors({
+    origin: process.env.NODE_ENV === 'production' ? false : [
+        "http://localhost:3000", 
+        "http://localhost:5173",
+        "http://localhost:3001"
+    ],
+    credentials: true
+}));
+
 app.use(express.static(path.join(__dirname, 'dist')));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
@@ -517,6 +566,105 @@ app.delete('/api/pedidos/all', async (req, res) => {
         res.status(500).json({ message: "Error interno del servidor al limpiar la colección." });
     }
 });
+
+// =================================================================
+// RUTAS ADMINISTRATIVAS
+// =================================================================
+
+// Aplicar rate limiting a todas las rutas admin
+app.use('/api/admin', adminLimiter);
+
+// Aplicar rate limiting especial al login
+app.use('/api/admin/auth/login', loginLimiter);
+
+// Rutas de autenticación administrativa
+app.use('/api/admin/auth', adminAuthRoutes);
+
+// Rutas de gestión de usuarios
+app.use('/api/admin/users', adminUserRoutes);
+
+// Ruta para obtener datos del dashboard administrativo
+app.get('/api/admin/dashboard', async (req, res) => {
+    try {
+        const dashboardData = await dbClient.getAdminDashboardData();
+        const systemHealth = await dbClient.getSystemHealth();
+        const recentAuditLogs = await dbClient.getRecentAuditLogs(10);
+        const activeUsers = await dbClient.getUserActivity();
+
+        res.json({
+            stats: dashboardData.stats,
+            systemHealth: systemHealth,
+            recentAuditLogs: recentAuditLogs,
+            activeUsers: activeUsers.slice(0, 10)
+        });
+    } catch (error) {
+        console.error('Error al obtener datos del dashboard:', error);
+        res.status(500).json({
+            error: 'Error interno del servidor'
+        });
+    }
+});
+
+// Ruta para obtener logs de auditoría
+app.get('/api/admin/audit-logs', async (req, res) => {
+    try {
+        const { page = 1, limit = 50, userId, action, module, startDate, endDate } = req.query;
+        
+        const filters = {};
+        if (userId) filters.userId = userId;
+        if (action) filters.action = action;
+        if (module) filters.module = module;
+        if (startDate) filters.startDate = startDate;
+        if (endDate) filters.endDate = endDate;
+
+        const result = await dbClient.getAuditLogs(
+            parseInt(page), 
+            parseInt(limit), 
+            filters
+        );
+
+        res.json(result);
+    } catch (error) {
+        console.error('Error al obtener logs de auditoría:', error);
+        res.status(500).json({
+            error: 'Error interno del servidor'
+        });
+    }
+});
+
+// Ruta para obtener estado del sistema
+app.get('/api/admin/health', async (req, res) => {
+    try {
+        const health = await dbClient.getSystemHealth();
+        
+        // Agregar información de WebSocket
+        health.websocket.connections = io.engine.clientsCount;
+        
+        res.json(health);
+    } catch (error) {
+        console.error('Error al obtener estado del sistema:', error);
+        res.status(500).json({
+            error: 'Error interno del servidor'
+        });
+    }
+});
+
+// Ruta para obtener estadísticas del sistema
+app.get('/api/admin/stats', async (req, res) => {
+    try {
+        const dashboardData = await dbClient.getAdminDashboardData();
+        res.json(dashboardData.stats);
+    } catch (error) {
+        console.error('Error al obtener estadísticas:', error);
+        res.status(500).json({
+            error: 'Error interno del servidor'
+        });
+    }
+});
+
+// =================================================================
+// FIN RUTAS ADMINISTRATIVAS
+// =================================================================
 
 // --- SERVER START ---
 const PORT = process.env.PORT || 8080;

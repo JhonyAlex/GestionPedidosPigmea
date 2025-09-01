@@ -500,6 +500,601 @@ class PostgreSQLClient {
             await this.pool.end();
         }
     }
+
+    // =================================================================
+    // FUNCIONES ADMINISTRATIVAS
+    // =================================================================
+
+    // --- GESTIÓN DE USUARIOS ADMINISTRATIVOS ---
+
+    async getAdminUserByUsername(username) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(
+                'SELECT * FROM admin_users WHERE username = $1',
+                [username]
+            );
+            return result.rows[0] || null;
+        } finally {
+            client.release();
+        }
+    }
+
+    async getAdminUserByEmail(email) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(
+                'SELECT * FROM admin_users WHERE email = $1',
+                [email]
+            );
+            return result.rows[0] || null;
+        } finally {
+            client.release();
+        }
+    }
+
+    async getAdminUserById(id) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(
+                'SELECT * FROM admin_users WHERE id = $1',
+                [id]
+            );
+            return result.rows[0] || null;
+        } finally {
+            client.release();
+        }
+    }
+
+    async getAllAdminUsers() {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(
+                'SELECT * FROM admin_users ORDER BY created_at DESC'
+            );
+            return result.rows;
+        } finally {
+            client.release();
+        }
+    }
+
+    async createAdminUser(userData) {
+        const client = await this.pool.connect();
+        try {
+            const {
+                id,
+                username,
+                email,
+                firstName,
+                lastName,
+                role,
+                passwordHash,
+                permissions,
+                isActive
+            } = userData;
+
+            const result = await client.query(`
+                INSERT INTO admin_users (
+                    id, username, email, first_name, last_name, 
+                    password_hash, role, permissions, is_active
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                RETURNING *
+            `, [
+                id, username, email, firstName, lastName,
+                passwordHash, role, JSON.stringify(permissions), isActive
+            ]);
+
+            return result.rows[0];
+        } finally {
+            client.release();
+        }
+    }
+
+    async updateAdminUser(id, updateData) {
+        const client = await this.pool.connect();
+        try {
+            const setParts = [];
+            const values = [];
+            let valueIndex = 1;
+
+            if (updateData.email !== undefined) {
+                setParts.push(`email = $${valueIndex++}`);
+                values.push(updateData.email);
+            }
+            if (updateData.firstName !== undefined) {
+                setParts.push(`first_name = $${valueIndex++}`);
+                values.push(updateData.firstName);
+            }
+            if (updateData.lastName !== undefined) {
+                setParts.push(`last_name = $${valueIndex++}`);
+                values.push(updateData.lastName);
+            }
+            if (updateData.role !== undefined) {
+                setParts.push(`role = $${valueIndex++}`);
+                values.push(updateData.role);
+            }
+            if (updateData.isActive !== undefined) {
+                setParts.push(`is_active = $${valueIndex++}`);
+                values.push(updateData.isActive);
+            }
+            if (updateData.permissions !== undefined) {
+                setParts.push(`permissions = $${valueIndex++}`);
+                values.push(JSON.stringify(updateData.permissions));
+            }
+
+            setParts.push(`updated_at = CURRENT_TIMESTAMP`);
+            values.push(id);
+
+            const query = `
+                UPDATE admin_users 
+                SET ${setParts.join(', ')}
+                WHERE id = $${valueIndex}
+                RETURNING *
+            `;
+
+            const result = await client.query(query, values);
+            return result.rows[0];
+        } finally {
+            client.release();
+        }
+    }
+
+    async deleteAdminUser(id) {
+        const client = await this.pool.connect();
+        try {
+            await client.query('DELETE FROM admin_users WHERE id = $1', [id]);
+            return true;
+        } finally {
+            client.release();
+        }
+    }
+
+    async updateUserLastLogin(userId, ipAddress, userAgent) {
+        const client = await this.pool.connect();
+        try {
+            await client.query(`
+                UPDATE admin_users 
+                SET last_login = CURRENT_TIMESTAMP, 
+                    last_activity = CURRENT_TIMESTAMP,
+                    ip_address = $2,
+                    user_agent = $3
+                WHERE id = $1
+            `, [userId, ipAddress, userAgent]);
+        } finally {
+            client.release();
+        }
+    }
+
+    async updateUserLastActivity(userId, ipAddress, userAgent) {
+        const client = await this.pool.connect();
+        try {
+            await client.query(`
+                UPDATE admin_users 
+                SET last_activity = CURRENT_TIMESTAMP,
+                    ip_address = $2,
+                    user_agent = $3
+                WHERE id = $1
+            `, [userId, ipAddress, userAgent]);
+        } finally {
+            client.release();
+        }
+    }
+
+    async updateUserPassword(userId, passwordHash) {
+        const client = await this.pool.connect();
+        try {
+            await client.query(`
+                UPDATE admin_users 
+                SET password_hash = $2, updated_at = CURRENT_TIMESTAMP
+                WHERE id = $1
+            `, [userId, passwordHash]);
+        } finally {
+            client.release();
+        }
+    }
+
+    async bulkDeleteAdminUsers(userIds) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(
+                'DELETE FROM admin_users WHERE id = ANY($1)',
+                [userIds]
+            );
+            return { deletedCount: result.rowCount };
+        } finally {
+            client.release();
+        }
+    }
+
+    async getUserActivity() {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`
+                SELECT 
+                    u.id as user_id,
+                    u.username,
+                    u.last_activity,
+                    COALESCE(daily.actions_today, 0) as actions_today,
+                    COALESCE(total.total_actions, 0) as total_actions
+                FROM admin_users u
+                LEFT JOIN (
+                    SELECT user_id, COUNT(*) as actions_today
+                    FROM audit_logs 
+                    WHERE created_at >= CURRENT_DATE
+                    GROUP BY user_id
+                ) daily ON u.id = daily.user_id
+                LEFT JOIN (
+                    SELECT user_id, COUNT(*) as total_actions
+                    FROM audit_logs 
+                    GROUP BY user_id
+                ) total ON u.id = total.user_id
+                WHERE u.is_active = true
+                ORDER BY u.last_activity DESC NULLS LAST
+            `);
+            return result.rows;
+        } finally {
+            client.release();
+        }
+    }
+
+    // --- GESTIÓN DE AUDITORÍA ---
+
+    async createAuditLog(logData) {
+        const client = await this.pool.connect();
+        try {
+            const {
+                userId,
+                username,
+                action,
+                module,
+                details,
+                ipAddress,
+                userAgent,
+                affectedResource
+            } = logData;
+
+            await client.query(`
+                INSERT INTO audit_logs (
+                    user_id, username, action, module, details,
+                    ip_address, user_agent, affected_resource
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            `, [
+                userId, username, action, module, details,
+                ipAddress, userAgent, affectedResource
+            ]);
+        } finally {
+            client.release();
+        }
+    }
+
+    async getAuditLogs(page = 1, limit = 50, filters = {}) {
+        const client = await this.pool.connect();
+        try {
+            const offset = (page - 1) * limit;
+            const conditions = [];
+            const values = [];
+            let valueIndex = 1;
+
+            if (filters.userId) {
+                conditions.push(`user_id = $${valueIndex++}`);
+                values.push(filters.userId);
+            }
+            if (filters.action) {
+                conditions.push(`action ILIKE $${valueIndex++}`);
+                values.push(`%${filters.action}%`);
+            }
+            if (filters.module) {
+                conditions.push(`module = $${valueIndex++}`);
+                values.push(filters.module);
+            }
+            if (filters.startDate) {
+                conditions.push(`created_at >= $${valueIndex++}`);
+                values.push(filters.startDate);
+            }
+            if (filters.endDate) {
+                conditions.push(`created_at <= $${valueIndex++}`);
+                values.push(filters.endDate);
+            }
+
+            const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+            // Consulta para obtener logs
+            const logsQuery = `
+                SELECT * FROM audit_logs 
+                ${whereClause}
+                ORDER BY created_at DESC 
+                LIMIT $${valueIndex++} OFFSET $${valueIndex++}
+            `;
+            values.push(limit, offset);
+
+            // Consulta para obtener total
+            const countQuery = `
+                SELECT COUNT(*) as total FROM audit_logs ${whereClause}
+            `;
+
+            const [logsResult, countResult] = await Promise.all([
+                client.query(logsQuery, values.slice(0, -2)), // Sin limit y offset para count
+                client.query(countQuery, values.slice(0, -2))
+            ]);
+
+            const total = parseInt(countResult.rows[0].total);
+            const totalPages = Math.ceil(total / limit);
+
+            return {
+                logs: logsResult.rows,
+                total,
+                page,
+                totalPages,
+                limit
+            };
+        } finally {
+            client.release();
+        }
+    }
+
+    async getRecentAuditLogs(limit = 10) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`
+                SELECT * FROM audit_logs 
+                ORDER BY created_at DESC 
+                LIMIT $1
+            `, [limit]);
+            return result.rows;
+        } finally {
+            client.release();
+        }
+    }
+
+    // --- CONFIGURACIÓN DEL SISTEMA ---
+
+    async getSystemConfig() {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query('SELECT * FROM system_config ORDER BY category, config_key');
+            return result.rows;
+        } finally {
+            client.release();
+        }
+    }
+
+    async getSystemConfigByKey(key) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query('SELECT * FROM system_config WHERE config_key = $1', [key]);
+            return result.rows[0] || null;
+        } finally {
+            client.release();
+        }
+    }
+
+    async updateSystemConfig(key, value, updatedBy) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`
+                UPDATE system_config 
+                SET config_value = $2, updated_by = $3, updated_at = CURRENT_TIMESTAMP
+                WHERE config_key = $1
+                RETURNING *
+            `, [key, value, updatedBy]);
+            return result.rows[0];
+        } finally {
+            client.release();
+        }
+    }
+
+    // --- BACKUPS DE BASE DE DATOS ---
+
+    async createDatabaseBackup(backupData) {
+        const client = await this.pool.connect();
+        try {
+            const {
+                filename,
+                filePath,
+                fileSize,
+                backupType,
+                createdBy
+            } = backupData;
+
+            const result = await client.query(`
+                INSERT INTO database_backups (
+                    filename, file_path, file_size, backup_type, created_by, status
+                ) VALUES ($1, $2, $3, $4, $5, 'in_progress')
+                RETURNING *
+            `, [filename, filePath, fileSize, backupType, createdBy]);
+
+            return result.rows[0];
+        } finally {
+            client.release();
+        }
+    }
+
+    async updateBackupStatus(backupId, status, errorMessage = null) {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`
+                UPDATE database_backups 
+                SET status = $2, error_message = $3, completed_at = CURRENT_TIMESTAMP
+                WHERE id = $1
+                RETURNING *
+            `, [backupId, status, errorMessage]);
+            return result.rows[0];
+        } finally {
+            client.release();
+        }
+    }
+
+    async getDatabaseBackups() {
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(`
+                SELECT b.*, u.username as created_by_username
+                FROM database_backups b
+                LEFT JOIN admin_users u ON b.created_by = u.id
+                ORDER BY b.created_at DESC
+            `);
+            return result.rows;
+        } finally {
+            client.release();
+        }
+    }
+
+    async deleteDatabaseBackup(backupId) {
+        const client = await this.pool.connect();
+        try {
+            await client.query('DELETE FROM database_backups WHERE id = $1', [backupId]);
+            return true;
+        } finally {
+            client.release();
+        }
+    }
+
+    // --- ESTADÍSTICAS ADMINISTRATIVAS ---
+
+    async getAdminDashboardData() {
+        const client = await this.pool.connect();
+        try {
+            // Estadísticas básicas
+            const statsQuery = `
+                SELECT 
+                    (SELECT COUNT(*) FROM admin_users) as total_users,
+                    (SELECT COUNT(*) FROM admin_users WHERE is_active = true) as active_users,
+                    (SELECT COUNT(*) FROM pedidos) as total_pedidos,
+                    (SELECT COUNT(*) FROM pedidos WHERE DATE(created_at) = CURRENT_DATE) as pedidos_hoy,
+                    (SELECT COUNT(*) FROM pedidos WHERE etapa_actual = 'COMPLETADO') as pedidos_completados,
+                    (SELECT COUNT(*) FROM admin_users WHERE last_activity > CURRENT_TIMESTAMP - INTERVAL '30 minutes') as usuarios_conectados,
+                    (SELECT COUNT(*) FROM audit_logs WHERE created_at > CURRENT_TIMESTAMP - INTERVAL '24 hours') as sesiones_activas
+            `;
+
+            // Tiempo promedio de completado
+            const avgTimeQuery = `
+                SELECT COALESCE(AVG(
+                    EXTRACT(EPOCH FROM (
+                        (historial->>-1)::jsonb->>'timestamp'
+                    )::timestamp - created_at) / 60
+                ), 0) as promedio_tiempo_completado
+                FROM pedidos 
+                WHERE etapa_actual = 'COMPLETADO' 
+                AND jsonb_array_length(historial) > 1
+            `;
+
+            const [statsResult, avgTimeResult] = await Promise.all([
+                client.query(statsQuery),
+                client.query(avgTimeQuery)
+            ]);
+
+            const stats = statsResult.rows[0];
+            const avgTime = avgTimeResult.rows[0].promedio_tiempo_completado || 0;
+
+            return {
+                stats: {
+                    totalUsers: parseInt(stats.total_users),
+                    activeUsers: parseInt(stats.active_users),
+                    totalPedidos: parseInt(stats.total_pedidos),
+                    pedidosHoy: parseInt(stats.pedidos_hoy),
+                    pedidosCompletados: parseInt(stats.pedidos_completados),
+                    promedioTiempoCompletado: Math.round(avgTime),
+                    usuariosConectados: parseInt(stats.usuarios_conectados),
+                    sesionesActivas: parseInt(stats.sesiones_activas)
+                }
+            };
+        } finally {
+            client.release();
+        }
+    }
+
+    async getSystemHealth() {
+        const client = await this.pool.connect();
+        try {
+            const startTime = Date.now();
+            
+            // Test de conexión y tiempo de respuesta
+            await client.query('SELECT 1');
+            const responseTime = Date.now() - startTime;
+
+            // Estadísticas de conexiones
+            const connectionStats = await client.query(`
+                SELECT 
+                    count(*) as total_connections,
+                    count(*) filter (where state = 'active') as active_connections
+                FROM pg_stat_activity 
+                WHERE datname = current_database()
+            `);
+
+            const connections = connectionStats.rows[0];
+
+            return {
+                database: {
+                    status: responseTime < 100 ? 'healthy' : responseTime < 500 ? 'warning' : 'error',
+                    connections: parseInt(connections.total_connections),
+                    responseTime: responseTime
+                },
+                server: {
+                    status: 'healthy',
+                    uptime: process.uptime(),
+                    cpuUsage: Math.round(process.cpuUsage().user / 1000000), // Aproximación
+                    memoryUsage: Math.round((process.memoryUsage().heapUsed / process.memoryUsage().heapTotal) * 100)
+                },
+                websocket: {
+                    status: 'healthy',
+                    connections: 0 // Se actualizará desde el servidor WebSocket
+                }
+            };
+        } finally {
+            client.release();
+        }
+    }
+
+    // --- NOTIFICACIONES DEL SISTEMA ---
+
+    async createSystemNotification(notificationData) {
+        const client = await this.pool.connect();
+        try {
+            const {
+                title,
+                message,
+                type,
+                targetUsers,
+                createdBy,
+                expiresAt
+            } = notificationData;
+
+            const result = await client.query(`
+                INSERT INTO system_notifications (
+                    title, message, notification_type, target_users, created_by, expires_at
+                ) VALUES ($1, $2, $3, $4, $5, $6)
+                RETURNING *
+            `, [title, message, type, JSON.stringify(targetUsers || []), createdBy, expiresAt]);
+
+            return result.rows[0];
+        } finally {
+            client.release();
+        }
+    }
+
+    async getSystemNotifications(userId = null) {
+        const client = await this.pool.connect();
+        try {
+            let query = `
+                SELECT * FROM system_notifications 
+                WHERE (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+                AND is_read = false
+            `;
+            const values = [];
+
+            if (userId) {
+                query += ` AND (target_users = '[]'::jsonb OR target_users ? $1)`;
+                values.push(userId);
+            }
+
+            query += ` ORDER BY created_at DESC`;
+
+            const result = await client.query(query, values);
+            return result.rows;
+        } finally {
+            client.release();
+        }
+    }
 }
 
 module.exports = PostgreSQLClient;
