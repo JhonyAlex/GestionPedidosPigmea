@@ -518,21 +518,44 @@ app.get('*', (req, res) => {
 // Initialize and start server
 async function startServer() {
     try {
+        console.log('🚀 Iniciando servidor...');
+        console.log('🔍 Verificando variables de entorno PostgreSQL...');
+        
+        // Verificar variables de entorno antes de conectar
+        const requiredEnvVars = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'];
+        const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+        
+        if (missingVars.length > 0 && !process.env.DATABASE_URL) {
+            console.error('❌ Variables de entorno faltantes para PostgreSQL:');
+            missingVars.forEach(varName => console.error(`  - ${varName}`));
+            console.error('💡 Solución: Configura las variables de entorno en Dokploy o define DATABASE_URL');
+            process.exit(1);
+        }
+        
         // Inicializar PostgreSQL
+        console.log('🐘 Conectando a PostgreSQL...');
         await dbClient.init();
         console.log('✅ PostgreSQL inicializado correctamente');
         
     } catch (error) {
-        console.error('❌ Error al inicializar PostgreSQL:', error.message);
-        console.error('El servidor no puede continuar sin base de datos');
+        console.error('❌ Error crítico al inicializar PostgreSQL:', error.message);
+        console.error('📋 Stack del error:', error.stack);
+        console.error('🔧 Posibles soluciones:');
+        console.error('  1. Verificar que la base de datos PostgreSQL esté ejecutándose en Dokploy');
+        console.error('  2. Verificar las variables de entorno (DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD)');
+        console.error('  3. Verificar que la aplicación y la base de datos estén en la misma red Docker');
+        console.error('  4. Verificar los logs de PostgreSQL en Dokploy');
+        console.error('💀 El servidor no puede continuar sin base de datos');
         process.exit(1);
     }
 
+    // Iniciar el servidor HTTP
     server.listen(PORT, '0.0.0.0', () => {
-        console.log(`🚀 Servidor escuchando en el puerto ${PORT}`);
+        console.log(`🚀 Servidor HTTP escuchando en el puerto ${PORT}`);
         console.log(`📡 WebSocket habilitado con ${io.engine.clientsCount} conexiones`);
         console.log(`🐘 PostgreSQL habilitado y funcionando`);
         console.log(`🎯 Modo: PostgreSQL Database`);
+        console.log(`🌐 Health check disponible en: http://localhost:${PORT}/health`);
     });
 }
 

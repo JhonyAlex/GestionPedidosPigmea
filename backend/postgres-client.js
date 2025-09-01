@@ -33,20 +33,48 @@ class PostgreSQLClient {
 
     async init() {
         try {
+            console.log('🔄 Inicializando conexión PostgreSQL...');
+            console.log('📋 Configuración de conexión:', {
+                host: this.config.host || 'DATABASE_URL',
+                port: this.config.port || 'URL',
+                database: this.config.database || 'desde DATABASE_URL',
+                user: this.config.user || 'desde DATABASE_URL',
+                ssl: this.config.ssl
+            });
+
             this.pool = new Pool(this.config);
             
-            // Probar la conexión
-            const client = await this.pool.connect();
-            console.log(`🐘 PostgreSQL conectado a ${this.config.host || 'DATABASE_URL'}:${this.config.port || 'URL'}`);
+            // Probar la conexión con timeout
+            console.log('🔗 Intentando conectar a PostgreSQL...');
+            const client = await Promise.race([
+                this.pool.connect(),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Timeout de conexión (5s)')), 5000)
+                )
+            ]);
+            
+            console.log(`🐘 PostgreSQL conectado exitosamente a ${this.config.host || 'DATABASE_URL'}:${this.config.port || 'URL'}`);
             client.release();
             
             // Crear las tablas si no existen
+            console.log('📋 Creando/verificando esquema de base de datos...');
             await this.createTables();
             this.isInitialized = true;
             
             console.log('✅ PostgreSQL inicializado correctamente');
         } catch (error) {
             console.error('❌ Error conectando a PostgreSQL:', error.message);
+            console.error('🔧 Detalles del error:', error);
+            
+            // Verificar variables de entorno
+            console.log('🔍 Variables de entorno disponibles:');
+            console.log('  - DB_HOST:', process.env.DB_HOST || 'NO DEFINIDA');
+            console.log('  - DB_PORT:', process.env.DB_PORT || 'NO DEFINIDA');
+            console.log('  - DB_NAME:', process.env.DB_NAME || 'NO DEFINIDA');
+            console.log('  - DB_USER:', process.env.DB_USER || 'NO DEFINIDA');
+            console.log('  - DB_PASSWORD:', process.env.DB_PASSWORD ? '***DEFINIDA***' : 'NO DEFINIDA');
+            console.log('  - DATABASE_URL:', process.env.DATABASE_URL ? '***DEFINIDA***' : 'NO DEFINIDA');
+            
             throw error;
         }
     }
