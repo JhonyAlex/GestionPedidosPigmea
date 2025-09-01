@@ -68,7 +68,6 @@ function cleanupGhostUsers() {
         if (timeDiff > CLEANUP_INTERVAL) {
             const socket = io.sockets.sockets.get(userData.socketId);
             if (!socket || !socket.connected) {
-                console.log(`🧹 Limpiando usuario fantasma: ${userId}`);
                 connectedUsers.delete(userId);
             }
         }
@@ -89,14 +88,11 @@ setInterval(cleanupGhostUsers, 10000);
 
 // Función para reset completo de usuarios conectados
 function resetConnectedUsers() {
-    console.log('🔄 Reseteando lista de usuarios conectados...');
     connectedUsers.clear();
     io.emit('users-list', { connectedUsers: [] });
 }
 
 io.on('connection', (socket) => {
-    console.log(`🔌 Cliente conectado: ${socket.id}`);
-    
     // Manejar autenticación del usuario
     socket.on('authenticate', (userData) => {
         const { userId, userRole } = userData;
@@ -108,8 +104,6 @@ io.on('connection', (socket) => {
         
         socket.userId = userId;
         socket.userRole = userRole;
-        
-        console.log(`👤 Usuario autenticado: ${userId} (${userRole})`);
         
         // Notificar a otros usuarios sobre la nueva conexión
         socket.broadcast.emit('user-connected', {
@@ -134,8 +128,6 @@ io.on('connection', (socket) => {
     
     // Manejar desconexión
     socket.on('disconnect', () => {
-        console.log(`🔌 Cliente desconectado: ${socket.id}`);
-        
         if (socket.userId) {
             connectedUsers.delete(socket.userId);
             
@@ -168,19 +160,6 @@ function broadcastToClients(event, data) {
         timestamp: new Date().toISOString(),
         serverTime: Date.now()
     });
-}
-
-// Función para emitir eventos a usuarios específicos por rol
-function broadcastToRole(userRole, event, data) {
-    Array.from(connectedUsers.entries())
-        .filter(([_, userData]) => userData.userRole === userRole)
-        .forEach(([userId, userData]) => {
-            io.to(userData.socketId).emit(event, {
-                ...data,
-                timestamp: new Date().toISOString(),
-                serverTime: Date.now()
-            });
-        });
 }
 
 // --- API ROUTES ---
@@ -224,7 +203,7 @@ app.post('/api/auth/login', async (req, res) => {
             displayName: user.display_name || user.username
         };
 
-        console.log(`✅ Login exitoso: ${username} (${user.role})`);
+        console.log(`✅ Login: ${username} (${user.role})`);
         
         res.status(200).json({
             success: true,
@@ -330,11 +309,7 @@ app.get('/api/auth/users', async (req, res) => {
 // GET /api/pedidos - Get all pedidos
 app.get('/api/pedidos', async (req, res) => {
     try {
-        console.log('GET /api/pedidos requested');
-        
         const pedidos = await dbClient.getAll();
-        console.log(`Found ${pedidos.length} pedidos in PostgreSQL`);
-        
         res.status(200).json(pedidos.sort((a, b) => b.secuenciaPedido - a.secuenciaPedido));
         
     } catch (error) {
@@ -351,7 +326,6 @@ app.get('/api/pedidos', async (req, res) => {
 app.get('/api/pedidos/:id', async (req, res) => {
     try {
         const pedidoId = req.params.id;
-        console.log(`GET /api/pedidos/${pedidoId} requested`);
         
         const pedido = await dbClient.findById(pedidoId);
         if (pedido) {
@@ -370,7 +344,6 @@ app.get('/api/pedidos/:id', async (req, res) => {
 app.post('/api/pedidos', async (req, res) => {
     try {
         const newPedido = req.body;
-        console.log(`POST /api/pedidos requested for pedido ${newPedido?.id}`);
         
         if (!newPedido || !newPedido.id) {
             return res.status(400).json({ message: 'Datos del pedido inválidos.' });
@@ -397,7 +370,6 @@ app.put('/api/pedidos/:id', async (req, res) => {
     try {
         const updatedPedido = req.body;
         const pedidoId = req.params.id;
-        console.log(`PUT /api/pedidos/${pedidoId} requested`);
         
         if (!updatedPedido || updatedPedido.id !== pedidoId) {
             return res.status(400).json({ message: 'El ID del pedido no coincide.' });
@@ -446,7 +418,6 @@ app.put('/api/pedidos/:id', async (req, res) => {
 app.delete('/api/pedidos/:id', async (req, res) => {
     try {
         const pedidoId = req.params.id;
-        console.log(`DELETE /api/pedidos/${pedidoId} requested`);
         
         // Obtener el pedido antes de eliminarlo
         const deletedPedido = await dbClient.findById(pedidoId);
@@ -476,7 +447,6 @@ app.delete('/api/pedidos/:id', async (req, res) => {
 app.post('/api/pedidos/bulk', async (req, res) => {
     try {
         const items = req.body;
-        console.log(`POST /api/pedidos/bulk requested with ${items?.length} items`);
         
         if (!Array.isArray(items)) {
             return res.status(400).json({ message: 'Se esperaba un array de pedidos.' });
@@ -495,8 +465,6 @@ app.post('/api/pedidos/bulk', async (req, res) => {
 // DELETE /api/pedidos/all - Clear the entire collection
 app.delete('/api/pedidos/all', async (req, res) => {
     try {
-        console.log('DELETE /api/pedidos/all requested');
-        
         await dbClient.clear();
         
         res.status(200).json({ message: 'Todos los pedidos han sido eliminados.' });
@@ -518,44 +486,19 @@ app.get('*', (req, res) => {
 // Initialize and start server
 async function startServer() {
     try {
-        console.log('🚀 Iniciando servidor...');
-        console.log('🔍 Verificando variables de entorno PostgreSQL...');
-        
-        // Verificar variables de entorno antes de conectar
-        const requiredEnvVars = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'];
-        const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
-        
-        if (missingVars.length > 0 && !process.env.DATABASE_URL) {
-            console.error('❌ Variables de entorno faltantes para PostgreSQL:');
-            missingVars.forEach(varName => console.error(`  - ${varName}`));
-            console.error('💡 Solución: Configura las variables de entorno en Dokploy o define DATABASE_URL');
-            process.exit(1);
-        }
-        
         // Inicializar PostgreSQL
-        console.log('🐘 Conectando a PostgreSQL...');
         await dbClient.init();
-        console.log('✅ PostgreSQL inicializado correctamente');
         
     } catch (error) {
-        console.error('❌ Error crítico al inicializar PostgreSQL:', error.message);
-        console.error('📋 Stack del error:', error.stack);
-        console.error('🔧 Posibles soluciones:');
-        console.error('  1. Verificar que la base de datos PostgreSQL esté ejecutándose en Dokploy');
-        console.error('  2. Verificar las variables de entorno (DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD)');
-        console.error('  3. Verificar que la aplicación y la base de datos estén en la misma red Docker');
-        console.error('  4. Verificar los logs de PostgreSQL en Dokploy');
-        console.error('💀 El servidor no puede continuar sin base de datos');
+        console.error('❌ Error al inicializar PostgreSQL:', error.message);
+        console.error('El servidor no puede continuar sin base de datos');
         process.exit(1);
     }
 
     // Iniciar el servidor HTTP
     server.listen(PORT, '0.0.0.0', () => {
-        console.log(`🚀 Servidor HTTP escuchando en el puerto ${PORT}`);
-        console.log(`📡 WebSocket habilitado con ${io.engine.clientsCount} conexiones`);
-        console.log(`🐘 PostgreSQL habilitado y funcionando`);
-        console.log(`🎯 Modo: PostgreSQL Database`);
-        console.log(`🌐 Health check disponible en: http://localhost:${PORT}/health`);
+        console.log(`🚀 Servidor ejecutándose en puerto ${PORT}`);
+        console.log(`🐘 PostgreSQL conectado`);
     });
 }
 

@@ -7,7 +7,6 @@ class PostgreSQLClient {
         
         // Priorizar DATABASE_URL si está disponible
         if (process.env.DATABASE_URL) {
-            console.log('🔗 Usando DATABASE_URL para conexión');
             this.config = {
                 connectionString: process.env.DATABASE_URL,
                 ssl: false, // Deshabilitar SSL para conexiones internas de Docker
@@ -16,7 +15,6 @@ class PostgreSQLClient {
                 connectionTimeoutMillis: 2000,
             };
         } else {
-            console.log('🔗 Usando variables individuales para conexión');
             // Configuración de conexión individual
             this.config = {
                 host: process.env.DB_HOST || 'localhost',
@@ -24,9 +22,8 @@ class PostgreSQLClient {
                 database: process.env.DB_NAME || 'gestion_pedidos',
                 user: process.env.DB_USER || 'pigmea_user',
                 password: process.env.DB_PASSWORD,
-                // Deshabilitar SSL para conexiones internas de Docker
-                ssl: false,
-                max: 20, // máximo de conexiones en el pool
+                ssl: false, // Deshabilitar SSL para conexiones internas de Docker
+                max: 20,
                 idleTimeoutMillis: 30000,
                 connectionTimeoutMillis: 2000,
             };
@@ -35,19 +32,9 @@ class PostgreSQLClient {
 
     async init() {
         try {
-            console.log('🔄 Inicializando conexión PostgreSQL...');
-            console.log('📋 Configuración de conexión:', {
-                host: this.config.host || 'DATABASE_URL',
-                port: this.config.port || 'URL',
-                database: this.config.database || 'desde DATABASE_URL',
-                user: this.config.user || 'desde DATABASE_URL',
-                ssl: this.config.ssl
-            });
-
             this.pool = new Pool(this.config);
             
             // Probar la conexión con timeout
-            console.log('🔗 Intentando conectar a PostgreSQL...');
             const client = await Promise.race([
                 this.pool.connect(),
                 new Promise((_, reject) => 
@@ -55,28 +42,15 @@ class PostgreSQLClient {
                 )
             ]);
             
-            console.log(`🐘 PostgreSQL conectado exitosamente a ${this.config.host || 'DATABASE_URL'}:${this.config.port || 'URL'}`);
+            console.log('✅ PostgreSQL conectado correctamente');
             client.release();
             
             // Crear las tablas si no existen
-            console.log('📋 Creando/verificando esquema de base de datos...');
             await this.createTables();
             this.isInitialized = true;
             
-            console.log('✅ PostgreSQL inicializado correctamente');
         } catch (error) {
             console.error('❌ Error conectando a PostgreSQL:', error.message);
-            console.error('🔧 Detalles del error:', error);
-            
-            // Verificar variables de entorno
-            console.log('🔍 Variables de entorno disponibles:');
-            console.log('  - DB_HOST:', process.env.DB_HOST || 'NO DEFINIDA');
-            console.log('  - DB_PORT:', process.env.DB_PORT || 'NO DEFINIDA');
-            console.log('  - DB_NAME:', process.env.DB_NAME || 'NO DEFINIDA');
-            console.log('  - DB_USER:', process.env.DB_USER || 'NO DEFINIDA');
-            console.log('  - DB_PASSWORD:', process.env.DB_PASSWORD ? '***DEFINIDA***' : 'NO DEFINIDA');
-            console.log('  - DATABASE_URL:', process.env.DATABASE_URL ? '***DEFINIDA***' : 'NO DEFINIDA');
-            
             throw error;
         }
     }
@@ -148,7 +122,6 @@ class PostgreSQLClient {
                     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
             `);
 
-            console.log('📋 Tablas de PostgreSQL creadas/verificadas exitosamente');
             
         } finally {
             client.release();
@@ -192,7 +165,6 @@ class PostgreSQLClient {
             ];
 
             const result = await client.query(query, values);
-            console.log(`✅ Pedido creado en PostgreSQL: ${pedido.id}`);
             return pedido;
             
         } finally {
@@ -250,7 +222,6 @@ class PostgreSQLClient {
                 throw new Error(`Pedido ${pedido.id} no encontrado para actualizar`);
             }
             
-            console.log(`✅ Pedido actualizado en PostgreSQL: ${pedido.id}`);
             return pedido;
             
         } finally {
@@ -309,7 +280,6 @@ class PostgreSQLClient {
                 throw new Error(`Pedido ${id} no encontrado para eliminar`);
             }
             
-            console.log(`✅ Pedido eliminado de PostgreSQL: ${id}`);
             return true;
             
         } finally {
@@ -326,7 +296,6 @@ class PostgreSQLClient {
         
         try {
             await client.query('DELETE FROM pedidos');
-            console.log('✅ Todos los pedidos eliminados de PostgreSQL');
             
         } finally {
             client.release();
@@ -348,7 +317,6 @@ class PostgreSQLClient {
             }
             
             await client.query('COMMIT');
-            console.log(`✅ ${pedidos.length} pedidos insertados en lote en PostgreSQL`);
             
         } catch (error) {
             await client.query('ROLLBACK');
@@ -383,7 +351,6 @@ class PostgreSQLClient {
             ];
 
             const result = await client.query(query, values);
-            console.log(`✅ Usuario creado en PostgreSQL: ${user.username}`);
             return result.rows[0];
             
         } finally {
@@ -481,7 +448,6 @@ class PostgreSQLClient {
     async close() {
         if (this.pool) {
             await this.pool.end();
-            console.log('🐘 Conexión PostgreSQL cerrada');
         }
     }
 }
