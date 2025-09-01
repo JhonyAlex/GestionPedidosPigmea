@@ -10,7 +10,7 @@ class PostgreSQLClient {
             console.log('🔗 Usando DATABASE_URL para conexión');
             this.config = {
                 connectionString: process.env.DATABASE_URL,
-                ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+                ssl: false, // Deshabilitar SSL para conexiones internas de Docker
                 max: 20,
                 idleTimeoutMillis: 30000,
                 connectionTimeoutMillis: 2000,
@@ -24,8 +24,8 @@ class PostgreSQLClient {
                 database: process.env.DB_NAME || 'gestion_pedidos',
                 user: process.env.DB_USER || 'pigmea_user',
                 password: process.env.DB_PASSWORD,
-                // Configuraciones adicionales para producción
-                ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+                // Deshabilitar SSL para conexiones internas de Docker
+                ssl: false,
                 max: 20, // máximo de conexiones en el pool
                 idleTimeoutMillis: 30000,
                 connectionTimeoutMillis: 2000,
