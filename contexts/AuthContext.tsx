@@ -13,12 +13,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Cargar usuario del localStorage al iniciar
     useEffect(() => {
-        const loadUserFromStorage = () => {
+        const verifyUser = async () => {
             try {
                 if (typeof window !== 'undefined') {
                     const savedUser = localStorage.getItem('pigmea_user');
                     if (savedUser) {
                         const userData = JSON.parse(savedUser);
+                        // Aquí podrías añadir una llamada a un endpoint de verificación
+                        // Por ahora, simplemente cargamos el usuario.
+                        // Si el token expira, las llamadas a la API fallarán y se podría manejar el logout en ese punto.
                         setUser(userData);
                     }
                 }
@@ -32,7 +35,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
         };
 
-        loadUserFromStorage();
+        verifyUser();
     }, []);
 
     const login = async (username: string, password: string): Promise<AuthResponse> => {
