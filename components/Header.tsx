@@ -6,7 +6,6 @@ import { ETAPAS_KANBAN, ETAPAS, STAGE_GROUPS } from '../constants';
 import { DateFilterOption } from '../utils/date';
 import UserInfo from './UserInfo';
 import { useAuth } from '../contexts/AuthContext';
-import { useScrollDirection } from '../hooks/useScrollDirection';
 
 
 interface HeaderProps {
@@ -69,15 +68,7 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
     const { user } = useAuth();
     const currentUserRole = user?.role || 'Operador';
-    const isAtTop = useScrollDirection();
     const [isStageFiltersCollapsed, setIsStageFiltersCollapsed] = useState(false);
-
-    // Controlar el colapso basado en la posición del scroll
-    useEffect(() => {
-        if (currentView === 'list') {
-            setIsStageFiltersCollapsed(!isAtTop);
-        }
-    }, [isAtTop, currentView]);
 
     // Resetear el estado cuando cambie la vista
     useEffect(() => {
@@ -306,10 +297,10 @@ const Header: React.FC<HeaderProps> = ({
                             
                             {/* Grupos de etapas con animación de colapso */}
                             <div 
-                                className={`transition-all duration-300 ease-in-out ${
+                                className={`transition-all duration-300 ease-in-out overflow-hidden ${
                                     isStageFiltersCollapsed 
-                                        ? 'opacity-0 pointer-events-none h-0 overflow-hidden' 
-                                        : 'opacity-100 h-auto'
+                                        ? 'max-h-0 opacity-0' 
+                                        : 'max-h-96 opacity-100'
                                 }`}
                             >
                                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
