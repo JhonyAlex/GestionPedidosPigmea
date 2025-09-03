@@ -6,7 +6,7 @@ export const useScrollDirection = () => {
   useEffect(() => {
     const handleScroll = () => {
       const scrollY = window.scrollY;
-      const threshold = 5; // Umbral muy pequeño para ocultar inmediatamente
+      const threshold = 20; // Umbral más conservador
       
       if (scrollY <= threshold) {
         setIsAtTop(true);

@@ -306,10 +306,10 @@ const Header: React.FC<HeaderProps> = ({
                             
                             {/* Grupos de etapas con animación de colapso */}
                             <div 
-                                className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                                className={`transition-all duration-300 ease-in-out ${
                                     isStageFiltersCollapsed 
-                                        ? 'max-h-0 opacity-0' 
-                                        : 'max-h-96 opacity-100'
+                                        ? 'opacity-0 pointer-events-none h-0 overflow-hidden' 
+                                        : 'opacity-100 h-auto'
                                 }`}
                             >
                                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -341,11 +341,6 @@ const Header: React.FC<HeaderProps> = ({
                                     ))}
                                 </div>
                             </div>
-                            
-                            {/* Espaciador invisible para mantener altura cuando se colapsa */}
-                            {isStageFiltersCollapsed && (
-                                <div className="h-20" />
-                            )}
                         </div>
                     </div>
                 )}
