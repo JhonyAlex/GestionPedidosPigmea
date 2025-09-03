@@ -1,3 +1,6 @@
+// Cargar variables de entorno
+require('dotenv').config();
+
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
@@ -20,11 +23,14 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: process.env.NODE_ENV === 'production' ? false : [
-            "http://localhost:3000", 
-            "http://localhost:5173",
-            "http://localhost:3001" // Admin panel
-        ],
+        origin: process.env.NODE_ENV === 'production' 
+            ? ['https://planning.pigmea.click', 'https://www.planning.pigmea.click']
+            : [
+                "http://localhost:3000", 
+                "http://localhost:5173",
+                "http://localhost:5174",
+                "http://localhost:3001" // Admin panel
+            ],
         methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
     }
 });
@@ -59,11 +65,14 @@ const loginLimiter = rateLimit({
 });
 
 app.use(cors({
-    origin: process.env.NODE_ENV === 'production' ? false : [
-        "http://localhost:3000", 
-        "http://localhost:5173",
-        "http://localhost:3001"
-    ],
+    origin: process.env.NODE_ENV === 'production' 
+        ? ['https://planning.pigmea.click', 'https://www.planning.pigmea.click']
+        : [
+            "http://localhost:3000", 
+            "http://localhost:5173",
+            "http://localhost:5174", 
+            "http://localhost:3001"
+        ],
     credentials: true
 }));
 
@@ -217,51 +226,92 @@ function broadcastToClients(event, data) {
 
 // POST /api/auth/login - Autenticar usuario
 app.post('/api/auth/login', async (req, res) => {
+    console.log('🔐 Petición de login recibida:', req.body);
+    
     try {
         const { username, password } = req.body;
         
         if (!username || !password) {
+            console.log('❌ Faltan credenciales');
             return res.status(400).json({ 
                 error: 'Usuario y contraseña son requeridos' 
             });
         }
 
-        const user = await dbClient.findUserByUsername(username);
-        
-        if (!user) {
-            return res.status(401).json({ 
-                error: 'Usuario no encontrado' 
+        // Si tenemos base de datos inicializada, usarla
+        if (dbClient.isInitialized) {
+            console.log('🗄️ Usando autenticación con base de datos');
+            
+            const user = await dbClient.findUserByUsername(username);
+            
+            if (!user) {
+                console.log(`❌ Usuario no encontrado en BD: ${username}`);
+                return res.status(401).json({ 
+                    error: 'Usuario no encontrado' 
+                });
+            }
+
+            // Comparación simple de contraseña (sin hash para simplicidad)
+            if (user.password !== password) {
+                console.log(`❌ Contraseña incorrecta para: ${username}`);
+                return res.status(401).json({ 
+                    error: 'Contraseña incorrecta' 
+                });
+            }
+
+            // Actualizar último login
+            await dbClient.updateUserLastLogin(username);
+
+            // Devolver datos del usuario (sin contraseña)
+            const userData = {
+                id: user.id,
+                username: user.username,
+                role: user.role,
+                displayName: user.display_name || user.username
+            };
+
+            console.log(`✅ Login BD exitoso: ${username} (${user.role})`);
+            
+            res.status(200).json({
+                success: true,
+                user: userData,
+                message: 'Login exitoso'
             });
+            return;
         }
 
-        // Comparación simple de contraseña (sin hash para simplicidad)
-        if (user.password !== password) {
-            return res.status(401).json({ 
-                error: 'Contraseña incorrecta' 
-            });
-        }
-
-        // Actualizar último login
-        await dbClient.updateUserLastLogin(username);
-
-        // Devolver datos del usuario (sin contraseña)
-        const userData = {
-            id: user.id,
-            username: user.username,
-            role: user.role,
-            displayName: user.display_name || user.username
+        // Fallback: usuarios hardcodeados para desarrollo sin BD
+        console.log('⚠️ Usando autenticación de desarrollo (sin BD)');
+        const devUsers = {
+            'admin': { password: 'admin123', role: 'Administrador', displayName: 'Administrador' },
+            'supervisor': { password: 'super123', role: 'Supervisor', displayName: 'Supervisor' },
+            'operador': { password: 'oper123', role: 'Operador', displayName: 'Operador' }
         };
 
-        console.log(`✅ Login: ${username} (${user.role})`);
+        const user = devUsers[username.toLowerCase()];
+        
+        if (!user || user.password !== password) {
+            console.log(`❌ Credenciales incorrectas: ${username}/${password}`);
+            return res.status(401).json({ 
+                error: 'Credenciales incorrectas' 
+            });
+        }
+
+        console.log(`✅ Login dev exitoso: ${username}`);
         
         res.status(200).json({
             success: true,
-            user: userData,
+            user: {
+                id: Math.random().toString(36).substr(2, 9),
+                username: username,
+                role: user.role,
+                displayName: user.displayName
+            },
             message: 'Login exitoso'
         });
 
     } catch (error) {
-        console.error('Error en login:', error);
+        console.error('💥 Error en login:', error);
         res.status(500).json({ 
             error: 'Error interno del servidor' 
         });
@@ -291,6 +341,27 @@ app.post('/api/auth/register', async (req, res) => {
             });
         }
 
+        // En modo desarrollo sin base de datos, simular registro
+        if (process.env.NODE_ENV !== 'production' && !process.env.DATABASE_URL && !process.env.DB_HOST) {
+            // En desarrollo, solo permitir registros únicos para esta sesión
+            console.log(`✅ Usuario registrado (dev mode): ${username} (${role})`);
+
+            const userData = {
+                id: Math.random().toString(36).substr(2, 9),
+                username: username.trim(),
+                role: role,
+                displayName: displayName?.trim() || username.trim()
+            };
+
+            res.status(201).json({
+                success: true,
+                user: userData,
+                message: 'Usuario creado exitosamente (modo desarrollo)'
+            });
+            return;
+        }
+
+        // Modo producción - usar base de datos
         // Verificar si el usuario ya existe
         const existingUser = await dbClient.findUserByUsername(username);
         if (existingUser) {
@@ -401,6 +472,11 @@ app.post('/api/audit', async (req, res) => {
 // GET /api/pedidos - Get all pedidos
 app.get('/api/pedidos', async (req, res) => {
     try {
+        if (!dbClient.isInitialized) {
+            console.log('⚠️ BD no disponible - devolviendo datos mock');
+            return res.status(200).json([]);
+        }
+        
         const pedidos = await dbClient.getAll();
         res.status(200).json(pedidos.sort((a, b) => b.secuenciaPedido - a.secuenciaPedido));
         
@@ -667,7 +743,7 @@ app.get('/api/admin/stats', async (req, res) => {
 // =================================================================
 
 // --- SERVER START ---
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3001;
 
 // Catch-all handler for frontend routing
 app.get('*', (req, res) => {
@@ -677,27 +753,35 @@ app.get('*', (req, res) => {
 // Initialize and start server
 async function startServer() {
     try {
-        // Inicializar PostgreSQL solo si hay configuración
-        if (process.env.NODE_ENV === 'production' || process.env.DATABASE_URL || process.env.DB_HOST) {
+        // Intentar inicializar PostgreSQL
+        if (process.env.DATABASE_URL || process.env.DB_HOST) {
+            console.log('🔄 Intentando conectar a PostgreSQL...');
             await dbClient.init();
-            console.log('🐘 PostgreSQL conectado');
+            console.log('🐘 PostgreSQL conectado exitosamente');
         } else {
-            console.log('⚠️ Ejecutando en modo de desarrollo local sin base de datos');
+            console.log('⚠️ No se encontró configuración de base de datos');
         }
         
     } catch (error) {
-        console.error('❌ Error al inicializar PostgreSQL:', error.message);
+        console.error('❌ Error al conectar a PostgreSQL:', error.message);
+        
         if (process.env.NODE_ENV === 'production') {
-            console.error('El servidor no puede continuar sin base de datos en producción');
+            console.error('🚨 El servidor no puede continuar sin base de datos en producción');
             process.exit(1);
         } else {
-            console.log('⚠️ Continuando sin base de datos en modo desarrollo');
+            console.log('🔄 Continuando sin base de datos en modo desarrollo');
+            console.log('💡 Se usarán usuarios hardcodeados para autenticación');
         }
     }
 
     // Iniciar el servidor HTTP
     server.listen(PORT, '0.0.0.0', () => {
         console.log(`🚀 Servidor ejecutándose en puerto ${PORT}`);
+        if (dbClient.isInitialized) {
+            console.log('📊 Estado: Conectado a PostgreSQL - Funcionalidad completa');
+        } else {
+            console.log('⚠️ Estado: Modo desarrollo - Base de datos no disponible');
+        }
     });
 }
 

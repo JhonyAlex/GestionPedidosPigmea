@@ -205,7 +205,7 @@ const LoginModal: React.FC = () => {
                             <p className="text-sm text-blue-700 dark:text-blue-300">
                                 <span className="font-medium">Para pruebas:</span><br/>
                                 Usuario: <span className="font-mono bg-blue-100 dark:bg-blue-800 px-1 rounded">admin</span> | 
-                                Contraseña: <span className="font-mono bg-blue-100 dark:bg-blue-800 px-1 rounded">admin</span>
+                                Contraseña: <span className="font-mono bg-blue-100 dark:bg-blue-800 px-1 rounded">admin123</span>
                             </p>
                         </div>
                     )}
