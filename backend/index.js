@@ -302,8 +302,10 @@ app.post('/api/auth/login', async (req, res) => {
                 });
             }
 
-            // Actualizar último login
-            await dbClient.updateUserLastLogin(username);
+            // Actualizar último login solo para usuarios admin
+            if (isAdminUser) {
+                await dbClient.updateUserLastLogin(user.id);
+            }
 
             // Devolver datos del usuario (sin contraseña)
             const userData = {

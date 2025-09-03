@@ -659,12 +659,11 @@ class PostgreSQLClient {
         try {
             await client.query(`
                 UPDATE admin_users 
-                SET last_login = CURRENT_TIMESTAMP, 
-                    last_activity = CURRENT_TIMESTAMP,
-                    ip_address = $2,
-                    user_agent = $3
+                SET last_login_at = CURRENT_TIMESTAMP, 
+                    updated_at = CURRENT_TIMESTAMP
                 WHERE id = $1
-            `, [userId, ipAddress, userAgent]);
+            `, [userId]);
+            console.log('✅ Last login actualizado para usuario ID:', userId);
         } finally {
             client.release();
         }
