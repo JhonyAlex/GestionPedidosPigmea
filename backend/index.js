@@ -309,7 +309,7 @@ app.post('/api/auth/login', async (req, res) => {
 
             // Devolver datos del usuario (sin contraseña)
             const userData = {
-                id: user.id,
+                id: user.id.toString(), // Convertir a string para frontend
                 username: user.username,
                 role: user.role,
                 displayName: user.display_name || user.username
