@@ -40,6 +40,7 @@ const AppContent: React.FC = () => {
     const [pedidoToSend, setPedidoToSend] = useState<Pedido | null>(null);
     const [pedidoToReorder, setPedidoToReorder] = useState<Pedido | null>(null);
     const [highlightedPedidoId, setHighlightedPedidoId] = useState<string | null>(null);
+    const [isDuplicating, setIsDuplicating] = useState(false);
 
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
         if (typeof window !== 'undefined' && localStorage.theme) {
@@ -348,12 +349,31 @@ const AppContent: React.FC = () => {
     };
 
     const handleDuplicatePedido = async (pedidoToDuplicate: Pedido) => {
-        const newPedido = await handleDuplicatePedidoLogic(pedidoToDuplicate);
-        if (newPedido) {
-            logAction(`Pedido ${pedidoToDuplicate.numeroPedidoCliente} duplicado como ${newPedido.numeroPedidoCliente}.`, newPedido.id);
-            setSelectedPedido(null); // Cierra el modal actual
-            // Opcional: abrir el modal del nuevo pedido duplicado
-            // setSelectedPedido(newPedido);
+        // Mostrar estado de carga
+        setIsDuplicating(true);
+        setSelectedPedido(null); // Cierra el modal actual
+
+        try {
+            // Simular carga de 2 segundos
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            const newPedido = await handleDuplicatePedidoLogic(pedidoToDuplicate);
+            if (newPedido) {
+                logAction(`Pedido ${pedidoToDuplicate.numeroPedidoCliente} duplicado como ${newPedido.numeroPedidoCliente}.`, newPedido.id);
+                
+                // Emitir actividad WebSocket
+                emitActivity('pedido-created', { 
+                    pedidoId: newPedido.id, 
+                    numeroCliente: newPedido.numeroPedidoCliente 
+                });
+                
+                // Abrir el modal del pedido duplicado
+                setSelectedPedido(newPedido);
+            }
+        } catch (error) {
+            console.error('Error al duplicar pedido:', error);
+        } finally {
+            setIsDuplicating(false);
         }
     };
 
@@ -576,6 +596,19 @@ const AppContent: React.FC = () => {
                         onClose={() => setPedidoToReorder(null)}
                         onConfirm={handleConfirmSequenceReorder}
                     />
+                )}
+                {isDuplicating && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-8 max-w-sm w-full mx-4 text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4"></div>
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                                Duplicando pedido...
+                            </h3>
+                            <p className="text-gray-600 dark:text-gray-300">
+                                Por favor espere mientras se procesa la duplicación
+                            </p>
+                        </div>
+                    </div>
                 )}
                 <AntivahoConfirmationModal
                     isOpen={antivahoModalState.isOpen}
