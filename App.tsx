@@ -103,6 +103,8 @@ const AppContent: React.FC = () => {
       setSearchTerm,
       filters,
       handleFilterChange,
+      selectedStages,
+      handleStageToggle,
       antivahoFilter,
       handleAntivahoFilterChange,
       dateFilter,
@@ -442,6 +444,8 @@ const AppContent: React.FC = () => {
                     onViewChange={handleViewChange}
                     onFilterChange={handleFilterChange}
                     activeFilters={filters}
+                    selectedStages={selectedStages}
+                    onStageToggle={handleStageToggle}
                     antivahoFilter={antivahoFilter}
                     onAntivahoFilterChange={handleAntivahoFilterChange}
                     onDateFilterChange={handleDateFilterChange}

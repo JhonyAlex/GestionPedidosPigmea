@@ -7,6 +7,7 @@ import { getDateRange, DateFilterOption } from '../utils/date';
 export const useFiltrosYOrden = (pedidos: Pedido[]) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filters, setFilters] = useState<{ priority: string, stage: string, dateField: DateField }>({ priority: 'all', stage: 'all', dateField: 'fechaCreacion' });
+    const [selectedStages, setSelectedStages] = useState<string[]>([]);
     const [antivahoFilter, setAntivahoFilter] = useState<'all' | 'con' | 'sin'>('all');
     const [dateFilter, setDateFilter] = useState<DateFilterOption>('all');
     const [customDateRange, setCustomDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
@@ -21,6 +22,31 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
     };
     const handleSort = useCallback((key: keyof Pedido) => {
         setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'ascending' ? 'descending' : 'ascending' }));
+    }, []);
+
+    const handleStageToggle = useCallback((stageId: string) => {
+        if (stageId === 'all') {
+            setSelectedStages([]);
+            setFilters(prev => ({ ...prev, stage: 'all' }));
+        } else {
+            setSelectedStages(prev => {
+                const isSelected = prev.includes(stageId);
+                const newSelection = isSelected 
+                    ? prev.filter(id => id !== stageId)
+                    : [...prev, stageId];
+                
+                // Actualizar también el filtro tradicional para compatibilidad
+                if (newSelection.length === 0) {
+                    setFilters(prevFilters => ({ ...prevFilters, stage: 'all' }));
+                } else if (newSelection.length === 1) {
+                    setFilters(prevFilters => ({ ...prevFilters, stage: newSelection[0] }));
+                } else {
+                    setFilters(prevFilters => ({ ...prevFilters, stage: 'multiple' }));
+                }
+                
+                return newSelection;
+            });
+        }
     }, []);
 
     const processedPedidos = useMemo(() => {
@@ -66,7 +92,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
             );
 
             const priorityMatch = filters.priority === 'all' || p.prioridad === filters.priority;
-            const stageMatch = filters.stage === 'all' || p.etapaActual === filters.stage;
+            const stageMatch = selectedStages.length === 0 || selectedStages.includes(p.etapaActual);
             const dateToFilter = p[filters.dateField];
             const dateMatch = !dateRange || (dateToFilter && new Date(dateToFilter) >= dateRange.start && new Date(dateToFilter) <= dateRange.end);
             const antivahoMatch = antivahoFilter === 'all' || 
@@ -129,6 +155,8 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         setSearchTerm,
         filters,
         handleFilterChange,
+        selectedStages,
+        handleStageToggle,
         antivahoFilter,
         handleAntivahoFilterChange,
         dateFilter,

@@ -14,6 +14,8 @@ interface HeaderProps {
     onViewChange: (view: ViewType) => void;
     onFilterChange: (name: string, value: string) => void;
     activeFilters: { priority: string, stage: string, dateField: keyof Pedido };
+    selectedStages: string[];
+    onStageToggle: (stageId: string) => void;
     antivahoFilter: 'all' | 'con' | 'sin';
     onAntivahoFilterChange: (value: 'all' | 'con' | 'sin') => void;
     onDateFilterChange: (value: DateFilterOption) => void;
@@ -50,7 +52,9 @@ const Header: React.FC<HeaderProps> = ({
     currentView, 
     onViewChange, 
     onFilterChange, 
-    activeFilters, 
+    activeFilters,
+    selectedStages,
+    onStageToggle,
     antivahoFilter,
     onAntivahoFilterChange,
     onDateFilterChange,
@@ -250,12 +254,14 @@ const Header: React.FC<HeaderProps> = ({
                 {currentView === 'list' && (
                     <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
                         <div className="flex flex-col gap-2">
-                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Filtrar por Etapa:</span>
+                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                                Filtrar por Etapa {selectedStages.length > 0 && `(${selectedStages.length} seleccionadas)`}:
+                            </span>
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2">
                                 <button
-                                    onClick={() => onFilterChange('stage', 'all')}
+                                    onClick={() => onStageToggle('all')}
                                     className={`px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                                        activeFilters.stage === 'all'
+                                        selectedStages.length === 0
                                             ? 'bg-indigo-600 text-white shadow-sm'
                                             : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                                     }`}
@@ -265,9 +271,9 @@ const Header: React.FC<HeaderProps> = ({
                                 {ETAPAS_KANBAN.map(etapaId => (
                                     <button
                                         key={etapaId}
-                                        onClick={() => onFilterChange('stage', etapaId)}
+                                        onClick={() => onStageToggle(etapaId)}
                                         className={`px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 whitespace-nowrap ${
-                                            activeFilters.stage === etapaId
+                                            selectedStages.includes(etapaId)
                                                 ? 'bg-indigo-600 text-white shadow-sm'
                                                 : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                                         }`}
