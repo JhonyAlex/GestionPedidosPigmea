@@ -105,6 +105,7 @@ const AppContent: React.FC = () => {
       handleFilterChange,
       selectedStages,
       handleStageToggle,
+      resetStageFilters,
       antivahoFilter,
       handleAntivahoFilterChange,
       dateFilter,
@@ -127,6 +128,14 @@ const AppContent: React.FC = () => {
             localStorage.setItem('theme', theme);
         }
     }, [theme]);
+
+    // Resetear filtros de etapa cuando se cambia a vistas que no son "list" o "kanban"
+    useEffect(() => {
+        const viewsThatNeedStageReset = ['preparacion', 'archived', 'report'];
+        if (viewsThatNeedStageReset.includes(view)) {
+            resetStageFilters();
+        }
+    }, [view, resetStageFilters]);
     
     const toggleTheme = () => {
         setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');

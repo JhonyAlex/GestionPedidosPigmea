@@ -49,6 +49,11 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         }
     }, []);
 
+    const resetStageFilters = useCallback(() => {
+        setSelectedStages([]);
+        setFilters(prev => ({ ...prev, stage: 'all' }));
+    }, []);
+
     const processedPedidos = useMemo(() => {
         let dateRange: { start: Date, end: Date } | null = null;
         
@@ -157,6 +162,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         handleFilterChange,
         selectedStages,
         handleStageToggle,
+        resetStageFilters,
         antivahoFilter,
         handleAntivahoFilterChange,
         dateFilter,

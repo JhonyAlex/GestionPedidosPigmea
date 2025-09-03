@@ -1,11 +1,12 @@
 
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ViewType, Prioridad, Etapa, UserRole, Pedido } from '../types';
 import { ETAPAS_KANBAN, ETAPAS, STAGE_GROUPS } from '../constants';
 import { DateFilterOption } from '../utils/date';
 import UserInfo from './UserInfo';
 import { useAuth } from '../contexts/AuthContext';
+import { useScrollDirection } from '../hooks/useScrollDirection';
 
 
 interface HeaderProps {
@@ -68,6 +69,26 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
     const { user } = useAuth();
     const currentUserRole = user?.role || 'Operador';
+    const scrollDirection = useScrollDirection();
+    const [isStageFiltersCollapsed, setIsStageFiltersCollapsed] = useState(false);
+
+    // Controlar el colapso basado en la dirección del scroll
+    useEffect(() => {
+        if (currentView === 'list') {
+            if (scrollDirection === 'down') {
+                setIsStageFiltersCollapsed(true);
+            } else if (scrollDirection === 'up') {
+                setIsStageFiltersCollapsed(false);
+            }
+        }
+    }, [scrollDirection, currentView]);
+
+    // Resetear el estado cuando cambie la vista
+    useEffect(() => {
+        if (currentView !== 'list') {
+            setIsStageFiltersCollapsed(false);
+        }
+    }, [currentView]);
     
     const viewOptions: { id: ViewType; label: string, adminOnly: boolean }[] = [
         { id: 'preparacion', label: 'Preparación', adminOnly: false },
@@ -241,6 +262,13 @@ const Header: React.FC<HeaderProps> = ({
                             </select>
                         )}
 
+                        {/* Mensaje informativo para vistas donde los filtros de etapa están deshabilitados */}
+                        {(['preparacion', 'archived', 'report'] as ViewType[]).includes(currentView) && (
+                            <div className="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md text-sm text-blue-700 dark:text-blue-300">
+                                <span className="font-medium">ℹ️ Filtros de etapa deshabilitados</span> - Se muestran todos los elementos en esta vista
+                            </div>
+                        )}
+
                         <input
                             type="text"
                             placeholder="Buscar en todo..."
@@ -255,9 +283,26 @@ const Header: React.FC<HeaderProps> = ({
                     <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
                         <div className="flex flex-col gap-3">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                    Filtrar por Etapa {selectedStages.length > 0 && `(${selectedStages.length} seleccionadas)`}:
-                                </span>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                                        Filtrar por Etapa {selectedStages.length > 0 && `(${selectedStages.length} seleccionadas)`}:
+                                    </span>
+                                    <button
+                                        onClick={() => setIsStageFiltersCollapsed(!isStageFiltersCollapsed)}
+                                        className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors duration-200 flex items-center gap-1"
+                                        title={isStageFiltersCollapsed ? 'Expandir filtros' : 'Contraer filtros'}
+                                    >
+                                        <svg 
+                                            className={`w-4 h-4 transition-transform duration-200 ${isStageFiltersCollapsed ? 'rotate-180' : ''}`} 
+                                            fill="none" 
+                                            stroke="currentColor" 
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                        {isStageFiltersCollapsed ? 'Mostrar' : 'Ocultar'}
+                                    </button>
+                                </div>
                                 <button
                                     onClick={() => onStageToggle('all')}
                                     className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
@@ -270,34 +315,42 @@ const Header: React.FC<HeaderProps> = ({
                                 </button>
                             </div>
                             
-                            {/* Grupos de etapas */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
-                                {Object.values(STAGE_GROUPS).map(group => (
-                                    <div key={group.title} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-                                        <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
-                                            {group.title}
-                                        </h4>
-                                        <div className="grid grid-cols-1 gap-1.5">
-                                            {group.stages.map(etapaId => (
-                                                <button
-                                                    key={etapaId}
-                                                    onClick={() => onStageToggle(etapaId)}
-                                                    className={`px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-left ${
-                                                        selectedStages.includes(etapaId)
-                                                            ? 'bg-indigo-600 text-white shadow-sm'
-                                                            : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
-                                                    }`}
-                                                    title={ETAPAS[etapaId].title}
-                                                >
-                                                    {ETAPAS[etapaId].title.length > 18 
-                                                        ? `${ETAPAS[etapaId].title.substring(0, 18)}...` 
-                                                        : ETAPAS[etapaId].title
-                                                    }
-                                                </button>
-                                            ))}
+                            {/* Grupos de etapas con animación de colapso */}
+                            <div 
+                                className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                                    isStageFiltersCollapsed 
+                                        ? 'max-h-0 opacity-0' 
+                                        : 'max-h-96 opacity-100'
+                                }`}
+                            >
+                                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+                                    {Object.values(STAGE_GROUPS).map(group => (
+                                        <div key={group.title} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                                            <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                                                {group.title}
+                                            </h4>
+                                            <div className="grid grid-cols-1 gap-1.5">
+                                                {group.stages.map(etapaId => (
+                                                    <button
+                                                        key={etapaId}
+                                                        onClick={() => onStageToggle(etapaId)}
+                                                        className={`px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-left ${
+                                                            selectedStages.includes(etapaId)
+                                                                ? 'bg-indigo-600 text-white shadow-sm'
+                                                                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
+                                                        }`}
+                                                        title={ETAPAS[etapaId].title}
+                                                    >
+                                                        {ETAPAS[etapaId].title.length > 18 
+                                                            ? `${ETAPAS[etapaId].title.substring(0, 18)}...` 
+                                                            : ETAPAS[etapaId].title
+                                                        }
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>
