@@ -54,6 +54,33 @@ const SortableHeader = ({
     );
 };
 
+const SortableHeaderTh = ({
+    label,
+    sortKey,
+    onSort,
+    sortConfig,
+    width = "",
+    className = ""
+}: {
+    label: string,
+    sortKey: keyof Pedido,
+    onSort: (key: keyof Pedido) => void,
+    sortConfig: { key: keyof Pedido, direction: 'ascending' | 'descending' },
+    width?: string,
+    className?: string
+}) => {
+    const isSorting = sortConfig.key === sortKey;
+    const direction = isSorting ? sortConfig.direction : null;
+    return (
+        <th className={`px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${width} ${className}`}>
+            <button onClick={() => onSort(sortKey)} className="flex items-center gap-2 group w-full justify-start">
+                {label}
+                <SortIcon direction={direction} />
+            </button>
+        </th>
+    );
+};
+
 const PedidoRow = ({ pedido, onSelectPedido, onArchiveToggle, isArchivedView, currentUserRole, onAdvanceStage, provided, snapshot, highlightedPedidoId }) => {
     const { canAdvance, advanceButtonTitle } = useMemo(() => {
         const isPrinting = KANBAN_FUNNELS.IMPRESION.stages.includes(pedido.etapaActual);
@@ -74,34 +101,31 @@ const PedidoRow = ({ pedido, onSelectPedido, onArchiveToggle, isArchivedView, cu
         return { canAdvance: false, advanceButtonTitle: '' };
     }, [pedido]);
 
-    const gridTemplate = "grid-cols-[1.5fr_1.5fr_1fr_0.5fr_1fr_0.5fr_1fr_1.2fr_0.75fr_1fr_1fr_1fr]";
-
     return (
-        <div
+        <tr
             ref={provided.innerRef}
             {...provided.draggableProps}
             {...provided.dragHandleProps}
-            role="row"
-            className={`grid ${gridTemplate} gap-x-6 items-center bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''}`}
+            className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''}`}
         >
-            <div role="cell" className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">{pedido.numeroPedidoCliente}</div>
-            <div role="cell" className="px-6 py-4">{pedido.cliente}</div>
-            <div role="cell" className="px-6 py-4">{pedido.desarrollo}</div>
-            <div role="cell" className="px-6 py-4 text-center">{pedido.capa || '-'}</div>
-            <div role="cell" className="px-6 py-4">{pedido.camisa || '-'}</div>
-            <div role="cell" className="px-6 py-4 text-center">
-                {pedido.antivaho && <SparklesIcon className="w-5 h-5 text-blue-500" title="Antivaho Activado" />}
-            </div>
-            <div role="cell" className="px-6 py-4">
+            <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap w-32">{pedido.numeroPedidoCliente}</td>
+            <td className="px-6 py-4 text-gray-900 dark:text-white w-36">{pedido.cliente}</td>
+            <td className="px-6 py-4 text-gray-900 dark:text-white w-32">{pedido.desarrollo}</td>
+            <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-20">{pedido.capa || '-'}</td>
+            <td className="px-6 py-4 text-gray-900 dark:text-white w-28">{pedido.camisa || '-'}</td>
+            <td className="px-6 py-4 text-center w-24">
+                {pedido.antivaho && <SparklesIcon className="w-5 h-5 text-blue-500 mx-auto" />}
+            </td>
+            <td className="px-6 py-4 w-28">
                 <span className={`px-2 py-1 text-xs font-semibold rounded-full text-white ${(PRIORIDAD_COLORS[pedido.prioridad] || PRIORIDAD_COLORS[Prioridad.NORMAL] || 'border-blue-500').replace('border', 'bg').replace('-500', '-900')}`}>
                     {pedido.prioridad}
                 </span>
-            </div>
-            <div role="cell" className="px-6 py-4">{ETAPAS[pedido.etapaActual].title}</div>
-            <div role="cell" className="px-6 py-4 text-right">{pedido.metros} m</div>
-            <div role="cell" className="px-6 py-4 text-center">{pedido.tiempoProduccionPlanificado}</div>
-            <div role="cell" className="px-6 py-4 text-center">{pedido.fechaEntrega}</div>
-            <div role="cell" className="px-6 py-4 text-center">
+            </td>
+            <td className="px-6 py-4 text-gray-900 dark:text-white w-36">{ETAPAS[pedido.etapaActual].title}</td>
+            <td className="px-6 py-4 text-right text-gray-900 dark:text-white w-24">{pedido.metros} m</td>
+            <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-28">{pedido.tiempoProduccionPlanificado}</td>
+            <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-28">{pedido.fechaEntrega}</td>
+            <td className="px-6 py-4 text-center w-28">
                 <div className="flex justify-center items-center space-x-3">
                     <button onClick={() => onSelectPedido(pedido)} className="text-blue-500 hover:text-blue-400 dark:text-blue-400 dark:hover:text-blue-300" title="Ver/Editar">
                         <EditIcon />
@@ -127,8 +151,8 @@ const PedidoRow = ({ pedido, onSelectPedido, onArchiveToggle, isArchivedView, cu
                         </>
                     )}
                 </div>
-            </div>
-        </div>
+            </td>
+        </tr>
     );
 };
 
@@ -139,66 +163,69 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
         setIsMounted(true);
     }, []);
 
-    const gridTemplate = "grid-cols-[1.5fr_1.5fr_1fr_0.5fr_1fr_0.5fr_1fr_1.2fr_0.75fr_1fr_1fr_1fr]";
-
     return (
         <main className="flex-grow p-4 md:p-8">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
                 <div className="overflow-x-auto">
-                    {/* Header */}
-                    <div role="rowheader" className={`grid ${gridTemplate} gap-x-6 text-xs text-gray-700 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-700`}>
-                        <SortableHeader label="N° Pedido" sortKey="numeroPedidoCliente" onSort={onSort} sortConfig={sortConfig} />
-                        <SortableHeader label="Cliente" sortKey="cliente" onSort={onSort} sortConfig={sortConfig} />
-                        <SortableHeader label="Desarrollo" sortKey="desarrollo" onSort={onSort} sortConfig={sortConfig} />
-                        <SortableHeader label="Capa" sortKey="capa" onSort={onSort} sortConfig={sortConfig} className="justify-center" />
-                        <SortableHeader label="Camisa" sortKey="camisa" onSort={onSort} sortConfig={sortConfig} />
-                        <SortableHeader label="Antivaho" sortKey="antivaho" onSort={onSort} sortConfig={sortConfig} className="justify-center" />
-                        <SortableHeader label="Prioridad" sortKey="prioridad" onSort={onSort} sortConfig={sortConfig} />
-                        <SortableHeader label="Etapa Actual" sortKey="etapaActual" onSort={onSort} sortConfig={sortConfig} />
-                        <SortableHeader label="Metros" sortKey="metros" onSort={onSort} sortConfig={sortConfig} className="justify-end" />
-                        <SortableHeader label="T. Planificado" sortKey="tiempoProduccionPlanificado" onSort={onSort} sortConfig={sortConfig} className="justify-center" />
-                        <SortableHeader label="F. Entrega" sortKey="fechaEntrega" onSort={onSort} sortConfig={sortConfig} className="justify-center" />
-                        <div role="columnheader" className="px-6 py-3 text-center">Acciones</div>
-                    </div>
-
-                    {/* Body */}
-                    {isMounted && (
-                        <Droppable droppableId="pedido-list">
-                            {(provided) => (
-                                <div
-                                    {...provided.droppableProps}
-                                    ref={provided.innerRef}
-                                    role="rowgroup"
-                                >
-                                    {pedidos.length === 0 ? (
-                                        <div role="row" className="text-center py-10 text-gray-500">
-                                            No se encontraron pedidos con los filtros actuales.
-                                        </div>
-                                    ) : (
-                                        pedidos.map((pedido, index) => (
-                                            <Draggable key={pedido.id} draggableId={pedido.id} index={index}>
-                                                {(provided, snapshot) => (
-                                                    <PedidoRow
-                                                        key={pedido.id}
-                                                        pedido={pedido}
-                                                        onSelectPedido={onSelectPedido}
-                                                        onArchiveToggle={onArchiveToggle}
-                                                        isArchivedView={isArchivedView}
-                                                        currentUserRole={currentUserRole}
-                                                        onAdvanceStage={onAdvanceStage}
-                                                        provided={provided}
-                                                        snapshot={snapshot}
-                                                        highlightedPedidoId={highlightedPedidoId}
-                                                    />
-                                                )}
-                                            </Draggable>
-                                        ))
-                                    )}
-                                    {provided.placeholder}
-                                </div>
-                            )}
-                        </Droppable>
-                    )}
+                    <table className="min-w-full table-fixed">
+                        <thead className="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <SortableHeaderTh label="N° Pedido" sortKey="numeroPedidoCliente" onSort={onSort} sortConfig={sortConfig} width="w-32" />
+                                <SortableHeaderTh label="Cliente" sortKey="cliente" onSort={onSort} sortConfig={sortConfig} width="w-36" />
+                                <SortableHeaderTh label="Desarrollo" sortKey="desarrollo" onSort={onSort} sortConfig={sortConfig} width="w-32" />
+                                <SortableHeaderTh label="Capa" sortKey="capa" onSort={onSort} sortConfig={sortConfig} width="w-20" className="text-center" />
+                                <SortableHeaderTh label="Camisa" sortKey="camisa" onSort={onSort} sortConfig={sortConfig} width="w-28" />
+                                <SortableHeaderTh label="Antivaho" sortKey="antivaho" onSort={onSort} sortConfig={sortConfig} width="w-24" className="text-center" />
+                                <SortableHeaderTh label="Prioridad" sortKey="prioridad" onSort={onSort} sortConfig={sortConfig} width="w-28" />
+                                <SortableHeaderTh label="Etapa Actual" sortKey="etapaActual" onSort={onSort} sortConfig={sortConfig} width="w-36" />
+                                <SortableHeaderTh label="Metros" sortKey="metros" onSort={onSort} sortConfig={sortConfig} width="w-24" className="text-right" />
+                                <SortableHeaderTh label="T. Planificado" sortKey="tiempoProduccionPlanificado" onSort={onSort} sortConfig={sortConfig} width="w-28" className="text-center" />
+                                <SortableHeaderTh label="F. Entrega" sortKey="fechaEntrega" onSort={onSort} sortConfig={sortConfig} width="w-28" className="text-center" />
+                                <th className="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center w-28">
+                                    Acciones
+                                </th>
+                            </tr>
+                        </thead>
+                        {isMounted && (
+                            <Droppable droppableId="pedido-list">
+                                {(provided) => (
+                                    <tbody
+                                        {...provided.droppableProps}
+                                        ref={provided.innerRef}
+                                        className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
+                                    >
+                                        {pedidos.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={12} className="text-center py-10 text-gray-500">
+                                                    No se encontraron pedidos con los filtros actuales.
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            pedidos.map((pedido, index) => (
+                                                <Draggable key={pedido.id} draggableId={pedido.id} index={index}>
+                                                    {(provided, snapshot) => (
+                                                        <PedidoRow
+                                                            key={pedido.id}
+                                                            pedido={pedido}
+                                                            onSelectPedido={onSelectPedido}
+                                                            onArchiveToggle={onArchiveToggle}
+                                                            isArchivedView={isArchivedView}
+                                                            currentUserRole={currentUserRole}
+                                                            onAdvanceStage={onAdvanceStage}
+                                                            provided={provided}
+                                                            snapshot={snapshot}
+                                                            highlightedPedidoId={highlightedPedidoId}
+                                                        />
+                                                    )}
+                                                </Draggable>
+                                            ))
+                                        )}
+                                        {provided.placeholder}
+                                    </tbody>
+                                )}
+                            </Droppable>
+                        )}
+                    </table>
                      {!isMounted && (
                         <div className="text-center py-10 text-gray-500">Cargando...</div>
                      )}
