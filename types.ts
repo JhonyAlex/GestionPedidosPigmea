@@ -48,7 +48,7 @@ export interface EtapaInfo {
 
 export interface HistorialEntry {
     timestamp: string; // ISO 8601
-    usuario: UserRole;
+    usuario: string; // Nombre del usuario (displayName o username)
     accion: string; // e.g., "Creación", "Cambio de Etapa", "Campo Actualizado"
     detalles: string; // e.g., "Etapa movida de 'Preparación' a 'Impresión WM1'" or "Prioridad cambiada de 'Normal' a 'Alta'"
 }
@@ -121,7 +121,7 @@ export type UserRole = 'Administrador' | 'Operador';
 export interface AuditEntry {
     id?: number;
     timestamp: string;
-    userRole: UserRole;
+    userRole: string; // Nombre del usuario en lugar del rol
     action: string;
     pedidoId?: string;
     details?: any;

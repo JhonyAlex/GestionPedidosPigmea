@@ -67,12 +67,12 @@ const AppContent: React.FC = () => {
         subscribeToPedidoDeleted
     } = useWebSocket(currentUserId, currentUserRole);
 
-    const generarEntradaHistorial = useCallback((usuario: UserRole, accion: string, detalles: string): HistorialEntry => ({
+    const generarEntradaHistorial = useCallback((usuarioRole: UserRole, accion: string, detalles: string): HistorialEntry => ({
         timestamp: new Date().toISOString(),
-        usuario,
+        usuario: user?.displayName || user?.username || usuarioRole, // Usar nombre del usuario en lugar del rol
         accion,
         detalles
-    }), []);
+    }), [user]);
     
     const {
         pedidos,
@@ -153,15 +153,17 @@ const AppContent: React.FC = () => {
     };
 
     const logAction = useCallback(async (action: string, pedidoId?: string) => {
+        const userName = user?.displayName || user?.username || currentUserRole;
+        
         // Agregar al estado local para respuesta inmediata
         setAuditLog(prevLog => {
-            const newEntry = { timestamp: new Date().toISOString(), userRole: currentUserRole, action };
+            const newEntry = { timestamp: new Date().toISOString(), userRole: userName, action };
             return [newEntry, ...prevLog];
         });
         
         // Persistir en base de datos
-        await auditService.logAction(currentUserRole, action, pedidoId);
-    }, [currentUserRole]);
+        await auditService.logAction(userName, action, pedidoId);
+    }, [currentUserRole, user]);
 
     // Cargar registros de auditoría al iniciar
     useEffect(() => {

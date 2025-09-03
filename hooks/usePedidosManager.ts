@@ -7,7 +7,7 @@ import AntivahoConfirmationModal from '../components/AntivahoConfirmationModal';
 
 export const usePedidosManager = (
     currentUserRole: UserRole,
-    generarEntradaHistorial: (usuario: UserRole, accion: string, detalles: string) => HistorialEntry,
+    generarEntradaHistorial: (usuarioRole: UserRole, accion: string, detalles: string) => HistorialEntry,
     setPedidoToSend: React.Dispatch<React.SetStateAction<Pedido | null>>,
     // Agregamos los callbacks de sincronización
     subscribeToPedidoCreated?: (callback: (pedido: Pedido) => void) => () => void,
@@ -103,12 +103,19 @@ export const usePedidosManager = (
         if (generateHistory) {
             const newHistoryEntries: HistorialEntry[] = [];
             const fieldsToCompare: Array<keyof Pedido> = [
-                'numeroPedidoCliente', 'cliente', 'metros', 'fechaEntrega', 'prioridad', 
-                'tipoImpresion', 'desarrollo', 'capa', 'tiempoProduccionPlanificado', 
-                'observaciones', 'materialDisponible', 'clicheDisponible', 'estadoCliché', 'secuenciaTrabajo',
-                'camisa', 'producto', 'materialCapasCantidad', 'materialCapas', 
-                'materialConsumoCantidad', 'materialConsumo', 'bobinaMadre', 'bobinaFinal', 
-                'minAdap', 'colores', 'maquinaImpresion', 'orden', 'minColor', 'subEtapaActual', 'antivaho', 'antivahoRealizado'
+                // Información básica
+                'numeroPedidoCliente', 'cliente', 'metros', 'fechaEntrega', 'fechaFinalizacion', 'prioridad', 
+                'maquinaImpresion', 'orden',
+                // Información de producción
+                'tipoImpresion', 'desarrollo', 'capa', 'tiempoProduccionPlanificado', 'tiempoTotalProduccion',
+                'observaciones', 
+                // Secuencia y etapas
+                'secuenciaTrabajo', 'subEtapaActual', 'etapasSecuencia',
+                // Datos de preparación
+                'materialDisponible', 'clicheDisponible', 'estadoCliché', 'camisa', 'antivaho', 'antivahoRealizado',
+                // Datos técnicos de material
+                'producto', 'materialCapasCantidad', 'materialCapas', 'materialConsumoCantidad', 'materialConsumo', 
+                'bobinaMadre', 'bobinaFinal', 'minAdap', 'colores', 'minColor'
             ];
 
             fieldsToCompare.forEach(key => {

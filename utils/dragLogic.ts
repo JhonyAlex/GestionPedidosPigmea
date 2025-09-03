@@ -11,7 +11,7 @@ type ProcessDragEndArgs = {
   pedidos: Pedido[];
   processedPedidos: Pedido[];
   currentUserRole: UserRole;
-  generarEntradaHistorial: (usuario: UserRole, accion: string, detalles: string) => HistorialEntry;
+  generarEntradaHistorial: (usuarioRole: UserRole, accion: string, detalles: string) => HistorialEntry;
   logAction: (action: string, pedidoId?: string) => void;
   setPedidos: React.Dispatch<React.SetStateAction<Pedido[]>>;
   handleSavePedido: (pedido: Pedido) => Promise<any>;
