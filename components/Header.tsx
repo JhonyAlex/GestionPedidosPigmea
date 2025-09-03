@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { ViewType, Prioridad, Etapa, UserRole, Pedido } from '../types';
-import { ETAPAS_KANBAN, ETAPAS } from '../constants';
+import { ETAPAS_KANBAN, ETAPAS, STAGE_GROUPS } from '../constants';
 import { DateFilterOption } from '../utils/date';
 import UserInfo from './UserInfo';
 import { useAuth } from '../contexts/AuthContext';
@@ -253,37 +253,50 @@ const Header: React.FC<HeaderProps> = ({
                 {/* Tercera fila: Grid de botones de etapas solo para vista de lista */}
                 {currentView === 'list' && (
                     <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
-                        <div className="flex flex-col gap-2">
-                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                Filtrar por Etapa {selectedStages.length > 0 && `(${selectedStages.length} seleccionadas)`}:
-                            </span>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2">
+                        <div className="flex flex-col gap-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                                    Filtrar por Etapa {selectedStages.length > 0 && `(${selectedStages.length} seleccionadas)`}:
+                                </span>
                                 <button
                                     onClick={() => onStageToggle('all')}
-                                    className={`px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                                         selectedStages.length === 0
                                             ? 'bg-indigo-600 text-white shadow-sm'
                                             : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                                     }`}
                                 >
-                                    Todas
+                                    ✨ Todas las Etapas
                                 </button>
-                                {ETAPAS_KANBAN.map(etapaId => (
-                                    <button
-                                        key={etapaId}
-                                        onClick={() => onStageToggle(etapaId)}
-                                        className={`px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 whitespace-nowrap ${
-                                            selectedStages.includes(etapaId)
-                                                ? 'bg-indigo-600 text-white shadow-sm'
-                                                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                                        }`}
-                                        title={ETAPAS[etapaId].title}
-                                    >
-                                        {ETAPAS[etapaId].title.length > 14 
-                                            ? `${ETAPAS[etapaId].title.substring(0, 14)}...` 
-                                            : ETAPAS[etapaId].title
-                                        }
-                                    </button>
+                            </div>
+                            
+                            {/* Grupos de etapas */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+                                {Object.values(STAGE_GROUPS).map(group => (
+                                    <div key={group.title} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                                        <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                                            {group.title}
+                                        </h4>
+                                        <div className="grid grid-cols-1 gap-1.5">
+                                            {group.stages.map(etapaId => (
+                                                <button
+                                                    key={etapaId}
+                                                    onClick={() => onStageToggle(etapaId)}
+                                                    className={`px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-left ${
+                                                        selectedStages.includes(etapaId)
+                                                            ? 'bg-indigo-600 text-white shadow-sm'
+                                                            : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
+                                                    }`}
+                                                    title={ETAPAS[etapaId].title}
+                                                >
+                                                    {ETAPAS[etapaId].title.length > 18 
+                                                        ? `${ETAPAS[etapaId].title.substring(0, 18)}...` 
+                                                        : ETAPAS[etapaId].title
+                                                    }
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
                         </div>

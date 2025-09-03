@@ -65,6 +65,42 @@ export const KANBAN_FUNNELS = {
     },
 };
 
+// Agrupaciones específicas para los filtros visuales
+export const STAGE_GROUPS = {
+    IMPRESION: {
+        title: 'Impresión',
+        stages: [
+            Etapa.IMPRESION_WM1,
+            Etapa.IMPRESION_GIAVE,
+            Etapa.IMPRESION_WM3,
+            Etapa.IMPRESION_ANON,
+        ],
+    },
+    LAMINACION: {
+        title: 'Laminación',
+        stages: [
+            Etapa.POST_LAMINACION_SL2,
+            Etapa.POST_LAMINACION_NEXUS,
+        ],
+    },
+    REBOBINADO_Y_PERFORACION: {
+        title: 'Rebobinado y Perforación',
+        stages: [
+            Etapa.POST_REBOBINADO_S2DT,
+            Etapa.POST_REBOBINADO_PROSLIT,
+            Etapa.POST_PERFORACION_MIC,
+            Etapa.POST_PERFORACION_MAC,
+            Etapa.POST_REBOBINADO_TEMAC,
+        ],
+    },
+    OTROS: {
+        title: 'Estado Final',
+        stages: [
+            Etapa.COMPLETADO,
+        ],
+    },
+};
+
 // Etapas a mostrar en el Kanban y filtros (excluye Pendiente y Archivado)
 export const ETAPAS_KANBAN: Etapa[] = [
     ...KANBAN_FUNNELS.IMPRESION.stages,
