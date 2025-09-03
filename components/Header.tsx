@@ -341,6 +341,11 @@ const Header: React.FC<HeaderProps> = ({
                                     ))}
                                 </div>
                             </div>
+                            
+                            {/* Espaciador invisible para mantener altura cuando se colapsa */}
+                            {isStageFiltersCollapsed && (
+                                <div className="h-20" />
+                            )}
                         </div>
                     </div>
                 )}
