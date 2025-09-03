@@ -41,6 +41,7 @@ const AppContent: React.FC = () => {
     const [pedidoToReorder, setPedidoToReorder] = useState<Pedido | null>(null);
     const [highlightedPedidoId, setHighlightedPedidoId] = useState<string | null>(null);
     const [isDuplicating, setIsDuplicating] = useState(false);
+    const [duplicatingMessage, setDuplicatingMessage] = useState('Duplicando pedido...');
 
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
         if (typeof window !== 'undefined' && localStorage.theme) {
@@ -351,11 +352,18 @@ const AppContent: React.FC = () => {
     const handleDuplicatePedido = async (pedidoToDuplicate: Pedido) => {
         // Mostrar estado de carga
         setIsDuplicating(true);
+        setDuplicatingMessage('Duplicando pedido...');
         setSelectedPedido(null); // Cierra el modal actual
 
         try {
-            // Simular carga de 2 segundos
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Primer segundo - mensaje de duplicación
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Cambiar mensaje después del primer segundo
+            setDuplicatingMessage('Abriendo pedido duplicado...');
+            
+            // Segundo segundo - completar proceso
+            await new Promise(resolve => setTimeout(resolve, 1000));
             
             const newPedido = await handleDuplicatePedidoLogic(pedidoToDuplicate);
             if (newPedido) {
@@ -374,6 +382,7 @@ const AppContent: React.FC = () => {
             console.error('Error al duplicar pedido:', error);
         } finally {
             setIsDuplicating(false);
+            setDuplicatingMessage('Duplicando pedido...'); // Resetear mensaje para próxima vez
         }
     };
 
@@ -602,10 +611,13 @@ const AppContent: React.FC = () => {
                         <div className="bg-white dark:bg-gray-800 rounded-lg p-8 max-w-sm w-full mx-4 text-center">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4"></div>
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                                Duplicando pedido...
+                                {duplicatingMessage}
                             </h3>
                             <p className="text-gray-600 dark:text-gray-300">
-                                Por favor espere mientras se procesa la duplicación
+                                {duplicatingMessage === 'Duplicando pedido...' 
+                                    ? 'Por favor espere mientras se procesa la duplicación' 
+                                    : 'Se está preparando para mostrar el nuevo pedido'
+                                }
                             </p>
                         </div>
                     </div>
