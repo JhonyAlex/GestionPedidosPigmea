@@ -20,6 +20,12 @@ const dbClient = new PostgreSQLClient();
 
 // --- EXPRESS APP SETUP ---
 const app = express();
+
+// Configurar proxy trust para Dokploy
+if (process.env.TRUST_PROXY === '1' || process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+}
+
 const server = createServer(app);
 const io = new Server(server, {
     cors: {
