@@ -106,6 +106,7 @@ const AppContent: React.FC = () => {
       selectedStages,
       handleStageToggle,
       resetStageFilters,
+      resetTraditionalStageFilter,
       antivahoFilter,
       handleAntivahoFilterChange,
       dateFilter,
@@ -129,13 +130,21 @@ const AppContent: React.FC = () => {
         }
     }, [theme]);
 
-    // Resetear filtros de etapa cuando se cambia a vistas que no son "list" o "kanban"
+    // Resetear filtros de etapa cuando se cambia entre vistas con diferentes sistemas de filtro
     useEffect(() => {
         const viewsThatNeedStageReset = ['preparacion', 'archived', 'report'];
+        
         if (viewsThatNeedStageReset.includes(view)) {
+            // Resetear completamente para vistas que no usan filtros de etapa
             resetStageFilters();
+        } else if (view === 'kanban' && selectedStages.length > 0) {
+            // Al ir de 'list' (botones) a 'kanban' (select), resetear botones
+            resetStageFilters();
+        } else if (view === 'list' && filters.stage !== 'all') {
+            // Al ir de 'kanban' (select) a 'list' (botones), resetear select
+            resetTraditionalStageFilter();
         }
-    }, [view, resetStageFilters]);
+    }, [view, resetStageFilters, resetTraditionalStageFilter, selectedStages.length, filters.stage]);
     
     const toggleTheme = () => {
         setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');

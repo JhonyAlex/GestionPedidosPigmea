@@ -54,6 +54,10 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         setFilters(prev => ({ ...prev, stage: 'all' }));
     }, []);
 
+    const resetTraditionalStageFilter = useCallback(() => {
+        setFilters(prev => ({ ...prev, stage: 'all' }));
+    }, []);
+
     const processedPedidos = useMemo(() => {
         let dateRange: { start: Date, end: Date } | null = null;
         
@@ -97,7 +101,9 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
             );
 
             const priorityMatch = filters.priority === 'all' || p.prioridad === filters.priority;
-            const stageMatch = selectedStages.length === 0 || selectedStages.includes(p.etapaActual);
+            const stageMatch = (selectedStages.length === 0 && filters.stage === 'all') || 
+                               selectedStages.includes(p.etapaActual) || 
+                               filters.stage === p.etapaActual;
             const dateToFilter = p[filters.dateField];
             const dateMatch = !dateRange || (dateToFilter && new Date(dateToFilter) >= dateRange.start && new Date(dateToFilter) <= dateRange.end);
             const antivahoMatch = antivahoFilter === 'all' || 
@@ -163,6 +169,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         selectedStages,
         handleStageToggle,
         resetStageFilters,
+        resetTraditionalStageFilter,
         antivahoFilter,
         handleAntivahoFilterChange,
         dateFilter,

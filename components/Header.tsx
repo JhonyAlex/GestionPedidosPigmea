@@ -1,6 +1,6 @@
 
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ViewType, Prioridad, Etapa, UserRole, Pedido } from '../types';
 import { ETAPAS_KANBAN, ETAPAS, STAGE_GROUPS } from '../constants';
 import { DateFilterOption } from '../utils/date';
@@ -71,22 +71,32 @@ const Header: React.FC<HeaderProps> = ({
     const currentUserRole = user?.role || 'Operador';
     const scrollDirection = useScrollDirection();
     const [isStageFiltersCollapsed, setIsStageFiltersCollapsed] = useState(false);
+    const lastActionTimeRef = useRef(0);
 
-    // Controlar el colapso basado en la dirección del scroll
+    // Controlar el colapso basado en la dirección del scroll con inercia
     useEffect(() => {
-        if (currentView === 'list') {
-            if (scrollDirection === 'down') {
-                setIsStageFiltersCollapsed(true);
-            } else if (scrollDirection === 'up') {
-                setIsStageFiltersCollapsed(false);
-            }
+        if (currentView !== 'list') return;
+        
+        const now = Date.now();
+        const timeSinceLastAction = now - lastActionTimeRef.current;
+        
+        // Solo actuar si ha pasado suficiente tiempo desde la última acción
+        if (timeSinceLastAction < 200) return;
+        
+        if (scrollDirection === 'down' && !isStageFiltersCollapsed) {
+            setIsStageFiltersCollapsed(true);
+            lastActionTimeRef.current = now;
+        } else if (scrollDirection === 'up' && isStageFiltersCollapsed) {
+            setIsStageFiltersCollapsed(false);
+            lastActionTimeRef.current = now;
         }
-    }, [scrollDirection, currentView]);
+    }, [scrollDirection, currentView, isStageFiltersCollapsed]);
 
     // Resetear el estado cuando cambie la vista
     useEffect(() => {
         if (currentView !== 'list') {
             setIsStageFiltersCollapsed(false);
+            lastActionTimeRef.current = 0;
         }
     }, [currentView]);
     
