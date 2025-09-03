@@ -10,7 +10,7 @@ echo ""
 echo "2. 🔐 Probando login exitoso:"
 RESPONSE=$(curl -s -X POST "https://planning.pigmea.click/api/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}')
+  -d '{"username":"admin","password":"Admin#2025!"}')
 
 echo "Respuesta completa:"
 echo "$RESPONSE" | jq .
