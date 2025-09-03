@@ -148,20 +148,20 @@ const getNextStageTitle = (pedido: Pedido): string => {
 
 export const generatePedidosPDF = (pedidos: Pedido[]) => {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('l', 'pt', 'a4'); // 'l' for landscape
+    const doc = new jsPDF('p', 'pt', 'a4'); // 'p' for portrait (vertical orientation)
 
     // --- HEADER ---
-    doc.setFontSize(20);
+    doc.setFontSize(18);
     doc.setFont(undefined, 'bold');
-    doc.text('PIGMEA S.L.', 40, 55);
+    doc.text('PIGMEA S.L.', 40, 45);
 
     // --- Document Title & Dynamic Subtitle ---
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(100);
     const mainSubtitle = 'Planificación semanal';
-    let tableStartY = 90; // Default start Y for the table
-    doc.text(mainSubtitle, 40, 75);
+    let tableStartY = 75; // Adjusted start Y for the table
+    doc.text(mainSubtitle, 40, 65);
 
     // Dynamic subtitle part based on stages present in the exported list
     const printingMachines = new Set<string>();
@@ -185,12 +185,12 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
     const dynamicSubtitle = subtitleParts.join(' | ');
 
     if (dynamicSubtitle) {
-        doc.setFontSize(9);
+        doc.setFontSize(8);
         doc.setTextColor(150);
-        doc.text(dynamicSubtitle, 40, 88, { 
-            maxWidth: 842 - 40 - 40, // Page width (landscape) - margins
+        doc.text(dynamicSubtitle, 40, 78, { 
+            maxWidth: 595 - 40 - 40, // Page width (portrait) - margins
         });
-        tableStartY = 105; 
+        tableStartY = 90; 
     }
     
     // Date
@@ -198,22 +198,22 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
     doc.setFontSize(9);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(0); 
-    doc.text(today.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric'}), 802, 50, { align: 'right' });
+    doc.text(today.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric'}), 555, 45, { align: 'right' });
 
     // Table
     const tableColumn = [
         "Desarrollo",
-        "Cliente y # Pedido",
+        "Cliente / # Pedido",
         "Metros",
-        "Tipo Impresión",
+        "Tipo",
         "Capa",
         "Camisa",
         "Antivaho",
-        "Secuencia Actual",
-        "Secuencia Siguiente",
+        "Etapa Actual",
+        "Siguiente",
         "Observaciones",
-        "Fecha Creación",
-        "Fecha Entrega"
+        "F. Creación",
+        "F. Entrega"
     ];
     
     const tableRows = pedidos.map(p => {
@@ -242,8 +242,8 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
         body: tableRows,
         theme: 'grid',
         styles: {
-            fontSize: 7,
-            cellPadding: 3,
+            fontSize: 6, // Reduced font size for compactness
+            cellPadding: 2, // Reduced padding
             valign: 'middle',
             textColor: [31, 41, 55], 
         },
@@ -252,12 +252,21 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             textColor: 255,
             fontStyle: 'bold',
             halign: 'center',
+            fontSize: 7, // Slightly larger for headers
         },
         columnStyles: {
-            0: { cellWidth: 60 }, // Desarrollo
-            1: { cellWidth: 80 }, // Cliente y # Pedido
-            6: { cellWidth: 50 }, // Antivaho
-            9: { cellWidth: 100 }, // Observaciones
+            0: { cellWidth: 45 }, // Desarrollo
+            1: { cellWidth: 55 }, // Cliente y # Pedido
+            2: { cellWidth: 35 }, // Metros
+            3: { cellWidth: 35 }, // Tipo
+            4: { cellWidth: 30 }, // Capa
+            5: { cellWidth: 35 }, // Camisa
+            6: { cellWidth: 30 }, // Antivaho
+            7: { cellWidth: 50 }, // Etapa Actual
+            8: { cellWidth: 50 }, // Siguiente
+            9: { cellWidth: 80 }, // Observaciones
+            10: { cellWidth: 40 }, // F. Creación
+            11: { cellWidth: 40 }, // F. Entrega
         },
         didParseCell: (data) => {
             // Center align all columns except specific ones
