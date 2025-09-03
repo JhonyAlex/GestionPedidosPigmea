@@ -367,7 +367,7 @@ const AppContent: React.FC = () => {
                                     <KanbanColumn
                                         key={etapaId}
                                         etapa={ETAPAS[etapaId]}
-                                        pedidos={activePedidos.filter(p => p.etapaActual === etapaId)}
+                                        pedidos={processedPedidos.filter(p => p.etapaActual === etapaId)}
                                         onSelectPedido={setSelectedPedido}
                                         onArchiveToggle={handleArchiveToggle}
                                         currentUserRole={currentUserRole}
@@ -400,7 +400,7 @@ const AppContent: React.FC = () => {
                             <h2 className="text-3xl font-extrabold text-gray-800 dark:text-white mb-4 border-l-4 border-green-500 pl-4">Finalizado</h2>
                             <div className="w-full">
                                 <CompletedPedidosList
-                                    pedidos={activePedidos.filter(p => p.etapaActual === Etapa.COMPLETADO)}
+                                    pedidos={processedPedidos.filter(p => p.etapaActual === Etapa.COMPLETADO)}
                                     onSelectPedido={setSelectedPedido}
                                     onArchiveToggle={handleArchiveToggle}
                                     currentUserRole={currentUserRole}

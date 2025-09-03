@@ -250,7 +250,7 @@ const Header: React.FC<HeaderProps> = ({
                         </select>
                         
                         {/* Filtro de etapas como select para vistas que no son lista */}
-                        {currentView !== 'archived' && currentView !== 'preparacion' && currentView !== 'list' && (
+                        {currentView === 'kanban' && (
                             <select
                                 name="stage"
                                 value={activeFilters.stage}
@@ -260,13 +260,6 @@ const Header: React.FC<HeaderProps> = ({
                                 <option value="all">Toda Etapa</option>
                                 {ETAPAS_KANBAN.map(etapaId => <option key={etapaId} value={etapaId}>{ETAPAS[etapaId].title}</option>)}
                             </select>
-                        )}
-
-                        {/* Mensaje informativo para vistas donde los filtros de etapa están deshabilitados */}
-                        {(['preparacion', 'archived', 'report'] as ViewType[]).includes(currentView) && (
-                            <div className="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md text-sm text-blue-700 dark:text-blue-300">
-                                <span className="font-medium">ℹ️ Filtros de etapa deshabilitados</span> - Se muestran todos los elementos en esta vista
-                            </div>
                         )}
 
                         <input
