@@ -37,8 +37,16 @@ const io = new Server(server, {
                 "http://localhost:5174",
                 "http://localhost:3001" // Admin panel
             ],
-        methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
-    }
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+        credentials: true
+    },
+    // Configuración específica para producción con proxy
+    transports: process.env.NODE_ENV === 'production' 
+        ? ['polling', 'websocket'] 
+        : ['websocket', 'polling'],
+    allowEIO3: true,
+    pingTimeout: 60000,
+    pingInterval: 25000
 });
 
 // Seguridad y middleware
