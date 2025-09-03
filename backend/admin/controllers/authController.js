@@ -21,9 +21,11 @@ const authController = {
             // Buscar usuario administrador
             const user = await dbClient.getAdminUserByUsername(username);
             
+            console.log('🔍 Debug login - Usuario encontrado:', user ? { id: user.id, username: user.username, role: user.role } : null);
+            
             if (!user) {
                 return res.status(401).json({
-                    error: 'Credenciales incorrectas'
+                    error: 'Usuario no encontrado'
                 });
             }
 
@@ -34,11 +36,13 @@ const authController = {
             }
 
             // Verificar contraseña
+            console.log('🔍 Debug login - Verificando contraseña para:', username);
             const isValidPassword = await bcrypt.compare(password, user.password_hash);
+            console.log('🔍 Debug login - Contraseña válida:', isValidPassword);
             
             if (!isValidPassword) {
                 return res.status(401).json({
-                    error: 'Credenciales incorrectas'
+                    error: 'Contraseña incorrecta'
                 });
             }
 

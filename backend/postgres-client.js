@@ -511,9 +511,14 @@ class PostgreSQLClient {
         const client = await this.pool.connect();
         try {
             const result = await client.query(
-                'SELECT * FROM admin_users WHERE username = $1',
+                'SELECT * FROM public.admin_users WHERE username = $1',
                 [username]
             );
+            console.log('🔍 Debug getAdminUserByUsername:', {
+                username: username,
+                resultCount: result.rows.length,
+                user: result.rows[0] ? { id: result.rows[0].id, username: result.rows[0].username, role: result.rows[0].role } : null
+            });
             return result.rows[0] || null;
         } finally {
             client.release();
