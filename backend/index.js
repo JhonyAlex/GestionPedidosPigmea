@@ -256,7 +256,15 @@ app.post('/api/auth/login', async (req, res) => {
         if (dbClient.isInitialized) {
             console.log('🗄️ Usando autenticación con base de datos');
             
-            const user = await dbClient.findUserByUsername(username);
+            // Primero buscar en admin_users
+            let user = await dbClient.getAdminUserByUsername(username);
+            let isAdminUser = true;
+            
+            if (!user) {
+                // Si no se encuentra en admin_users, buscar en users regulares
+                user = await dbClient.findUserByUsername(username);
+                isAdminUser = false;
+            }
             
             if (!user) {
                 console.log(`❌ Usuario no encontrado en BD: ${username}`);
@@ -265,8 +273,29 @@ app.post('/api/auth/login', async (req, res) => {
                 });
             }
 
-            // Comparación simple de contraseña (sin hash para simplicidad)
-            if (user.password !== password) {
+            console.log('🔍 Usuario encontrado:', { 
+                username: user.username, 
+                isAdmin: isAdminUser,
+                role: user.role || 'user'
+            });
+
+            // Verificación de contraseña según el tipo de usuario
+            let isValidPassword = false;
+            
+            if (isAdminUser && user.password_hash) {
+                // Usuarios admin: usar bcrypt
+                console.log('🔐 Verificando contraseña con bcrypt para admin');
+                const bcrypt = require('bcryptjs');
+                isValidPassword = await bcrypt.compare(password, user.password_hash);
+            } else if (!isAdminUser && user.password) {
+                // Usuarios regulares: comparación directa
+                console.log('🔐 Verificando contraseña directa para usuario regular');
+                isValidPassword = (user.password === password);
+            }
+
+            console.log('🔍 Resultado verificación:', isValidPassword);
+
+            if (!isValidPassword) {
                 console.log(`❌ Contraseña incorrecta para: ${username}`);
                 return res.status(401).json({ 
                     error: 'Contraseña incorrecta' 
