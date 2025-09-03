@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Pedido, Prioridad, Etapa, UserRole, TipoImpresion, EstadoCliché } from '../types';
 import { calcularTiempoRealProduccion, parseTimeToMinutes, formatMinutesToHHMM } from '../utils/kpi';
+import { puedeAvanzarSecuencia, estaFueraDeSecuencia } from '../utils/etapaLogic';
 import { ETAPAS, KANBAN_FUNNELS } from '../constants';
 import SequenceBuilder from './SequenceBuilder';
 import SeccionDatosTecnicosDeMaterial from './SeccionDatosTecnicosDeMaterial';
@@ -121,25 +122,48 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     }, [pedido]);
     
     const { canAdvance, advanceButtonTitle } = useMemo(() => {
-         if (pedido.etapaActual === Etapa.PREPARACION) {
-            return { canAdvance: false, advanceButtonTitle: '' }; // Avance gestionado desde PreparacionView
+        // Usar la nueva lógica centralizada
+        const canAdvanceSequence = puedeAvanzarSecuencia(
+            pedido.etapaActual, 
+            pedido.secuenciaTrabajo, 
+            pedido.antivaho, 
+            pedido.antivahoRealizado
+        );
+        
+        if (!canAdvanceSequence) {
+            return { canAdvance: false, advanceButtonTitle: '' };
         }
 
+        // Determinar el título del botón basado en la situación
         const isPrinting = KANBAN_FUNNELS.IMPRESION.stages.includes(pedido.etapaActual);
         const isPostPrinting = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual);
+        const isOutOfSequence = estaFueraDeSecuencia(pedido.etapaActual, pedido.secuenciaTrabajo);
 
         if (isPrinting && pedido.secuenciaTrabajo?.length > 0) {
             return { canAdvance: true, advanceButtonTitle: 'Iniciar Post-Impresión' };
         }
+        
         if (isPostPrinting) {
+            // Para pedidos con antivaho en post-impresión, permitir "continuar" para reconfirmar
+            if (pedido.antivaho && !pedido.antivahoRealizado) {
+                return { canAdvance: true, advanceButtonTitle: 'Continuar Secuencia' };
+            }
+            
+            // Si está fuera de secuencia, ofrecer reordenar
+            if (isOutOfSequence) {
+                return { canAdvance: true, advanceButtonTitle: 'Reordenar y Continuar' };
+            }
+            
+            // Lógica normal para pedidos en secuencia
             const currentIndex = pedido.secuenciaTrabajo?.indexOf(pedido.etapaActual) ?? -1;
             if (currentIndex > -1 && currentIndex < pedido.secuenciaTrabajo.length - 1) {
                 return { canAdvance: true, advanceButtonTitle: 'Siguiente Etapa' };
             }
-             if (currentIndex > -1 && currentIndex === pedido.secuenciaTrabajo.length -1) {
+            if (currentIndex > -1 && currentIndex === pedido.secuenciaTrabajo.length - 1) {
                 return { canAdvance: true, advanceButtonTitle: 'Marcar como Completado' };
             }
         }
+        
         return { canAdvance: false, advanceButtonTitle: '' };
     }, [pedido]);
 

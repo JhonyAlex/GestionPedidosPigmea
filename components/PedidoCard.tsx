@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Pedido, Etapa, UserRole, EstadoCliché, Prioridad } from '../types';
 import { PRIORIDAD_COLORS, KANBAN_FUNNELS } from '../constants';
+import { puedeAvanzarSecuencia, estaFueraDeSecuencia } from '../utils/etapaLogic';
 import { SparklesIcon } from './Icons';
 
 const ClockIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1 inline-block"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>;
@@ -43,31 +44,52 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
     }
 
     const { canAdvance, advanceButtonTitle } = useMemo(() => {
+        // Usar la nueva lógica centralizada
+        const canAdvanceSequence = puedeAvanzarSecuencia(
+            pedido.etapaActual, 
+            pedido.secuenciaTrabajo, 
+            pedido.antivaho, 
+            pedido.antivahoRealizado
+        );
+        
+        if (!canAdvanceSequence) {
+            return { canAdvance: false, advanceButtonTitle: '' };
+        }
+
+        // Determinar el título del botón basado en la situación
         if (pedido.etapaActual === Etapa.PREPARACION && !!pedido.materialDisponible) {
             return { canAdvance: true, advanceButtonTitle: 'Enviar a Impresión' };
         }
 
         const isPrinting = KANBAN_FUNNELS.IMPRESION.stages.includes(pedido.etapaActual);
         const isPostPrinting = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual);
+        const isOutOfSequence = estaFueraDeSecuencia(pedido.etapaActual, pedido.secuenciaTrabajo);
 
         if (isPrinting && pedido.secuenciaTrabajo?.length > 0) {
             return { canAdvance: true, advanceButtonTitle: 'Iniciar Post-Impresión' };
         }
+        
         if (isPostPrinting) {
             // Para pedidos con antivaho en post-impresión, permitir "continuar" para reconfirmar
-            // Esta condición debe ir ANTES que las condiciones de secuencia normal
             if (pedido.antivaho && !pedido.antivahoRealizado) {
                 return { canAdvance: true, advanceButtonTitle: 'Continuar Secuencia' };
             }
             
+            // Si está fuera de secuencia, ofrecer reordenar
+            if (isOutOfSequence) {
+                return { canAdvance: true, advanceButtonTitle: 'Reordenar y Continuar' };
+            }
+            
+            // Lógica normal para pedidos en secuencia
             const currentIndex = pedido.secuenciaTrabajo?.indexOf(pedido.etapaActual) ?? -1;
             if (currentIndex > -1 && currentIndex < pedido.secuenciaTrabajo.length - 1) {
                 return { canAdvance: true, advanceButtonTitle: 'Siguiente Etapa' };
             }
-            if (currentIndex > -1 && currentIndex === pedido.secuenciaTrabajo.length -1) {
+            if (currentIndex > -1 && currentIndex === pedido.secuenciaTrabajo.length - 1) {
                 return { canAdvance: true, advanceButtonTitle: 'Marcar como Completado' };
             }
         }
+        
         return { canAdvance: false, advanceButtonTitle: '' };
     }, [pedido]);
 

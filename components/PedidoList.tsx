@@ -4,6 +4,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Droppable, Draggable } from 'react-beautiful-dnd';
 import { Pedido, Etapa, UserRole, Prioridad } from '../types';
 import { ETAPAS, PRIORIDAD_COLORS, KANBAN_FUNNELS } from '../constants';
+import { puedeAvanzarSecuencia, estaFueraDeSecuencia } from '../utils/etapaLogic';
 import { SparklesIcon } from './Icons';
 
 interface PedidoListProps {
@@ -83,13 +84,39 @@ const SortableHeaderTh = ({
 
 const PedidoRow = ({ pedido, onSelectPedido, onArchiveToggle, isArchivedView, currentUserRole, onAdvanceStage, provided, snapshot, highlightedPedidoId }) => {
     const { canAdvance, advanceButtonTitle } = useMemo(() => {
+        // Usar la nueva lógica centralizada
+        const canAdvanceSequence = puedeAvanzarSecuencia(
+            pedido.etapaActual, 
+            pedido.secuenciaTrabajo, 
+            pedido.antivaho, 
+            pedido.antivahoRealizado
+        );
+        
+        if (!canAdvanceSequence) {
+            return { canAdvance: false, advanceButtonTitle: '' };
+        }
+
+        // Determinar el título del botón basado en la situación
         const isPrinting = KANBAN_FUNNELS.IMPRESION.stages.includes(pedido.etapaActual);
         const isPostPrinting = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual);
+        const isOutOfSequence = estaFueraDeSecuencia(pedido.etapaActual, pedido.secuenciaTrabajo);
 
         if (isPrinting && pedido.secuenciaTrabajo?.length > 0) {
             return { canAdvance: true, advanceButtonTitle: 'Iniciar Post-Impresión' };
         }
+        
         if (isPostPrinting) {
+            // Para pedidos con antivaho en post-impresión, permitir "continuar" para reconfirmar
+            if (pedido.antivaho && !pedido.antivahoRealizado) {
+                return { canAdvance: true, advanceButtonTitle: 'Continuar Secuencia' };
+            }
+            
+            // Si está fuera de secuencia, ofrecer reordenar
+            if (isOutOfSequence) {
+                return { canAdvance: true, advanceButtonTitle: 'Reordenar y Continuar' };
+            }
+            
+            // Lógica normal para pedidos en secuencia
             const currentIndex = pedido.secuenciaTrabajo?.indexOf(pedido.etapaActual) ?? -1;
             if (currentIndex > -1 && currentIndex < pedido.secuenciaTrabajo.length - 1) {
                 return { canAdvance: true, advanceButtonTitle: 'Siguiente Etapa' };
@@ -98,6 +125,7 @@ const PedidoRow = ({ pedido, onSelectPedido, onArchiveToggle, isArchivedView, cu
                 return { canAdvance: true, advanceButtonTitle: 'Marcar como Completado' };
             }
         }
+        
         return { canAdvance: false, advanceButtonTitle: '' };
     }, [pedido]);
 

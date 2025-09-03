@@ -15,12 +15,13 @@ import ThemeSwitcher from './components/ThemeSwitcher';
 import CompletedPedidosList from './components/CompletedPedidosList';
 import PreparacionView from './components/PreparacionView';
 import EnviarAImpresionModal from './components/EnviarAImpresionModal';
+import SequenceReorderModal from './components/SequenceReorderModal';
 import NotificationCenter from './components/NotificationCenter';
 import ConnectedUsers from './components/ConnectedUsers';
 import LoginModal from './components/LoginModal';
 import UserInfo from './components/UserInfo';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { calcularSiguienteEtapa } from './utils/etapaLogic';
+import { calcularSiguienteEtapa, estaFueraDeSecuencia } from './utils/etapaLogic';
 import { procesarDragEnd } from './utils/dragLogic';
 import { usePedidosManager } from './hooks/usePedidosManager';
 import { useWebSocket } from './hooks/useWebSocket';
@@ -37,6 +38,7 @@ const AppContent: React.FC = () => {
     const [view, setView] = useState<ViewType>('preparacion');
     const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
     const [pedidoToSend, setPedidoToSend] = useState<Pedido | null>(null);
+    const [pedidoToReorder, setPedidoToReorder] = useState<Pedido | null>(null);
     const [highlightedPedidoId, setHighlightedPedidoId] = useState<string | null>(null);
 
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -202,6 +204,12 @@ const AppContent: React.FC = () => {
             return;
         }
 
+        // Si el pedido está fuera de secuencia, abrir modal de reordenamiento
+        if (estaFueraDeSecuencia(pedidoToAdvance.etapaActual, pedidoToAdvance.secuenciaTrabajo)) {
+            setPedidoToReorder(pedidoToAdvance);
+            return;
+        }
+
         const { etapaActual, secuenciaTrabajo } = pedidoToAdvance;
         const newEtapa = calcularSiguienteEtapa(etapaActual, secuenciaTrabajo);
 
@@ -268,6 +276,63 @@ const AppContent: React.FC = () => {
                     }
                 });
         }, 50); // Reduced delay for better responsiveness
+    };
+
+    const handleConfirmSequenceReorder = async (pedido: Pedido, newSequence: Etapa[], continueTo: Etapa) => {
+        // Cerrar modal y resaltar pedido
+        setPedidoToReorder(null);
+        setHighlightedPedidoId(pedido.id);
+
+        try {
+            // Actualizar la secuencia de trabajo del pedido
+            const updatedPedido: Pedido = {
+                ...pedido,
+                secuenciaTrabajo: newSequence,
+                historial: [
+                    ...(pedido.historial || []),
+                    generarEntradaHistorial(
+                        currentUserRole,
+                        'Secuencia Reordenada',
+                        `Secuencia reordenada: ${newSequence.map(e => ETAPAS[e].title).join(' → ')}`
+                    )
+                ]
+            };
+
+            // Guardar la secuencia actualizada
+            const saveResult = await handleSavePedidoLogic(updatedPedido);
+            
+            if (saveResult?.modifiedPedido) {
+                logAction(
+                    `Pedido ${saveResult.modifiedPedido.numeroPedidoCliente} - secuencia reordenada.`, 
+                    saveResult.modifiedPedido.id
+                );
+
+                // Emitir actividad WebSocket
+                emitActivity('pedido-edited', { 
+                    pedidoId: saveResult.modifiedPedido.id, 
+                    numeroCliente: saveResult.modifiedPedido.numeroPedidoCliente 
+                });
+
+                // Si el usuario eligió continuar a una etapa diferente, hacer el movimiento
+                if (continueTo !== pedido.etapaActual) {
+                    await handleUpdatePedidoEtapa(saveResult.modifiedPedido, continueTo);
+                    logAction(
+                        `Pedido ${saveResult.modifiedPedido.numeroPedidoCliente} movido a ${ETAPAS[continueTo].title} tras reordenamiento.`, 
+                        saveResult.modifiedPedido.id
+                    );
+                }
+            }
+
+            // Remover resaltado
+            setTimeout(() => {
+                setHighlightedPedidoId(null);
+            }, 800);
+
+        } catch (error) {
+            console.error('Error al reordenar secuencia:', error);
+            setHighlightedPedidoId(null);
+            // Opcional: mostrar mensaje de error al usuario
+        }
     };
     
     const handleArchiveToggle = async (pedido: Pedido) => {
@@ -501,6 +566,13 @@ const AppContent: React.FC = () => {
                         pedido={pedidoToSend}
                         onClose={() => setPedidoToSend(null)}
                         onConfirm={handleConfirmSendToPrint}
+                    />
+                )}
+                {pedidoToReorder && (
+                    <SequenceReorderModal
+                        pedido={pedidoToReorder}
+                        onClose={() => setPedidoToReorder(null)}
+                        onConfirm={handleConfirmSequenceReorder}
                     />
                 )}
                 <AntivahoConfirmationModal
