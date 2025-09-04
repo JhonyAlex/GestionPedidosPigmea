@@ -48,59 +48,23 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         setFormData(pedido);
     }, [pedido]);
 
-    // Efecto para guardar automáticamente cambios en campos de material
-    useEffect(() => {
+    const handleDataChange = (field: keyof Pedido, value: any) => {
+        const newFormData = { ...formData, [field]: value };
+        setFormData(newFormData);
+        
+        // Auto-guardar inmediatamente para campos de material
         const materialFields = [
             'materialCapasCantidad', 'materialCapas', 
             'materialConsumoCantidad', 'materialConsumo',
             'bobinaMadre', 'bobinaFinal', 'minAdap', 'colores', 'minColor', 'producto'
         ];
-
-        // Verificar si algún campo de material ha cambiado
-        const hasChanges = materialFields.some(field => 
-            JSON.stringify(formData[field as keyof Pedido]) !== JSON.stringify(pedido[field as keyof Pedido])
-        );
-
-        if (hasChanges && !isReadOnly) {
-            // Usar un timeout para evitar llamadas excesivas durante la escritura
-            const timeoutId = setTimeout(() => {
-                console.log('🔄 Auto-guardando cambios en campos de material...');
-                onSave(formData);
-            }, 1000); // Esperar 1 segundo después del último cambio
-
-            return () => clearTimeout(timeoutId);
+        
+        if (materialFields.includes(field as string) && !isReadOnly) {
+            // Llamar a onSave inmediatamente con los nuevos datos
+            setTimeout(() => {
+                onSave(newFormData);
+            }, 10); // Muy poco delay, solo para permitir que React procese el setState
         }
-    }, [formData.materialCapasCantidad, formData.materialCapas, formData.materialConsumoCantidad, 
-        formData.materialConsumo, formData.bobinaMadre, formData.bobinaFinal, 
-        formData.minAdap, formData.colores, formData.minColor, formData.producto, 
-        pedido, onSave, isReadOnly]);
-
-    // Auto-save para campos de material cuando cambian
-    useEffect(() => {
-        // Solo auto-guardar si hay diferencias y no es la primera carga
-        if (formData.id && formData.id === pedido.id) {
-            const hasChanges = JSON.stringify(formData) !== JSON.stringify(pedido);
-            
-            if (hasChanges) {
-                console.log('🔄 Auto-guardando cambios en material:', {
-                    originalMaterialCapas: pedido.materialCapas,
-                    newMaterialCapas: formData.materialCapas,
-                    originalMaterialConsumo: pedido.materialConsumo,
-                    newMaterialConsumo: formData.materialConsumo
-                });
-                
-                // Auto-guardar con un pequeño delay para evitar múltiples saves
-                const timer = setTimeout(() => {
-                    onSave(formData);
-                }, 500); // 500ms delay
-
-                return () => clearTimeout(timer);
-            }
-        }
-    }, [formData.materialCapas, formData.materialConsumo, formData.materialCapasCantidad, formData.materialConsumoCantidad, formData.bobinaMadre, formData.bobinaFinal, formData.colores, formData.minColor, formData.minAdap, formData.producto]);
-
-    const handleDataChange = (field: keyof Pedido, value: any) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
