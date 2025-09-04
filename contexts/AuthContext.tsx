@@ -52,13 +52,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
             const data = await response.json();
 
-            if (data.success && data.user) {
+            if (response.ok && data.success && data.user) {
                 setUser(data.user);
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('pigmea_user', JSON.stringify(data.user));
                 }
                 return { success: true, user: data.user, message: data.message };
             } else {
+                // Handle both client and server errors with proper messages
                 return { success: false, message: data.error || 'Error en el login' };
             }
         } catch (error) {
@@ -83,13 +84,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
             const data = await response.json();
 
-            if (data.success && data.user) {
+            if (response.ok && data.success && data.user) {
                 setUser(data.user);
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('pigmea_user', JSON.stringify(data.user));
                 }
                 return { success: true, user: data.user, message: data.message };
             } else {
+                // Handle both client and server errors with proper messages
                 return { success: false, message: data.error || 'Error en el registro' };
             }
         } catch (error) {
