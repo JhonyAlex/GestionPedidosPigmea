@@ -539,6 +539,12 @@ class PostgreSQLClient {
     }
 
     async getAdminUserById(id) {
+        // Verificar que el pool esté disponible
+        if (!this.pool || !this.isInitialized) {
+            console.log('⚠️ Pool de conexiones no disponible para getAdminUserById');
+            return null;
+        }
+        
         const client = await this.pool.connect();
         try {
             const result = await client.query(
@@ -670,6 +676,12 @@ class PostgreSQLClient {
     }
 
     async updateUserLastActivity(userId, ipAddress, userAgent) {
+        // Verificar que el pool esté disponible
+        if (!this.pool || !this.isInitialized) {
+            console.log('⚠️ Pool de conexiones no disponible para updateUserLastActivity');
+            return;
+        }
+        
         const client = await this.pool.connect();
         try {
             await client.query(`

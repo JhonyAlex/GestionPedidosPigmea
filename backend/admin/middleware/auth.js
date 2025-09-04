@@ -27,8 +27,41 @@ const authMiddleware = async (req, res, next) => {
             });
         }
 
-        // Verificar que el usuario existe y está activo
-        const user = await dbClient.getAdminUserById(decoded.userId);
+        let user;
+        
+        // Si no hay BD disponible, usar autenticación hardcodeada
+        if (!dbClient.isInitialized || !dbClient.pool) {
+            console.log('🔧 Usando verificación de token en modo desarrollo');
+            
+            // Usuarios hardcodeados para desarrollo
+            const devUsers = {
+                'admin': {
+                    id: 1,
+                    username: 'admin',
+                    email: 'admin@pigmea.com',
+                    role: 'ADMIN',
+                    first_name: 'Admin',
+                    last_name: 'System',
+                    is_active: true,
+                    permissions: ['*']
+                },
+                'supervisor': {
+                    id: 2,
+                    username: 'supervisor',
+                    email: 'supervisor@pigmea.com',
+                    role: 'SUPERVISOR',
+                    first_name: 'Supervisor',
+                    last_name: 'User',
+                    is_active: true,
+                    permissions: ['users.view', 'users.edit']
+                }
+            };
+            
+            user = devUsers[decoded.username];
+        } else {
+            // Verificar que el usuario existe y está activo en BD
+            user = await dbClient.getAdminUserById(decoded.userId);
+        }
         
         if (!user) {
             return res.status(401).json({ 
@@ -55,8 +88,14 @@ const authMiddleware = async (req, res, next) => {
             permissions: user.permissions || []
         };
 
-        // Actualizar última actividad
-        await dbClient.updateUserLastActivity(user.id, req.ip, req.headers['user-agent']);
+        // Actualizar última actividad solo si hay BD disponible
+        if (dbClient.isInitialized && dbClient.pool) {
+            try {
+                await dbClient.updateUserLastActivity(user.id, req.ip, req.headers['user-agent']);
+            } catch (error) {
+                console.log('⚠️ No se pudo actualizar última actividad:', error.message);
+            }
+        }
 
         next();
     } catch (error) {
