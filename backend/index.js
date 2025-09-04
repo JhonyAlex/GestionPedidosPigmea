@@ -739,7 +739,21 @@ app.get('/api/admin/dashboard', async (req, res) => {
                     status: 'healthy',
                     uptime: '2 hours',
                     memoryUsage: '256MB',
-                    cpuUsage: '15%'
+                    cpuUsage: '15%',
+                    database: {
+                        status: 'healthy',
+                        connections: 5,
+                        responseTime: 42
+                    },
+                    server: {
+                        status: 'healthy',
+                        cpuUsage: 15,
+                        memoryUsage: 45
+                    },
+                    websocket: {
+                        status: 'healthy',
+                        connections: 2
+                    }
                 },
                 recentAuditLogs: [
                     {
@@ -793,7 +807,21 @@ app.get('/api/admin/dashboard', async (req, res) => {
                 status: 'healthy',
                 uptime: '2 hours',
                 memoryUsage: '256MB',
-                cpuUsage: '15%'
+                cpuUsage: '15%',
+                database: {
+                    status: 'healthy',
+                    connections: 5,
+                    responseTime: 42
+                },
+                server: {
+                    status: 'healthy',
+                    cpuUsage: 15,
+                    memoryUsage: 45
+                },
+                websocket: {
+                    status: 'healthy',
+                    connections: 2
+                }
             },
             recentAuditLogs: [
                 {
