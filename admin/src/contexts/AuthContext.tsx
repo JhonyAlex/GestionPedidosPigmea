@@ -99,11 +99,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     dispatch({ type: 'LOGIN_START' });
     
     try {
+      console.log('🔄 Intentando login con:', username);
       const response = await authService.login(username, password);
+      console.log('✅ Login response recibida:', response);
+      
       localStorage.setItem('admin_token', response.token);
       dispatch({ type: 'LOGIN_SUCCESS', payload: response });
+      
+      console.log('✅ Estado actualizado, isAuthenticated debería ser true');
       return true;
     } catch (error) {
+      console.error('❌ Error en login:', error);
       dispatch({ type: 'LOGIN_FAILURE' });
       return false;
     }

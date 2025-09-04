@@ -5,9 +5,12 @@ import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 
 const Layout: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+
+  console.log('🔍 Layout - Estado auth:', { isAuthenticated, isLoading, hasUser: !!user });
 
   if (isLoading) {
+    console.log('⏳ Layout - Mostrando loading...');
     return (
       <div className="min-h-screen bg-admin-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -16,8 +19,11 @@ const Layout: React.FC = () => {
   }
 
   if (!isAuthenticated) {
+    console.log('🚫 Layout - No autenticado, redirigiendo a login...');
     return <Navigate to="/login" replace />;
   }
+
+  console.log('✅ Layout - Usuario autenticado, mostrando dashboard...');
 
   return (
     <div className="min-h-screen bg-admin-50 flex">

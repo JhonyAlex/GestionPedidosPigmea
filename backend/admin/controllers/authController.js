@@ -31,7 +31,13 @@ const authController = {
                         firstName: 'Administrador',
                         lastName: 'Sistema',
                         isActive: true,
-                        permissions: ['users.view', 'users.create', 'users.edit', 'users.delete', 'system.admin']
+                        permissions: [
+                            { id: '1', name: 'users.view', description: 'Ver usuarios', module: 'users' },
+                            { id: '2', name: 'users.create', description: 'Crear usuarios', module: 'users' },
+                            { id: '3', name: 'users.edit', description: 'Editar usuarios', module: 'users' },
+                            { id: '4', name: 'users.delete', description: 'Eliminar usuarios', module: 'users' },
+                            { id: '5', name: 'system.admin', description: 'Administrador del sistema', module: 'system' }
+                        ]
                     },
                     'supervisor': { 
                         id: 'admin-2',
@@ -42,7 +48,10 @@ const authController = {
                         firstName: 'Supervisor',
                         lastName: 'General',
                         isActive: true,
-                        permissions: ['users.view', 'users.edit']
+                        permissions: [
+                            { id: '1', name: 'users.view', description: 'Ver usuarios', module: 'users' },
+                            { id: '3', name: 'users.edit', description: 'Editar usuarios', module: 'users' }
+                        ]
                     }
                 };
 
