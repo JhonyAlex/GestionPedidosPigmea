@@ -118,12 +118,82 @@ export const usePedidosManager = (
                 'bobinaMadre', 'bobinaFinal', 'minAdap', 'colores', 'minColor'
             ];
 
+            // Comparar campos principales
             fieldsToCompare.forEach(key => {
                  if (JSON.stringify(originalPedido[key]) !== JSON.stringify(modifiedPedido[key])) {
-                    const formatValue = (val: any) => val === true ? 'Sí' : (val === false ? 'No' : (Array.isArray(val) ? val.map(v => ETAPAS[v]?.title || v).join(', ') || 'Vacía' : val || 'N/A'));
-                    newHistoryEntries.push(generarEntradaHistorial(currentUserRole, `Campo Actualizado: ${key}`, `Cambiado de '${formatValue(originalPedido[key])}' a '${formatValue(modifiedPedido[key])}'.`));
+                    const formatValue = (val: any, fieldName: string) => {
+                        if (val === true) return 'Sí';
+                        if (val === false) return 'No';
+                        if (val === null || val === undefined) return 'N/A';
+                        
+                        // Manejar arrays de objetos específicamente para materialCapas y materialConsumo
+                        if (Array.isArray(val)) {
+                            if (fieldName.includes('materialCapas')) {
+                                return val.map((item, idx) => 
+                                    `Lámina ${idx + 1}: ${item.micras || 'N/A'} micras, ${item.densidad || 'N/A'} densidad`
+                                ).join('; ') || 'Vacía';
+                            } else if (fieldName.includes('materialConsumo')) {
+                                return val.map((item, idx) => 
+                                    `Material ${idx + 1}: ${item.necesario || 'N/A'} necesario, ${item.recibido || 'N/A'} recibido`
+                                ).join('; ') || 'Vacía';
+                            } else if (fieldName === 'etapasSecuencia') {
+                                return val.map(v => ETAPAS[v]?.title || v).join(', ') || 'Vacía';
+                            } else {
+                                return val.join(', ') || 'Vacía';
+                            }
+                        }
+                        
+                        return val.toString();
+                    };
+                    
+                    newHistoryEntries.push(generarEntradaHistorial(currentUserRole, `Campo Actualizado: ${key}`, `Cambiado de '${formatValue(originalPedido[key], key)}' a '${formatValue(modifiedPedido[key], key)}'.`));
                 }
             });
+
+            // Manejar campos virtuales para auditoría específica de arrays anidados
+            const checkNestedFields = (arrayName: 'materialCapas' | 'materialConsumo') => {
+                const originalArray = originalPedido[arrayName] || [];
+                const modifiedArray = modifiedPedido[arrayName] || [];
+                const maxLength = Math.max(originalArray.length, modifiedArray.length);
+
+                for (let i = 0; i < maxLength; i++) {
+                    const originalItem = originalArray[i] || {};
+                    const modifiedItem = modifiedArray[i] || {};
+                    
+                    // Verificar cada campo del objeto
+                    const fieldsToCheck = arrayName === 'materialCapas' 
+                        ? ['micras', 'densidad'] 
+                        : ['necesario', 'recibido'];
+                    
+                    fieldsToCheck.forEach(field => {
+                        const originalValue = originalItem[field];
+                        const modifiedValue = modifiedItem[field];
+                        
+                        if (JSON.stringify(originalValue) !== JSON.stringify(modifiedValue)) {
+                            const itemType = arrayName === 'materialCapas' ? 'Lámina' : 'Material';
+                            const fieldDisplayName = field === 'micras' ? 'Micras' 
+                                : field === 'densidad' ? 'Densidad'
+                                : field === 'necesario' ? 'Necesario' 
+                                : 'Recibido';
+                            
+                            const formatNestedValue = (val: any) => {
+                                if (val === null || val === undefined || val === '') return 'N/A';
+                                return val.toString();
+                            };
+                            
+                            newHistoryEntries.push(generarEntradaHistorial(
+                                currentUserRole, 
+                                `${itemType} ${i + 1} - ${fieldDisplayName}`, 
+                                `Cambiado de '${formatNestedValue(originalValue)}' a '${formatNestedValue(modifiedValue)}'.`
+                            ));
+                        }
+                    });
+                }
+            };
+
+            // Verificar cambios en materialCapas y materialConsumo específicamente
+            checkNestedFields('materialCapas');
+            checkNestedFields('materialConsumo');
             
             if (originalPedido.etapaActual !== modifiedPedido.etapaActual) {
                 newHistoryEntries.push(generarEntradaHistorial(currentUserRole, 'Cambio de Etapa', `Movido de '${ETAPAS[originalPedido.etapaActual].title}' a '${ETAPAS[modifiedPedido.etapaActual].title}'.`));
