@@ -93,12 +93,15 @@ export const usePedidosManager = (
         const originalPedido = pedidos.find(p => p.id === updatedPedido.id);
         if (!originalPedido) return;
 
+        // Hacer una copia profunda del pedido original ANTES de cualquier modificación
+        const originalPedidoCopy = JSON.parse(JSON.stringify(originalPedido));
+
         console.log('🔍 handleSavePedido - Comparando pedidos:', {
-            originalId: originalPedido.id,
+            originalId: originalPedidoCopy.id,
             updatedId: updatedPedido.id,
-            originalMaterialCapas: originalPedido.materialCapas,
+            originalMaterialCapas: originalPedidoCopy.materialCapas,
             updatedMaterialCapas: updatedPedido.materialCapas,
-            originalMaterialConsumo: originalPedido.materialConsumo,
+            originalMaterialConsumo: originalPedidoCopy.materialConsumo,
             updatedMaterialConsumo: updatedPedido.materialConsumo,
             generateHistory
         });
@@ -134,7 +137,7 @@ export const usePedidosManager = (
 
             // Manejar campos virtuales para auditoría específica de arrays anidados PRIMERO
             const checkNestedFields = (arrayName: 'materialCapas' | 'materialConsumo') => {
-                const originalArray = originalPedido[arrayName] || [];
+                const originalArray = originalPedidoCopy[arrayName] || [];
                 const modifiedArray = modifiedPedido[arrayName] || [];
                 const maxLength = Math.max(originalArray.length, modifiedArray.length);
                 let hasChanges = false;
@@ -203,7 +206,7 @@ export const usePedidosManager = (
 
             // Comparar campos principales
             fieldsToCompare.forEach(key => {
-                 if (JSON.stringify(originalPedido[key]) !== JSON.stringify(modifiedPedido[key])) {
+                 if (JSON.stringify(originalPedidoCopy[key]) !== JSON.stringify(modifiedPedido[key])) {
                     const formatValue = (val: any, fieldName: string) => {
                         if (val === true) return 'Sí';
                         if (val === false) return 'No';
@@ -229,12 +232,12 @@ export const usePedidosManager = (
                         return val.toString();
                     };
                     
-                    newHistoryEntries.push(generarEntradaHistorial(currentUserRole, `Campo Actualizado: ${key}`, `Cambiado de '${formatValue(originalPedido[key], key)}' a '${formatValue(modifiedPedido[key], key)}'.`));
+                    newHistoryEntries.push(generarEntradaHistorial(currentUserRole, `Campo Actualizado: ${key}`, `Cambiado de '${formatValue(originalPedidoCopy[key], key)}' a '${formatValue(modifiedPedido[key], key)}'.`));
                 }
             });
 
             // Solo registrar cambios en materialCapas/materialConsumo si NO se registraron cambios granulares
-            if (!hasGranularMaterialCapasChanges && JSON.stringify(originalPedido.materialCapas) !== JSON.stringify(modifiedPedido.materialCapas)) {
+            if (!hasGranularMaterialCapasChanges && JSON.stringify(originalPedidoCopy.materialCapas) !== JSON.stringify(modifiedPedido.materialCapas)) {
                 const formatValue = (val: any) => {
                     if (val === null || val === undefined) return 'N/A';
                     if (Array.isArray(val)) {
@@ -248,11 +251,11 @@ export const usePedidosManager = (
                 newHistoryEntries.push(generarEntradaHistorial(
                     currentUserRole, 
                     'Campo Actualizado: materialCapas', 
-                    `Cambiado de '${formatValue(originalPedido.materialCapas)}' a '${formatValue(modifiedPedido.materialCapas)}'.`
+                    `Cambiado de '${formatValue(originalPedidoCopy.materialCapas)}' a '${formatValue(modifiedPedido.materialCapas)}'.`
                 ));
             }
 
-            if (!hasGranularMaterialConsumoChanges && JSON.stringify(originalPedido.materialConsumo) !== JSON.stringify(modifiedPedido.materialConsumo)) {
+            if (!hasGranularMaterialConsumoChanges && JSON.stringify(originalPedidoCopy.materialConsumo) !== JSON.stringify(modifiedPedido.materialConsumo)) {
                 const formatValue = (val: any) => {
                     if (val === null || val === undefined) return 'N/A';
                     if (Array.isArray(val)) {
@@ -266,12 +269,12 @@ export const usePedidosManager = (
                 newHistoryEntries.push(generarEntradaHistorial(
                     currentUserRole, 
                     'Campo Actualizado: materialConsumo', 
-                    `Cambiado de '${formatValue(originalPedido.materialConsumo)}' a '${formatValue(modifiedPedido.materialConsumo)}'.`
+                    `Cambiado de '${formatValue(originalPedidoCopy.materialConsumo)}' a '${formatValue(modifiedPedido.materialConsumo)}'.`
                 ));
             }
             
-            if (originalPedido.etapaActual !== modifiedPedido.etapaActual) {
-                newHistoryEntries.push(generarEntradaHistorial(currentUserRole, 'Cambio de Etapa', `Movido de '${ETAPAS[originalPedido.etapaActual].title}' a '${ETAPAS[modifiedPedido.etapaActual].title}'.`));
+            if (originalPedidoCopy.etapaActual !== modifiedPedido.etapaActual) {
+                newHistoryEntries.push(generarEntradaHistorial(currentUserRole, 'Cambio de Etapa', `Movido de '${ETAPAS[originalPedidoCopy.etapaActual].title}' a '${ETAPAS[modifiedPedido.etapaActual].title}'.`));
             }
             
             if (newHistoryEntries.length > 0) {
@@ -279,7 +282,7 @@ export const usePedidosManager = (
             }
             hasChanges = newHistoryEntries.length > 0;
         } else {
-             hasChanges = JSON.stringify(originalPedido) !== JSON.stringify(modifiedPedido);
+             hasChanges = JSON.stringify(originalPedidoCopy) !== JSON.stringify(modifiedPedido);
         }
 
         // Actualización optimista primero
@@ -294,7 +297,7 @@ export const usePedidosManager = (
         } catch (error) {
             console.error('Error al actualizar el pedido:', error);
             // Revertir en caso de error
-            setPedidos(prev => prev.map(p => p.id === modifiedPedido.id ? originalPedido : p));
+            setPedidos(prev => prev.map(p => p.id === modifiedPedido.id ? originalPedidoCopy : p));
             return undefined;
         }
     };
