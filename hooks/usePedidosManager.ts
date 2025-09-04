@@ -113,10 +113,63 @@ export const usePedidosManager = (
                 'secuenciaTrabajo', 'subEtapaActual', 'etapasSecuencia',
                 // Datos de preparación
                 'materialDisponible', 'clicheDisponible', 'estadoCliché', 'camisa', 'antivaho', 'antivahoRealizado',
-                // Datos técnicos de material
-                'producto', 'materialCapasCantidad', 'materialCapas', 'materialConsumoCantidad', 'materialConsumo', 
+                // Datos técnicos de material (excluimos materialCapas y materialConsumo para manejarlos por separado)
+                'producto', 'materialCapasCantidad', 'materialConsumoCantidad', 
                 'bobinaMadre', 'bobinaFinal', 'minAdap', 'colores', 'minColor'
             ];
+
+            // Variables para controlar si se registraron cambios granulares
+            let hasGranularMaterialCapasChanges = false;
+            let hasGranularMaterialConsumoChanges = false;
+
+            // Manejar campos virtuales para auditoría específica de arrays anidados PRIMERO
+            const checkNestedFields = (arrayName: 'materialCapas' | 'materialConsumo') => {
+                const originalArray = originalPedido[arrayName] || [];
+                const modifiedArray = modifiedPedido[arrayName] || [];
+                const maxLength = Math.max(originalArray.length, modifiedArray.length);
+                let hasChanges = false;
+
+                for (let i = 0; i < maxLength; i++) {
+                    const originalItem = originalArray[i] || {};
+                    const modifiedItem = modifiedArray[i] || {};
+                    
+                    // Verificar cada campo del objeto
+                    const fieldsToCheck = arrayName === 'materialCapas' 
+                        ? ['micras', 'densidad'] 
+                        : ['necesario', 'recibido'];
+                    
+                    fieldsToCheck.forEach(field => {
+                        const originalValue = originalItem[field];
+                        const modifiedValue = modifiedItem[field];
+                        
+                        if (JSON.stringify(originalValue) !== JSON.stringify(modifiedValue)) {
+                            const itemType = arrayName === 'materialCapas' ? 'Lámina' : 'Material';
+                            const fieldDisplayName = field === 'micras' ? 'Micras' 
+                                : field === 'densidad' ? 'Densidad'
+                                : field === 'necesario' ? 'Necesario' 
+                                : 'Recibido';
+                            
+                            const formatNestedValue = (val: any) => {
+                                if (val === null || val === undefined || val === '') return 'N/A';
+                                return val.toString();
+                            };
+                            
+                            newHistoryEntries.push(generarEntradaHistorial(
+                                currentUserRole, 
+                                `${itemType} ${i + 1} - ${fieldDisplayName}`, 
+                                `Cambiado de '${formatNestedValue(originalValue)}' a '${formatNestedValue(modifiedValue)}'.`
+                            ));
+                            hasChanges = true;
+                        }
+                    });
+                }
+
+                return hasChanges;
+            };
+
+            // Verificar cambios granulares en materialCapas y materialConsumo
+            hasGranularMaterialCapasChanges = checkNestedFields('materialCapas');
+            hasGranularMaterialConsumoChanges = checkNestedFields('materialConsumo');
 
             // Comparar campos principales
             fieldsToCompare.forEach(key => {
@@ -150,50 +203,42 @@ export const usePedidosManager = (
                 }
             });
 
-            // Manejar campos virtuales para auditoría específica de arrays anidados
-            const checkNestedFields = (arrayName: 'materialCapas' | 'materialConsumo') => {
-                const originalArray = originalPedido[arrayName] || [];
-                const modifiedArray = modifiedPedido[arrayName] || [];
-                const maxLength = Math.max(originalArray.length, modifiedArray.length);
+            // Solo registrar cambios en materialCapas/materialConsumo si NO se registraron cambios granulares
+            if (!hasGranularMaterialCapasChanges && JSON.stringify(originalPedido.materialCapas) !== JSON.stringify(modifiedPedido.materialCapas)) {
+                const formatValue = (val: any) => {
+                    if (val === null || val === undefined) return 'N/A';
+                    if (Array.isArray(val)) {
+                        return val.map((item, idx) => 
+                            `Lámina ${idx + 1}: ${item.micras || 'N/A'} micras, ${item.densidad || 'N/A'} densidad`
+                        ).join('; ') || 'Vacía';
+                    }
+                    return val.toString();
+                };
+                
+                newHistoryEntries.push(generarEntradaHistorial(
+                    currentUserRole, 
+                    'Campo Actualizado: materialCapas', 
+                    `Cambiado de '${formatValue(originalPedido.materialCapas)}' a '${formatValue(modifiedPedido.materialCapas)}'.`
+                ));
+            }
 
-                for (let i = 0; i < maxLength; i++) {
-                    const originalItem = originalArray[i] || {};
-                    const modifiedItem = modifiedArray[i] || {};
-                    
-                    // Verificar cada campo del objeto
-                    const fieldsToCheck = arrayName === 'materialCapas' 
-                        ? ['micras', 'densidad'] 
-                        : ['necesario', 'recibido'];
-                    
-                    fieldsToCheck.forEach(field => {
-                        const originalValue = originalItem[field];
-                        const modifiedValue = modifiedItem[field];
-                        
-                        if (JSON.stringify(originalValue) !== JSON.stringify(modifiedValue)) {
-                            const itemType = arrayName === 'materialCapas' ? 'Lámina' : 'Material';
-                            const fieldDisplayName = field === 'micras' ? 'Micras' 
-                                : field === 'densidad' ? 'Densidad'
-                                : field === 'necesario' ? 'Necesario' 
-                                : 'Recibido';
-                            
-                            const formatNestedValue = (val: any) => {
-                                if (val === null || val === undefined || val === '') return 'N/A';
-                                return val.toString();
-                            };
-                            
-                            newHistoryEntries.push(generarEntradaHistorial(
-                                currentUserRole, 
-                                `${itemType} ${i + 1} - ${fieldDisplayName}`, 
-                                `Cambiado de '${formatNestedValue(originalValue)}' a '${formatNestedValue(modifiedValue)}'.`
-                            ));
-                        }
-                    });
-                }
-            };
-
-            // Verificar cambios en materialCapas y materialConsumo específicamente
-            checkNestedFields('materialCapas');
-            checkNestedFields('materialConsumo');
+            if (!hasGranularMaterialConsumoChanges && JSON.stringify(originalPedido.materialConsumo) !== JSON.stringify(modifiedPedido.materialConsumo)) {
+                const formatValue = (val: any) => {
+                    if (val === null || val === undefined) return 'N/A';
+                    if (Array.isArray(val)) {
+                        return val.map((item, idx) => 
+                            `Material ${idx + 1}: ${item.necesario || 'N/A'} necesario, ${item.recibido || 'N/A'} recibido`
+                        ).join('; ') || 'Vacía';
+                    }
+                    return val.toString();
+                };
+                
+                newHistoryEntries.push(generarEntradaHistorial(
+                    currentUserRole, 
+                    'Campo Actualizado: materialConsumo', 
+                    `Cambiado de '${formatValue(originalPedido.materialConsumo)}' a '${formatValue(modifiedPedido.materialConsumo)}'.`
+                ));
+            }
             
             if (originalPedido.etapaActual !== modifiedPedido.etapaActual) {
                 newHistoryEntries.push(generarEntradaHistorial(currentUserRole, 'Cambio de Etapa', `Movido de '${ETAPAS[originalPedido.etapaActual].title}' a '${ETAPAS[modifiedPedido.etapaActual].title}'.`));

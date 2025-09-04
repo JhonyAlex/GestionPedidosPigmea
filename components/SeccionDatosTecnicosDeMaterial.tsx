@@ -37,25 +37,12 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ f
             parsedValue = value === '' ? null : parseFloat(value);
         }
 
-        // Guardar el valor anterior para la auditoría
-        const previousValue = array[index]?.[field];
-
         if (!array[index]) array[index] = {};
         array[index][field] = parsedValue;
 
-        // Notificar el cambio del array completo
+        // Solo notificar el cambio del array completo
+        // El sistema de auditoría se encargará de detectar los cambios granulares
         onDataChange(arrayName, array);
-
-        // Si el valor cambió, generar un campo específico para la auditoría con nombre descriptivo
-        if (JSON.stringify(previousValue) !== JSON.stringify(parsedValue)) {
-            const fieldDisplayName = arrayName === 'materialCapas' 
-                ? `Lámina ${index + 1} - ${field === 'micras' ? 'Micras' : 'Densidad'}`
-                : `Material ${index + 1} - ${field === 'necesario' ? 'Necesario' : 'Recibido'}`;
-            
-            // Crear un campo virtual para la auditoría
-            const auditFieldName = `${arrayName}_${index}_${field}`;
-            onDataChange(auditFieldName as any, parsedValue);
-        }
     };
 
     const renderValidationMessage = (value: number | null | undefined) => {
