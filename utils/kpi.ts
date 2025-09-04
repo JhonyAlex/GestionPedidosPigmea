@@ -245,7 +245,8 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             fontSize: 6, // Reduced font size for compactness
             cellPadding: 2, // Reduced padding
             valign: 'middle',
-            textColor: [31, 41, 55], 
+            textColor: [31, 41, 55],
+            overflow: 'linebreak',
         },
         headStyles: {
             fillColor: [45, 55, 72], 
@@ -264,7 +265,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             6: { cellWidth: 30 }, // Antivaho
             7: { cellWidth: 50 }, // Etapa Actual
             8: { cellWidth: 50 }, // Siguiente
-            9: { cellWidth: 80 }, // Observaciones
+            9: { cellWidth: 70 }, // Observaciones
             10: { cellWidth: 40 }, // F. Creación
             11: { cellWidth: 40 }, // F. Entrega
         },
