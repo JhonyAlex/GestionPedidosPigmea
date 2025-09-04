@@ -49,22 +49,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     }, [pedido]);
 
     const handleDataChange = (field: keyof Pedido, value: any) => {
-        const newFormData = { ...formData, [field]: value };
-        setFormData(newFormData);
-        
-        // Auto-guardar inmediatamente para campos de material
-        const materialFields = [
-            'materialCapasCantidad', 'materialCapas', 
-            'materialConsumoCantidad', 'materialConsumo',
-            'bobinaMadre', 'bobinaFinal', 'minAdap', 'colores', 'minColor', 'producto'
-        ];
-        
-        if (materialFields.includes(field as string) && !isReadOnly) {
-            // Llamar a onSave inmediatamente con los nuevos datos
-            setTimeout(() => {
-                onSave(newFormData);
-            }, 10); // Muy poco delay, solo para permitir que React procese el setState
-        }
+        setFormData(prev => ({ ...prev, [field]: value }));
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
