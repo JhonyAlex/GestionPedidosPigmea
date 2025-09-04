@@ -794,7 +794,12 @@ app.get('/api/admin/stats', async (req, res) => {
 // Servir archivos estáticos del panel de administración
 app.use('/admin', express.static(path.join(__dirname, '../admin/dist')));
 
-// Ruta específica para el panel de administración
+// Ruta específica para el panel de administración (incluyendo la ruta base)
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, '../admin/dist', 'index.html'));
+});
+
+// Ruta para subrutas del panel de administración
 app.get('/admin/*', (req, res) => {
     res.sendFile(path.join(__dirname, '../admin/dist', 'index.html'));
 });

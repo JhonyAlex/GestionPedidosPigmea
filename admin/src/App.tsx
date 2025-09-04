@@ -13,7 +13,7 @@ import SettingsPage from './pages/SettingsPage';
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <Router>
+      <Router basename="/admin">
         <Routes>
           {/* Login Route */}
           <Route path="/login" element={<LoginPage />} />
