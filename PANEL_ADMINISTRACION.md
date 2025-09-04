@@ -2,7 +2,12 @@
 
 ## 🌐 Acceso al Sistema
 
-### URL del Panel de Administración
+### 🔗 URL Pública (Producción)
+```
+https://planning.pigmea.click/admin
+```
+
+### 🔗 URL Local (Desarrollo)
 ```
 http://localhost:3001
 ```

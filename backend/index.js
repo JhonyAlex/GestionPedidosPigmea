@@ -789,10 +789,20 @@ app.get('/api/admin/stats', async (req, res) => {
 // FIN RUTAS ADMINISTRATIVAS
 // =================================================================
 
+// --- SERVIR PANEL DE ADMINISTRACIÓN ---
+
+// Servir archivos estáticos del panel de administración
+app.use('/admin', express.static(path.join(__dirname, '../admin/dist')));
+
+// Ruta específica para el panel de administración
+app.get('/admin/*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../admin/dist', 'index.html'));
+});
+
 // --- SERVER START ---
 const PORT = process.env.PORT || 3001;
 
-// Catch-all handler for frontend routing
+// Catch-all handler for frontend routing (aplicación principal)
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
