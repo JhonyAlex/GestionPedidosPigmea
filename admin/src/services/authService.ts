@@ -35,7 +35,7 @@ class AuthService {
   }
 
   async login(username: string, password: string): Promise<AdminAuthResponse> {
-    const response = await this.api.post('/auth/login', {
+    const response = await this.api.post('/api/admin/auth/login', {
       username,
       password,
     });
@@ -43,7 +43,7 @@ class AuthService {
   }
 
   async verifyToken(token: string): Promise<User> {
-    const response = await this.api.get('/auth/verify', {
+    const response = await this.api.get('/api/admin/auth/verify', {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -53,7 +53,7 @@ class AuthService {
 
   async logout(): Promise<void> {
     try {
-      await this.api.post('/auth/logout');
+      await this.api.post('/api/admin/auth/logout');
     } catch (error) {
       // Ignorar errores de logout
     } finally {
@@ -62,14 +62,14 @@ class AuthService {
   }
 
   async changePassword(currentPassword: string, newPassword: string): Promise<void> {
-    await this.api.put('/auth/change-password', {
+    await this.api.put('/api/admin/auth/change-password', {
       currentPassword,
       newPassword,
     });
   }
 
   async requestPasswordReset(email: string): Promise<void> {
-    await this.api.post('/auth/reset-password', { email });
+    await this.api.post('/api/admin/auth/reset-password', { email });
   }
 }
 

@@ -36,24 +36,37 @@ const authMiddleware = async (req, res, next) => {
             // Usuarios hardcodeados para desarrollo
             const devUsers = {
                 'admin': {
-                    id: 1,
+                    id: 'admin-1',
                     username: 'admin',
                     email: 'admin@pigmea.com',
                     role: 'ADMIN',
-                    first_name: 'Admin',
-                    last_name: 'System',
-                    is_active: true,
-                    permissions: ['*']
+                    firstName: 'Administrador',
+                    lastName: 'Sistema',
+                    isActive: true,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    permissions: [
+                        { id: '1', name: 'users.view', description: 'Ver usuarios', module: 'users' },
+                        { id: '2', name: 'users.create', description: 'Crear usuarios', module: 'users' },
+                        { id: '3', name: 'users.edit', description: 'Editar usuarios', module: 'users' },
+                        { id: '4', name: 'users.delete', description: 'Eliminar usuarios', module: 'users' },
+                        { id: '5', name: 'system.admin', description: 'Administrador del sistema', module: 'system' }
+                    ]
                 },
                 'supervisor': {
-                    id: 2,
+                    id: 'admin-2',
                     username: 'supervisor',
                     email: 'supervisor@pigmea.com',
                     role: 'SUPERVISOR',
-                    first_name: 'Supervisor',
-                    last_name: 'User',
-                    is_active: true,
-                    permissions: ['users.view', 'users.edit']
+                    firstName: 'Supervisor',
+                    lastName: 'General',
+                    isActive: true,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    permissions: [
+                        { id: '1', name: 'users.view', description: 'Ver usuarios', module: 'users' },
+                        { id: '3', name: 'users.edit', description: 'Editar usuarios', module: 'users' }
+                    ]
                 }
             };
             
@@ -70,21 +83,26 @@ const authMiddleware = async (req, res, next) => {
             });
         }
 
-        if (!user.is_active) {
+        // Verificar si está activo (compatibilidad con BD y modo desarrollo)
+        const isActive = user.is_active !== undefined ? user.is_active : user.isActive;
+        if (!isActive) {
             return res.status(401).json({ 
                 error: 'Usuario desactivado',
                 code: 'USER_INACTIVE'
             });
         }
 
-        // Adjuntar información del usuario a la request
+        // Adjuntar información del usuario a la request (formato consistente)
         req.user = {
             id: user.id,
             username: user.username,
             email: user.email,
             role: user.role,
-            firstName: user.first_name,
-            lastName: user.last_name,
+            firstName: user.firstName || user.first_name,
+            lastName: user.lastName || user.last_name,
+            isActive: isActive,
+            createdAt: user.createdAt || user.created_at,
+            updatedAt: user.updatedAt || user.updated_at,
             permissions: user.permissions || []
         };
 
