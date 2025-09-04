@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Shield, User, Lock } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
@@ -7,7 +8,16 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirigir si ya está autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('✅ LoginPage - Ya autenticado, redirigiendo...');
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,8 +28,14 @@ const LoginPage: React.FC = () => {
       return;
     }
 
+    console.log('🔄 LoginPage - Iniciando login...');
     const success = await login(username, password);
-    if (!success) {
+    
+    if (success) {
+      console.log('✅ LoginPage - Login exitoso, redirigiendo a dashboard...');
+      navigate('/dashboard', { replace: true });
+    } else {
+      console.log('❌ LoginPage - Login fallido');
       setError('Credenciales incorrectas. Verifica tu usuario y contraseña.');
     }
   };
