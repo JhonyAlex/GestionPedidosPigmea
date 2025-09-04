@@ -96,16 +96,6 @@ export const usePedidosManager = (
         // Hacer una copia profunda del pedido original ANTES de cualquier modificación
         const originalPedidoCopy = JSON.parse(JSON.stringify(originalPedido));
 
-        console.log('🔍 handleSavePedido - Comparando pedidos:', {
-            originalId: originalPedidoCopy.id,
-            updatedId: updatedPedido.id,
-            originalMaterialCapas: originalPedidoCopy.materialCapas,
-            updatedMaterialCapas: updatedPedido.materialCapas,
-            originalMaterialConsumo: originalPedidoCopy.materialConsumo,
-            updatedMaterialConsumo: updatedPedido.materialConsumo,
-            generateHistory
-        });
-
         let modifiedPedido = { ...updatedPedido };
         let hasChanges = false;
 
@@ -142,20 +132,9 @@ export const usePedidosManager = (
                 const maxLength = Math.max(originalArray.length, modifiedArray.length);
                 let hasChanges = false;
 
-                console.log(`🔍 checkNestedFields ${arrayName}:`, {
-                    originalArray,
-                    modifiedArray,
-                    maxLength
-                });
-
                 for (let i = 0; i < maxLength; i++) {
                     const originalItem = originalArray[i] || {};
                     const modifiedItem = modifiedArray[i] || {};
-                    
-                    console.log(`🔍 Comparando ${arrayName}[${i}]:`, {
-                        originalItem,
-                        modifiedItem
-                    });
                     
                     // Verificar cada campo del objeto
                     const fieldsToCheck = arrayName === 'materialCapas' 
@@ -165,12 +144,6 @@ export const usePedidosManager = (
                     fieldsToCheck.forEach(field => {
                         const originalValue = originalItem[field];
                         const modifiedValue = modifiedItem[field];
-                        
-                        console.log(`🔍 Campo ${field}:`, {
-                            originalValue,
-                            modifiedValue,
-                            areEqual: JSON.stringify(originalValue) === JSON.stringify(modifiedValue)
-                        });
                         
                         if (JSON.stringify(originalValue) !== JSON.stringify(modifiedValue)) {
                             const itemType = arrayName === 'materialCapas' ? 'Lámina' : 'Material';
@@ -184,8 +157,6 @@ export const usePedidosManager = (
                                 return val.toString();
                             };
                             
-                            console.log(`✅ Registrando cambio: ${itemType} ${i + 1} - ${fieldDisplayName}`);
-                            
                             newHistoryEntries.push(generarEntradaHistorial(
                                 currentUserRole, 
                                 `${itemType} ${i + 1} - ${fieldDisplayName}`, 
@@ -196,7 +167,6 @@ export const usePedidosManager = (
                     });
                 }
 
-                console.log(`🔍 ${arrayName} hasChanges:`, hasChanges);
                 return hasChanges;
             };
 
