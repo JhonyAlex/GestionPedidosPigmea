@@ -52,6 +52,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
             const data = await response.json();
 
+            if (!response.ok) {
+                return { success: false, message: data.error || 'Error en el login' };
+            }
+
             if (data.success && data.user) {
                 setUser(data.user);
                 if (typeof window !== 'undefined') {
@@ -59,7 +63,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 }
                 return { success: true, user: data.user, message: data.message };
             } else {
-                return { success: false, message: data.error || 'Error en el login' };
+                return { success: false, message: data.error || 'Error desconocido en el login' };
             }
         } catch (error) {
             console.error('Error en login:', error);
@@ -83,6 +87,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
             const data = await response.json();
 
+            if (!response.ok) {
+                return { success: false, message: data.error || 'Error en el registro' };
+            }
+
             if (data.success && data.user) {
                 setUser(data.user);
                 if (typeof window !== 'undefined') {
@@ -90,7 +98,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 }
                 return { success: true, user: data.user, message: data.message };
             } else {
-                return { success: false, message: data.error || 'Error en el registro' };
+                return { success: false, message: data.error || 'Error desconocido en el registro' };
             }
         } catch (error) {
             console.error('Error en registro:', error);
