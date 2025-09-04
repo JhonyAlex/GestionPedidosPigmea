@@ -18,7 +18,76 @@ const authController = {
                 });
             }
 
-            // Buscar usuario administrador
+            // Si no hay base de datos, usar usuarios hardcodeados
+            if (!dbClient.isInitialized) {
+                console.log('🔧 Usando autenticación de desarrollo sin BD');
+                const devAdminUsers = {
+                    'admin': { 
+                        id: 'admin-1',
+                        username: 'admin', 
+                        password: 'admin123', 
+                        role: 'ADMIN',
+                        email: 'admin@pigmea.com',
+                        firstName: 'Administrador',
+                        lastName: 'Sistema',
+                        isActive: true,
+                        permissions: ['users.view', 'users.create', 'users.edit', 'users.delete', 'system.admin']
+                    },
+                    'supervisor': { 
+                        id: 'admin-2',
+                        username: 'supervisor', 
+                        password: 'super123', 
+                        role: 'SUPERVISOR',
+                        email: 'supervisor@pigmea.com',
+                        firstName: 'Supervisor',
+                        lastName: 'General',
+                        isActive: true,
+                        permissions: ['users.view', 'users.edit']
+                    }
+                };
+
+                const user = devAdminUsers[username.toLowerCase()];
+                
+                if (!user || user.password !== password) {
+                    return res.status(401).json({
+                        error: 'Credenciales incorrectas'
+                    });
+                }
+
+                // Generar token JWT
+                const token = jwt.sign(
+                    { 
+                        userId: user.id,
+                        username: user.username,
+                        role: user.role 
+                    },
+                    JWT_SECRET,
+                    { expiresIn: '8h' }
+                );
+
+                res.json({
+                    token,
+                    user: {
+                        id: user.id,
+                        username: user.username,
+                        email: user.email,
+                        firstName: user.firstName,
+                        lastName: user.lastName,
+                        role: user.role,
+                        isActive: user.isActive,
+                        lastLogin: new Date().toISOString(),
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        permissions: user.permissions
+                    },
+                    expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
+                });
+
+                console.log(`✅ Admin login exitoso (dev): ${username}`);
+                return;
+            }
+
+            // Buscar usuario administrador en BD
             const user = await dbClient.getAdminUserByUsername(username);
             
             console.log('🔍 Debug login - Usuario encontrado:', user ? { id: user.id, username: user.username, role: user.role } : null);

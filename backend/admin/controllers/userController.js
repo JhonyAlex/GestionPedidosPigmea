@@ -8,6 +8,67 @@ const userController = {
     // Obtener todos los usuarios
     async getAllUsers(req, res) {
         try {
+            // Si no hay base de datos, usar usuarios mock
+            if (!dbClient.isInitialized) {
+                console.log('🔧 Usando usuarios mock para desarrollo');
+                const mockUsers = [
+                    {
+                        id: 'admin-1',
+                        username: 'admin',
+                        email: 'admin@pigmea.com',
+                        firstName: 'Administrador',
+                        lastName: 'Sistema',
+                        role: 'ADMIN',
+                        isActive: true,
+                        lastLogin: new Date().toISOString(),
+                        createdAt: '2024-01-01T00:00:00Z',
+                        updatedAt: new Date().toISOString(),
+                        permissions: ['users.view', 'users.create', 'users.edit', 'users.delete', 'system.admin']
+                    },
+                    {
+                        id: 'admin-2',
+                        username: 'supervisor',
+                        email: 'supervisor@pigmea.com',
+                        firstName: 'Supervisor',
+                        lastName: 'General',
+                        role: 'SUPERVISOR',
+                        isActive: true,
+                        lastLogin: new Date(Date.now() - 86400000).toISOString(), // Hace 1 día
+                        createdAt: '2024-01-01T00:00:00Z',
+                        updatedAt: new Date().toISOString(),
+                        permissions: ['users.view', 'users.edit']
+                    },
+                    {
+                        id: 'user-1',
+                        username: 'operador1',
+                        email: 'operador1@pigmea.com',
+                        firstName: 'Juan',
+                        lastName: 'Pérez',
+                        role: 'OPERATOR',
+                        isActive: true,
+                        lastLogin: new Date(Date.now() - 3600000).toISOString(), // Hace 1 hora
+                        createdAt: '2024-01-15T00:00:00Z',
+                        updatedAt: new Date().toISOString(),
+                        permissions: ['orders.view', 'orders.edit']
+                    },
+                    {
+                        id: 'user-2',
+                        username: 'visor1',
+                        email: 'visor1@pigmea.com',
+                        firstName: 'María',
+                        lastName: 'García',
+                        role: 'VIEWER',
+                        isActive: false,
+                        lastLogin: new Date(Date.now() - 604800000).toISOString(), // Hace 1 semana
+                        createdAt: '2024-02-01T00:00:00Z',
+                        updatedAt: new Date().toISOString(),
+                        permissions: ['view.dashboard']
+                    }
+                ];
+
+                return res.json(mockUsers);
+            }
+
             const users = await dbClient.getAllAdminUsers();
             
             // Remover password_hash de la respuesta
