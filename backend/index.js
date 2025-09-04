@@ -807,7 +807,7 @@ app.get('/admin/*', (req, res) => {
 // --- SERVER START ---
 const PORT = process.env.PORT || 3001;
 
-// Catch-all handler for frontend routing (aplicación principal)
+// Catch-all handler for frontend routing (aplicación principal) - DEBE IR AL FINAL
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
