@@ -407,9 +407,11 @@ app.post('/api/auth/register', async (req, res) => {
         }
 
         // Modo producción - usar base de datos
-        // Verificar si el usuario ya existe
+        // Verificar si el usuario ya existe en ambas tablas
+        const existingAdmin = await dbClient.getAdminUserByUsername(username);
         const existingUser = await dbClient.findUserByUsername(username);
-        if (existingUser) {
+        
+        if (existingAdmin || existingUser) {
             return res.status(409).json({ 
                 error: 'El nombre de usuario ya existe' 
             });
