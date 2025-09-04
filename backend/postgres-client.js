@@ -744,6 +744,12 @@ class PostgreSQLClient {
     // --- GESTIÓN DE AUDITORÍA ---
 
     async createAuditLog(logData) {
+        // Verificar que el pool esté disponible
+        if (!this.pool || !this.isInitialized) {
+            console.log('⚠️ Pool de conexiones no disponible, saltando log de auditoría');
+            return;
+        }
+        
         const client = await this.pool.connect();
         try {
             const {
@@ -772,6 +778,12 @@ class PostgreSQLClient {
     }
 
     async getAuditLogs(page = 1, limit = 50, filters = {}) {
+        // Verificar que el pool esté disponible
+        if (!this.pool || !this.isInitialized) {
+            console.log('⚠️ Pool de conexiones no disponible, devolviendo logs vacíos');
+            return { logs: [], total: 0, page, limit };
+        }
+        
         const client = await this.pool.connect();
         try {
             const offset = (page - 1) * limit;
