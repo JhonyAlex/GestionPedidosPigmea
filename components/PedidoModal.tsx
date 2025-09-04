@@ -40,12 +40,13 @@ interface PedidoModalProps {
 }
 
 const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onArchiveToggle, currentUserRole, onAdvanceStage, onSendToPrint, onDuplicate, onDelete, onUpdateEtapa }) => {
-    const [formData, setFormData] = useState<Pedido>(pedido);
+    const [formData, setFormData] = useState<Pedido>(JSON.parse(JSON.stringify(pedido)));
     const [activeTab, setActiveTab] = useState<'detalles' | 'historial'>('detalles');
     const isReadOnly = currentUserRole === 'Operador';
 
     useEffect(() => {
-        setFormData(pedido);
+        // Hacer una copia profunda para evitar modificar el pedido original
+        setFormData(JSON.parse(JSON.stringify(pedido)));
     }, [pedido]);
 
     const handleDataChange = (field: keyof Pedido, value: any) => {
