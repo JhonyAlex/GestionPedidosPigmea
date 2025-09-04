@@ -14,6 +14,7 @@ const PostgreSQLClient = require('./postgres-client');
 // Importar rutas administrativas
 const adminAuthRoutes = require('./admin/routes/auth');
 const adminUserRoutes = require('./admin/routes/users');
+const adminMainSystemUsersRoutes = require('./admin/routes/mainSystemUsers');
 
 // Inicializar el cliente de PostgreSQL
 const dbClient = new PostgreSQLClient();
@@ -705,6 +706,9 @@ app.use('/api/admin/auth', adminAuthRoutes);
 
 // Rutas de gestión de usuarios
 app.use('/api/admin/users', adminUserRoutes);
+
+// Rutas de gestión de usuarios del sistema principal
+app.use('/api/admin/main-users', adminMainSystemUsersRoutes);
 
 // Ruta para obtener datos del dashboard administrativo
 app.get('/api/admin/dashboard', async (req, res) => {

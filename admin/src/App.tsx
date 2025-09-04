@@ -5,6 +5,7 @@ import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
 import UsersPage from './pages/UsersPage';
+import MainSystemUsersPage from './pages/MainSystemUsersPage';
 import AuditPage from './pages/AuditPage';
 import SystemPage from './pages/SystemPage';
 import DatabasePage from './pages/DatabasePage';
@@ -23,6 +24,7 @@ const App: React.FC = () => {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="users" element={<UsersPage />} />
+            <Route path="main-users" element={<MainSystemUsersPage />} />
             <Route path="audit" element={<AuditPage />} />
             <Route path="system" element={<SystemPage />} />
             <Route path="database" element={<DatabasePage />} />

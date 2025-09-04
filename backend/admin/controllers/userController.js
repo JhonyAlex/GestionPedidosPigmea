@@ -136,6 +136,59 @@ const userController = {
     // Crear nuevo usuario
     async createUser(req, res) {
         try {
+            // Si no hay base de datos, simular creación exitosa
+            if (!dbClient.isInitialized || !dbClient.pool) {
+                console.log('🔧 Simulando creación de usuario en modo desarrollo');
+                const {
+                    username,
+                    email,
+                    firstName,
+                    lastName,
+                    role,
+                    password,
+                    permissions = []
+                } = req.body;
+
+                // Validaciones básicas
+                if (!username || !email || !firstName || !lastName || !role || !password) {
+                    return res.status(400).json({
+                        error: 'Todos los campos son requeridos'
+                    });
+                }
+
+                if (password.length < 8) {
+                    return res.status(400).json({
+                        error: 'La contraseña debe tener al menos 8 caracteres'
+                    });
+                }
+
+                const validRoles = ['ADMIN', 'SUPERVISOR', 'OPERATOR', 'VIEWER'];
+                if (!validRoles.includes(role)) {
+                    return res.status(400).json({
+                        error: 'Rol inválido'
+                    });
+                }
+
+                // Simular creación exitosa
+                const newUser = {
+                    id: `user-${Date.now()}`,
+                    username,
+                    email,
+                    firstName,
+                    lastName,
+                    role,
+                    isActive: true,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    permissions: permissions
+                };
+
+                return res.status(201).json({
+                    message: 'Usuario creado exitosamente (modo desarrollo)',
+                    user: newUser
+                });
+            }
+
             const {
                 username,
                 email,
@@ -237,6 +290,38 @@ const userController = {
                 permissions
             } = req.body;
 
+            // Si no hay base de datos, simular actualización exitosa
+            if (!dbClient.isInitialized || !dbClient.pool) {
+                console.log('🔧 Simulando actualización de usuario en modo desarrollo');
+                
+                // Validar role si se proporciona
+                if (role) {
+                    const validRoles = ['ADMIN', 'SUPERVISOR', 'OPERATOR', 'VIEWER'];
+                    if (!validRoles.includes(role)) {
+                        return res.status(400).json({
+                            error: 'Rol inválido'
+                        });
+                    }
+                }
+
+                // Simular usuario actualizado
+                const mockUpdatedUser = {
+                    id: id,
+                    username: `usuario_${id}`,
+                    email: email || `usuario${id}@ejemplo.com`,
+                    firstName: firstName || 'Usuario',
+                    lastName: lastName || 'Ejemplo',
+                    role: role || 'VIEWER',
+                    isActive: isActive !== undefined ? isActive : true,
+                    lastLogin: new Date().toISOString(),
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    permissions: permissions || []
+                };
+
+                return res.json(mockUpdatedUser);
+            }
+
             // Verificar que el usuario existe
             const existingUser = await dbClient.getAdminUserById(id);
             if (!existingUser) {
@@ -303,6 +388,22 @@ const userController = {
     async deleteUser(req, res) {
         try {
             const { id } = req.params;
+
+            // Si no hay base de datos, simular eliminación exitosa
+            if (!dbClient.isInitialized || !dbClient.pool) {
+                console.log('🔧 Simulando eliminación de usuario en modo desarrollo');
+                
+                // No permitir que el usuario se elimine a sí mismo
+                if (id === req.user.id) {
+                    return res.status(400).json({
+                        error: 'No puedes eliminar tu propia cuenta'
+                    });
+                }
+
+                return res.json({
+                    message: 'Usuario eliminado exitosamente (modo desarrollo)'
+                });
+            }
 
             // Verificar que el usuario existe
             const existingUser = await dbClient.getAdminUserById(id);

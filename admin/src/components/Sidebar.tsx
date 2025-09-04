@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import {
   LayoutDashboard,
   Users,
+  UserCheck,
   FileText,
   Settings,
   Database,
@@ -26,10 +27,16 @@ const Sidebar: React.FC = () => {
       permission: 'dashboard.view'
     },
     {
-      name: 'Usuarios',
+      name: 'Usuarios Admin',
       icon: Users,
       path: '/users',
       permission: 'users.view'
+    },
+    {
+      name: 'Usuarios Sistema',
+      icon: UserCheck,
+      path: '/main-users',
+      permission: 'users.view' // Usar el mismo permiso por ahora
     },
     {
       name: 'Auditoría',
