@@ -138,6 +138,46 @@ export interface User {
     displayName: string;
     createdAt?: string;
     lastLogin?: string;
+    permissions?: Permission[];
+}
+
+// === TIPOS DE PERMISOS ===
+
+export interface Permission {
+    id: string;
+    name: string;
+    description: string;
+    category: PermissionCategory;
+    enabled: boolean;
+}
+
+export interface RolePermissions {
+    role: UserRole;
+    permissions: Permission[];
+}
+
+export type PermissionCategory = 
+    | 'pedidos'
+    | 'usuarios'
+    | 'reportes'
+    | 'configuracion'
+    | 'auditoria'
+    | 'sistema';
+
+export interface PermissionConfig {
+    categories: {
+        [K in PermissionCategory]: {
+            name: string;
+            description: string;
+            permissions: Omit<Permission, 'enabled'>[];
+        };
+    };
+}
+
+export interface UserPermissions {
+    userId: string;
+    permissions: string[]; // Array de IDs de permisos
+    customPermissions?: Permission[]; // Permisos personalizados para este usuario
 }
 
 export interface LoginRequest {
