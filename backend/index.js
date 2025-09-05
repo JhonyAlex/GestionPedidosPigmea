@@ -60,6 +60,17 @@ const loginLimiter = rateLimit({
     legacyHeaders: false,
 });
 
+// Rate limiting general para rutas admin
+const adminLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 100, // máximo 100 requests por ventana
+    message: {
+        error: 'Demasiadas solicitudes a las rutas administrativas, intenta de nuevo más tarde.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
 app.use(cors({
     origin: process.env.NODE_ENV === 'production' 
         ? ['https://planning.pigmea.click', 'https://www.planning.pigmea.click']
@@ -681,14 +692,14 @@ app.use('/api/admin', adminLimiter);
 // Aplicar rate limiting especial al login
 app.use('/api/admin/auth/login', loginLimiter);
 
-// Rutas de autenticación administrativa
-app.use('/api/admin/auth', adminAuthRoutes);
+// Rutas de autenticación administrativa (comentadas temporalmente)
+// app.use('/api/admin/auth', adminAuthRoutes);
 
-// Rutas de gestión de usuarios
-app.use('/api/admin/users', adminUserRoutes);
+// Rutas de gestión de usuarios (comentadas temporalmente)
+// app.use('/api/admin/users', adminUserRoutes);
 
-// Rutas de gestión de usuarios del sistema principal
-app.use('/api/admin/main-users', adminMainSystemUsersRoutes);
+// Rutas de gestión de usuarios del sistema principal (comentadas temporalmente)
+// app.use('/api/admin/main-users', adminMainSystemUsersRoutes);
 
 // Ruta para obtener datos del dashboard administrativo
 app.get('/api/admin/dashboard', async (req, res) => {
