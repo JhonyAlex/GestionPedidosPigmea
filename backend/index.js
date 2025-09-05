@@ -1,34 +1,8 @@
 // Cargar variables de entorno
 require('dotenv').config();
 
-const path = require('path')// Health check endpoint
-app.get('/health', async (req, res) => {
-    try {
-        const stats = await dbClient.getStats();
-        res.status(200).json({
-            status: 'healthy',
-            timestamp: new Date().toISOString(),
-            database: 'PostgreSQL',
-            websocketConnections: io.engine.clientsCount,
-            connectedUsers: connectedUsers.size,
-            ...stats
-        });
-    } catch (error) {
-        res.status(503).json({
-            status: 'unhealthy',
-            timestamp: new Date().toISOString(),
-            error: error.message
-        });
-    }
-});
-
-// Simple connectivity check for frontend
-app.get('/api/health', (req, res) => {
-    res.status(200).json({
-        status: 'ok',
-        timestamp: new Date().toISOString()
-    });
-});quire('express');
+const path = require('path');
+const express = require('express');
 const cors = require('cors');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
@@ -131,6 +105,14 @@ app.get('/health', async (req, res) => {
             error: error.message
         });
     }
+});
+
+// Simple connectivity check for frontend
+app.get('/api/health', (req, res) => {
+    res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString()
+    });
 });
 
 // Reset users endpoint
