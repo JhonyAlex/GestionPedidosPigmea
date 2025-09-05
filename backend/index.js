@@ -11,11 +11,6 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const PostgreSQLClient = require('./postgres-client');
 
-// Importar rutas administrativas
-const adminAuthRoutes = require('./admin/routes/auth');
-const adminUserRoutes = require('./admin/routes/users');
-const adminMainSystemUsersRoutes = require('./admin/routes/mainSystemUsers');
-
 // Inicializar el cliente de PostgreSQL
 const dbClient = new PostgreSQLClient();
 
@@ -35,8 +30,7 @@ const io = new Server(server, {
             : [
                 "http://localhost:3000", 
                 "http://localhost:5173",
-                "http://localhost:5174",
-                "http://localhost:3001" // Admin panel
+                "http://localhost:5174"
             ],
         methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
         credentials: true
@@ -57,17 +51,6 @@ app.use(helmet({
 }));
 app.use(compression());
 
-// Rate limiting para rutas administrativas
-const adminLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 100, // máximo 100 requests por ventana
-    message: {
-        error: 'Demasiadas solicitudes desde esta IP, intenta de nuevo más tarde.'
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-
 // Rate limiting más estricto para login
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
@@ -85,8 +68,7 @@ app.use(cors({
         : [
             "http://localhost:3000", 
             "http://localhost:5173",
-            "http://localhost:5174", 
-            "http://localhost:3001"
+            "http://localhost:5174"
         ],
     credentials: true
 }));
@@ -904,25 +886,6 @@ app.get('/api/admin/stats', async (req, res) => {
             error: 'Error interno del servidor'
         });
     }
-});
-
-// =================================================================
-// FIN RUTAS ADMINISTRATIVAS
-// =================================================================
-
-// --- SERVIR PANEL DE ADMINISTRACIÓN ---
-
-// Servir archivos estáticos específicos
-app.use('/admin/assets', express.static(path.join(__dirname, '../admin/dist/assets')));
-
-// Ruta específica para el panel de administración
-app.get('/admin', (req, res) => {
-    res.sendFile(path.join(__dirname, '../admin/dist', 'index.html'));
-});
-
-// Ruta para subrutas del panel de administración  
-app.get('/admin/*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../admin/dist', 'index.html'));
 });
 
 // --- SERVER START ---
