@@ -131,13 +131,23 @@ app.get('/api/debug/users', async (req, res) => {
         // Consultar usuarios regulares
         const client = await dbClient.pool.connect();
         try {
+            // Primero verificar qué columnas existen en la tabla users
+            const columnsResult = await client.query(`
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'users' AND table_schema = 'public'
+            `);
+            
+            const availableColumns = columnsResult.rows.map(row => row.column_name);
+            const hasUpdatedAt = availableColumns.includes('updated_at');
+            
+            // Construir la consulta con las columnas que existen
+            const selectColumns = hasUpdatedAt 
+                ? 'id, username, role, created_at, updated_at'
+                : 'id, username, role, created_at';
+                
             const result = await client.query(`
-                SELECT 
-                    id,
-                    username,
-                    role,
-                    created_at,
-                    updated_at
+                SELECT ${selectColumns}
                 FROM users 
                 ORDER BY created_at DESC
             `);
@@ -146,18 +156,13 @@ app.get('/api/debug/users', async (req, res) => {
             let adminUsers = [];
             try {
                 const adminResult = await client.query(`
-                    SELECT 
-                        id,
-                        username,
-                        role,
-                        created_at,
-                        updated_at
+                    SELECT ${selectColumns}
                     FROM admin_users 
                     ORDER BY created_at DESC
                 `);
                 adminUsers = adminResult.rows.map(user => ({...user, user_type: 'admin'}));
-            } catch (e) {
-                // Tabla admin_users no existe, continuar
+            } catch (adminError) {
+                console.log('Tabla admin_users no disponible:', adminError.message);
             }
 
             const regularUsers = result.rows.map(user => ({...user, user_type: 'regular'}));
