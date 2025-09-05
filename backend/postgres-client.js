@@ -17,11 +17,11 @@ class PostgreSQLClient {
         } else {
             // Configuración de conexión individual
             this.config = {
-                host: process.env.DB_HOST || 'localhost',
-                port: parseInt(process.env.DB_PORT) || 5432,
-                database: process.env.DB_NAME || 'gestion_pedidos',
-                user: process.env.DB_USER || 'pigmea_user',
-                password: process.env.DB_PASSWORD,
+                host: process.env.POSTGRES_HOST || process.env.DB_HOST || 'localhost',
+                port: parseInt(process.env.POSTGRES_PORT || process.env.DB_PORT) || 5432,
+                database: process.env.POSTGRES_DB || process.env.DB_NAME || 'gestion_pedidos',
+                user: process.env.POSTGRES_USER || process.env.DB_USER || 'pigmea_user',
+                password: process.env.POSTGRES_PASSWORD || process.env.DB_PASSWORD,
                 ssl: false, // Deshabilitar SSL para conexiones internas de Docker
                 max: 20,
                 idleTimeoutMillis: 30000,
@@ -32,6 +32,13 @@ class PostgreSQLClient {
 
     async init() {
         try {
+            console.log('🔧 Configuración de PostgreSQL:');
+            console.log(`   Host: ${this.config.host}`);
+            console.log(`   Port: ${this.config.port}`);
+            console.log(`   Database: ${this.config.database}`);
+            console.log(`   User: ${this.config.user}`);
+            console.log(`   Password: ${this.config.password ? '[SET]' : '[NOT SET]'}`);
+            
             this.pool = new Pool(this.config);
             
             // Probar la conexión con timeout
