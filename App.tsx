@@ -20,6 +20,7 @@ import NotificationCenter from './components/NotificationCenter';
 import ConnectedUsers from './components/ConnectedUsers';
 import LoginModal from './components/LoginModal';
 import UserInfo from './components/UserInfo';
+import UserManagement from './components/UserManagement';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { calcularSiguienteEtapa, estaFueraDeSecuencia } from './utils/etapaLogic';
 import { procesarDragEnd } from './utils/dragLogic';
@@ -42,6 +43,7 @@ const AppContent: React.FC = () => {
     const [highlightedPedidoId, setHighlightedPedidoId] = useState<string | null>(null);
     const [isDuplicating, setIsDuplicating] = useState(false);
     const [duplicatingMessage, setDuplicatingMessage] = useState('Duplicando pedido...');
+    const [showUserManagement, setShowUserManagement] = useState(false);
 
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
         if (typeof window !== 'undefined' && localStorage.theme) {
@@ -570,6 +572,7 @@ const AppContent: React.FC = () => {
                     onExportPDF={handleExportPDF}
                     onExportData={doExportData}
                     onImportData={doImportData}
+                    onUserManagement={() => setShowUserManagement(true)}
                 />
                 {renderContent()}
                 {selectedPedido && (
@@ -641,6 +644,11 @@ const AppContent: React.FC = () => {
                     currentUser={currentUserId}
                     isConnected={isConnected}
                 />
+
+                {/* 👥 User Management Modal */}
+                {showUserManagement && (
+                    <UserManagement onClose={() => setShowUserManagement(false)} />
+                )}
             </div>
         </DragDropContext>
     );

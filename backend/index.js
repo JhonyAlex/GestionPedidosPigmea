@@ -529,6 +529,98 @@ app.get('/api/auth/users', async (req, res) => {
     }
 });
 
+// PUT /api/auth/users/:id - Actualizar usuario
+app.put('/api/auth/users/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { username, role, displayName, password } = req.body;
+
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({
+                error: 'Base de datos no disponible en modo desarrollo'
+            });
+        }
+
+        // Verificar si el usuario existe
+        const existingUser = await dbClient.findUserById(id);
+        if (!existingUser) {
+            return res.status(404).json({
+                error: 'Usuario no encontrado'
+            });
+        }
+
+        // Verificar si el nuevo username ya existe (si se está cambiando)
+        if (username && username !== existingUser.username) {
+            const usernameExists = await dbClient.findUserByUsername(username);
+            if (usernameExists) {
+                return res.status(409).json({
+                    error: 'El nombre de usuario ya existe'
+                });
+            }
+        }
+
+        // Preparar datos de actualización
+        const updateData = {};
+        if (username) updateData.username = username.trim();
+        if (role) updateData.role = role;
+        if (displayName) updateData.displayName = displayName.trim();
+        if (password) updateData.password = password;
+
+        const updatedUser = await dbClient.updateUser(id, updateData);
+
+        res.json({
+            success: true,
+            user: {
+                id: updatedUser.id,
+                username: updatedUser.username,
+                role: updatedUser.role,
+                displayName: updatedUser.displayName
+            },
+            message: 'Usuario actualizado exitosamente'
+        });
+
+    } catch (error) {
+        console.error('Error actualizando usuario:', error);
+        res.status(500).json({
+            error: error.message || 'Error interno del servidor'
+        });
+    }
+});
+
+// DELETE /api/auth/users/:id - Eliminar usuario
+app.delete('/api/auth/users/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({
+                error: 'Base de datos no disponible en modo desarrollo'
+            });
+        }
+
+        // Verificar si el usuario existe
+        const existingUser = await dbClient.findUserById(id);
+        if (!existingUser) {
+            return res.status(404).json({
+                error: 'Usuario no encontrado'
+            });
+        }
+
+        await dbClient.deleteUser(id);
+
+        res.json({
+            success: true,
+            message: 'Usuario eliminado exitosamente'
+        });
+
+    } catch (error) {
+        console.error('Error eliminando usuario:', error);
+        res.status(500).json({
+            error: error.message || 'Error interno del servidor'
+        });
+    }
+});
+
 // === RUTAS DE AUDITORÍA ===
 
 // GET /api/audit - Get audit log

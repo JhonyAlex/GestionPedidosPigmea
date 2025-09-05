@@ -14,6 +14,7 @@ const ConnectedUsers: React.FC<ConnectedUsersProps> = ({ users, currentUser, isC
   const getRoleIcon = (role: UserRole) => {
     switch (role) {
       case 'Administrador': return '👑';
+      case 'Supervisor': return '👨‍💼';
       case 'Operador': return '👷';
       default: return '👤';
     }
@@ -22,6 +23,7 @@ const ConnectedUsers: React.FC<ConnectedUsersProps> = ({ users, currentUser, isC
   const getRoleColor = (role: UserRole) => {
     switch (role) {
       case 'Administrador': return 'text-yellow-600 dark:text-yellow-400';
+      case 'Supervisor': return 'text-purple-600 dark:text-purple-400';
       case 'Operador': return 'text-blue-600 dark:text-blue-400';
       default: return 'text-gray-600 dark:text-gray-400';
     }

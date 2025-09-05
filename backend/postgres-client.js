@@ -442,6 +442,103 @@ class PostgreSQLClient {
         }
     }
 
+    async findUserById(userId) {
+        if (!this.isInitialized) {
+            throw new Error('Database not initialized');
+        }
+
+        const client = await this.pool.connect();
+        
+        try {
+            const result = await client.query(
+                'SELECT * FROM users WHERE id = $1',
+                [userId]
+            );
+            
+            return result.rows.length > 0 ? result.rows[0] : null;
+            
+        } finally {
+            client.release();
+        }
+    }
+
+    async updateUser(userId, updateData) {
+        if (!this.isInitialized) {
+            throw new Error('Database not initialized');
+        }
+
+        const client = await this.pool.connect();
+        
+        try {
+            const setClauses = [];
+            const values = [];
+            let paramIndex = 1;
+
+            if (updateData.username) {
+                setClauses.push(`username = $${paramIndex}`);
+                values.push(updateData.username);
+                paramIndex++;
+            }
+
+            if (updateData.role) {
+                setClauses.push(`role = $${paramIndex}`);
+                values.push(updateData.role);
+                paramIndex++;
+            }
+
+            if (updateData.displayName) {
+                setClauses.push(`display_name = $${paramIndex}`);
+                values.push(updateData.displayName);
+                paramIndex++;
+            }
+
+            if (updateData.password) {
+                setClauses.push(`password = $${paramIndex}`);
+                values.push(updateData.password);
+                paramIndex++;
+            }
+
+            if (setClauses.length === 0) {
+                throw new Error('No data to update');
+            }
+
+            values.push(userId);
+            const query = `
+                UPDATE users 
+                SET ${setClauses.join(', ')} 
+                WHERE id = $${paramIndex}
+                RETURNING id, username, role, display_name, created_at
+            `;
+
+            const result = await client.query(query, values);
+            
+            return result.rows[0];
+            
+        } finally {
+            client.release();
+        }
+    }
+
+    async deleteUser(userId) {
+        if (!this.isInitialized) {
+            throw new Error('Database not initialized');
+        }
+
+        const client = await this.pool.connect();
+        
+        try {
+            const result = await client.query(
+                'DELETE FROM users WHERE id = $1 RETURNING id',
+                [userId]
+            );
+            
+            return result.rows.length > 0;
+            
+        } finally {
+            client.release();
+        }
+    }
+
     // === UTILIDADES ===
 
     // Métodos de auditoría
