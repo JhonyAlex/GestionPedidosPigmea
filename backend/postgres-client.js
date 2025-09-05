@@ -5,16 +5,8 @@ class PostgreSQLClient {
         this.pool = null;
         this.isInitialized = false;
         
-        // Priorizar DATABASE_URL si está disponible
-        if (process.env.DATABASE_URL) {
-            this.config = {
-                connectionString: process.env.DATABASE_URL,
-                ssl: false, // Deshabilitar SSL para conexiones internas de Docker
-                max: 20,
-                idleTimeoutMillis: 30000,
-                connectionTimeoutMillis: 2000,
-            };
-        } else {
+        // Priorizar variables individuales para mejor control y logging
+        if (process.env.DB_HOST || process.env.POSTGRES_HOST) {
             // Configuración de conexión individual
             this.config = {
                 host: process.env.POSTGRES_HOST || process.env.DB_HOST || 'localhost',
@@ -27,11 +19,40 @@ class PostgreSQLClient {
                 idleTimeoutMillis: 30000,
                 connectionTimeoutMillis: 2000,
             };
+        } else if (process.env.DATABASE_URL) {
+            this.config = {
+                connectionString: process.env.DATABASE_URL,
+                ssl: false, // Deshabilitar SSL para conexiones internas de Docker
+                max: 20,
+                idleTimeoutMillis: 30000,
+                connectionTimeoutMillis: 2000,
+            };
+        } else {
+            // Fallback a localhost para desarrollo
+            this.config = {
+                host: 'localhost',
+                port: 5432,
+                database: 'gestion_pedidos',
+                user: 'pigmea_user',
+                password: '',
+                ssl: false,
+                max: 20,
+                idleTimeoutMillis: 30000,
+                connectionTimeoutMillis: 2000,
+            };
         }
     }
 
     async init() {
         try {
+            console.log('🔧 Variables de entorno disponibles:');
+            console.log(`   NODE_ENV: ${process.env.NODE_ENV}`);
+            console.log(`   POSTGRES_HOST: ${process.env.POSTGRES_HOST}`);
+            console.log(`   POSTGRES_PORT: ${process.env.POSTGRES_PORT}`);
+            console.log(`   POSTGRES_DB: ${process.env.POSTGRES_DB}`);
+            console.log(`   POSTGRES_USER: ${process.env.POSTGRES_USER}`);
+            console.log(`   DATABASE_URL: ${process.env.DATABASE_URL ? '[SET]' : '[NOT SET]'}`);
+            
             console.log('🔧 Configuración de PostgreSQL:');
             console.log(`   Host: ${this.config.host}`);
             console.log(`   Port: ${this.config.port}`);
