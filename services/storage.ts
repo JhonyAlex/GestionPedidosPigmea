@@ -25,6 +25,44 @@ const isDevelopment = typeof window !== 'undefined' &&
                      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 const API_BASE_URL = isDevelopment ? 'http://localhost:8080/api' : '/api';
 
+// Función para detectar errores de red
+function isNetworkError(error: any): boolean {
+    return error.message.includes('Failed to fetch') || 
+           error.message.includes('NetworkError') ||
+           error.message.includes('ERR_INTERNET_DISCONNECTED') ||
+           error.name === 'TypeError' && error.message.includes('fetch');
+}
+
+// Función con reintentos automáticos para errores de red
+async function apiRetryFetch<T>(endpoint: string, options: RequestInit = {}, maxRetries: number = 3): Promise<T> {
+    let lastError: Error;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            return await apiFetch<T>(endpoint, options);
+        } catch (error) {
+            lastError = error as Error;
+            
+            // Si no es error de red, fallar inmediatamente
+            if (!isNetworkError(error)) {
+                throw error;
+            }
+            
+            // Si es el último intento, fallar
+            if (attempt === maxRetries) {
+                break;
+            }
+            
+            // Esperar antes del siguiente intento (backoff exponencial)
+            const delay = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+            console.log(`🔄 Reintentando llamada API en ${delay}ms (intento ${attempt + 1}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+    
+    throw new Error(`Error de red después de ${maxRetries} intentos: ${lastError.message}`);
+}
+
 async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     try {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -63,29 +101,29 @@ class ApiClient implements DataStore<Pedido> {
     }
 
     public async create(item: Pedido): Promise<Pedido> {
-        return apiFetch<Pedido>('/pedidos', {
+        return apiRetryFetch<Pedido>('/pedidos', {
             method: 'POST',
             body: JSON.stringify(item),
         });
     }
 
     public async update(item: Pedido): Promise<Pedido> {
-        return apiFetch<Pedido>(`/pedidos/${item.id}`, {
+        return apiRetryFetch<Pedido>(`/pedidos/${item.id}`, {
             method: 'PUT',
             body: JSON.stringify(item),
         });
     }
 
     public async delete(id: string): Promise<void> {
-        await apiFetch<void>(`/pedidos/${id}`, { method: 'DELETE' });
+        await apiRetryFetch<void>(`/pedidos/${id}`, { method: 'DELETE' });
     }
 
     public async findById(id: string): Promise<Pedido | undefined> {
-        return apiFetch<Pedido>(`/pedidos/${id}`);
+        return apiRetryFetch<Pedido>(`/pedidos/${id}`);
     }
 
     public async getAll(): Promise<Pedido[]> {
-        return apiFetch<Pedido[]>('/pedidos');
+        return apiRetryFetch<Pedido[]>('/pedidos');
     }
 
     public async clear(): Promise<void> {
@@ -98,7 +136,7 @@ class ApiClient implements DataStore<Pedido> {
     }
 
     public async bulkInsert(items: Pedido[]): Promise<void> {
-        await apiFetch<void>('/pedidos/bulk', {
+        await apiRetryFetch<void>('/pedidos/bulk', {
             method: 'POST',
             body: JSON.stringify(items),
         });
