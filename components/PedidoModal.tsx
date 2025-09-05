@@ -5,6 +5,7 @@ import { puedeAvanzarSecuencia, estaFueraDeSecuencia } from '../utils/etapaLogic
 import { ETAPAS, KANBAN_FUNNELS } from '../constants';
 import SequenceBuilder from './SequenceBuilder';
 import SeccionDatosTecnicosDeMaterial from './SeccionDatosTecnicosDeMaterial';
+import { usePermissions } from '../hooks/usePermissions';
 
 const DuplicateIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m9.75 0h-3.375c-.621 0-1.125.504-1.125 1.125v6.75c0 .621.504 1.125 1.125 1.125h3.375c.621 0 1.125-.504 1.125-1.125v-6.75a1.125 1.125 0 0 0-1.125-1.125Z" /></svg>;
 const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>;
@@ -42,7 +43,15 @@ interface PedidoModalProps {
 const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onArchiveToggle, currentUserRole, onAdvanceStage, onSendToPrint, onDuplicate, onDelete, onUpdateEtapa }) => {
     const [formData, setFormData] = useState<Pedido>(JSON.parse(JSON.stringify(pedido)));
     const [activeTab, setActiveTab] = useState<'detalles' | 'historial'>('detalles');
-    const isReadOnly = currentUserRole === 'Operador';
+    const { 
+        canEditPedidos, 
+        canDeletePedidos, 
+        canArchivePedidos, 
+        canMovePedidos 
+    } = usePermissions();
+    
+    // Determinar si el modal es de solo lectura basado en permisos
+    const isReadOnly = !canEditPedidos();
 
     useEffect(() => {
         // Hacer una copia profunda para evitar modificar el pedido original
@@ -210,16 +219,18 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                 <div className="flex justify-between items-center mb-1">
                     <div className="flex items-center gap-4">
                         <h2 className="text-3xl font-bold">Pedido: {pedido.numeroPedidoCliente}</h2>
-                        {currentUserRole === 'Administrador' && (
-                            <div className="flex items-center gap-2">
-                                <button onClick={handleDuplicateClick} title="Duplicar Pedido" className="text-gray-500 hover:text-indigo-500 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors">
-                                    <DuplicateIcon />
-                                </button>
-                                <button onClick={handleDeleteClick} title="Eliminar Pedido" className="text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-colors">
-                                    <TrashIcon />
-                                </button>
-                            </div>
-                        )}
+                        <div className="flex items-center gap-2">
+                            {canDeletePedidos() && (
+                                <>
+                                    <button onClick={handleDuplicateClick} title="Duplicar Pedido" className="text-gray-500 hover:text-indigo-500 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors">
+                                        <DuplicateIcon />
+                                    </button>
+                                    <button onClick={handleDeleteClick} title="Eliminar Pedido" className="text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-colors">
+                                        <TrashIcon />
+                                    </button>
+                                </>
+                            )}
+                        </div>
                     </div>
                     <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-3xl leading-none">&times;</button>
                 </div>
@@ -409,13 +420,15 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
 
                             <div className="mt-8 flex justify-between items-center">
                                 {isReadOnly ? (
-                                    <span className="text-sm text-gray-500">Modo de solo lectura para Operador.</span>
+                                    <span className="text-sm text-gray-500">Modo de solo lectura - No tiene permisos de edición.</span>
                                 ) : (
                                     <div className="flex gap-2">
-                                        <button type="button" onClick={handleArchiveClick} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled={pedido.etapaActual !== Etapa.COMPLETADO && pedido.etapaActual !== Etapa.ARCHIVADO}>
-                                            {pedido.etapaActual === Etapa.ARCHIVADO ? 'Desarchivar' : 'Archivar'}
-                                        </button>
-                                        {pedido.etapaActual === Etapa.PREPARACION ? (
+                                        {canArchivePedidos() && (
+                                            <button type="button" onClick={handleArchiveClick} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled={pedido.etapaActual !== Etapa.COMPLETADO && pedido.etapaActual !== Etapa.ARCHIVADO}>
+                                                {pedido.etapaActual === Etapa.ARCHIVADO ? 'Desarchivar' : 'Archivar'}
+                                            </button>
+                                        )}
+                                        {canMovePedidos() && pedido.etapaActual === Etapa.PREPARACION && (
                                             <button
                                                 type="button"
                                                 onClick={handleSendToPrintClick}
@@ -433,13 +446,12 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                             >
                                                 {!!formData.antivaho ? "Enviar a Post-Impresión" : "Enviar a Impresión"}
                                             </button>
-                                        ) : (
-                                            !printingStages.includes(pedido.etapaActual) && (
-                                                <select onChange={(e) => handleRevertToPrinting(e.target.value as Etapa)} className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded transition-colors duration-200" value="">
-                                                    <option value="" disabled>Volver a Impresión...</option>
-                                                    {printingStages.map(stage => <option key={stage} value={stage}>{ETAPAS[stage].title}</option>)}
-                                                </select>
-                                            )
+                                        )}
+                                        {canMovePedidos() && pedido.etapaActual !== Etapa.PREPARACION && !printingStages.includes(pedido.etapaActual) && (
+                                            <select onChange={(e) => handleRevertToPrinting(e.target.value as Etapa)} className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded transition-colors duration-200" value="">
+                                                <option value="" disabled>Volver a Impresión...</option>
+                                                {printingStages.map(stage => <option key={stage} value={stage}>{ETAPAS[stage].title}</option>)}
+                                            </select>
                                         )}
                                     </div>
                                 )}
@@ -448,7 +460,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                     <button type="button" onClick={onClose} className="bg-gray-500 hover:bg-gray-400 text-white dark:bg-gray-600 dark:hover:bg-gray-500 font-bold py-2 px-4 rounded transition-colors duration-200">Cancelar</button>
                                     {!isReadOnly && (
                                         <>
-                                            {canAdvance && (
+                                            {canMovePedidos() && canAdvance && (
                                                 <button type="button" onClick={handleAdvanceClick} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200">
                                                     {advanceButtonTitle}
                                                 </button>

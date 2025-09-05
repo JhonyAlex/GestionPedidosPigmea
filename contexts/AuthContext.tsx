@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, AuthContextType, LoginRequest, RegisterRequest, AuthResponse } from '../types';
+import { getPermissionsByRole } from '../constants/permissions';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -11,6 +12,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // Función para enriquecer usuario con permisos
+    const enrichUserWithPermissions = (userData: User): User => {
+        // Si el usuario ya tiene permisos personalizados, los usamos
+        if (userData.permissions && userData.permissions.length > 0) {
+            return userData;
+        }
+        
+        // Si no tiene permisos personalizados, asignar permisos por defecto del rol
+        const rolePermissions = getPermissionsByRole(userData.role);
+        
+        return {
+            ...userData,
+            permissions: rolePermissions
+        };
+    };
+
     // Cargar usuario del localStorage al iniciar
     useEffect(() => {
         const verifyUser = async () => {
@@ -19,10 +36,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     const savedUser = localStorage.getItem('pigmea_user');
                     if (savedUser) {
                         const userData = JSON.parse(savedUser);
-                        // Aquí podrías añadir una llamada a un endpoint de verificación
-                        // Por ahora, simplemente cargamos el usuario.
-                        // Si el token expira, las llamadas a la API fallarán y se podría manejar el logout en ese punto.
-                        setUser(userData);
+                        // Enriquecer con permisos si no los tiene
+                        const enrichedUser = enrichUserWithPermissions(userData);
+                        setUser(enrichedUser);
+                        
+                        // Actualizar localStorage con usuario enriquecido
+                        localStorage.setItem('pigmea_user', JSON.stringify(enrichedUser));
                     }
                 }
             } catch (error) {
@@ -57,11 +76,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
 
             if (data.success && data.user) {
-                setUser(data.user);
+                const enrichedUser = enrichUserWithPermissions(data.user);
+                setUser(enrichedUser);
                 if (typeof window !== 'undefined') {
-                    localStorage.setItem('pigmea_user', JSON.stringify(data.user));
+                    localStorage.setItem('pigmea_user', JSON.stringify(enrichedUser));
                 }
-                return { success: true, user: data.user, message: data.message };
+                return { success: true, user: enrichedUser, message: data.message };
             } else {
                 return { success: false, message: data.error || 'Error desconocido en el login' };
             }
@@ -92,11 +112,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
 
             if (data.success && data.user) {
-                setUser(data.user);
+                const enrichedUser = enrichUserWithPermissions(data.user);
+                setUser(enrichedUser);
                 if (typeof window !== 'undefined') {
-                    localStorage.setItem('pigmea_user', JSON.stringify(data.user));
+                    localStorage.setItem('pigmea_user', JSON.stringify(enrichedUser));
                 }
-                return { success: true, user: data.user, message: data.message };
+                return { success: true, user: enrichedUser, message: data.message };
             } else {
                 return { success: false, message: data.error || 'Error desconocido en el registro' };
             }

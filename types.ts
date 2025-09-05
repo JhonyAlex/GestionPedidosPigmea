@@ -114,7 +114,7 @@ export interface KanbanEtapa {
     color: string;
 }
 
-export type ViewType = 'preparacion' | 'kanban' | 'list' | 'archived' | 'report';
+export type ViewType = 'preparacion' | 'kanban' | 'list' | 'archived' | 'report' | 'permissions-debug';
 
 export type UserRole = 'Administrador' | 'Supervisor' | 'Operador';
 

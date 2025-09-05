@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, UserRole, Permission } from '../types';
-import { DEFAULT_ROLE_PERMISSIONS, getPermissionsByCategory, ALL_PERMISSIONS, getPermissionsByRole } from '../config/permissions';
+import { DEFAULT_ROLE_PERMISSIONS, getPermissionsByRole, getAllPermissionCategories, PERMISSION_CONFIG } from '../constants/permissions';
 import PermissionsManager from './PermissionsManager';
 import UserPermissionsModal from './UserPermissionsModal';
 

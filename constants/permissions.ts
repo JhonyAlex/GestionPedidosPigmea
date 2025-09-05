@@ -288,3 +288,10 @@ export const getAllPermissionCategories = () => {
 export const getPermissionsByCategory = (category: keyof typeof PERMISSION_CONFIG.categories) => {
     return PERMISSION_CONFIG.categories[category].permissions;
 };
+
+// Función para obtener todos los permisos disponibles (equivalente a ALL_PERMISSIONS)
+export const getAllPermissions = (): Permission[] => {
+    return Object.values(PERMISSION_CONFIG.categories)
+        .flatMap(category => category.permissions)
+        .map(permission => ({ ...permission, enabled: true }));
+};

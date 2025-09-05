@@ -6,6 +6,7 @@ import { ETAPAS_KANBAN, ETAPAS, STAGE_GROUPS } from '../constants';
 import { DateFilterOption } from '../utils/date';
 import UserInfo from './UserInfo';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../hooks/usePermissions';
 
 
 interface HeaderProps {
@@ -75,6 +76,12 @@ const Header: React.FC<HeaderProps> = ({
     onUserManagement
 }) => {
     const { user } = useAuth();
+    const { 
+        canViewReports, 
+        canCreatePedidos, 
+        canAccessAdmin, 
+        canViewConfig 
+    } = usePermissions();
     const currentUserRole = user?.role || 'Operador';
     const [isStageFiltersCollapsed, setIsStageFiltersCollapsed] = useState(false);
 
@@ -90,7 +97,8 @@ const Header: React.FC<HeaderProps> = ({
         { id: 'kanban', label: 'Producción', adminOnly: false },
         { id: 'list', label: 'Lista', adminOnly: false },
         { id: 'archived', label: 'Archivados', adminOnly: false },
-        { id: 'report', label: 'Reportes', adminOnly: true },
+        { id: 'report', label: 'Reportes', adminOnly: !canViewReports() },
+        { id: 'permissions-debug', label: '🔍 Debug Permisos', adminOnly: !canAccessAdmin() },
     ];
 
     const dateFieldOptions: { value: keyof Pedido, label: string }[] = [
@@ -125,7 +133,10 @@ const Header: React.FC<HeaderProps> = ({
                     <div className="flex items-center gap-2 flex-wrap">
                         <div className="flex items-center gap-1 bg-gray-200 dark:bg-gray-700 rounded-lg p-1">
                             {viewOptions.map(opt => {
-                                if (opt.adminOnly && currentUserRole !== 'Administrador') return null;
+                                // Para reportes, verificar permiso específico en lugar de solo rol de administrador
+                                if (opt.id === 'report' && !canViewReports()) return null;
+                                if (opt.id === 'permissions-debug' && !canAccessAdmin()) return null;
+                                if (opt.adminOnly && !canAccessAdmin()) return null;
                                 return (
                                      <button
                                         key={opt.id}
@@ -148,7 +159,7 @@ const Header: React.FC<HeaderProps> = ({
                                 <span className="hidden sm:inline">Exportar PDF</span>
                             </button>
                         )}
-                         {currentUserRole === 'Administrador' && (
+                         {canCreatePedidos() && (
                             <>
                                 <button 
                                     onClick={onAddPedido}
@@ -159,16 +170,20 @@ const Header: React.FC<HeaderProps> = ({
                                     <PlusIcon />
                                     <span className="hidden sm:inline">Añadir Pedido</span>
                                 </button>
-                                {onUserManagement && (
-                                    <button 
-                                        onClick={onUserManagement}
-                                        className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white rounded-md font-semibold hover:bg-purple-700 transition-colors duration-200"
-                                        title="Gestionar usuarios del sistema"
-                                    >
-                                        <UsersIcon />
-                                        <span className="hidden sm:inline">Usuarios</span>
-                                    </button>
-                                )}
+                            </>
+                        )}
+                        {canAccessAdmin() && onUserManagement && (
+                            <button 
+                                onClick={onUserManagement}
+                                className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white rounded-md font-semibold hover:bg-purple-700 transition-colors duration-200"
+                                title="Gestionar usuarios del sistema"
+                            >
+                                <UsersIcon />
+                                <span className="hidden sm:inline">Usuarios</span>
+                            </button>
+                        )}
+                        {canViewConfig() && (
+                            <>
                                 <button 
                                     onClick={onImportData}
                                     className="flex items-center gap-2 px-3 py-1.5 bg-teal-600 text-white rounded-md font-semibold hover:bg-teal-700 transition-colors duration-200"
@@ -191,7 +206,7 @@ const Header: React.FC<HeaderProps> = ({
                 </div>
 
                 {/* Segunda fila: filtros generales */}
-                {(currentView !== 'report') && (
+                {(currentView !== 'report' && currentView !== 'permissions-debug') && (
                     <div className="flex flex-wrap items-center gap-2 mb-3">
                         <select
                             name="dateField"

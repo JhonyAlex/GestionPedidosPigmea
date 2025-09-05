@@ -3,6 +3,7 @@ import { Pedido, Etapa, UserRole, EstadoCliché, Prioridad } from '../types';
 import { PRIORIDAD_COLORS, KANBAN_FUNNELS } from '../constants';
 import { puedeAvanzarSecuencia, estaFueraDeSecuencia } from '../utils/etapaLogic';
 import { SparklesIcon } from './Icons';
+import { usePermissions } from '../hooks/usePermissions';
 
 const ClockIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1 inline-block"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>;
 const CalendarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1 inline-block"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" /></svg>;
@@ -23,6 +24,8 @@ interface PedidoCardProps {
 }
 
 const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSelectPedido, currentUserRole, onAdvanceStage, onSendToPrint, highlightedPedidoId }) => {
+    const { canMovePedidos, canArchivePedidos } = usePermissions();
+    
     // Usar valor por defecto si la prioridad no existe en PRIORIDAD_COLORS
     const priorityColor = PRIORIDAD_COLORS[pedido.prioridad] || PRIORIDAD_COLORS[Prioridad.NORMAL] || 'border-blue-500';
 
@@ -139,7 +142,7 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
             <div className="text-sm text-gray-500 dark:text-gray-400 mt-2 flex justify-between items-center">
                 <span className="flex items-center text-xs"><ClockIcon /> {pedido.tiempoProduccionPlanificado}</span>
                 <div className="flex items-center gap-1">
-                     {canAdvance && currentUserRole === 'Administrador' && (
+                     {canAdvance && canMovePedidos() && (
                         <button 
                             onClick={handleAdvanceClick} 
                             className="text-green-500 dark:text-green-400 hover:text-green-600 dark:hover:text-green-300 p-1"
@@ -149,7 +152,7 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
                             <ArrowRightCircleIcon />
                         </button>
                     )}
-                     {pedido.etapaActual === Etapa.COMPLETADO && currentUserRole === 'Administrador' && (
+                     {pedido.etapaActual === Etapa.COMPLETADO && canArchivePedidos() && (
                         <button 
                             onClick={handleArchiveClick} 
                             className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white"

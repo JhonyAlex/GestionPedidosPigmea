@@ -6,6 +6,7 @@ import { Pedido, Etapa, UserRole, Prioridad } from '../types';
 import { ETAPAS, PRIORIDAD_COLORS, KANBAN_FUNNELS } from '../constants';
 import { puedeAvanzarSecuencia, estaFueraDeSecuencia } from '../utils/etapaLogic';
 import { SparklesIcon } from './Icons';
+import { usePermissions } from '../hooks/usePermissions';
 
 interface PedidoListProps {
     pedidos: Pedido[];
@@ -82,7 +83,21 @@ const SortableHeaderTh = ({
     );
 };
 
-const PedidoRow = ({ pedido, onSelectPedido, onArchiveToggle, isArchivedView, currentUserRole, onAdvanceStage, provided, snapshot, highlightedPedidoId }) => {
+const PedidoRow: React.FC<{ 
+    pedido: Pedido, 
+    index: number, 
+    onSelectPedido: (pedido: Pedido) => void, 
+    onArchiveToggle: (pedido: Pedido) => void, 
+    isArchivedView: boolean, 
+    currentUserRole: UserRole, 
+    onAdvanceStage: (pedido: Pedido) => void, 
+    isHighlighted: boolean,
+    provided: any,
+    snapshot: any,
+    highlightedPedidoId: string | null
+}> = ({ pedido, index, onSelectPedido, onArchiveToggle, isArchivedView, currentUserRole, onAdvanceStage, isHighlighted, provided, snapshot, highlightedPedidoId }) => {
+    const { canMovePedidos, canArchivePedidos } = usePermissions();
+    
     const { canAdvance, advanceButtonTitle } = useMemo(() => {
         // Usar la nueva lógica centralizada
         const canAdvanceSequence = puedeAvanzarSecuencia(
@@ -158,13 +173,13 @@ const PedidoRow = ({ pedido, onSelectPedido, onArchiveToggle, isArchivedView, cu
                     <button onClick={() => onSelectPedido(pedido)} className="text-blue-500 hover:text-blue-400 dark:text-blue-400 dark:hover:text-blue-300" title="Ver/Editar">
                         <EditIcon />
                     </button>
-                    {currentUserRole === 'Administrador' && (
+                    {canMovePedidos() && canAdvance && (
+                        <button onClick={() => onAdvanceStage(pedido)} className="text-green-500 hover:text-green-400" title={advanceButtonTitle}>
+                            <ArrowRightCircleIcon />
+                        </button>
+                    )}
+                    {canArchivePedidos() && (
                         <>
-                            {canAdvance && (
-                                <button onClick={() => onAdvanceStage(pedido)} className="text-green-500 hover:text-green-400" title={advanceButtonTitle}>
-                                    <ArrowRightCircleIcon />
-                                </button>
-                            )}
                             {isArchivedView ? (
                                 <button onClick={() => onArchiveToggle(pedido)} className="text-green-500 hover:text-green-400 dark:text-green-400 dark:hover:text-green-300" title="Desarchivar">
                                     <UnarchiveBoxIcon />
@@ -235,11 +250,13 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
                                                         <PedidoRow
                                                             key={pedido.id}
                                                             pedido={pedido}
+                                                            index={index}
                                                             onSelectPedido={onSelectPedido}
                                                             onArchiveToggle={onArchiveToggle}
                                                             isArchivedView={isArchivedView}
                                                             currentUserRole={currentUserRole}
                                                             onAdvanceStage={onAdvanceStage}
+                                                            isHighlighted={pedido.id === highlightedPedidoId}
                                                             provided={provided}
                                                             snapshot={snapshot}
                                                             highlightedPedidoId={highlightedPedidoId}

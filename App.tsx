@@ -21,6 +21,7 @@ import ConnectedUsers from './components/ConnectedUsers';
 import LoginModal from './components/LoginModal';
 import UserInfo from './components/UserInfo';
 import UserManagement from './components/UserManagement';
+import PermissionsDebug from './components/PermissionsDebug';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { calcularSiguienteEtapa, estaFueraDeSecuencia } from './utils/etapaLogic';
 import { procesarDragEnd } from './utils/dragLogic';
@@ -546,6 +547,8 @@ const AppContent: React.FC = () => {
                     return <div className="p-8 text-center text-red-500">Acceso denegado.</div>;
                     }
                 return <ReportView pedidos={pedidos} auditLog={auditLog} />;
+            case 'permissions-debug':
+                return <PermissionsDebug />;
             default:
                 return null;
         }
