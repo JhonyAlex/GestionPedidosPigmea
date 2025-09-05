@@ -45,21 +45,6 @@ class PostgreSQLClient {
 
     async init() {
         try {
-            console.log('🔧 Variables de entorno disponibles:');
-            console.log(`   NODE_ENV: ${process.env.NODE_ENV}`);
-            console.log(`   POSTGRES_HOST: ${process.env.POSTGRES_HOST}`);
-            console.log(`   POSTGRES_PORT: ${process.env.POSTGRES_PORT}`);
-            console.log(`   POSTGRES_DB: ${process.env.POSTGRES_DB}`);
-            console.log(`   POSTGRES_USER: ${process.env.POSTGRES_USER}`);
-            console.log(`   DATABASE_URL: ${process.env.DATABASE_URL ? '[SET]' : '[NOT SET]'}`);
-            
-            console.log('🔧 Configuración de PostgreSQL:');
-            console.log(`   Host: ${this.config.host}`);
-            console.log(`   Port: ${this.config.port}`);
-            console.log(`   Database: ${this.config.database}`);
-            console.log(`   User: ${this.config.user}`);
-            console.log(`   Password: ${this.config.password ? '[SET]' : '[NOT SET]'}`);
-            
             this.pool = new Pool(this.config);
             
             // Probar la conexión con timeout
@@ -542,11 +527,6 @@ class PostgreSQLClient {
                 'SELECT * FROM public.admin_users WHERE username = $1',
                 [username]
             );
-            console.log('🔍 Debug getAdminUserByUsername:', {
-                username: username,
-                resultCount: result.rows.length,
-                user: result.rows[0] ? { id: result.rows[0].id, username: result.rows[0].username, role: result.rows[0].role } : null
-            });
             return result.rows[0] || null;
         } finally {
             client.release();

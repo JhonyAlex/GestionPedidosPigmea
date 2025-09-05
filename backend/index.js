@@ -232,13 +232,10 @@ function broadcastToClients(event, data) {
 
 // POST /api/auth/login - Autenticar usuario
 app.post('/api/auth/login', async (req, res) => {
-    console.log('🔐 Petición de login recibida:', req.body);
-    
     try {
         const { username, password } = req.body;
         
         if (!username || !password) {
-            console.log('❌ Faltan credenciales');
             return res.status(400).json({ 
                 error: 'Usuario y contraseña son requeridos' 
             });
@@ -246,7 +243,6 @@ app.post('/api/auth/login', async (req, res) => {
 
         // Si tenemos base de datos inicializada, usarla
         if (dbClient.isInitialized) {
-            console.log('🗄️ Usando autenticación con base de datos');
             
             // Primero buscar en admin_users
             let user = await dbClient.getAdminUserByUsername(username);
@@ -259,36 +255,24 @@ app.post('/api/auth/login', async (req, res) => {
             }
             
             if (!user) {
-                console.log(`❌ Usuario no encontrado en BD: ${username}`);
                 return res.status(401).json({ 
                     error: 'Usuario no encontrado' 
                 });
             }
-
-            console.log('🔍 Usuario encontrado:', { 
-                username: user.username, 
-                isAdmin: isAdminUser,
-                role: user.role || 'user'
-            });
 
             // Verificación de contraseña según el tipo de usuario
             let isValidPassword = false;
             
             if (isAdminUser && user.password_hash) {
                 // Usuarios admin: usar bcrypt
-                console.log('🔐 Verificando contraseña con bcrypt para admin');
                 const bcrypt = require('bcryptjs');
                 isValidPassword = await bcrypt.compare(password, user.password_hash);
             } else if (!isAdminUser && user.password) {
                 // Usuarios regulares: comparación directa
-                console.log('🔐 Verificando contraseña directa para usuario regular');
                 isValidPassword = (user.password === password);
             }
 
-            console.log('🔍 Resultado verificación:', isValidPassword);
-
             if (!isValidPassword) {
-                console.log(`❌ Contraseña incorrecta para: ${username}`);
                 return res.status(401).json({ 
                     error: 'Contraseña incorrecta' 
                 });
@@ -931,11 +915,11 @@ async function startServer() {
 
     // Iniciar el servidor HTTP
     server.listen(PORT, '0.0.0.0', () => {
-        console.log(`🚀 Servidor ejecutándose en puerto ${PORT}`);
+        console.log(`🚀 Servidor iniciado en puerto ${PORT}`);
         if (dbClient.isInitialized) {
-            console.log('📊 Estado: Conectado a PostgreSQL - Funcionalidad completa');
+            console.log('✅ PostgreSQL conectado - Sistema operativo');
         } else {
-            console.log('⚠️ Estado: Modo desarrollo - Base de datos no disponible');
+            console.log('⚠️ Modo desarrollo - Base de datos no disponible');
         }
     });
 }
