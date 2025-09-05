@@ -36,8 +36,10 @@ export interface NotificationData {
 class WebSocketService {
   private socket: Socket<WebSocketEvents> | null = null;
   private isConnected = false;
+  private isOnline = true;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
+  private connectionTestInterval: NodeJS.Timeout | null = null;
   private notifications: NotificationData[] = [];
   private notificationListeners: ((notifications: NotificationData[]) => void)[] = [];
   private connectedUsers: ConnectedUser[] = [];
@@ -64,11 +66,113 @@ class WebSocketService {
       autoConnect: true,
       reconnection: true,
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
       reconnectionAttempts: this.maxReconnectAttempts,
       timeout: 20000,
+      forceNew: true
     });
 
     this.setupEventListeners();
+    this.setupReconnectionLogic();
+  }
+
+  private setupReconnectionLogic() {
+    // Monitorear la conectividad de red
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', () => {
+        console.log('🌐 Conexión a internet restaurada, verificando conectividad...');
+        this.isOnline = true;
+        this.testAndReconnect();
+      });
+
+      window.addEventListener('offline', () => {
+        console.log('🌐 Conexión a internet perdida');
+        this.isOnline = false;
+        this.isConnected = false;
+        this.stopConnectionTest();
+        this.addNotification({
+          type: 'warning',
+          title: 'Sin conexión',
+          message: 'Se perdió la conexión a internet. Las modificaciones están bloqueadas.',
+          autoClose: false
+        });
+      });
+
+      // Verificar conectividad periódicamente cuando está desconectado
+      this.startConnectionTest();
+    }
+  }
+
+  private startConnectionTest() {
+    if (this.connectionTestInterval) {
+      clearInterval(this.connectionTestInterval);
+    }
+
+    this.connectionTestInterval = setInterval(() => {
+      if (!this.isConnected && this.isOnline) {
+        this.testConnectivity();
+      }
+    }, 5000); // Verificar cada 5 segundos
+  }
+
+  private stopConnectionTest() {
+    if (this.connectionTestInterval) {
+      clearInterval(this.connectionTestInterval);
+      this.connectionTestInterval = null;
+    }
+  }
+
+  private async testConnectivity(): Promise<boolean> {
+    try {
+      // Hacer una prueba simple al servidor
+      const response = await fetch(window.location.origin + '/api/health', {
+        method: 'GET',
+        cache: 'no-cache',
+        timeout: 3000
+      } as any);
+      
+      if (response.ok) {
+        console.log('✅ Conectividad restaurada, reintentando conexión WebSocket...');
+        this.forceReconnection();
+        return true;
+      }
+    } catch (error) {
+      console.log('🔍 Servidor aún no disponible, continuando pruebas...');
+    }
+    return false;
+  }
+
+  private async testAndReconnect() {
+    // Esperar un poco antes de probar (para que la red se estabilice)
+    setTimeout(async () => {
+      const isConnected = await this.testConnectivity();
+      if (!isConnected) {
+        // Si no se pudo conectar inmediatamente, seguir probando
+        this.startConnectionTest();
+      }
+    }, 1000);
+  }
+
+  private forceReconnection() {
+    if (this.socket) {
+      console.log('🔄 Forzando reconexión WebSocket...');
+      this.socket.disconnect();
+      setTimeout(() => {
+        if (this.socket) {
+          this.socket.connect();
+        }
+      }, 1000);
+    }
+  }
+
+  // Método público para obtener el estado de conectividad
+  public isSystemOnline(): boolean {
+    return this.isConnected && this.isOnline;
+  }
+
+  // Método público para obtener el estado de conexión WebSocket
+  public isWebSocketConnected(): boolean {
+    return this.isConnected;
   }
 
   private setupEventListeners() {
@@ -77,40 +181,91 @@ class WebSocketService {
     // Eventos de conexión
     this.socket.on('connect', () => {
       this.isConnected = true;
+      this.isOnline = true;
       this.reconnectAttempts = 0;
+      this.stopConnectionTest(); // Detener pruebas cuando ya estamos conectados
+      
+      // Limpiar notificaciones de desconexión anteriores
+      this.notifications = this.notifications.filter(n => 
+        n.type !== 'warning' && n.type !== 'error' || 
+        !n.message.includes('conexión') && !n.message.includes('internet')
+      );
+      this.notificationListeners.forEach(callback => callback(this.notifications));
       
       this.addNotification({
         type: 'success',
         title: 'Conectado',
-        message: 'Conexión en tiempo real establecida',
+        message: 'Sistema online - Modificaciones habilitadas',
         autoClose: true,
-        duration: 3000
+        duration: 4000
       });
     });
 
     this.socket.on('disconnect', (reason) => {
       this.isConnected = false;
       
-      this.addNotification({
-        type: 'warning',
-        title: 'Desconectado',
-        message: 'Conexión en tiempo real perdida. Reintentando...',
-        autoClose: false
-      });
+      // Solo mostrar mensaje si no es por pérdida de internet
+      if (this.isOnline) {
+        this.addNotification({
+          type: 'warning',
+          title: 'Desconectado',
+          message: 'Conexión en tiempo real perdida. Reintentando...',
+          autoClose: false
+        });
+        // Comenzar pruebas de conectividad
+        this.startConnectionTest();
+      }
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('🚫 Error de conexión WebSocket:', error);
       this.reconnectAttempts++;
       
+      // Solo mostrar error después de varios intentos fallidos
       if (this.reconnectAttempts >= this.maxReconnectAttempts) {
         this.addNotification({
           type: 'error',
           title: 'Error de conexión',
-          message: 'No se pudo establecer conexión en tiempo real',
+          message: 'No se pudo restablecer la conexión en tiempo real',
           autoClose: false
         });
       }
+    });
+
+    // Usar el IO manager para eventos de reconexión
+    this.socket.io.on('reconnect', (attemptNumber: number) => {
+      console.log(`🔄 Reconectado después de ${attemptNumber} intentos`);
+      this.isConnected = true;
+      this.isOnline = true;
+      this.reconnectAttempts = 0;
+      this.stopConnectionTest(); // Detener pruebas cuando ya estamos conectados
+      
+      // Limpiar notificaciones de desconexión anteriores
+      this.notifications = this.notifications.filter(n => 
+        n.type !== 'warning' && n.type !== 'error' || 
+        !n.message.includes('conexión') && !n.message.includes('internet')
+      );
+      this.notificationListeners.forEach(callback => callback(this.notifications));
+      
+      this.addNotification({
+        type: 'success',
+        title: 'Sistema restablecido',
+        message: 'Conexión restaurada - Modificaciones habilitadas',
+        autoClose: true,
+        duration: 4000
+      });
+    });
+
+    this.socket.io.on('reconnect_error', (error: Error) => {
+      console.log('🔄 Error en intento de reconexión:', error.message);
+    });
+
+    this.socket.io.on('reconnect_failed', () => {
+      this.addNotification({
+        type: 'error',
+        title: 'Reconexión fallida',
+        message: 'No se pudo restablecer la conexión automáticamente',
+        autoClose: false
+      });
     });
 
     // Eventos de datos
@@ -323,11 +478,25 @@ class WebSocketService {
   }
 
   public disconnect() {
+    this.stopConnectionTest();
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
       this.isConnected = false;
+      this.isOnline = false;
     }
+  }
+
+  // Método para limpiar recursos cuando el componente se desmonta
+  public cleanup() {
+    this.disconnect();
+    this.notifications = [];
+    this.connectedUsers = [];
+    this.pedidoCreatedListeners = [];
+    this.pedidoUpdatedListeners = [];
+    this.pedidoDeletedListeners = [];
+    this.notificationListeners = [];
+    this.connectedUsersListeners = [];
   }
 }
 
