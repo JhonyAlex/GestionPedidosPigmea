@@ -36,9 +36,7 @@ const io = new Server(server, {
         credentials: true
     },
     // Configuración específica para producción con proxy
-    transports: process.env.NODE_ENV === 'production' 
-        ? ['polling', 'websocket'] 
-        : ['websocket', 'polling'],
+    transports: ['websocket'],
     allowEIO3: true,
     pingTimeout: 60000,
     pingInterval: 25000
