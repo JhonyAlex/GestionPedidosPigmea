@@ -59,7 +59,6 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise
 
 class ApiClient implements DataStore<Pedido> {
     public async init(): Promise<void> {
-        console.log("API client initialized.");
         return Promise.resolve();
     }
 
@@ -121,7 +120,6 @@ class MockApiClient implements DataStore<Pedido> {
     }
 
     public async init(): Promise<void> {
-        console.log("Mock API client initialized.");
         return this.simulateDelay(undefined);
     }
 
