@@ -115,6 +115,75 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// TEMPORAL: Debug endpoint para consultar usuarios
+app.get('/api/debug/users', async (req, res) => {
+    try {
+        if (!dbClient.isInitialized) {
+            return res.json({
+                message: 'Base de datos no inicializada, usando usuarios hardcodeados',
+                users: [
+                    { username: 'admin', role: 'Administrador', source: 'hardcoded' },
+                    { username: 'user', role: 'Usuario', source: 'hardcoded' }
+                ]
+            });
+        }
+
+        // Consultar usuarios regulares
+        const client = await dbClient.pool.connect();
+        try {
+            const result = await client.query(`
+                SELECT 
+                    id,
+                    username,
+                    role,
+                    created_at,
+                    updated_at
+                FROM users 
+                ORDER BY created_at DESC
+            `);
+            
+            // También consultar usuarios admin si existen
+            let adminUsers = [];
+            try {
+                const adminResult = await client.query(`
+                    SELECT 
+                        id,
+                        username,
+                        role,
+                        created_at,
+                        updated_at
+                    FROM admin_users 
+                    ORDER BY created_at DESC
+                `);
+                adminUsers = adminResult.rows.map(user => ({...user, user_type: 'admin'}));
+            } catch (e) {
+                // Tabla admin_users no existe, continuar
+            }
+
+            const regularUsers = result.rows.map(user => ({...user, user_type: 'regular'}));
+            const allUsers = [...adminUsers, ...regularUsers];
+
+            res.json({
+                timestamp: new Date().toISOString(),
+                database_connected: true,
+                total_users: allUsers.length,
+                admin_users: adminUsers.length,
+                regular_users: regularUsers.length,
+                users: allUsers
+            });
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        console.error('Error consultando usuarios:', error);
+        res.status(500).json({
+            error: 'Error consultando usuarios',
+            message: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
 // Reset users endpoint
 app.post('/api/reset-users', (req, res) => {
     resetConnectedUsers();
