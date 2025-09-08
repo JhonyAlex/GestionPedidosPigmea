@@ -1061,10 +1061,12 @@ class PostgreSQLClient {
         try {
             await client.query(`
                 UPDATE admin_users 
-                SET last_login_at = CURRENT_TIMESTAMP, 
-                    updated_at = CURRENT_TIMESTAMP
+                SET last_login = CURRENT_TIMESTAMP, 
+                    updated_at = CURRENT_TIMESTAMP,
+                    ip_address = $2,
+                    user_agent = $3
                 WHERE id = $1
-            `, [userId]);
+            `, [userId, ipAddress, userAgent]);
             console.log('✅ Last login actualizado para usuario ID:', userId);
         } finally {
             client.release();
@@ -1587,9 +1589,42 @@ class PostgreSQLClient {
                 console.log('⚠️ No se pudo actualizar constraint de rol:', error.message);
             }
 
+            // Migrar usuarios existentes que no tienen los campos requeridos
+            await this.migrateExistingUsers(client);
+
         } catch (error) {
             console.log('⚠️ Error verificando columnas de admin_users:', error.message);
             // No lanzar error - el sistema puede continuar
+        }
+    }
+
+    async migrateExistingUsers(client) {
+        try {
+            console.log('🔄 Verificando usuarios existentes...');
+            
+            // Actualizar usuarios que no tienen email
+            const updateResult = await client.query(`
+                UPDATE admin_users 
+                SET 
+                    email = COALESCE(NULLIF(email, ''), username || '@pigmea.local'),
+                    first_name = COALESCE(NULLIF(first_name, ''), username),
+                    last_name = COALESCE(NULLIF(last_name, ''), ''),
+                    permissions = COALESCE(permissions, '[]'::jsonb)
+                WHERE email IS NULL 
+                   OR email = '' 
+                   OR first_name IS NULL 
+                   OR first_name = ''
+                   OR permissions IS NULL
+            `);
+            
+            if (updateResult.rowCount > 0) {
+                console.log(`✅ Migrados ${updateResult.rowCount} usuarios existentes`);
+            } else {
+                console.log('✅ Todos los usuarios ya están actualizados');
+            }
+            
+        } catch (error) {
+            console.log('⚠️ Error migrando usuarios:', error.message);
         }
     }
 }
