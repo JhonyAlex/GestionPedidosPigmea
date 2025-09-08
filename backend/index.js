@@ -360,9 +360,21 @@ app.post('/api/auth/login', async (req, res) => {
                 });
             }
 
-            // Actualizar último login solo para usuarios admin
+            // Actualizar último login según el tipo de usuario
             if (isAdminUser) {
-                await dbClient.updateUserLastLogin(user.id);
+                // Para usuarios admin, usar la función que actualiza admin_users
+                await dbClient.updateUserLastLogin(user.id, req.ip, req.get('User-Agent'));
+            } else {
+                // Para usuarios regulares, actualizar la tabla users por username
+                const client = await dbClient.pool.connect();
+                try {
+                    await client.query(
+                        'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1',
+                        [user.id]
+                    );
+                } finally {
+                    client.release();
+                }
             }
 
             // Devolver datos del usuario (sin contraseña)
@@ -516,6 +528,10 @@ app.get('/api/auth/users', async (req, res) => {
     try {
         if (!dbClient.isInitialized) {
             // Modo desarrollo sin base de datos - devolver usuarios de ejemplo
+            const now = new Date();
+            const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            
             return res.status(200).json({
                 success: true,
                 users: [
@@ -525,15 +541,15 @@ app.get('/api/auth/users', async (req, res) => {
                         role: 'Administrador',
                         displayName: 'Usuario Administrador',
                         createdAt: '2025-01-01T00:00:00.000Z',
-                        lastLogin: '2025-09-05T10:00:00.000Z'
+                        lastLogin: yesterday.toISOString()
                     },
                     {
                         id: 'dev-user-1',
                         username: 'operador1',
                         role: 'Operador',
                         displayName: 'Operador de Prueba',
-                        createdAt: '2025-01-01T00:00:00.000Z',
-                        lastLogin: '2025-09-04T15:30:00.000Z'
+                        createdAt: '2025-01-15T00:00:00.000Z',
+                        lastLogin: lastWeek.toISOString()
                     }
                 ]
             });
