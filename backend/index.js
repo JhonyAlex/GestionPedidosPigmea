@@ -541,9 +541,19 @@ app.get('/api/auth/users', async (req, res) => {
 
         const users = await dbClient.getAllUsers();
         
+        // Transformar los nombres de campos de snake_case a camelCase
+        const transformedUsers = users.map(user => ({
+            id: user.id,
+            username: user.username,
+            role: user.role,
+            displayName: user.display_name,
+            createdAt: user.created_at,
+            lastLogin: user.last_login
+        }));
+        
         res.status(200).json({
             success: true,
-            users: users
+            users: transformedUsers
         });
 
     } catch (error) {
@@ -607,7 +617,8 @@ app.put('/api/auth/users/:id', async (req, res) => {
                 id: updatedUser.id,
                 username: updatedUser.username,
                 role: updatedUser.role,
-                displayName: updatedUser.displayName
+                displayName: updatedUser.display_name,
+                createdAt: updatedUser.created_at
             },
             message: 'Usuario actualizado exitosamente'
         });
