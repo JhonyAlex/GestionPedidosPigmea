@@ -477,34 +477,45 @@ app.post('/api/auth/register', async (req, res) => {
         }
 
         // Modo producción - usar base de datos
-        // Verificar si el usuario ya existe en ambas tablas
+        // Verificar si el usuario ya existe
         const existingAdmin = await dbClient.getAdminUserByUsername(username);
-        const existingUser = await dbClient.findUserByUsername(username);
         
-        if (existingAdmin || existingUser) {
+        if (existingAdmin) {
             return res.status(409).json({ 
                 error: 'El nombre de usuario ya existe' 
             });
         }
 
-        // Crear nuevo usuario
-        const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        // Hashear la contraseña
+        const bcrypt = require('bcrypt');
+        const saltRounds = 12;
+        const passwordHash = await bcrypt.hash(password, saltRounds);
+
+        // Crear nuevo usuario admin
+        const names = (displayName || username).split(' ');
+        const firstName = names[0] || username;
+        const lastName = names.slice(1).join(' ') || '';
+        
         const newUser = {
-            id: userId,
             username: username.trim(),
-            password: password, // Sin hash para simplicidad
+            email: `${username.trim()}@pigmea.local`, // Email temporal si no se proporciona
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            passwordHash: passwordHash,
             role: role,
-            displayName: displayName?.trim() || username.trim()
+            isActive: true
         };
 
-        await dbClient.createUser(newUser);
+        const createdUser = await dbClient.createAdminUser(newUser);
 
         // Devolver datos del usuario (sin contraseña)
         const userData = {
-            id: newUser.id,
-            username: newUser.username,
-            role: newUser.role,
-            displayName: newUser.displayName
+            id: createdUser.id,
+            username: createdUser.username,
+            role: createdUser.role,
+            displayName: `${createdUser.first_name} ${createdUser.last_name}`.trim(),
+            email: createdUser.email,
+            isActive: createdUser.is_active
         };
 
         console.log(`✅ Usuario registrado: ${username} (${role})`);
@@ -555,16 +566,18 @@ app.get('/api/auth/users', async (req, res) => {
             });
         }
 
-        const users = await dbClient.getAllUsers();
+        const users = await dbClient.getAllAdminUsers();
         
         // Transformar los nombres de campos de snake_case a camelCase
         const transformedUsers = users.map(user => ({
             id: user.id,
             username: user.username,
             role: user.role,
-            displayName: user.display_name,
+            displayName: (user.first_name + ' ' + user.last_name).trim() || user.username,
+            email: user.email,
             createdAt: user.created_at,
-            lastLogin: user.last_login
+            lastLogin: user.last_login,
+            isActive: user.is_active
         }));
         
         res.status(200).json({
@@ -601,7 +614,7 @@ app.put('/api/auth/users/:id', async (req, res) => {
         }
 
         // Verificar si el usuario existe
-        const existingUser = await dbClient.findUserById(id);
+        const existingUser = await dbClient.getAdminUserById(id);
         if (!existingUser) {
             return res.status(404).json({
                 error: 'Usuario no encontrado'
@@ -610,7 +623,7 @@ app.put('/api/auth/users/:id', async (req, res) => {
 
         // Verificar si el nuevo username ya existe (si se está cambiando)
         if (username && username !== existingUser.username) {
-            const usernameExists = await dbClient.findUserByUsername(username);
+            const usernameExists = await dbClient.getAdminUserByUsername(username);
             if (usernameExists) {
                 return res.status(409).json({
                     error: 'El nombre de usuario ya existe'
@@ -618,14 +631,21 @@ app.put('/api/auth/users/:id', async (req, res) => {
             }
         }
 
-        // Preparar datos de actualización
+        // Preparar datos de actualización para admin_users
         const updateData = {};
         if (username) updateData.username = username.trim();
         if (role) updateData.role = role;
         if (displayName) updateData.displayName = displayName.trim();
-        if (password) updateData.password = password;
+        
+        // Si se proporciona una nueva contraseña, hashearla
+        if (password && password.trim()) {
+            const bcrypt = require('bcrypt');
+            const saltRounds = 12;
+            updateData.passwordHash = await bcrypt.hash(password.trim(), saltRounds);
+        }
 
-        const updatedUser = await dbClient.updateUser(id, updateData);
+        // Usar updateAdminUser en lugar de updateUser
+        const updatedUser = await dbClient.updateAdminUser(id, updateData);
 
         res.json({
             success: true,
@@ -633,7 +653,7 @@ app.put('/api/auth/users/:id', async (req, res) => {
                 id: updatedUser.id,
                 username: updatedUser.username,
                 role: updatedUser.role,
-                displayName: updatedUser.display_name,
+                displayName: updatedUser.first_name + ' ' + updatedUser.last_name,
                 createdAt: updatedUser.created_at
             },
             message: 'Usuario actualizado exitosamente'
@@ -661,14 +681,14 @@ app.delete('/api/auth/users/:id', async (req, res) => {
         }
 
         // Verificar si el usuario existe
-        const existingUser = await dbClient.findUserById(id);
+        const existingUser = await dbClient.getAdminUserById(id);
         if (!existingUser) {
             return res.status(404).json({
                 error: 'Usuario no encontrado'
             });
         }
 
-        await dbClient.deleteUser(id);
+        await dbClient.deleteAdminUser(id);
 
         res.json({
             success: true,
@@ -719,6 +739,119 @@ app.get('/api/auth/permissions', (req, res) => {
         console.error('Error obteniendo permisos:', error);
         res.status(500).json({
             error: 'Error interno del servidor'
+        });
+    }
+});
+
+// PUT /api/auth/users/:id/password - Cambiar contraseña de usuario
+app.put('/api/auth/users/:id/password', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { currentPassword, newPassword } = req.body;
+
+        if (!newPassword || newPassword.length < 3) {
+            return res.status(400).json({
+                error: 'La nueva contraseña debe tener al menos 3 caracteres'
+            });
+        }
+
+        if (!dbClient.isInitialized) {
+            // Modo desarrollo sin base de datos - simular cambio exitoso
+            console.log(`🔄 Simulando cambio de contraseña para usuario ${id} (modo desarrollo)`);
+            return res.status(200).json({
+                success: true,
+                message: 'Contraseña actualizada exitosamente (modo desarrollo)'
+            });
+        }
+
+        // Verificar si el usuario existe
+        const existingUser = await dbClient.getAdminUserById(id);
+        if (!existingUser) {
+            return res.status(404).json({
+                error: 'Usuario no encontrado'
+            });
+        }
+
+        // Verificar contraseña actual si se proporciona (opcional para administradores)
+        if (currentPassword) {
+            const bcrypt = require('bcrypt');
+            const isValidCurrentPassword = await bcrypt.compare(currentPassword, existingUser.password_hash);
+            if (!isValidCurrentPassword) {
+                return res.status(400).json({
+                    error: 'La contraseña actual es incorrecta'
+                });
+            }
+        }
+
+        // Hashear la nueva contraseña
+        const bcrypt = require('bcrypt');
+        const saltRounds = 12;
+        const passwordHash = await bcrypt.hash(newPassword, saltRounds);
+
+        // Actualizar la contraseña
+        await dbClient.updateUserPassword(id, passwordHash);
+
+        res.json({
+            success: true,
+            message: 'Contraseña actualizada exitosamente'
+        });
+
+    } catch (error) {
+        console.error('Error cambiando contraseña:', error);
+        res.status(500).json({
+            error: error.message || 'Error interno del servidor'
+        });
+    }
+});
+
+// PUT /api/auth/admin/users/:id/password - Cambiar contraseña de usuario (administradores)
+app.put('/api/auth/admin/users/:id/password', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { newPassword } = req.body;
+
+        if (!newPassword || newPassword.length < 3) {
+            return res.status(400).json({
+                error: 'La nueva contraseña debe tener al menos 3 caracteres'
+            });
+        }
+
+        if (!dbClient.isInitialized) {
+            // Modo desarrollo sin base de datos - simular cambio exitoso
+            console.log(`🔄 Simulando cambio de contraseña administrativo para usuario ${id} (modo desarrollo)`);
+            return res.status(200).json({
+                success: true,
+                message: 'Contraseña actualizada exitosamente (modo desarrollo)'
+            });
+        }
+
+        // Verificar si el usuario existe
+        const existingUser = await dbClient.getAdminUserById(id);
+        if (!existingUser) {
+            return res.status(404).json({
+                error: 'Usuario no encontrado'
+            });
+        }
+
+        // Hashear la nueva contraseña
+        const bcrypt = require('bcrypt');
+        const saltRounds = 12;
+        const passwordHash = await bcrypt.hash(newPassword, saltRounds);
+
+        // Actualizar la contraseña sin verificar la actual
+        await dbClient.updateUserPassword(id, passwordHash);
+
+        console.log(`✅ Contraseña actualizada administrativamente para usuario: ${existingUser.username}`);
+
+        res.json({
+            success: true,
+            message: 'Contraseña actualizada exitosamente'
+        });
+
+    } catch (error) {
+        console.error('Error cambiando contraseña:', error);
+        res.status(500).json({
+            error: error.message || 'Error interno del servidor'
         });
     }
 });

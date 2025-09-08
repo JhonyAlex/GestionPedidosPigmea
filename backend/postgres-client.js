@@ -678,25 +678,24 @@ class PostgreSQLClient {
         const client = await this.pool.connect();
         try {
             const {
-                id,
                 username,
                 email,
                 firstName,
                 lastName,
                 role,
                 passwordHash,
-                permissions,
-                isActive
+                permissions = [],
+                isActive = true
             } = userData;
 
             const result = await client.query(`
                 INSERT INTO admin_users (
-                    id, username, email, first_name, last_name, 
+                    username, email, first_name, last_name, 
                     password_hash, role, permissions, is_active
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                 RETURNING *
             `, [
-                id, username, email, firstName, lastName,
+                username, email, firstName, lastName,
                 passwordHash, role, JSON.stringify(permissions), isActive
             ]);
 
@@ -713,6 +712,10 @@ class PostgreSQLClient {
             const values = [];
             let valueIndex = 1;
 
+            if (updateData.username !== undefined) {
+                setParts.push(`username = $${valueIndex++}`);
+                values.push(updateData.username);
+            }
             if (updateData.email !== undefined) {
                 setParts.push(`email = $${valueIndex++}`);
                 values.push(updateData.email);
@@ -724,6 +727,20 @@ class PostgreSQLClient {
             if (updateData.lastName !== undefined) {
                 setParts.push(`last_name = $${valueIndex++}`);
                 values.push(updateData.lastName);
+            }
+            if (updateData.displayName !== undefined) {
+                // Mapear displayName a first_name y last_name si no están definidos por separado
+                const names = updateData.displayName.split(' ');
+                if (!updateData.firstName && !updateData.lastName) {
+                    setParts.push(`first_name = $${valueIndex++}`);
+                    values.push(names[0] || '');
+                    setParts.push(`last_name = $${valueIndex++}`);
+                    values.push(names.slice(1).join(' ') || '');
+                }
+            }
+            if (updateData.passwordHash !== undefined) {
+                setParts.push(`password_hash = $${valueIndex++}`);
+                values.push(updateData.passwordHash);
             }
             if (updateData.role !== undefined) {
                 setParts.push(`role = $${valueIndex++}`);

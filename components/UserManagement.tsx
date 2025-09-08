@@ -27,6 +27,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
     const [activeTab, setActiveTab] = useState<TabType>('users');
     const [showPermissionsManager, setShowPermissionsManager] = useState(false);
     const [showUserPermissions, setShowUserPermissions] = useState<User | null>(null);
+    const [showPasswordModal, setShowPasswordModal] = useState<User | null>(null);
+    const [passwordData, setPasswordData] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+    });
     const [formData, setFormData] = useState<UserFormData>({
         username: '',
         role: 'Operador',
@@ -188,6 +194,61 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
         } catch (err) {
             setError('Error al actualizar permisos del usuario');
             console.error('Error updating user permissions:', err);
+        }
+    };
+
+    // Cambiar contraseña de usuario
+    const changeUserPassword = async () => {
+        if (!showPasswordModal) return;
+
+        try {
+            if (passwordData.newPassword !== passwordData.confirmPassword) {
+                setError('Las contraseñas no coinciden');
+                return;
+            }
+
+            if (passwordData.newPassword.length < 3) {
+                setError('La contraseña debe tener al menos 3 caracteres');
+                return;
+            }
+
+            // Usar ruta administrativa si no se proporciona contraseña actual
+            const isAdminChange = !passwordData.currentPassword;
+            const endpoint = isAdminChange 
+                ? `/api/auth/admin/users/${showPasswordModal.id}/password`
+                : `/api/auth/users/${showPasswordModal.id}/password`;
+
+            const requestBody = isAdminChange
+                ? { newPassword: passwordData.newPassword }
+                : {
+                    currentPassword: passwordData.currentPassword,
+                    newPassword: passwordData.newPassword
+                };
+
+            const response = await fetch(endpoint, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestBody),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setShowPasswordModal(null);
+                setPasswordData({
+                    currentPassword: '',
+                    newPassword: '',
+                    confirmPassword: ''
+                });
+                alert('Contraseña actualizada exitosamente');
+            } else {
+                setError(data.error || 'Error al cambiar la contraseña');
+            }
+        } catch (err) {
+            setError('Error de conexión al cambiar la contraseña');
+            console.error('Error changing password:', err);
         }
     };
 
@@ -430,6 +491,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                                                             Permisos
                                                         </button>
                                                         <button
+                                                            onClick={() => setShowPasswordModal(user)}
+                                                            className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+                                                        >
+                                                            Contraseña
+                                                        </button>
+                                                        <button
                                                             onClick={() => handleDelete(user.id)}
                                                             className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                                                         >
@@ -476,6 +543,97 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                         onClose={() => setShowUserPermissions(null)}
                         onSave={updateUserPermissions}
                     />
+                )}
+
+                {/* Modal de cambio de contraseña */}
+                {showPasswordModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-96 max-w-lg mx-4">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                                Cambiar Contraseña - {showPasswordModal.username}
+                            </h3>
+                            
+                            {error && (
+                                <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                                    {error}
+                                </div>
+                            )}
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Contraseña Actual (opcional)
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={passwordData.currentPassword}
+                                        onChange={(e) => setPasswordData({
+                                            ...passwordData,
+                                            currentPassword: e.target.value
+                                        })}
+                                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                        placeholder="Ingresa tu contraseña actual (opcional)"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Nueva Contraseña
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={passwordData.newPassword}
+                                        onChange={(e) => setPasswordData({
+                                            ...passwordData,
+                                            newPassword: e.target.value
+                                        })}
+                                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                        placeholder="Ingresa la nueva contraseña"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Confirmar Nueva Contraseña
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={passwordData.confirmPassword}
+                                        onChange={(e) => setPasswordData({
+                                            ...passwordData,
+                                            confirmPassword: e.target.value
+                                        })}
+                                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                        placeholder="Confirma la nueva contraseña"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end space-x-3 mt-6">
+                                <button
+                                    onClick={() => {
+                                        setShowPasswordModal(null);
+                                        setPasswordData({
+                                            currentPassword: '',
+                                            newPassword: '',
+                                            confirmPassword: ''
+                                        });
+                                        setError(null);
+                                    }}
+                                    className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={changeUserPassword}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500"
+                                    disabled={!passwordData.newPassword || !passwordData.confirmPassword}
+                                >
+                                    Cambiar Contraseña
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>
