@@ -107,22 +107,10 @@ class PostgreSQLClient {
                 );
             `);
 
-            // Tabla de auditoría
-            await client.query(`
-                CREATE TABLE IF NOT EXISTS audit_log (
-                    id SERIAL PRIMARY KEY,
-                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    user_role VARCHAR(50) NOT NULL,
-                    action TEXT NOT NULL,
-                    pedido_id VARCHAR(255),
-                    details JSONB
-                );
-            `);
-
             // Crear extensión para UUID si no existe
             await client.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`);
 
-            // Tabla de usuarios administrativos
+            // Tabla de usuarios administrativos (debe crearse ANTES que audit_logs)
             await client.query(`
                 CREATE TABLE IF NOT EXISTS admin_users (
                     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -143,11 +131,23 @@ class PostgreSQLClient {
                 );
             `);
 
-            // Tabla de logs de auditoría administrativa
+            // Tabla de auditoría (legacy - sin claves foráneas)
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS audit_log (
+                    id SERIAL PRIMARY KEY,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    user_role VARCHAR(50) NOT NULL,
+                    action TEXT NOT NULL,
+                    pedido_id VARCHAR(255),
+                    details JSONB
+                );
+            `);
+
+            // Tabla de logs de auditoría administrativa (DESPUÉS de admin_users)
             await client.query(`
                 CREATE TABLE IF NOT EXISTS audit_logs (
                     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                    user_id UUID REFERENCES admin_users(id) ON DELETE SET NULL,
+                    user_id UUID,
                     username VARCHAR(50) NOT NULL,
                     action VARCHAR(100) NOT NULL,
                     module VARCHAR(50) NOT NULL,
@@ -158,6 +158,21 @@ class PostgreSQLClient {
                     metadata JSONB DEFAULT '{}'::jsonb,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
                 );
+            `);
+
+            // Agregar la clave foránea DESPUÉS de que ambas tablas existan
+            await client.query(`
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_constraint 
+                        WHERE conname = 'audit_logs_user_id_fkey'
+                    ) THEN
+                        ALTER TABLE audit_logs 
+                        ADD CONSTRAINT audit_logs_user_id_fkey 
+                        FOREIGN KEY (user_id) REFERENCES admin_users(id) ON DELETE SET NULL;
+                    END IF;
+                END $$;
             `);
 
             // Índices para mejorar performance
