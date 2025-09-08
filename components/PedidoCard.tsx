@@ -100,7 +100,7 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
         <div 
             onClick={() => onSelectPedido(pedido)}
             className={`bg-white dark:bg-gray-900 rounded-lg p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 border-l-4 ${priorityColor} shadow-md ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''}`}>
-            <div className="flex justify-between items-start">
+            <div className="flex justify-between items-start mb-2">
                 <h3 className="font-bold text-base text-gray-800 dark:text-gray-100">{pedido.numeroPedidoCliente}</h3>
                 <div className="flex items-center">
                     {pedido.antivaho && (
@@ -122,25 +122,21 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
                     </span>
                 </div>
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-300">{pedido.cliente}</p>
             
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-gray-200 dark:border-gray-700 pt-2">
-                 <span className="flex items-center" title="Metros"><RulerIcon /> {pedido.metros} m</span>
-                 <span className="flex items-center" title="Fecha Entrega"><CalendarIcon /> {pedido.fechaEntrega}</span>
-                 {pedido.camisa && (
-                     <span className="flex items-center" title="Camisa">
-                        <PaperClipIcon /> {pedido.camisa}
-                     </span>
-                 )}
-                 {pedido.etapaActual === Etapa.PREPARACION && (
-                     <span className="flex items-center" title="Estado del Cliché">
-                        <PaperClipIcon /> {pedido.estadoCliché || EstadoCliché.PENDIENTE_CLIENTE}
-                     </span>
-                 )}
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{pedido.cliente}</p>
+            
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-3 space-y-1">
+                <div className="flex items-center justify-between">
+                    <span className="flex items-center" title="Metros">
+                        <RulerIcon /> {pedido.metros} m
+                    </span>
+                    <span className="flex items-center" title="Fecha Entrega">
+                        <CalendarIcon /> {pedido.fechaEntrega}
+                    </span>
+                </div>
             </div>
 
-            <div className="text-sm text-gray-500 dark:text-gray-400 mt-2 flex justify-between items-center">
-                <span className="flex items-center text-xs"><ClockIcon /> {pedido.tiempoProduccionPlanificado}</span>
+            <div className="flex justify-end items-center">
                 <div className="flex items-center gap-1">
                      {canAdvance && canMovePedidos() && (
                         <button 
