@@ -65,14 +65,15 @@ class PostgreSQLClient {
         } catch (error) {
             console.error('❌ Error conectando a PostgreSQL:', error.message);
             
-            // Si el error es específicamente de clave foránea, intentar recuperación
+            // Si el error es específicamente de clave foránea o columnas faltantes, intentar recuperación
             if (error.message.includes('foreign key constraint') || 
-                error.message.includes('audit_logs_user_id_fkey')) {
-                console.log('🔄 Intentando recuperación sin tabla audit_logs...');
+                error.message.includes('audit_logs_user_id_fkey') ||
+                error.message.includes('column') && error.message.includes('does not exist')) {
+                console.log('🔄 Intentando recuperación con estructura simplificada...');
                 try {
                     await this.createTablesWithoutAuditLogs();
                     this.isInitialized = true;
-                    console.log('✅ Recuperación exitosa - funcionando sin audit_logs');
+                    console.log('✅ Recuperación exitosa - funcionando con estructura simplificada');
                     return;
                 } catch (recoveryError) {
                     console.error('❌ Fallo en recuperación:', recoveryError.message);
@@ -87,31 +88,54 @@ class PostgreSQLClient {
         const client = await this.pool.connect();
         
         try {
-            console.log('🔧 Creando tablas esenciales (sin audit_logs)...');
+            console.log('🔧 Creando tablas esenciales con estructura compatible...');
 
             // Crear extensión para UUID si no existe
             await client.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`);
 
-            // Tabla de usuarios administrativos
+            // Tabla de usuarios administrativos - versión simplificada para compatibilidad
             await client.query(`
                 CREATE TABLE IF NOT EXISTS admin_users (
                     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
                     username VARCHAR(50) UNIQUE NOT NULL,
-                    email VARCHAR(255) UNIQUE NOT NULL,
-                    first_name VARCHAR(100) NOT NULL,
-                    last_name VARCHAR(100) NOT NULL,
-                    password_hash VARCHAR(255) NOT NULL,
-                    role VARCHAR(20) NOT NULL CHECK (role IN ('ADMIN', 'SUPERVISOR', 'OPERATOR', 'VIEWER')),
-                    permissions JSONB DEFAULT '[]'::jsonb,
+                    password_hash VARCHAR(255) NOT NULL DEFAULT '',
+                    role VARCHAR(20) NOT NULL DEFAULT 'OPERATOR',
                     is_active BOOLEAN DEFAULT true,
-                    last_login TIMESTAMP WITH TIME ZONE,
-                    last_activity TIMESTAMP WITH TIME ZONE,
-                    ip_address INET,
-                    user_agent TEXT,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
                 );
             `);
+
+            // Intentar agregar columnas adicionales de forma segura
+            try {
+                await client.query(`
+                    DO $$
+                    BEGIN
+                        -- Agregar email si no existe
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='admin_users' AND column_name='email') THEN
+                            ALTER TABLE admin_users ADD COLUMN email VARCHAR(255) UNIQUE DEFAULT CONCAT(username, '@pigmea.local');
+                        END IF;
+                        
+                        -- Agregar first_name si no existe
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='admin_users' AND column_name='first_name') THEN
+                            ALTER TABLE admin_users ADD COLUMN first_name VARCHAR(100) NOT NULL DEFAULT '';
+                        END IF;
+                        
+                        -- Agregar last_name si no existe
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='admin_users' AND column_name='last_name') THEN
+                            ALTER TABLE admin_users ADD COLUMN last_name VARCHAR(100) NOT NULL DEFAULT '';
+                        END IF;
+                        
+                        -- Agregar permissions si no existe
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='admin_users' AND column_name='permissions') THEN
+                            ALTER TABLE admin_users ADD COLUMN permissions JSONB DEFAULT '[]'::jsonb;
+                        END IF;
+                    END $$;
+                `);
+                console.log('✅ Columnas adicionales agregadas de forma segura');
+            } catch (error) {
+                console.log('⚠️ Algunas columnas no se pudieron agregar:', error.message);
+            }
 
             // Tabla de pedidos
             await client.query(`
@@ -235,6 +259,10 @@ class PostgreSQLClient {
                 );
             `);
             console.log('✅ Tabla admin_users verificada');
+
+            // Verificar y agregar columnas faltantes en admin_users si es necesario
+            await this.ensureAdminUsersColumns(client);
+            console.log('✅ Columnas de admin_users verificadas');
 
             // Tabla de auditoría (legacy - sin claves foráneas)
             await client.query(`
@@ -871,26 +899,80 @@ class PostgreSQLClient {
         try {
             const {
                 username,
-                email,
-                firstName,
-                lastName,
+                email = `${username}@pigmea.local`,
+                firstName = username,
+                lastName = '',
                 role,
                 passwordHash,
                 permissions = [],
                 isActive = true
             } = userData;
 
-            const result = await client.query(`
-                INSERT INTO admin_users (
-                    username, email, first_name, last_name, 
-                    password_hash, role, permissions, is_active
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                RETURNING *
-            `, [
-                username, email, firstName, lastName,
-                passwordHash, role, JSON.stringify(permissions), isActive
-            ]);
+            // Verificar qué columnas existen en la tabla
+            const columnsResult = await client.query(`
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'admin_users' 
+                AND table_schema = 'public'
+            `);
+            
+            const existingColumns = columnsResult.rows.map(row => row.column_name);
 
+            // Construir query dinámicamente basado en columnas existentes
+            const columns = ['username'];
+            const values = [username];
+            const placeholders = ['$1'];
+            let paramIndex = 2;
+
+            if (existingColumns.includes('email')) {
+                columns.push('email');
+                values.push(email);
+                placeholders.push(`$${paramIndex++}`);
+            }
+
+            if (existingColumns.includes('first_name')) {
+                columns.push('first_name');
+                values.push(firstName);
+                placeholders.push(`$${paramIndex++}`);
+            }
+
+            if (existingColumns.includes('last_name')) {
+                columns.push('last_name');
+                values.push(lastName);
+                placeholders.push(`$${paramIndex++}`);
+            }
+
+            if (existingColumns.includes('password_hash')) {
+                columns.push('password_hash');
+                values.push(passwordHash);
+                placeholders.push(`$${paramIndex++}`);
+            }
+
+            if (existingColumns.includes('role')) {
+                columns.push('role');
+                values.push(role);
+                placeholders.push(`$${paramIndex++}`);
+            }
+
+            if (existingColumns.includes('permissions')) {
+                columns.push('permissions');
+                values.push(JSON.stringify(permissions));
+                placeholders.push(`$${paramIndex++}`);
+            }
+
+            if (existingColumns.includes('is_active')) {
+                columns.push('is_active');
+                values.push(isActive);
+                placeholders.push(`$${paramIndex++}`);
+            }
+
+            const query = `
+                INSERT INTO admin_users (${columns.join(', ')})
+                VALUES (${placeholders.join(', ')})
+                RETURNING *
+            `;
+
+            const result = await client.query(query, values);
             return result.rows[0];
         } finally {
             client.release();
@@ -1435,6 +1517,79 @@ class PostgreSQLClient {
             return result.rows;
         } finally {
             client.release();
+        }
+    }
+
+    // Función para verificar y agregar columnas faltantes en admin_users
+    async ensureAdminUsersColumns(client) {
+        try {
+            // Verificar qué columnas existen en la tabla admin_users
+            const columnsResult = await client.query(`
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'admin_users' 
+                AND table_schema = 'public'
+            `);
+            
+            const existingColumns = columnsResult.rows.map(row => row.column_name);
+            console.log('📋 Columnas existentes en admin_users:', existingColumns.join(', '));
+
+            // Lista de columnas requeridas y sus definiciones
+            const requiredColumns = {
+                'email': 'VARCHAR(255) UNIQUE',
+                'first_name': 'VARCHAR(100) NOT NULL DEFAULT \'\'',
+                'last_name': 'VARCHAR(100) NOT NULL DEFAULT \'\'', 
+                'password_hash': 'VARCHAR(255)',
+                'permissions': 'JSONB DEFAULT \'[]\'::jsonb',
+                'is_active': 'BOOLEAN DEFAULT true',
+                'last_login': 'TIMESTAMP WITH TIME ZONE',
+                'last_activity': 'TIMESTAMP WITH TIME ZONE',
+                'ip_address': 'INET',
+                'user_agent': 'TEXT',
+                'updated_at': 'TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP'
+            };
+
+            // Agregar columnas faltantes
+            for (const [columnName, columnDefinition] of Object.entries(requiredColumns)) {
+                if (!existingColumns.includes(columnName)) {
+                    console.log(`➕ Agregando columna faltante: ${columnName}`);
+                    try {
+                        await client.query(`
+                            ALTER TABLE admin_users 
+                            ADD COLUMN ${columnName} ${columnDefinition}
+                        `);
+                        console.log(`✅ Columna ${columnName} agregada exitosamente`);
+                    } catch (error) {
+                        console.log(`⚠️ No se pudo agregar columna ${columnName}: ${error.message}`);
+                        // Continuar con las demás columnas
+                    }
+                }
+            }
+
+            // Verificar y actualizar el constraint del rol si es necesario
+            try {
+                await client.query(`
+                    DO $$
+                    BEGIN
+                        -- Eliminar constraint existente si existe
+                        IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'admin_users_role_check') THEN
+                            ALTER TABLE admin_users DROP CONSTRAINT admin_users_role_check;
+                        END IF;
+                        
+                        -- Agregar el constraint actualizado
+                        ALTER TABLE admin_users 
+                        ADD CONSTRAINT admin_users_role_check 
+                        CHECK (role IN ('ADMIN', 'SUPERVISOR', 'OPERATOR', 'VIEWER'));
+                    END $$;
+                `);
+                console.log('✅ Constraint de rol actualizado');
+            } catch (error) {
+                console.log('⚠️ No se pudo actualizar constraint de rol:', error.message);
+            }
+
+        } catch (error) {
+            console.log('⚠️ Error verificando columnas de admin_users:', error.message);
+            // No lanzar error - el sistema puede continuar
         }
     }
 }
