@@ -12,6 +12,29 @@ const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcryptjs');
 const PostgreSQLClient = require('./postgres-client');
 
+// Mapeo de roles entre frontend y base de datos
+const ROLE_MAPPING = {
+    // Frontend -> Base de datos
+    'Administrador': 'ADMIN',
+    'Supervisor': 'SUPERVISOR', 
+    'Operador': 'OPERATOR',
+    'Visualizador': 'VIEWER',
+    // Base de datos -> Frontend
+    'ADMIN': 'Administrador',
+    'SUPERVISOR': 'Supervisor',
+    'OPERATOR': 'Operador', 
+    'VIEWER': 'Visualizador'
+};
+
+// Función para mapear roles
+const mapRole = (role, toDatabase = true) => {
+    if (toDatabase) {
+        return ROLE_MAPPING[role] || 'OPERATOR';
+    } else {
+        return ROLE_MAPPING[role] || 'Operador';
+    }
+};
+
 // Inicializar el cliente de PostgreSQL
 const dbClient = new PostgreSQLClient();
 
@@ -381,7 +404,7 @@ app.post('/api/auth/login', async (req, res) => {
             const userData = {
                 id: user.id.toString(), // Convertir a string para frontend
                 username: user.username,
-                role: user.role,
+                role: isAdminUser ? mapRole(user.role, false) : user.role, // Mapear solo usuarios admin
                 displayName: user.display_name || user.username
             };
 
@@ -457,7 +480,7 @@ app.post('/api/auth/register', async (req, res) => {
         }
 
         // En modo desarrollo sin base de datos, simular registro
-        if (process.env.NODE_ENV !== 'production' && !process.env.DATABASE_URL && !process.env.DB_HOST) {
+        if (!dbClient.isInitialized) {
             // En desarrollo, solo permitir registros únicos para esta sesión
             console.log(`✅ Usuario registrado (dev mode): ${username} (${role})`);
 
@@ -501,7 +524,7 @@ app.post('/api/auth/register', async (req, res) => {
             firstName: firstName.trim(),
             lastName: lastName.trim(),
             passwordHash: passwordHash,
-            role: role,
+            role: mapRole(role, true), // Convertir a formato de BD
             isActive: true
         };
 
@@ -511,7 +534,7 @@ app.post('/api/auth/register', async (req, res) => {
         const userData = {
             id: createdUser.id,
             username: createdUser.username,
-            role: createdUser.role,
+            role: mapRole(createdUser.role, false), // Convertir de vuelta a formato frontend
             displayName: `${createdUser.first_name} ${createdUser.last_name}`.trim(),
             email: createdUser.email,
             isActive: createdUser.is_active
@@ -571,7 +594,7 @@ app.get('/api/auth/users', async (req, res) => {
         const transformedUsers = users.map(user => ({
             id: user.id,
             username: user.username,
-            role: user.role,
+            role: mapRole(user.role, false), // Convertir rol a formato frontend
             displayName: (user.first_name + ' ' + user.last_name).trim() || user.username,
             email: user.email,
             createdAt: user.created_at,
@@ -633,7 +656,7 @@ app.put('/api/auth/users/:id', async (req, res) => {
         // Preparar datos de actualización para admin_users
         const updateData = {};
         if (username) updateData.username = username.trim();
-        if (role) updateData.role = role;
+        if (role) updateData.role = mapRole(role, true); // Convertir a formato BD
         if (displayName) updateData.displayName = displayName.trim();
         
         // Si se proporciona una nueva contraseña, hashearla
@@ -650,7 +673,7 @@ app.put('/api/auth/users/:id', async (req, res) => {
             user: {
                 id: updatedUser.id,
                 username: updatedUser.username,
-                role: updatedUser.role,
+                role: mapRole(updatedUser.role, false), // Convertir de vuelta a formato frontend
                 displayName: updatedUser.first_name + ' ' + updatedUser.last_name,
                 createdAt: updatedUser.created_at
             },

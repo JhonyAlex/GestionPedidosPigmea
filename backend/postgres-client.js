@@ -119,6 +119,47 @@ class PostgreSQLClient {
                 );
             `);
 
+            // Crear extensión para UUID si no existe
+            await client.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`);
+
+            // Tabla de usuarios administrativos
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS admin_users (
+                    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                    username VARCHAR(50) UNIQUE NOT NULL,
+                    email VARCHAR(255) UNIQUE NOT NULL,
+                    first_name VARCHAR(100) NOT NULL,
+                    last_name VARCHAR(100) NOT NULL,
+                    password_hash VARCHAR(255) NOT NULL,
+                    role VARCHAR(20) NOT NULL CHECK (role IN ('ADMIN', 'SUPERVISOR', 'OPERATOR', 'VIEWER')),
+                    permissions JSONB DEFAULT '[]'::jsonb,
+                    is_active BOOLEAN DEFAULT true,
+                    last_login TIMESTAMP WITH TIME ZONE,
+                    last_activity TIMESTAMP WITH TIME ZONE,
+                    ip_address INET,
+                    user_agent TEXT,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                );
+            `);
+
+            // Tabla de logs de auditoría administrativa
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS audit_logs (
+                    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                    user_id UUID REFERENCES admin_users(id) ON DELETE SET NULL,
+                    username VARCHAR(50) NOT NULL,
+                    action VARCHAR(100) NOT NULL,
+                    module VARCHAR(50) NOT NULL,
+                    details TEXT,
+                    ip_address INET,
+                    user_agent TEXT,
+                    affected_resource UUID,
+                    metadata JSONB DEFAULT '{}'::jsonb,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                );
+            `);
+
             // Índices para mejorar performance
             await client.query(`
                 CREATE INDEX IF NOT EXISTS idx_pedidos_etapa ON pedidos(etapa_actual);
@@ -128,6 +169,11 @@ class PostgreSQLClient {
                 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
                 CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp);
                 CREATE INDEX IF NOT EXISTS idx_audit_user_role ON audit_log(user_role);
+                CREATE INDEX IF NOT EXISTS idx_admin_users_username ON admin_users(username);
+                CREATE INDEX IF NOT EXISTS idx_admin_users_email ON admin_users(email);
+                CREATE INDEX IF NOT EXISTS idx_admin_users_role ON admin_users(role);
+                CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
+                CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
             `);
 
             // Función para actualizar updated_at automáticamente
@@ -146,6 +192,14 @@ class PostgreSQLClient {
                 DROP TRIGGER IF EXISTS update_pedidos_updated_at ON pedidos;
                 CREATE TRIGGER update_pedidos_updated_at 
                     BEFORE UPDATE ON pedidos 
+                    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+            `);
+
+            // Trigger para actualizar updated_at en admin_users
+            await client.query(`
+                DROP TRIGGER IF EXISTS update_admin_users_updated_at ON admin_users;
+                CREATE TRIGGER update_admin_users_updated_at 
+                    BEFORE UPDATE ON admin_users 
                     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
             `);
 
