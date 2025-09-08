@@ -9,6 +9,7 @@ const { Server } = require('socket.io');
 const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
+const bcrypt = require('bcryptjs');
 const PostgreSQLClient = require('./postgres-client');
 
 // Inicializar el cliente de PostgreSQL
@@ -347,7 +348,6 @@ app.post('/api/auth/login', async (req, res) => {
             
             if (isAdminUser && user.password_hash) {
                 // Usuarios admin: usar bcrypt
-                const bcrypt = require('bcryptjs');
                 isValidPassword = await bcrypt.compare(password, user.password_hash);
             } else if (!isAdminUser && user.password) {
                 // Usuarios regulares: comparación directa
@@ -487,7 +487,6 @@ app.post('/api/auth/register', async (req, res) => {
         }
 
         // Hashear la contraseña
-        const bcrypt = require('bcrypt');
         const saltRounds = 12;
         const passwordHash = await bcrypt.hash(password, saltRounds);
 
@@ -639,7 +638,6 @@ app.put('/api/auth/users/:id', async (req, res) => {
         
         // Si se proporciona una nueva contraseña, hashearla
         if (password && password.trim()) {
-            const bcrypt = require('bcrypt');
             const saltRounds = 12;
             updateData.passwordHash = await bcrypt.hash(password.trim(), saltRounds);
         }
@@ -774,7 +772,6 @@ app.put('/api/auth/users/:id/password', async (req, res) => {
 
         // Verificar contraseña actual si se proporciona (opcional para administradores)
         if (currentPassword) {
-            const bcrypt = require('bcrypt');
             const isValidCurrentPassword = await bcrypt.compare(currentPassword, existingUser.password_hash);
             if (!isValidCurrentPassword) {
                 return res.status(400).json({
@@ -784,7 +781,6 @@ app.put('/api/auth/users/:id/password', async (req, res) => {
         }
 
         // Hashear la nueva contraseña
-        const bcrypt = require('bcrypt');
         const saltRounds = 12;
         const passwordHash = await bcrypt.hash(newPassword, saltRounds);
 
@@ -834,7 +830,6 @@ app.put('/api/auth/admin/users/:id/password', async (req, res) => {
         }
 
         // Hashear la nueva contraseña
-        const bcrypt = require('bcrypt');
         const saltRounds = 12;
         const passwordHash = await bcrypt.hash(newPassword, saltRounds);
 
