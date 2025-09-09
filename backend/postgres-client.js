@@ -197,7 +197,37 @@ class PostgreSQLClient {
         try {
             console.log('🔧 Iniciando creación/verificación de tablas...');
 
-            // Tabla de permisos de usuario
+            // Crear extensión para UUID si no existe
+            await client.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`);
+            console.log('✅ Extensión uuid-ossp verificada');
+
+            // PRIMERO: Tabla de usuarios administrativos (debe crearse ANTES que user_permissions)
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS admin_users (
+                    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                    username VARCHAR(50) UNIQUE NOT NULL,
+                    email VARCHAR(255) UNIQUE NOT NULL,
+                    first_name VARCHAR(100) NOT NULL,
+                    last_name VARCHAR(100) NOT NULL,
+                    password_hash VARCHAR(255) NOT NULL,
+                    role VARCHAR(20) NOT NULL CHECK (role IN ('ADMIN', 'SUPERVISOR', 'OPERATOR', 'VIEWER')),
+                    permissions JSONB DEFAULT '[]'::jsonb,
+                    is_active BOOLEAN DEFAULT true,
+                    last_login TIMESTAMP WITH TIME ZONE,
+                    last_activity TIMESTAMP WITH TIME ZONE,
+                    ip_address INET,
+                    user_agent TEXT,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                );
+            `);
+            console.log('✅ Tabla admin_users verificada');
+
+            // Verificar y agregar columnas faltantes en admin_users si es necesario
+            await this.ensureAdminUsersColumns(client);
+            console.log('✅ Columnas de admin_users verificadas');
+
+            // SEGUNDO: Tabla de permisos de usuario (DESPUÉS de admin_users)
             await client.query(`
                 CREATE TABLE IF NOT EXISTS user_permissions (
                     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -266,36 +296,6 @@ class PostgreSQLClient {
                 );
             `);
             console.log('✅ Tabla users verificada');
-
-            // Crear extensión para UUID si no existe
-            await client.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`);
-            console.log('✅ Extensión uuid-ossp verificada');
-
-            // Tabla de usuarios administrativos (debe crearse ANTES que audit_logs)
-            await client.query(`
-                CREATE TABLE IF NOT EXISTS admin_users (
-                    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                    username VARCHAR(50) UNIQUE NOT NULL,
-                    email VARCHAR(255) UNIQUE NOT NULL,
-                    first_name VARCHAR(100) NOT NULL,
-                    last_name VARCHAR(100) NOT NULL,
-                    password_hash VARCHAR(255) NOT NULL,
-                    role VARCHAR(20) NOT NULL CHECK (role IN ('ADMIN', 'SUPERVISOR', 'OPERATOR', 'VIEWER')),
-                    permissions JSONB DEFAULT '[]'::jsonb,
-                    is_active BOOLEAN DEFAULT true,
-                    last_login TIMESTAMP WITH TIME ZONE,
-                    last_activity TIMESTAMP WITH TIME ZONE,
-                    ip_address INET,
-                    user_agent TEXT,
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-                );
-            `);
-            console.log('✅ Tabla admin_users verificada');
-
-            // Verificar y agregar columnas faltantes en admin_users si es necesario
-            await this.ensureAdminUsersColumns(client);
-            console.log('✅ Columnas de admin_users verificadas');
 
             // Tabla de auditoría (legacy - sin claves foráneas)
             await client.query(`
