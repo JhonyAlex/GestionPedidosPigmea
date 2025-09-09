@@ -197,6 +197,39 @@ class PostgreSQLClient {
         try {
             console.log('🔧 Iniciando creación/verificación de tablas...');
 
+            // Tabla de permisos de usuario
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS user_permissions (
+                    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                    user_id UUID REFERENCES admin_users(id) ON DELETE CASCADE,
+                    permission_id VARCHAR(100) NOT NULL,
+                    enabled BOOLEAN DEFAULT true,
+                    granted_by UUID REFERENCES admin_users(id),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(user_id, permission_id)
+                );
+                
+                -- Índices para mejorar el rendimiento
+                CREATE INDEX IF NOT EXISTS idx_user_permissions_user_id ON user_permissions(user_id);
+                CREATE INDEX IF NOT EXISTS idx_user_permissions_permission_id ON user_permissions(permission_id);
+
+                -- Trigger para actualizar el timestamp de updated_at
+                CREATE OR REPLACE FUNCTION update_modified_column()
+                RETURNS TRIGGER AS $$
+                BEGIN
+                    NEW.updated_at = now();
+                    RETURN NEW;
+                END;
+                $$ language 'plpgsql';
+
+                CREATE TRIGGER IF NOT EXISTS update_user_permissions_modtime
+                    BEFORE UPDATE ON user_permissions
+                    FOR EACH ROW
+                    EXECUTE PROCEDURE update_modified_column();
+            `);
+            console.log('✅ Tabla user_permissions verificada');
+
             // Tabla de pedidos
             await client.query(`
                 CREATE TABLE IF NOT EXISTS pedidos (
@@ -1625,6 +1658,292 @@ class PostgreSQLClient {
             
         } catch (error) {
             console.log('⚠️ Error migrando usuarios:', error.message);
+        }
+    }
+
+    // =================== MÉTODOS DE GESTIÓN DE PERMISOS ===================
+
+    /**
+     * Obtiene los permisos de un usuario específico
+     * @param {string} userId - ID del usuario
+     * @returns {Promise<Array>} - Array de permisos del usuario
+     */
+    async getUserPermissions(userId) {
+        if (!this.isInitialized) await this.init();
+        
+        try {
+            const result = await this.pool.query(
+                `SELECT permission_id, enabled 
+                 FROM user_permissions 
+                 WHERE user_id = $1`,
+                [userId]
+            );
+            
+            return result.rows;
+        } catch (error) {
+            console.error('Error al obtener permisos del usuario:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Guarda los permisos de un usuario en la base de datos
+     * @param {string} userId - ID del usuario
+     * @param {string} grantedBy - ID del usuario que otorga los permisos
+     * @param {Array} permissions - Array de objetos {permissionId, enabled}
+     * @returns {Promise<void>}
+     */
+    async saveUserPermissions(userId, grantedBy, permissions) {
+        if (!this.isInitialized) await this.init();
+        
+        const client = await this.pool.connect();
+        
+        try {
+            await client.query('BEGIN');
+            
+            // Eliminar permisos existentes
+            await client.query('DELETE FROM user_permissions WHERE user_id = $1', [userId]);
+            
+            // Insertar nuevos permisos
+            for (const perm of permissions) {
+                await client.query(
+                    `INSERT INTO user_permissions 
+                     (user_id, permission_id, enabled, granted_by)
+                     VALUES ($1, $2, $3, $4)`,
+                    [userId, perm.permissionId, perm.enabled, grantedBy]
+                );
+            }
+            
+            await client.query('COMMIT');
+            
+            // Registrar en audit_logs
+            await this.logAuditEvent({
+                userId: grantedBy,
+                action: 'UPDATE_PERMISSIONS',
+                module: 'SECURITY',
+                details: `Updated permissions for user ${userId}`,
+                metadata: { updatedPermissions: permissions }
+            });
+            
+        } catch (error) {
+            await client.query('ROLLBACK');
+            console.error('Error al guardar permisos del usuario:', error);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Inicializa los permisos predeterminados para un usuario según su rol
+     * @param {string} userId - ID del usuario
+     * @param {string} role - Rol del usuario
+     * @param {string} grantedBy - ID del usuario que otorga los permisos
+     * @returns {Promise<void>}
+     */
+    async initializeDefaultPermissions(userId, role, grantedBy) {
+        if (!this.isInitialized) await this.init();
+        
+        try {
+            // Obtener la lista de permisos predeterminados según el rol
+            const defaultPermissions = this.getDefaultPermissionsForRole(role);
+            
+            // Guardar los permisos predeterminados
+            await this.saveUserPermissions(userId, grantedBy, defaultPermissions);
+            
+        } catch (error) {
+            console.error('Error al inicializar permisos predeterminados:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Devuelve los permisos predeterminados para un rol específico
+     * @param {string} role - Rol del usuario (ADMIN, SUPERVISOR, OPERATOR, VIEWER)
+     * @returns {Array} - Array de objetos {permissionId, enabled}
+     */
+    getDefaultPermissionsForRole(role) {
+        // Esta función debe mantenerse sincronizada con constants/permissions.ts
+        const permissions = [];
+        
+        // Permisos comunes para todos los roles
+        const commonPermissions = [
+            { permissionId: 'pedidos.view', enabled: true },
+            { permissionId: 'dashboard.view', enabled: true }
+        ];
+        
+        permissions.push(...commonPermissions);
+        
+        // Permisos específicos por rol
+        switch (role.toUpperCase()) {
+            case 'ADMIN':
+                permissions.push(
+                    { permissionId: 'usuarios.admin', enabled: true },
+                    { permissionId: 'permisos.admin', enabled: true },
+                    { permissionId: 'pedidos.edit', enabled: true },
+                    { permissionId: 'pedidos.delete', enabled: true },
+                    { permissionId: 'pedidos.print', enabled: true },
+                    { permissionId: 'secuencia.manage', enabled: true },
+                    { permissionId: 'reportes.view', enabled: true },
+                    { permissionId: 'datos.export', enabled: true }
+                );
+                break;
+                
+            case 'SUPERVISOR':
+                permissions.push(
+                    { permissionId: 'pedidos.edit', enabled: true },
+                    { permissionId: 'pedidos.print', enabled: true },
+                    { permissionId: 'secuencia.manage', enabled: true },
+                    { permissionId: 'reportes.view', enabled: true },
+                    { permissionId: 'datos.export', enabled: true }
+                );
+                break;
+                
+            case 'OPERATOR':
+                permissions.push(
+                    { permissionId: 'pedidos.edit', enabled: true },
+                    { permissionId: 'pedidos.print', enabled: true }
+                );
+                break;
+                
+            case 'VIEWER':
+                // Solo tiene los permisos comunes
+                break;
+                
+            default:
+                // Si el rol no es reconocido, solo permisos de visualización
+                break;
+        }
+        
+        return permissions;
+    }
+
+    /**
+     * Obtiene todos los permisos disponibles en el sistema
+     * @returns {Promise<Array>} - Array de objetos de permiso
+     */
+    async getAllPermissions() {
+        try {
+            // Cargar el mapa de permisos desde el archivo JSON
+            const permissionsMap = require('./permissions-map.json');
+            return Object.values(permissionsMap);
+        } catch (error) {
+            console.error('Error al obtener permisos del sistema:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Obtiene la configuración de permisos del sistema en formato compatible con el frontend
+     * @returns {Promise<Object>} - Configuración de permisos
+     */
+    async getAllSystemPermissions() {
+        try {
+            // Cargar el mapa de permisos desde el archivo JSON
+            const permissionsMap = require('./permissions-map.json');
+            
+            // Organizar por categorías
+            const categories = {};
+            
+            // Agrupar permisos por categoría
+            Object.values(permissionsMap).forEach(perm => {
+                if (!categories[perm.category]) {
+                    categories[perm.category] = {
+                        name: perm.category.charAt(0).toUpperCase() + perm.category.slice(1),
+                        description: `Permisos para ${perm.category}`,
+                        permissions: []
+                    };
+                }
+                
+                categories[perm.category].permissions.push({
+                    id: perm.id,
+                    name: perm.action.charAt(0).toUpperCase() + perm.action.slice(1) + ' ' + perm.category.charAt(0).toUpperCase() + perm.category.slice(1),
+                    description: perm.description
+                });
+            });
+            
+            return { categories };
+        } catch (error) {
+            console.error('Error al obtener configuración de permisos:', error);
+            return { categories: {} };
+        }
+    }
+
+    /**
+     * Migra los permisos almacenados en JSONB a la nueva tabla de permisos
+     * @returns {Promise<void>}
+     */
+    async migrateJsonbPermissionsToTable() {
+        if (!this.isInitialized) await this.init();
+        
+        const client = await this.pool.connect();
+        
+        try {
+            await client.query('BEGIN');
+            
+            // Obtener todos los usuarios con permisos JSONB
+            const usersResult = await client.query(
+                `SELECT id, username, role, permissions 
+                 FROM admin_users 
+                 WHERE permissions IS NOT NULL AND permissions != '[]'::jsonb`
+            );
+            
+            for (const user of usersResult.rows) {
+                const permissions = user.permissions;
+                
+                // Si el usuario tiene permisos JSONB, migrarlos a la tabla
+                if (permissions && Array.isArray(permissions) && permissions.length > 0) {
+                    // Primero eliminar permisos existentes en la tabla
+                    await client.query('DELETE FROM user_permissions WHERE user_id = $1', [user.id]);
+                    
+                    // Insertar cada permiso en la nueva tabla
+                    for (const perm of permissions) {
+                        await client.query(
+                            `INSERT INTO user_permissions 
+                             (user_id, permission_id, enabled, granted_by)
+                             VALUES ($1, $2, $3, $4)
+                             ON CONFLICT (user_id, permission_id) DO UPDATE
+                             SET enabled = $3, updated_at = CURRENT_TIMESTAMP`,
+                            [user.id, perm.id || perm.permissionId, perm.enabled !== false, user.id]
+                        );
+                    }
+                    
+                    console.log(`✅ Migrados ${permissions.length} permisos para usuario ${user.username}`);
+                }
+            }
+            
+            await client.query('COMMIT');
+            console.log('✅ Migración de permisos JSONB completada');
+            
+        } catch (error) {
+            await client.query('ROLLBACK');
+            console.error('❌ Error al migrar permisos JSONB:', error);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    // Método para audit events (necesario para middleware de permisos)
+    async logAuditEvent(userId, action, details, resourceType = null, resourceId = null) {
+        try {
+            if (!this.isInitialized) {
+                console.warn('Database not initialized, skipping audit log');
+                return;
+            }
+
+            const client = await this.pool.connect();
+            try {
+                await client.query(`
+                    INSERT INTO audit_log (user_id, action, details, resource_type, resource_id, timestamp)
+                    VALUES ($1, $2, $3, $4, $5, NOW())
+                `, [userId, action, JSON.stringify(details), resourceType, resourceId]);
+            } finally {
+                client.release();
+            }
+        } catch (error) {
+            console.error('Error logging audit event:', error);
+            // No lanzar error para no interrumpir la operación principal
         }
     }
 }

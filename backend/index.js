@@ -11,6 +11,8 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcryptjs');
 const PostgreSQLClient = require('./postgres-client');
+const { requirePermission, requireAnyPermission } = require('./middleware/permissions');
+const { authenticateUser, requireAuth, extractUserFromRequest } = require('./middleware/auth');
 
 // Mapeo de roles entre frontend y base de datos
 const ROLE_MAPPING = {
@@ -109,6 +111,9 @@ app.use(cors({
 app.use(express.static(path.join(__dirname, 'dist')));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Middleware de autenticación global (extrae usuario si está disponible)
+app.use(authenticateUser);
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
@@ -689,7 +694,7 @@ app.put('/api/auth/users/:id', async (req, res) => {
 });
 
 // DELETE /api/auth/users/:id - Eliminar usuario
-app.delete('/api/auth/users/:id', async (req, res) => {
+app.delete('/api/auth/users/:id', requirePermission('usuarios.admin'), async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -725,9 +730,22 @@ app.delete('/api/auth/users/:id', async (req, res) => {
 });
 
 // GET /api/auth/permissions - Obtener configuración de permisos
-app.get('/api/auth/permissions', (req, res) => {
+app.get('/api/auth/permissions', async (req, res) => {
     try {
-        // Configuración básica de permisos (en producción vendría de la BD)
+        // Configuración de permisos desde la base de datos
+        if (dbClient.isInitialized) {
+            // Obtener categorías de permisos de constants/permissions.ts
+            // pero con los datos actualizados de la BD
+            const allPermissions = await dbClient.getAllSystemPermissions();
+            
+            res.json({
+                success: true,
+                permissions: allPermissions
+            });
+            return;
+        }
+        
+        // Fallback para modo desarrollo sin base de datos
         const permissions = {
             categories: {
                 pedidos: {
@@ -875,10 +893,28 @@ app.put('/api/auth/admin/users/:id/password', async (req, res) => {
 });
 
 // PUT /api/auth/users/:id/permissions - Actualizar permisos de usuario
-app.put('/api/auth/users/:id/permissions', async (req, res) => {
+app.put('/api/auth/users/:id/permissions', requirePermission('permisos.admin'), async (req, res) => {
     try {
         const { id } = req.params;
         const { permissions } = req.body;
+        
+        // Validar que el usuario exista
+        const userExists = await dbClient.getAdminUserById(id);
+        if (!userExists) {
+            return res.status(404).json({
+                error: 'Usuario no encontrado'
+            });
+        }
+        
+        // Obtener información del usuario que realiza la acción
+        const grantedBy = req.user ? req.user.id : null;
+        
+        if (!grantedBy) {
+            return res.status(401).json({
+                error: 'No autenticado',
+                message: 'Debe iniciar sesión para modificar permisos'
+            });
+        }
 
         if (!dbClient.isInitialized) {
             // Modo desarrollo sin base de datos
@@ -888,8 +924,23 @@ app.put('/api/auth/users/:id/permissions', async (req, res) => {
             });
         }
 
-        // En producción, aquí actualizarías los permisos en la base de datos
-        // await dbClient.updateUserPermissions(id, permissions);
+        // Formatear permisos para guardar en BD
+        const formattedPermissions = permissions.map(perm => ({
+            permissionId: perm.id,
+            enabled: perm.enabled === true
+        }));
+
+        // Guardar permisos en la base de datos
+        await dbClient.saveUserPermissions(id, grantedBy, formattedPermissions);
+        
+        // Registrar en log de auditoría
+        await dbClient.logAuditEvent({
+            userId: grantedBy,
+            action: 'UPDATE_USER_PERMISSIONS',
+            module: 'SECURITY',
+            details: `Actualización de permisos para usuario ${id}`,
+            metadata: { userId: id, permissions: formattedPermissions }
+        });
 
         res.json({
             success: true,
@@ -904,10 +955,116 @@ app.put('/api/auth/users/:id/permissions', async (req, res) => {
     }
 });
 
-// GET /api/permissions - Obtener lista de permisos disponibles
-app.get('/api/permissions', (req, res) => {
+// GET /api/auth/users/:id/permissions - Obtener permisos de un usuario específico
+app.get('/api/auth/users/:id/permissions', async (req, res) => {
     try {
-        // Para desarrollo, devolver permisos estáticos
+        const { id } = req.params;
+        
+        // Verificar que el usuario exista
+        const userExists = await dbClient.getAdminUserById(id);
+        if (!userExists) {
+            return res.status(404).json({
+                error: 'Usuario no encontrado'
+            });
+        }
+        
+        if (!dbClient.isInitialized) {
+            // Modo desarrollo sin base de datos
+            return res.json({
+                success: true,
+                permissions: []
+            });
+        }
+        
+        // Obtener permisos del usuario desde la base de datos
+        const permissions = await dbClient.getUserPermissions(id);
+        
+        // Formatear para la respuesta
+        const formattedPermissions = permissions.map(perm => ({
+            id: perm.permission_id,
+            enabled: perm.enabled
+        }));
+        
+        res.json({
+            success: true,
+            permissions: formattedPermissions
+        });
+        
+    } catch (error) {
+        console.error('Error obteniendo permisos de usuario:', error);
+        res.status(500).json({
+            error: error.message || 'Error interno del servidor'
+        });
+    }
+});
+
+// POST /api/auth/users/:id/permissions/sync - Sincronizar permisos entre frontend y backend
+app.post('/api/auth/users/:id/permissions/sync', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { localPermissions } = req.body;
+        
+        if (!dbClient.isInitialized) {
+            // Modo desarrollo sin base de datos
+            return res.json({
+                success: true,
+                permissions: localPermissions,
+                synced: true
+            });
+        }
+        
+        // Obtener permisos del usuario desde la base de datos
+        const dbPermissions = await dbClient.getUserPermissions(id);
+        
+        // Formatear permisos de la base de datos
+        const formattedDbPermissions = dbPermissions.map(perm => ({
+            id: perm.permission_id,
+            enabled: perm.enabled
+        }));
+        
+        // Verificar si hay diferencias
+        const needsSync = JSON.stringify(formattedDbPermissions.sort((a, b) => a.id.localeCompare(b.id))) !== 
+                         JSON.stringify(localPermissions.sort((a, b) => a.id.localeCompare(b.id)));
+        
+        if (needsSync) {
+            // Si hay diferencias, la base de datos tiene prioridad
+            res.json({
+                success: true,
+                permissions: formattedDbPermissions,
+                synced: false,
+                message: 'Se han sincronizado los permisos desde el servidor'
+            });
+        } else {
+            // Si no hay diferencias, todo está sincronizado
+            res.json({
+                success: true,
+                permissions: formattedDbPermissions,
+                synced: true
+            });
+        }
+        
+    } catch (error) {
+        console.error('Error sincronizando permisos:', error);
+        res.status(500).json({
+            error: error.message || 'Error interno del servidor'
+        });
+    }
+});
+
+// GET /api/permissions - Obtener lista de permisos disponibles
+app.get('/api/permissions', async (req, res) => {
+    try {
+        if (dbClient.isInitialized) {
+            // Obtener permisos desde la base de datos
+            const permissions = await dbClient.getAllPermissions();
+            
+            return res.json({
+                success: true,
+                permissions
+            });
+        }
+        
+        // Fallback para desarrollo, devolver permisos estáticos
         const permissions = [
             { id: 'pedidos.view', name: 'Ver Pedidos', category: 'pedidos', enabled: true },
             { id: 'pedidos.create', name: 'Crear Pedidos', category: 'pedidos', enabled: true },
@@ -1022,7 +1179,8 @@ app.get('/api/pedidos/:id', async (req, res) => {
 });
 
 // POST /api/pedidos - Create a new pedido
-app.post('/api/pedidos', async (req, res) => {
+// POST /api/pedidos - Crear un nuevo pedido
+app.post('/api/pedidos', requirePermission('pedidos.create'), async (req, res) => {
     try {
         const newPedido = req.body;
         
@@ -1047,7 +1205,8 @@ app.post('/api/pedidos', async (req, res) => {
 });
 
 // PUT /api/pedidos/:id - Update an existing pedido
-app.put('/api/pedidos/:id', async (req, res) => {
+// PUT /api/pedidos/:id - Actualizar un pedido existente
+app.put('/api/pedidos/:id', requirePermission('pedidos.edit'), async (req, res) => {
     try {
         const updatedPedido = req.body;
         const pedidoId = req.params.id;
@@ -1096,7 +1255,8 @@ app.put('/api/pedidos/:id', async (req, res) => {
 });
 
 // DELETE /api/pedidos/:id - Delete a single pedido
-app.delete('/api/pedidos/:id', async (req, res) => {
+// DELETE /api/pedidos/:id - Eliminar un pedido
+app.delete('/api/pedidos/:id', requirePermission('pedidos.delete'), async (req, res) => {
     try {
         const pedidoId = req.params.id;
         

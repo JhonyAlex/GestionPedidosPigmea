@@ -146,9 +146,13 @@ export interface User {
 export interface Permission {
     id: string;
     name: string;
-    description: string;
+    description?: string;
     category: PermissionCategory;
     enabled: boolean;
+    grantedBy?: string;     // ID del usuario que otorgó el permiso
+    grantedAt?: string;     // Fecha en que se otorgó el permiso
+    lastUpdated?: string;   // Última actualización del permiso
+    forRole?: UserRole;     // Rol para el cual este permiso es por defecto
 }
 
 export interface RolePermissions {
@@ -201,9 +205,10 @@ export interface AuthResponse {
 
 export interface AuthContextType {
     user: User | null;
-    isAuthenticated: boolean;
+    loading: boolean;
+    isSyncingPermissions?: boolean;
     login: (username: string, password: string) => Promise<AuthResponse>;
     register: (userData: RegisterRequest) => Promise<AuthResponse>;
     logout: () => void;
-    loading: boolean;
+    updateUserPermissions?: (permissions: Permission[]) => Promise<boolean>;
 }

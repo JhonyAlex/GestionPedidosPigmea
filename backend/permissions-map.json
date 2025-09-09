@@ -1,0 +1,74 @@
+{
+  "pedidos.view": {
+    "id": "pedidos.view",
+    "category": "pedidos",
+    "action": "view",
+    "description": "Permite visualizar la lista de pedidos"
+  },
+  "pedidos.create": {
+    "id": "pedidos.create",
+    "category": "pedidos",
+    "action": "create",
+    "description": "Permite crear nuevos pedidos"
+  },
+  "pedidos.edit": {
+    "id": "pedidos.edit",
+    "category": "pedidos",
+    "action": "edit",
+    "description": "Permite modificar pedidos existentes"
+  },
+  "pedidos.delete": {
+    "id": "pedidos.delete",
+    "category": "pedidos",
+    "action": "delete",
+    "description": "Permite eliminar pedidos"
+  },
+  "pedidos.move": {
+    "id": "pedidos.move",
+    "category": "pedidos",
+    "action": "move",
+    "description": "Permite cambiar pedidos entre etapas"
+  },
+  "pedidos.print": {
+    "id": "pedidos.print",
+    "category": "pedidos",
+    "action": "print",
+    "description": "Permite imprimir pedidos"
+  },
+  "usuarios.admin": {
+    "id": "usuarios.admin",
+    "category": "usuarios",
+    "action": "admin",
+    "description": "Permite administrar usuarios"
+  },
+  "permisos.admin": {
+    "id": "permisos.admin",
+    "category": "permisos",
+    "action": "admin",
+    "description": "Permite administrar permisos de usuarios"
+  },
+  "secuencia.manage": {
+    "id": "secuencia.manage",
+    "category": "secuencia",
+    "action": "manage",
+    "description": "Permite gestionar la secuencia de pedidos"
+  },
+  "reportes.view": {
+    "id": "reportes.view",
+    "category": "reportes",
+    "action": "view",
+    "description": "Permite ver reportes"
+  },
+  "datos.export": {
+    "id": "datos.export",
+    "category": "datos",
+    "action": "export",
+    "description": "Permite exportar datos"
+  },
+  "dashboard.view": {
+    "id": "dashboard.view",
+    "category": "dashboard",
+    "action": "view",
+    "description": "Permite ver el dashboard"
+  }
+}
