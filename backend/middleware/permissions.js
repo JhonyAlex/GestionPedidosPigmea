@@ -1,9 +1,31 @@
 /**
  * Middleware de permisos para Express
- * Implementa verificación de permisos a nivel de rutas
+ * Implementa verificación de permisos a niv            // Verificar si el usuario tiene al menos uno de los permisos
+            const dbClient = getDbClient();
+            for (const permId of permissionIds) {
+                const hasPermission = await dbClient.hasPermission(req.user.id, permId);
+                if (hasPermission) {
+                    // Si tiene al menos un permiso, continuar
+                    return next();
+                }
+            }
+            
+            // Si no tiene ningún permiso, denegar acceso y registrar
+            await dbClient.logAuditEvent({
  */
 
-const db = require('../postgres-client');
+const PostgreSQLClient = require('../postgres-client');
+
+// Instancia del cliente de base de datos (se inicializa de forma lazy)
+let dbClient = null;
+
+// Función para obtener o crear la instancia del cliente de BD
+const getDbClient = () => {
+    if (!dbClient) {
+        dbClient = new PostgreSQLClient();
+    }
+    return dbClient;
+};
 
 /**
  * Middleware que verifica si un usuario tiene un permiso específico
@@ -22,11 +44,12 @@ const requirePermission = (permissionId) => {
             }
 
             // Verificar el permiso del usuario
-            const hasPermission = await db.hasPermission(req.user.id, permissionId);
+            const dbClient = getDbClient();
+            const hasPermission = await dbClient.hasPermission(req.user.id, permissionId);
             
             if (!hasPermission) {
                 // Registrar intento de acceso no autorizado
-                await db.logAuditEvent({
+                await dbClient.logAuditEvent({
                     userId: req.user.id,
                     action: 'PERMISSION_DENIED',
                     module: 'SECURITY',
@@ -74,8 +97,9 @@ const requireAnyPermission = (permissionIds) => {
             }
 
             // Verificar si el usuario tiene al menos uno de los permisos
+            const dbClient = getDbClient();
             for (const permId of permissionIds) {
-                const hasPermission = await db.hasPermission(req.user.id, permId);
+                const hasPermission = await dbClient.hasPermission(req.user.id, permId);
                 if (hasPermission) {
                     // Si tiene al menos un permiso, continuar
                     return next();
@@ -83,7 +107,7 @@ const requireAnyPermission = (permissionIds) => {
             }
             
             // Si no tiene ninguno de los permisos, denegar acceso
-            await db.logAuditEvent({
+            await dbClient.logAuditEvent({
                 userId: req.user.id,
                 action: 'PERMISSION_DENIED',
                 module: 'SECURITY',
@@ -127,11 +151,12 @@ const requireAllPermissions = (permissionIds) => {
             }
 
             // Verificar si el usuario tiene todos los permisos
+            const dbClient = getDbClient();
             for (const permId of permissionIds) {
-                const hasPermission = await db.hasPermission(req.user.id, permId);
+                const hasPermission = await dbClient.hasPermission(req.user.id, permId);
                 if (!hasPermission) {
                     // Si no tiene alguno de los permisos, denegar acceso
-                    await db.logAuditEvent({
+                    await dbClient.logAuditEvent({
                         userId: req.user.id,
                         action: 'PERMISSION_DENIED',
                         module: 'SECURITY',
