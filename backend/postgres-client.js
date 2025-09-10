@@ -2098,6 +2098,13 @@ class PostgreSQLClient {
         try {
             console.log(`🔍 Verificando permiso '${permissionId}' para usuario ID: ${userId}`);
             
+            // Verificar si el usuario es administrador (acceso completo)
+            const userRole = userFromRequest?.role || 'OPERATOR';
+            if (userRole === 'Administrador' || userRole === 'ADMIN') {
+                console.log(`👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS`);
+                return true;
+            }
+            
             // Si la base de datos no está inicializada, usar lógica de fallback
             if (!this.isInitialized || !this.client) {
                 console.log(`🔧 BD no disponible, usando permisos del frontend en modo desarrollo`);
@@ -2112,7 +2119,6 @@ class PostgreSQLClient {
                 }
                 
                 // Fallback: usar permisos por defecto del rol
-                const userRole = userFromRequest?.role || 'OPERATOR';
                 const rolePermissions = this.getDefaultPermissionsForRole(userRole);
                 const hasPermission = rolePermissions.some(perm => 
                     perm.permissionId === permissionId && perm.enabled
@@ -2142,7 +2148,13 @@ class PostgreSQLClient {
                 if (legacyUser) {
                     console.log(`👤 Usuario legacy encontrado: ${legacyUser.username}, rol: ${legacyUser.role}`);
                     
-                    // Para usuarios legacy, usar permisos por defecto según rol
+                    // Si es administrador legacy, dar acceso completo
+                    if (legacyUser.role === 'ADMIN' || legacyUser.role === 'Administrador') {
+                        console.log(`👑 Usuario administrador legacy - TODOS LOS PERMISOS CONCEDIDOS`);
+                        return true;
+                    }
+                    
+                    // Para usuarios legacy no administradores, usar permisos por defecto según rol
                     const defaultPermissions = this.getDefaultPermissionsForRole(legacyUser.role);
                     const hasPermission = defaultPermissions.some(perm => 
                         perm.permissionId === permissionId && perm.enabled
@@ -2165,6 +2177,12 @@ class PostgreSQLClient {
             }
             
             console.log(`👤 Usuario encontrado: ${user.username}, rol: ${user.role}`);
+            
+            // Si es administrador, dar acceso completo
+            if (user.role === 'ADMIN' || user.role === 'Administrador') {
+                console.log(`👑 Usuario administrador con BD - TODOS LOS PERMISOS CONCEDIDOS`);
+                return true;
+            }
             
             // Verificar si es UUID válido para buscar en user_permissions
             const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId);

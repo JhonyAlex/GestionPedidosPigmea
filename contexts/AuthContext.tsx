@@ -16,6 +16,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Función para enriquecer usuario con permisos
     const enrichUserWithPermissions = (userData: User): User => {
+        // Si es administrador, siempre dar todos los permisos
+        if (userData.role === 'Administrador') {
+            const allPermissions = getPermissionsByRole('Administrador');
+            return {
+                ...userData,
+                permissions: allPermissions
+            };
+        }
+        
         // Si el usuario ya tiene permisos personalizados, los usamos
         if (userData.permissions && userData.permissions.length > 0) {
             return userData;
@@ -38,6 +47,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         try {
             setIsSyncingPermissions(true);
+            
+            // Si es administrador, siempre mantener todos los permisos
+            if (userData.role === 'Administrador') {
+                const allPermissions = getPermissionsByRole('Administrador');
+                const updatedUser = {
+                    ...userData,
+                    permissions: allPermissions
+                };
+                
+                // Actualizar usuario en localStorage
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('pigmea_user', JSON.stringify(updatedUser));
+                }
+                
+                return updatedUser;
+            }
             
             // Obtener permisos locales
             const localPermissions = userData.permissions || [];
