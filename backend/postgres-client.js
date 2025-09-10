@@ -253,7 +253,8 @@ class PostgreSQLClient {
                 END;
                 $$ language 'plpgsql';
 
-                CREATE TRIGGER IF NOT EXISTS update_user_permissions_modtime
+                DROP TRIGGER IF EXISTS update_user_permissions_modtime ON user_permissions;
+                CREATE TRIGGER update_user_permissions_modtime
                     BEFORE UPDATE ON user_permissions
                     FOR EACH ROW
                     EXECUTE PROCEDURE update_modified_column();

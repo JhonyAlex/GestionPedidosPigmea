@@ -1543,7 +1543,7 @@ app.get('*', (req, res) => {
 async function startServer() {
     try {
         // Intentar inicializar PostgreSQL
-        if (process.env.DATABASE_URL || process.env.DB_HOST) {
+        if (process.env.DATABASE_URL || process.env.DB_HOST || process.env.POSTGRES_HOST) {
             console.log('🔄 Intentando conectar a PostgreSQL...');
             await dbClient.init();
             console.log('🐘 PostgreSQL conectado exitosamente');

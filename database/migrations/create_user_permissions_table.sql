@@ -52,13 +52,15 @@ END;
 $$ language 'plpgsql';
 
 -- Trigger para user_permissions
-CREATE TRIGGER IF NOT EXISTS update_user_permissions_modtime
+DROP TRIGGER IF EXISTS update_user_permissions_modtime ON user_permissions;
+CREATE TRIGGER update_user_permissions_modtime
     BEFORE UPDATE ON user_permissions
     FOR EACH ROW
     EXECUTE PROCEDURE update_modified_column();
 
 -- Trigger para admin_users
-CREATE TRIGGER IF NOT EXISTS update_admin_users_modtime
+DROP TRIGGER IF EXISTS update_admin_users_modtime ON admin_users;
+CREATE TRIGGER update_admin_users_modtime
     BEFORE UPDATE ON admin_users
     FOR EACH ROW
     EXECUTE PROCEDURE update_modified_column();
