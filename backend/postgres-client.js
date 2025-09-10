@@ -2092,6 +2092,100 @@ class PostgreSQLClient {
             // No lanzar error para no interrumpir la operación principal
         }
     }
+
+    // Obtener permisos por defecto según el rol
+    getDefaultPermissionsForRole(role) {
+        // Permisos base disponibles en el sistema
+        const allPermissions = [
+            'CREATE_PEDIDO', 'READ_PEDIDO', 'UPDATE_PEDIDO', 'DELETE_PEDIDO',
+            'MANAGE_USERS', 'VIEW_USERS', 'CREATE_USERS', 'DELETE_USERS',
+            'VIEW_REPORTS', 'EXPORT_DATA', 'IMPORT_DATA',
+            'MANAGE_SETTINGS', 'VIEW_SETTINGS',
+            'ASSIGN_PERMISSIONS', 'VIEW_AUDIT_LOG',
+            'MANAGE_SEQUENCES', 'UPDATE_SEQUENCES',
+            'PROCESS_ORDERS', 'COMPLETE_ORDERS', 'CANCEL_ORDERS',
+            'VIEW_DASHBOARD', 'MANAGE_INVENTORY', 'VIEW_INVENTORY',
+            'SEND_NOTIFICATIONS', 'MANAGE_NOTIFICATIONS',
+            'BACKUP_DATA', 'RESTORE_DATA',
+            'MANAGE_ANTIVAHO', 'VIEW_ANTIVAHO'
+        ];
+
+        const defaultPermissions = [];
+
+        switch (role) {
+            case 'ADMIN':
+            case 'Administrador':
+                // Administrador tiene todos los permisos
+                allPermissions.forEach(permission => {
+                    defaultPermissions.push({
+                        permissionId: permission,
+                        enabled: true
+                    });
+                });
+                break;
+
+            case 'SUPERVISOR':
+            case 'Supervisor':
+                // Supervisor tiene la mayoría de permisos excepto gestión crítica
+                const supervisorPermissions = allPermissions.filter(p => 
+                    !['DELETE_USERS', 'BACKUP_DATA', 'RESTORE_DATA', 'ASSIGN_PERMISSIONS'].includes(p)
+                );
+                supervisorPermissions.forEach(permission => {
+                    defaultPermissions.push({
+                        permissionId: permission,
+                        enabled: true
+                    });
+                });
+                break;
+
+            case 'OPERATOR':
+            case 'Operador':
+                // Operador tiene permisos operativos básicos
+                const operatorPermissions = [
+                    'CREATE_PEDIDO', 'READ_PEDIDO', 'UPDATE_PEDIDO',
+                    'PROCESS_ORDERS', 'COMPLETE_ORDERS',
+                    'VIEW_DASHBOARD', 'VIEW_INVENTORY',
+                    'MANAGE_ANTIVAHO', 'VIEW_ANTIVAHO',
+                    'MANAGE_SEQUENCES', 'UPDATE_SEQUENCES'
+                ];
+                operatorPermissions.forEach(permission => {
+                    defaultPermissions.push({
+                        permissionId: permission,
+                        enabled: true
+                    });
+                });
+                break;
+
+            case 'VIEWER':
+            case 'Visualizador':
+                // Visualizador solo puede ver
+                const viewerPermissions = [
+                    'READ_PEDIDO', 'VIEW_DASHBOARD', 'VIEW_INVENTORY',
+                    'VIEW_REPORTS', 'VIEW_ANTIVAHO'
+                ];
+                viewerPermissions.forEach(permission => {
+                    defaultPermissions.push({
+                        permissionId: permission,
+                        enabled: true
+                    });
+                });
+                break;
+
+            default:
+                // Por defecto dar permisos mínimos de operador
+                const defaultOps = ['READ_PEDIDO', 'VIEW_DASHBOARD'];
+                defaultOps.forEach(permission => {
+                    defaultPermissions.push({
+                        permissionId: permission,
+                        enabled: true
+                    });
+                });
+                break;
+        }
+
+        console.log(`🔧 Permisos por defecto para rol ${role}:`, defaultPermissions.length, 'permisos');
+        return defaultPermissions;
+    }
 }
 
 module.exports = PostgreSQLClient;

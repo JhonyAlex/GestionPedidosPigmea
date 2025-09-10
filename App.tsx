@@ -58,7 +58,7 @@ const AppContent: React.FC = () => {
 
     // Valores derivados del usuario (o valores por defecto)
     const currentUserRole = user?.role || 'Operador';
-    const currentUserId = user ? `${user.username}-${user.id.slice(-6)}` : 'guest-user';
+    const currentUserId = user ? `${user.username}-${String(user.id).slice(-6)}` : 'guest-user';
 
     // Hooks personalizados - siempre llamar antes de returns condicionales
     const { 

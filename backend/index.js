@@ -1052,27 +1052,49 @@ app.post('/api/auth/users/:id/permissions/sync', async (req, res) => {
             enabled: perm.enabled
         }));
         
-        // Si es un usuario legacy sin permisos, darle permisos por defecto según su rol
-        if (userExists.isLegacy && formattedDbPermissions.length === 0) {
-            console.log(`🔧 Usuario legacy sin permisos, asignando permisos por defecto según rol: ${userExists.role}`);
+        // Si es un usuario sin permisos (tanto legacy como admin_users), darle permisos por defecto según su rol
+        if (formattedDbPermissions.length === 0) {
+            console.log(`🔧 Usuario sin permisos configurados, asignando permisos por defecto según rol: ${userExists.role}`);
             
-            // Obtener permisos predeterminados según el rol del usuario legacy
-            const defaultPermissions = dbClient.getDefaultPermissionsForRole(userExists.role || 'OPERATOR');
+            // Mapear rol de BD a rol del sistema de permisos
+            let permissionRole = userExists.role;
+            if (userExists.role === 'Administrador') permissionRole = 'ADMIN';
+            else if (userExists.role === 'Supervisor') permissionRole = 'SUPERVISOR';
+            else if (userExists.role === 'Operador') permissionRole = 'OPERATOR';
+            else if (userExists.role === 'Visualizador') permissionRole = 'VIEWER';
+            
+            console.log(`🔧 Rol mapeado: ${userExists.role} → ${permissionRole}`);
+            
+            // Obtener permisos predeterminados según el rol
+            const defaultPermissions = dbClient.getDefaultPermissionsForRole(permissionRole);
             
             // Convertir formato para respuesta
-            const legacyDefaultPermissions = defaultPermissions.map(perm => ({
+            const defaultPermissionsFormatted = defaultPermissions.map(perm => ({
                 id: perm.permissionId,
                 enabled: perm.enabled
             }));
             
-            console.log(`📋 Permisos por defecto asignados:`, legacyDefaultPermissions.length, 'permisos');
+            console.log(`📋 Permisos por defecto asignados:`, defaultPermissionsFormatted.length, 'permisos');
+            
+            // Intentar guardar permisos en BD para la próxima vez (solo si es UUID válido)
+            const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+            if (isValidUUID) {
+                try {
+                    await dbClient.saveUserPermissions(id, id, defaultPermissions);
+                    console.log(`✅ Permisos guardados en BD para usuario UUID: ${id}`);
+                } catch (saveError) {
+                    console.log(`⚠️ No se pudieron guardar permisos en BD:`, saveError.message);
+                }
+            } else {
+                console.log(`⚠️ No se guardan permisos en BD para usuario con ID no-UUID: ${id}`);
+            }
             
             // Responder con permisos por defecto
             return res.json({
                 success: true,
-                permissions: legacyDefaultPermissions,
+                permissions: defaultPermissionsFormatted,
                 synced: false,
-                message: 'Se han asignado permisos por defecto para usuario legacy'
+                message: `Se han asignado permisos por defecto para usuario con rol ${permissionRole}`
             });
         }
         
