@@ -25,6 +25,34 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/heroicons/2.1.1/24/outline/heroicons.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  
+  <!-- Suprimir errores de extensiones del navegador -->
+  <script>
+    // Capturar y suprimir errores de extensiones del navegador
+    window.addEventListener('error', function(event) {
+      // Suprimir errores específicos de extensiones del navegador
+      if (event.message && (
+        event.message.includes('A listener indicated an asynchronous response') ||
+        event.message.includes('message channel closed') ||
+        event.message.includes('Extension context invalidated')
+      )) {
+        event.preventDefault();
+        return false;
+      }
+    });
+
+    // Capturar promesas rechazadas de extensiones
+    window.addEventListener('unhandledrejection', function(event) {
+      if (event.reason && event.reason.message && (
+        event.reason.message.includes('A listener indicated an asynchronous response') ||
+        event.reason.message.includes('message channel closed') ||
+        event.reason.message.includes('Extension context invalidated')
+      )) {
+        event.preventDefault();
+        return false;
+      }
+    });
+  </script>
   <style>
     @keyframes glow {
       0%, 100% {

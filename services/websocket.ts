@@ -51,29 +51,72 @@ class WebSocketService {
   private pedidoDeletedListeners: ((pedidoId: string) => void)[] = [];
 
   constructor() {
+    // Suprimir errores específicos de extensiones del navegador
+    this.setupErrorHandling();
     this.connect();
   }
 
+  private setupErrorHandling() {
+    // Capturar errores globales relacionados con WebSocket/extensiones
+    if (typeof window !== 'undefined') {
+      window.addEventListener('error', (event) => {
+        if (event.message && (
+          event.message.includes('A listener indicated an asynchronous response') ||
+          event.message.includes('message channel closed') ||
+          event.message.includes('Extension context invalidated')
+        )) {
+          console.debug('🔇 Error de extensión suprimido:', event.message);
+          event.preventDefault();
+          return false;
+        }
+      });
+
+      window.addEventListener('unhandledrejection', (event) => {
+        if (event.reason && event.reason.message && (
+          event.reason.message.includes('A listener indicated an asynchronous response') ||
+          event.reason.message.includes('message channel closed') ||
+          event.reason.message.includes('Extension context invalidated')
+        )) {
+          console.debug('🔇 Promesa rechazada de extensión suprimida:', event.reason.message);
+          event.preventDefault();
+          return false;
+        }
+      });
+    }
+  }
+
   private connect() {
-    // Detectar la URL del servidor
-    const isDevelopment = typeof window !== 'undefined' && 
-                         (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-    const serverUrl = isDevelopment 
-      ? 'http://localhost:8080' 
-      : window.location.origin;
+    try {
+      // Detectar la URL del servidor
+      const isDevelopment = typeof window !== 'undefined' && 
+                           (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+      const serverUrl = isDevelopment 
+        ? 'http://localhost:8080' 
+        : window.location.origin;
 
-    this.socket = io(serverUrl, {
-      autoConnect: true,
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      reconnectionAttempts: this.maxReconnectAttempts,
-      timeout: 20000,
-      forceNew: true
-    });
+      this.socket = io(serverUrl, {
+        autoConnect: true,
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        reconnectionAttempts: this.maxReconnectAttempts,
+        timeout: 20000,
+        forceNew: true,
+        transports: ['websocket', 'polling'], // Fallback a polling si WebSocket falla
+        upgrade: true
+      });
 
-    this.setupEventListeners();
-    this.setupReconnectionLogic();
+      this.setupEventListeners();
+      this.setupReconnectionLogic();
+    } catch (error) {
+      console.error('❌ Error inicializando WebSocket:', error);
+      this.addNotification({
+        type: 'error',
+        title: 'Error de inicialización',
+        message: 'No se pudo inicializar la conexión en tiempo real',
+        autoClose: false
+      });
+    }
   }
 
   private setupReconnectionLogic() {
