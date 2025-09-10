@@ -2093,6 +2093,69 @@ class PostgreSQLClient {
         }
     }
 
+    // Verificar si un usuario tiene un permiso específico
+    async hasPermission(userId, permissionId) {
+        try {
+            console.log(`🔍 Verificando permiso '${permissionId}' para usuario ID: ${userId}`);
+            
+            // Primero intentar obtener usuario para verificar rol
+            const user = await this.getAdminUserById(userId);
+            
+            if (!user) {
+                // Si no se encuentra en admin_users, buscar en tabla legacy
+                const legacyUser = await this.findLegacyUserById(userId);
+                if (legacyUser) {
+                    console.log(`👤 Usuario legacy encontrado: ${legacyUser.username}, rol: ${legacyUser.role}`);
+                    
+                    // Para usuarios legacy, usar permisos por defecto según rol
+                    const defaultPermissions = this.getDefaultPermissionsForRole(legacyUser.role);
+                    const hasPermission = defaultPermissions.some(perm => 
+                        perm.permissionId === permissionId && perm.enabled
+                    );
+                    
+                    console.log(`✅ Permiso '${permissionId}' ${hasPermission ? 'PERMITIDO' : 'DENEGADO'} para usuario legacy`);
+                    return hasPermission;
+                }
+                
+                console.log(`❌ Usuario ${userId} no encontrado`);
+                return false;
+            }
+            
+            console.log(`👤 Usuario encontrado: ${user.username}, rol: ${user.role}`);
+            
+            // Verificar si es UUID válido para buscar en user_permissions
+            const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId);
+            
+            if (isValidUUID && this.isInitialized) {
+                // Buscar permisos específicos en user_permissions
+                const result = await this.client.query(
+                    'SELECT enabled FROM user_permissions WHERE user_id = $1 AND permission_id = $2',
+                    [userId, permissionId]
+                );
+                
+                if (result.rows.length > 0) {
+                    const hasPermission = result.rows[0].enabled;
+                    console.log(`✅ Permiso específico encontrado en BD: ${hasPermission ? 'PERMITIDO' : 'DENEGADO'}`);
+                    return hasPermission;
+                }
+            }
+            
+            // Si no hay permisos específicos, usar permisos por defecto según rol
+            console.log(`🔧 Usando permisos por defecto para rol: ${user.role}`);
+            const defaultPermissions = this.getDefaultPermissionsForRole(user.role);
+            const hasPermission = defaultPermissions.some(perm => 
+                perm.permissionId === permissionId && perm.enabled
+            );
+            
+            console.log(`✅ Permiso '${permissionId}' ${hasPermission ? 'PERMITIDO' : 'DENEGADO'} por defecto`);
+            return hasPermission;
+            
+        } catch (error) {
+            console.error('Error verificando permiso:', error);
+            return false; // En caso de error, denegar acceso
+        }
+    }
+
     // Obtener permisos por defecto según el rol
     getDefaultPermissionsForRole(role) {
         // Permisos base disponibles en el sistema
