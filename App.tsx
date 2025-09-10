@@ -32,7 +32,7 @@ import { auditService } from './services/audit';
 
 
 const AppContent: React.FC = () => {
-    const { user, isAuthenticated, loading } = useAuth();
+    const { user, loading } = useAuth();
     
     // Estados locales - siempre llamar antes de returns condicionales
     const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
@@ -442,8 +442,8 @@ const AppContent: React.FC = () => {
         );
     }
 
-    // Mostrar modal de login si no está autenticado
-    if (!isAuthenticated || !user) {
+    // Mostrar modal de login si no hay usuario autenticado
+    if (!user) {
         return <LoginModal />;
     }
 
