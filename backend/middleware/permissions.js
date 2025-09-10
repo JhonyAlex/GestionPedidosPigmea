@@ -45,21 +45,25 @@ const requirePermission = (permissionId) => {
 
             // Verificar el permiso del usuario
             const dbClient = getDbClient();
-            const hasPermission = await dbClient.hasPermission(req.user.id, permissionId);
+            const hasPermission = await dbClient.hasPermission(req.user.id, permissionId, req.user);
             
             if (!hasPermission) {
                 // Registrar intento de acceso no autorizado
-                await dbClient.logAuditEvent({
-                    userId: req.user.id,
-                    action: 'PERMISSION_DENIED',
-                    module: 'SECURITY',
-                    details: `Acceso denegado a recurso protegido: ${permissionId}`,
-                    metadata: { 
-                        path: req.path,
-                        method: req.method,
-                        requiredPermission: permissionId
-                    }
-                });
+                try {
+                    await dbClient.logAuditEvent({
+                        userId: req.user.id,
+                        action: 'PERMISSION_DENIED',
+                        module: 'SECURITY',
+                        details: `Acceso denegado a recurso protegido: ${permissionId}`,
+                        metadata: { 
+                            path: req.path,
+                            method: req.method,
+                            requiredPermission: permissionId
+                        }
+                    });
+                } catch (auditError) {
+                    console.warn('Error registrando evento de auditoría:', auditError);
+                }
                 
                 return res.status(403).json({ 
                     error: 'Acceso denegado',
@@ -99,7 +103,7 @@ const requireAnyPermission = (permissionIds) => {
             // Verificar si el usuario tiene al menos uno de los permisos
             const dbClient = getDbClient();
             for (const permId of permissionIds) {
-                const hasPermission = await dbClient.hasPermission(req.user.id, permId);
+                const hasPermission = await dbClient.hasPermission(req.user.id, permId, req.user);
                 if (hasPermission) {
                     // Si tiene al menos un permiso, continuar
                     return next();
@@ -107,17 +111,21 @@ const requireAnyPermission = (permissionIds) => {
             }
             
             // Si no tiene ninguno de los permisos, denegar acceso
-            await dbClient.logAuditEvent({
-                userId: req.user.id,
-                action: 'PERMISSION_DENIED',
-                module: 'SECURITY',
-                details: `Acceso denegado a recurso protegido`,
-                metadata: { 
-                    path: req.path,
-                    method: req.method,
-                    requiredPermissions: permissionIds
-                }
-            });
+            try {
+                await dbClient.logAuditEvent({
+                    userId: req.user.id,
+                    action: 'PERMISSION_DENIED',
+                    module: 'SECURITY',
+                    details: `Acceso denegado a recurso protegido`,
+                    metadata: { 
+                        path: req.path,
+                        method: req.method,
+                        requiredPermissions: permissionIds
+                    }
+                });
+            } catch (auditError) {
+                console.warn('Error registrando evento de auditoría:', auditError);
+            }
             
             return res.status(403).json({ 
                 error: 'Acceso denegado',

@@ -33,6 +33,7 @@ const authenticateUser = async (req, res, next) => {
         // Simulación temporal: extraer usuario desde headers personalizados
         const userId = req.headers['x-user-id'];
         const userRole = req.headers['x-user-role'];
+        const userPermissions = req.headers['x-user-permissions'];
         
         if (userId) {
             // Verificar que el usuario existe en la base de datos
@@ -59,6 +60,15 @@ const authenticateUser = async (req, res, next) => {
                     id: userId,
                     role: userRole || 'OPERATOR'
                 };
+                
+                // En modo desarrollo, incluir permisos del frontend si están disponibles
+                if (userPermissions) {
+                    try {
+                        req.user.permissions = JSON.parse(userPermissions);
+                    } catch (error) {
+                        console.warn('Error parsing user permissions from header:', error);
+                    }
+                }
             }
         }
         

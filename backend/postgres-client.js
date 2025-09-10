@@ -2094,22 +2094,31 @@ class PostgreSQLClient {
     }
 
     // Verificar si un usuario tiene un permiso específico
-    async hasPermission(userId, permissionId) {
+    async hasPermission(userId, permissionId, userFromRequest = null) {
         try {
             console.log(`🔍 Verificando permiso '${permissionId}' para usuario ID: ${userId}`);
             
             // Si la base de datos no está inicializada, usar lógica de fallback
             if (!this.isInitialized || !this.client) {
-                console.log(`🔧 BD no disponible, usando permisos por defecto para desarrollo`);
+                console.log(`🔧 BD no disponible, usando permisos del frontend en modo desarrollo`);
                 
-                // En modo desarrollo, dar permisos completos a todos los usuarios
-                // Esto es seguro porque solo funciona cuando no hay BD conectada
-                const developmentPermissions = this.getDefaultPermissionsForRole('ADMIN');
-                const hasPermission = developmentPermissions.some(perm => 
+                // Si tenemos permisos del usuario desde el frontend (modo desarrollo), usarlos
+                if (userFromRequest && userFromRequest.permissions && Array.isArray(userFromRequest.permissions)) {
+                    const userPermission = userFromRequest.permissions.find(perm => perm.id === permissionId);
+                    const hasPermission = userPermission ? userPermission.enabled : false;
+                    
+                    console.log(`✅ Permiso '${permissionId}' ${hasPermission ? 'PERMITIDO' : 'DENEGADO'} según permisos del frontend`);
+                    return hasPermission;
+                }
+                
+                // Fallback: usar permisos por defecto del rol
+                const userRole = userFromRequest?.role || 'OPERATOR';
+                const rolePermissions = this.getDefaultPermissionsForRole(userRole);
+                const hasPermission = rolePermissions.some(perm => 
                     perm.permissionId === permissionId && perm.enabled
                 );
                 
-                console.log(`✅ Permiso '${permissionId}' ${hasPermission ? 'PERMITIDO' : 'DENEGADO'} en modo desarrollo`);
+                console.log(`✅ Permiso '${permissionId}' ${hasPermission ? 'PERMITIDO' : 'DENEGADO'} según rol ${userRole} en modo desarrollo`);
                 return hasPermission;
             }
             

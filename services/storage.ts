@@ -72,10 +72,17 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise
                 if (savedUser) {
                     try {
                         const user = JSON.parse(savedUser);
-                        return {
+                        const headers: any = {
                             'x-user-id': String(user.id),
                             'x-user-role': user.role || 'OPERATOR'
                         };
+                        
+                        // En modo desarrollo, enviar también los permisos del usuario
+                        if (user.permissions && Array.isArray(user.permissions)) {
+                            headers['x-user-permissions'] = JSON.stringify(user.permissions);
+                        }
+                        
+                        return headers;
                     } catch (error) {
                         console.warn('Error parsing user from localStorage:', error);
                     }
