@@ -65,9 +65,29 @@ async function apiRetryFetch<T>(endpoint: string, options: RequestInit = {}, max
 
 async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     try {
+        // Obtener información del usuario autenticado desde localStorage
+        const getAuthHeaders = () => {
+            if (typeof window !== 'undefined') {
+                const savedUser = localStorage.getItem('pigmea_user');
+                if (savedUser) {
+                    try {
+                        const user = JSON.parse(savedUser);
+                        return {
+                            'x-user-id': String(user.id),
+                            'x-user-role': user.role || 'OPERATOR'
+                        };
+                    } catch (error) {
+                        console.warn('Error parsing user from localStorage:', error);
+                    }
+                }
+            }
+            return {};
+        };
+
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             headers: {
                 'Content-Type': 'application/json',
+                ...getAuthHeaders(), // Añadir headers de autenticación automáticamente
                 ...options.headers,
             },
             ...options,
