@@ -23,17 +23,43 @@ CREATE TABLE IF NOT EXISTS admin_users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 3. Crear tabla user_permissions DESPUÉS (hace referencia a admin_users)
+-- 3. Crear tabla user_permissions DESPUÉS (inicialmente sin claves foráneas)
 CREATE TABLE IF NOT EXISTS user_permissions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES admin_users(id) ON DELETE CASCADE,
+    user_id UUID,
     permission_id VARCHAR(100) NOT NULL,
     enabled BOOLEAN DEFAULT true,
-    granted_by UUID REFERENCES admin_users(id),
+    granted_by UUID,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, permission_id)
 );
+
+-- 3.1 Intentar agregar claves foráneas de forma segura
+DO $$ 
+BEGIN
+    -- Verificar que la constraint no exista antes de crearla
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'user_permissions_user_id_fkey'
+    ) THEN
+        ALTER TABLE user_permissions 
+        ADD CONSTRAINT user_permissions_user_id_fkey 
+        FOREIGN KEY (user_id) REFERENCES admin_users(id) ON DELETE CASCADE;
+    END IF;
+    
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'user_permissions_granted_by_fkey'
+    ) THEN
+        ALTER TABLE user_permissions 
+        ADD CONSTRAINT user_permissions_granted_by_fkey 
+        FOREIGN KEY (granted_by) REFERENCES admin_users(id);
+    END IF;
+EXCEPTION WHEN OTHERS THEN
+    -- Si falla, continuar sin las claves foráneas
+    RAISE NOTICE 'No se pudieron crear las claves foráneas de user_permissions: %', SQLERRM;
+END $$;
 
 -- 4. Índices para mejorar el rendimiento de consultas frecuentes
 CREATE INDEX IF NOT EXISTS idx_user_permissions_user_id ON user_permissions(user_id);

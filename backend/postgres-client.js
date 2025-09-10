@@ -228,18 +228,54 @@ class PostgreSQLClient {
             console.log('✅ Columnas de admin_users verificadas');
 
             // SEGUNDO: Tabla de permisos de usuario (DESPUÉS de admin_users)
+            // Crear tabla sin claves foráneas primero para compatibilidad
             await client.query(`
                 CREATE TABLE IF NOT EXISTS user_permissions (
                     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                    user_id UUID REFERENCES admin_users(id) ON DELETE CASCADE,
+                    user_id UUID,
                     permission_id VARCHAR(100) NOT NULL,
                     enabled BOOLEAN DEFAULT true,
-                    granted_by UUID REFERENCES admin_users(id),
+                    granted_by UUID,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(user_id, permission_id)
                 );
-                
+            `);
+
+            // Intentar agregar claves foráneas de forma segura
+            try {
+                await client.query(`
+                    DO $$ 
+                    BEGIN
+                        -- Verificar que la constraint no exista antes de crearla
+                        IF NOT EXISTS (
+                            SELECT 1 FROM pg_constraint 
+                            WHERE conname = 'user_permissions_user_id_fkey'
+                        ) THEN
+                            ALTER TABLE user_permissions 
+                            ADD CONSTRAINT user_permissions_user_id_fkey 
+                            FOREIGN KEY (user_id) REFERENCES admin_users(id) ON DELETE CASCADE;
+                        END IF;
+                        
+                        IF NOT EXISTS (
+                            SELECT 1 FROM pg_constraint 
+                            WHERE conname = 'user_permissions_granted_by_fkey'
+                        ) THEN
+                            ALTER TABLE user_permissions 
+                            ADD CONSTRAINT user_permissions_granted_by_fkey 
+                            FOREIGN KEY (granted_by) REFERENCES admin_users(id);
+                        END IF;
+                    EXCEPTION WHEN OTHERS THEN
+                        -- Si falla, continuar sin las claves foráneas
+                        RAISE NOTICE 'No se pudieron crear las claves foráneas de user_permissions: %', SQLERRM;
+                    END $$;
+                `);
+            } catch (fkError) {
+                console.log('⚠️ Claves foráneas de user_permissions no creadas:', fkError.message);
+            }
+
+            // Índices y triggers
+            await client.query(`
                 -- Índices para mejorar el rendimiento
                 CREATE INDEX IF NOT EXISTS idx_user_permissions_user_id ON user_permissions(user_id);
                 CREATE INDEX IF NOT EXISTS idx_user_permissions_permission_id ON user_permissions(permission_id);
