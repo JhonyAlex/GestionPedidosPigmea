@@ -945,30 +945,100 @@ class PostgreSQLClient {
             try {
                 console.log(`🔍 Buscando usuario con ID: ${id} (tipo: ${typeof id})`);
                 
-                const result = await client.query(
-                    'SELECT * FROM admin_users WHERE id = $1',
-                    [id]
-                );
+                // Determinar si el ID parece ser un UUID o un entero
+                const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+                const isInteger = /^\d+$/.test(id);
                 
-                console.log(`📋 Resultado consulta: ${result.rows.length} filas encontradas`);
+                console.log(`🔍 ID detectado como: ${isUUID ? 'UUID' : isInteger ? 'Integer' : 'String'}`);
                 
-                if (result.rows.length > 0) {
-                    console.log(`✅ Usuario encontrado: ${result.rows[0].username}`);
+                let result;
+                
+                if (isUUID) {
+                    // Buscar en admin_users por UUID
+                    result = await client.query(
+                        'SELECT * FROM admin_users WHERE id = $1',
+                        [id]
+                    );
+                } else if (isInteger) {
+                    // Primero intentar en admin_users por UUID casting
+                    try {
+                        result = await client.query(
+                            'SELECT * FROM admin_users WHERE id::text = $1',
+                            [id]
+                        );
+                    } catch (uuidError) {
+                        console.log(`⚠️ No se pudo buscar en admin_users como UUID: ${uuidError.message}`);
+                        result = { rows: [] };
+                    }
                 } else {
-                    console.log(`❌ Usuario con ID ${id} no encontrado`);
-                    
-                    // Mostrar algunos usuarios existentes para debug
-                    const allUsers = await client.query('SELECT id, username FROM admin_users LIMIT 5');
-                    console.log(`📋 Usuarios existentes (primeros 5):`, allUsers.rows);
+                    // Para IDs de tipo string, intentar ambas tablas
+                    result = { rows: [] };
                 }
                 
-                return result.rows[0] || null;
+                console.log(`📋 Resultado consulta admin_users: ${result.rows.length} filas encontradas`);
+                
+                if (result.rows.length > 0) {
+                    console.log(`✅ Usuario encontrado en admin_users: ${result.rows[0].username}`);
+                    return result.rows[0];
+                } else {
+                    console.log(`❌ Usuario con ID ${id} no encontrado en admin_users`);
+                    return null;
+                }
+                
             } finally {
                 client.release();
             }
         } catch (error) {
-            console.error(`❌ Error en getAdminUserById para ID ${id}:`, error);
-            throw error;
+            console.error(`❌ Error en getAdminUserById para ID ${id}:`, error.message);
+            return null; // No lanzar error, devolver null para permitir búsqueda en tabla legacy
+        }
+    }
+
+    async findLegacyUserById(id) {
+        // Método específico para buscar en la tabla legacy users
+        if (!this.pool || !this.isInitialized) {
+            console.log('⚠️ Pool de conexiones no disponible para findLegacyUserById');
+            return null;
+        }
+        
+        try {
+            const client = await this.pool.connect();
+            try {
+                console.log(`🔍 Buscando en tabla legacy users con ID: ${id}`);
+                
+                // Determinar el tipo de búsqueda según el formato del ID
+                const isInteger = /^\d+$/.test(id);
+                let result;
+                
+                if (isInteger) {
+                    // Buscar por ID entero
+                    result = await client.query('SELECT * FROM users WHERE id = $1', [parseInt(id)]);
+                } else {
+                    // Buscar por ID string
+                    result = await client.query('SELECT * FROM users WHERE id = $1', [id]);
+                }
+                
+                console.log(`📋 Resultado consulta legacy: ${result.rows.length} filas encontradas`);
+                
+                if (result.rows.length > 0) {
+                    console.log(`✅ Usuario encontrado en tabla legacy: ${result.rows[0].username}`);
+                    return { 
+                        ...result.rows[0], 
+                        isLegacy: true,
+                        // Mapear campos para compatibilidad
+                        displayName: result.rows[0].display_name || result.rows[0].username
+                    };
+                } else {
+                    console.log(`❌ Usuario con ID ${id} no encontrado en tabla legacy`);
+                    return null;
+                }
+                
+            } finally {
+                client.release();
+            }
+        } catch (error) {
+            console.error(`❌ Error en findLegacyUserById para ID ${id}:`, error.message);
+            return null;
         }
     }
 
@@ -1729,14 +1799,33 @@ class PostgreSQLClient {
         if (!this.isInitialized) await this.init();
         
         try {
-            const result = await this.pool.query(
-                `SELECT permission_id, enabled 
-                 FROM user_permissions 
-                 WHERE user_id = $1`,
-                [userId]
-            );
+            console.log(`🔍 Obteniendo permisos para usuario ID: ${userId}`);
             
+            // Determinar si el ID parece ser un UUID
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId);
+            const isInteger = /^\d+$/.test(userId);
+            
+            console.log(`🔍 ID detectado como: ${isUUID ? 'UUID' : isInteger ? 'Integer' : 'String'}`);
+            
+            let result;
+            
+            if (isUUID) {
+                // Buscar permisos usando UUID directo
+                result = await this.pool.query(
+                    `SELECT permission_id, enabled 
+                     FROM user_permissions 
+                     WHERE user_id = $1`,
+                    [userId]
+                );
+            } else {
+                // Para IDs no-UUID, es probable que no tengan permisos en la nueva tabla
+                console.log(`⚠️ ID no es UUID válido, usuario probablemente no tiene permisos configurados`);
+                result = { rows: [] };
+            }
+            
+            console.log(`📋 Permisos encontrados: ${result.rows.length}`);
             return result.rows;
+            
         } catch (error) {
             console.error('Error al obtener permisos del usuario:', error);
             throw error;

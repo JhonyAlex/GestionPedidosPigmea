@@ -1023,22 +1023,7 @@ app.post('/api/auth/users/:id/permissions/sync', async (req, res) => {
         // Si no se encuentra con el ID directo, intentar buscar en la tabla legacy users
         if (!userExists) {
             console.log(`🔍 Usuario no encontrado en admin_users, buscando en tabla legacy...`);
-            try {
-                const client = await dbClient.pool.connect();
-                try {
-                    const result = await client.query('SELECT * FROM users WHERE id = $1', [id]);
-                    if (result.rows.length > 0) {
-                        console.log(`✅ Usuario encontrado en tabla legacy: ${result.rows[0].username}`);
-                        // Para efectos de este endpoint, trataremos como si el usuario existe
-                        // pero no tiene permisos en la nueva tabla
-                        userExists = { id: id, username: result.rows[0].username, isLegacy: true };
-                    }
-                } finally {
-                    client.release();
-                }
-            } catch (legacyError) {
-                console.log(`⚠️ Error consultando tabla legacy:`, legacyError.message);
-            }
+            userExists = await dbClient.findLegacyUserById(id);
         }
         
         if (!userExists) {
@@ -1066,6 +1051,30 @@ app.post('/api/auth/users/:id/permissions/sync', async (req, res) => {
             id: perm.permission_id,
             enabled: perm.enabled
         }));
+        
+        // Si es un usuario legacy sin permisos, darle permisos por defecto según su rol
+        if (userExists.isLegacy && formattedDbPermissions.length === 0) {
+            console.log(`🔧 Usuario legacy sin permisos, asignando permisos por defecto según rol: ${userExists.role}`);
+            
+            // Obtener permisos predeterminados según el rol del usuario legacy
+            const defaultPermissions = dbClient.getDefaultPermissionsForRole(userExists.role || 'OPERATOR');
+            
+            // Convertir formato para respuesta
+            const legacyDefaultPermissions = defaultPermissions.map(perm => ({
+                id: perm.permissionId,
+                enabled: perm.enabled
+            }));
+            
+            console.log(`📋 Permisos por defecto asignados:`, legacyDefaultPermissions.length, 'permisos');
+            
+            // Responder con permisos por defecto
+            return res.json({
+                success: true,
+                permissions: legacyDefaultPermissions,
+                synced: false,
+                message: 'Se han asignado permisos por defecto para usuario legacy'
+            });
+        }
         
         // Verificar si hay diferencias
         const localSorted = JSON.stringify((localPermissions || []).sort((a, b) => a.id?.localeCompare(b.id || '') || 0));
