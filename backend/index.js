@@ -1004,17 +1004,62 @@ app.post('/api/auth/users/:id/permissions/sync', async (req, res) => {
         const { id } = req.params;
         const { localPermissions } = req.body;
         
+        console.log(`🔄 Sincronizando permisos para usuario ID: ${id}`);
+        console.log(`📋 Permisos locales recibidos:`, localPermissions?.length || 0, 'permisos');
+        
         if (!dbClient.isInitialized) {
+            console.log('⚠️ Base de datos no inicializada - modo desarrollo');
             // Modo desarrollo sin base de datos
             return res.json({
                 success: true,
-                permissions: localPermissions,
+                permissions: localPermissions || [],
                 synced: true
             });
         }
         
+        // Verificar que el usuario existe antes de obtener permisos
+        let userExists = await dbClient.getAdminUserById(id);
+        
+        // Si no se encuentra con el ID directo, intentar buscar en la tabla legacy users
+        if (!userExists) {
+            console.log(`🔍 Usuario no encontrado en admin_users, buscando en tabla legacy...`);
+            try {
+                const client = await dbClient.pool.connect();
+                try {
+                    const result = await client.query('SELECT * FROM users WHERE id = $1', [id]);
+                    if (result.rows.length > 0) {
+                        console.log(`✅ Usuario encontrado en tabla legacy: ${result.rows[0].username}`);
+                        // Para efectos de este endpoint, trataremos como si el usuario existe
+                        // pero no tiene permisos en la nueva tabla
+                        userExists = { id: id, username: result.rows[0].username, isLegacy: true };
+                    }
+                } finally {
+                    client.release();
+                }
+            } catch (legacyError) {
+                console.log(`⚠️ Error consultando tabla legacy:`, legacyError.message);
+            }
+        }
+        
+        if (!userExists) {
+            console.log(`❌ Usuario con ID ${id} no encontrado en ninguna tabla`);
+            return res.status(404).json({
+                error: 'Usuario no encontrado'
+            });
+        }
+        
+        console.log(`✅ Usuario encontrado: ${userExists.username}${userExists.isLegacy ? ' (legacy)' : ''}`);
+        
         // Obtener permisos del usuario desde la base de datos
-        const dbPermissions = await dbClient.getUserPermissions(id);
+        // Para usuarios legacy, puede que no tengan permisos en la nueva tabla
+        let dbPermissions = [];
+        try {
+            dbPermissions = await dbClient.getUserPermissions(id);
+        } catch (permError) {
+            console.log(`⚠️ Error obteniendo permisos (puede ser normal para usuarios legacy):`, permError.message);
+            dbPermissions = []; // Usuario sin permisos configurados
+        }
+        console.log(`📋 Permisos en BD:`, dbPermissions?.length || 0, 'permisos');
         
         // Formatear permisos de la base de datos
         const formattedDbPermissions = dbPermissions.map(perm => ({
@@ -1023,8 +1068,11 @@ app.post('/api/auth/users/:id/permissions/sync', async (req, res) => {
         }));
         
         // Verificar si hay diferencias
-        const needsSync = JSON.stringify(formattedDbPermissions.sort((a, b) => a.id.localeCompare(b.id))) !== 
-                         JSON.stringify(localPermissions.sort((a, b) => a.id.localeCompare(b.id)));
+        const localSorted = JSON.stringify((localPermissions || []).sort((a, b) => a.id?.localeCompare(b.id || '') || 0));
+        const dbSorted = JSON.stringify(formattedDbPermissions.sort((a, b) => a.id?.localeCompare(b.id || '') || 0));
+        const needsSync = localSorted !== dbSorted;
+        
+        console.log(`🔍 ¿Necesita sincronización?`, needsSync);
         
         if (needsSync) {
             // Si hay diferencias, la base de datos tiene prioridad
@@ -1044,7 +1092,8 @@ app.post('/api/auth/users/:id/permissions/sync', async (req, res) => {
         }
         
     } catch (error) {
-        console.error('Error sincronizando permisos:', error);
+        console.error('❌ Error sincronizando permisos:', error);
+        console.error('📋 Stack trace:', error.stack);
         res.status(500).json({
             error: error.message || 'Error interno del servidor'
         });

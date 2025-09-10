@@ -940,15 +940,35 @@ class PostgreSQLClient {
             return null;
         }
         
-        const client = await this.pool.connect();
         try {
-            const result = await client.query(
-                'SELECT * FROM admin_users WHERE id = $1',
-                [id]
-            );
-            return result.rows[0] || null;
-        } finally {
-            client.release();
+            const client = await this.pool.connect();
+            try {
+                console.log(`🔍 Buscando usuario con ID: ${id} (tipo: ${typeof id})`);
+                
+                const result = await client.query(
+                    'SELECT * FROM admin_users WHERE id = $1',
+                    [id]
+                );
+                
+                console.log(`📋 Resultado consulta: ${result.rows.length} filas encontradas`);
+                
+                if (result.rows.length > 0) {
+                    console.log(`✅ Usuario encontrado: ${result.rows[0].username}`);
+                } else {
+                    console.log(`❌ Usuario con ID ${id} no encontrado`);
+                    
+                    // Mostrar algunos usuarios existentes para debug
+                    const allUsers = await client.query('SELECT id, username FROM admin_users LIMIT 5');
+                    console.log(`📋 Usuarios existentes (primeros 5):`, allUsers.rows);
+                }
+                
+                return result.rows[0] || null;
+            } finally {
+                client.release();
+            }
+        } catch (error) {
+            console.error(`❌ Error en getAdminUserById para ID ${id}:`, error);
+            throw error;
         }
     }
 
