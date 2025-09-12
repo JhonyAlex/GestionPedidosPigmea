@@ -1,68 +1,52 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Cliente, EstadisticasCliente } from '../types';
 
-// Datos de ejemplo para desarrollo - en producción vendrían de la base de datos
-const clientesEjemplo: Cliente[] = [
-    {
-        id: '1',
-        nombre: 'Corporación Tech Solutions',
-        contacto: 'María García',
-        email: 'maria.garcia@techsolutions.com',
-        telefono: '+34 912 345 678',
-        ciudad: 'Madrid',
-        direccion: 'Calle Gran Vía, 123',
-        pais: 'España',
-        codigoPostal: '28013',
-        fechaRegistro: '2023-01-15T10:30:00Z',
-        ultimaActividad: '2024-12-15T14:22:00Z',
-        activo: true,
-        totalPedidos: 45,
-        pedidosActivos: 3,
-        volumenTotal: 2500,
-        montoTotal: 125000,
-        notas: 'Cliente premium con descuentos especiales.'
-    },
-    {
-        id: '2',
-        nombre: 'Industrias del Packaging SA',
-        contacto: 'Carlos Mendoza',
-        email: 'carlos@packaging.es',
-        telefono: '+34 934 567 890',
-        ciudad: 'Barcelona',
-        direccion: 'Passeig de Gràcia, 85',
-        pais: 'España',
-        codigoPostal: '08008',
-        fechaRegistro: '2023-03-22T09:15:00Z',
-        ultimaActividad: '2024-12-10T11:45:00Z',
-        activo: true,
-        totalPedidos: 28,
-        pedidosActivos: 1,
-        volumenTotal: 1800,
-        montoTotal: 89000
-    },
-    {
-        id: '3',
-        nombre: 'Distribuidora Valencia',
-        contacto: 'Ana Rodríguez',
-        email: 'ana.rodriguez@distvalencia.com',
-        telefono: '+34 963 123 456',
-        ciudad: 'Valencia',
-        direccion: 'Avenida del Puerto, 45',
-        pais: 'España',
-        codigoPostal: '46021',
-        fechaRegistro: '2023-07-10T16:00:00Z',
-        ultimaActividad: '2024-11-28T09:30:00Z',
-        activo: false,
-        totalPedidos: 12,
-        pedidosActivos: 0,
-        volumenTotal: 650,
-        montoTotal: 32000,
-        notas: 'Cliente inactivo desde noviembre 2024.'
-    }
-];
+const API_BASE_URL = 'http://localhost:8080/api';
 
 export const useClientesManager = () => {
-    const [clientes, setClientes] = useState<Cliente[]>(clientesEjemplo);
+    const [clientes, setClientes] = useState<Cliente[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Cargar clientes desde la API
+    const loadClientes = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            setError(null);
+            
+            const response = await fetch(`${API_BASE_URL}/clientes`);
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            const clientesData = await response.json();
+            setClientes(clientesData);
+        } catch (error) {
+            console.error('Error al cargar clientes:', error);
+            setError(error instanceof Error ? error.message : 'Error desconocido');
+            // En caso de error, usar datos mock para desarrollo
+            setClientes([
+                {
+                    id: '1',
+                    nombre: 'Cliente Demo',
+                    fechaRegistro: new Date().toISOString(),
+                    ultimaActividad: new Date().toISOString(),
+                    activo: true,
+                    totalPedidos: 0,
+                    pedidosActivos: 0,
+                    volumenTotal: 0,
+                    montoTotal: 0
+                }
+            ]);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    // Cargar clientes al inicializar
+    useEffect(() => {
+        loadClientes();
+    }, [loadClientes]);
 
     // Buscar cliente por nombre exacto
     const findClienteByName = useCallback((nombre: string): Cliente | undefined => {
@@ -71,7 +55,7 @@ export const useClientesManager = () => {
         );
     }, [clientes]);
 
-    // Crear cliente automáticamente si no existe
+    // Crear cliente automáticamente si no existe (solo para el frontend, el backend lo maneja automáticamente)
     const createClienteIfNotExists = useCallback((nombreCliente: string): Cliente => {
         const existingCliente = findClienteByName(nombreCliente);
         
@@ -79,9 +63,9 @@ export const useClientesManager = () => {
             return existingCliente;
         }
 
-        // Crear nuevo cliente con datos básicos
+        // Si no existe localmente, crear un cliente temporal hasta que se sincronice desde el backend
         const nuevoCliente: Cliente = {
-            id: `auto-${Date.now()}`, // ID temporal - en producción sería generado por el backend
+            id: `temp-${Date.now()}`, // ID temporal - será reemplazado por el real del backend
             nombre: nombreCliente.trim(),
             fechaRegistro: new Date().toISOString(),
             ultimaActividad: new Date().toISOString(),
@@ -92,15 +76,15 @@ export const useClientesManager = () => {
             montoTotal: 0
         };
 
-        // Agregar a la lista de clientes
+        // Agregar temporalmente a la lista local
         setClientes(prev => [...prev, nuevoCliente]);
 
-        console.log(`🆕 Cliente creado automáticamente: ${nombreCliente}`);
+        console.log(`🆕 Cliente temporal creado en frontend: ${nombreCliente} (se sincronizará desde backend)`);
         
         return nuevoCliente;
     }, [findClienteByName]);
 
-    // Actualizar estadísticas de cliente después de crear/modificar pedido
+    // Actualizar estadísticas de cliente (esto será manejado principalmente por el backend)
     const updateClienteStats = useCallback((nombreCliente: string, incrementos: {
         totalPedidos?: number;
         pedidosActivos?: number;
@@ -123,36 +107,96 @@ export const useClientesManager = () => {
     }, []);
 
     // Crear cliente manualmente (para el directorio)
-    const createCliente = useCallback((clienteData: Omit<Cliente, 'id' | 'fechaRegistro'>) => {
-        const nuevoCliente: Cliente = {
-            ...clienteData,
-            id: `manual-${Date.now()}`,
-            fechaRegistro: new Date().toISOString(),
-            ultimaActividad: new Date().toISOString()
-        };
+    const createCliente = useCallback(async (clienteData: Omit<Cliente, 'id' | 'fechaRegistro'>) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/clientes`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(clienteData)
+            });
 
-        setClientes(prev => [...prev, nuevoCliente]);
-        return nuevoCliente;
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Error al crear cliente');
+            }
+
+            const nuevoCliente = await response.json();
+            
+            // Actualizar la lista local (también llegará por WebSocket)
+            setClientes(prev => [...prev, nuevoCliente]);
+            
+            return nuevoCliente;
+        } catch (error) {
+            console.error('Error al crear cliente:', error);
+            throw error;
+        }
     }, []);
 
     // Actualizar cliente
-    const updateCliente = useCallback((id: string, updates: Partial<Cliente>) => {
-        setClientes(prev => prev.map(cliente => 
-            cliente.id === id 
-                ? { ...cliente, ...updates, ultimaActividad: new Date().toISOString() }
-                : cliente
-        ));
+    const updateCliente = useCallback(async (id: string, updates: Partial<Cliente>) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/clientes/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updates)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Error al actualizar cliente');
+            }
+
+            const clienteActualizado = await response.json();
+            
+            // Actualizar la lista local (también llegará por WebSocket)
+            setClientes(prev => prev.map(cliente => 
+                cliente.id === id ? clienteActualizado : cliente
+            ));
+        } catch (error) {
+            console.error('Error al actualizar cliente:', error);
+            throw error;
+        }
     }, []);
 
     // Eliminar cliente
-    const deleteCliente = useCallback((id: string) => {
-        setClientes(prev => prev.filter(cliente => cliente.id !== id));
+    const deleteCliente = useCallback(async (id: string) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/clientes/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Error al eliminar cliente');
+            }
+
+            // Actualizar la lista local (también llegará por WebSocket)
+            setClientes(prev => prev.filter(cliente => cliente.id !== id));
+        } catch (error) {
+            console.error('Error al eliminar cliente:', error);
+            throw error;
+        }
     }, []);
 
     // Obtener estadísticas detalladas de un cliente
-    const getClienteEstadisticas = useCallback((clienteId: string, pedidos: any[]): EstadisticasCliente => {
+    const getClienteEstadisticas = useCallback(async (clienteId: string, pedidos?: any[]): Promise<EstadisticasCliente> => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/clientes/${clienteId}/estadisticas`);
+            
+            if (response.ok) {
+                return await response.json();
+            }
+        } catch (error) {
+            console.warn('Error al obtener estadísticas del backend, calculando localmente:', error);
+        }
+
+        // Fallback: calcular estadísticas localmente si la API no está disponible
         const cliente = clientes.find(c => c.id === clienteId);
-        if (!cliente) {
+        if (!cliente || !pedidos) {
             return {
                 totalPedidos: 0,
                 pedidosActivos: 0,
@@ -167,7 +211,7 @@ export const useClientesManager = () => {
 
         const clientePedidos = pedidos.filter(p => p.cliente === cliente.nombre);
         
-        // Calcular estadísticas detalladas
+        // Calcular estadísticas detalladas localmente
         const totalPedidos = clientePedidos.length;
         const pedidosCompletados = clientePedidos.filter(p => p.etapaActual === 'COMPLETADO').length;
         const pedidosActivos = clientePedidos.filter(p => p.etapaActual !== 'COMPLETADO' && p.etapaActual !== 'ARCHIVADO').length;
@@ -208,14 +252,51 @@ export const useClientesManager = () => {
         };
     }, [clientes]);
 
+    // Función para manejar eventos WebSocket de clientes
+    const handleClienteCreated = useCallback((cliente: Cliente) => {
+        setClientes(prev => {
+            // Evitar duplicados y reemplazar clientes temporales
+            const filtered = prev.filter(c => 
+                c.nombre !== cliente.nombre && !c.id.startsWith('temp-')
+            );
+            return [...filtered, cliente];
+        });
+    }, []);
+
+    const handleClienteUpdated = useCallback((cliente: Cliente) => {
+        setClientes(prev => prev.map(c => 
+            c.id === cliente.id ? cliente : c
+        ));
+    }, []);
+
+    const handleClienteDeleted = useCallback((clienteId: string) => {
+        setClientes(prev => prev.filter(c => c.id !== clienteId));
+    }, []);
+
+    const handleClienteStatsUpdated = useCallback((data: { clienteNombre: string; pedidoId: string; accion: string }) => {
+        // Cuando se actualicen las estadísticas, recargar los datos del cliente
+        // Esto podría optimizarse para solo actualizar el cliente específico
+        console.log('Estadísticas de cliente actualizadas:', data);
+        // Por ahora, recargar todos los clientes para mantener la sincronización
+        loadClientes();
+    }, [loadClientes]);
+
     return {
         clientes,
+        isLoading,
+        error,
         findClienteByName,
         createClienteIfNotExists,
         updateClienteStats,
         createCliente,
         updateCliente,
         deleteCliente,
-        getClienteEstadisticas
+        getClienteEstadisticas,
+        loadClientes,
+        // Handlers para eventos WebSocket
+        handleClienteCreated,
+        handleClienteUpdated,
+        handleClienteDeleted,
+        handleClienteStatsUpdated
     };
 };

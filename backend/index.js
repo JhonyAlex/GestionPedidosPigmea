@@ -1268,7 +1268,54 @@ app.post('/api/pedidos', requirePermission('pedidos.create'), async (req, res) =
         if (!newPedido || !newPedido.id) {
             return res.status(400).json({ message: 'Datos del pedido inválidos.' });
         }
+
+        // 🆕 CREACIÓN AUTOMÁTICA DE CLIENTE
+        if (newPedido.cliente && newPedido.cliente.trim() !== '') {
+            try {
+                // Verificar si el cliente ya existe
+                const clienteExistQuery = 'SELECT id FROM clientes WHERE nombre = $1';
+                const clienteExistResult = await dbClient.pool.query(clienteExistQuery, [newPedido.cliente.trim()]);
+                
+                // Si no existe, crear automáticamente
+                if (clienteExistResult.rows.length === 0) {
+                    const createClienteQuery = `
+                        INSERT INTO clientes (nombre, fecha_registro, ultima_actividad, activo)
+                        VALUES ($1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, true)
+                        RETURNING id, nombre
+                    `;
+                    
+                    const nuevoClienteResult = await dbClient.pool.query(createClienteQuery, [newPedido.cliente.trim()]);
+                    const nuevoCliente = nuevoClienteResult.rows[0];
+                    
+                    console.log(`🆕 Cliente creado automáticamente: ${nuevoCliente.nombre} (ID: ${nuevoCliente.id})`);
+                    
+                    // 🔥 EVENTO WEBSOCKET: Cliente creado automáticamente
+                    if (io) {
+                        io.emit('cliente-created', {
+                            type: 'cliente-created',
+                            data: {
+                                id: nuevoCliente.id,
+                                nombre: nuevoCliente.nombre,
+                                fechaRegistro: new Date().toISOString(),
+                                ultimaActividad: new Date().toISOString(),
+                                activo: true,
+                                totalPedidos: 0,
+                                pedidosActivos: 0,
+                                volumenTotal: 0,
+                                montoTotal: 0
+                            },
+                            message: `Cliente creado automáticamente: ${nuevoCliente.nombre}`,
+                            autoCreated: true
+                        });
+                    }
+                }
+            } catch (clienteError) {
+                console.warn('Error al crear cliente automáticamente:', clienteError);
+                // Continuar con la creación del pedido aunque falle la creación del cliente
+            }
+        }
         
+        // Crear el pedido
         await dbClient.create(newPedido);
         
         // 🔥 EVENTO WEBSOCKET: Nuevo pedido creado
@@ -1276,6 +1323,21 @@ app.post('/api/pedidos', requirePermission('pedidos.create'), async (req, res) =
             pedido: newPedido,
             message: `Nuevo pedido creado: ${newPedido.numeroPedidoCliente}`
         });
+
+        // 🔥 EVENTO WEBSOCKET: Estadísticas de cliente actualizadas
+        // (Esto se maneja automáticamente por el trigger de la base de datos,
+        // pero emitimos el evento para actualizar el frontend inmediatamente)
+        if (newPedido.cliente && newPedido.cliente.trim() !== '' && io) {
+            io.emit('cliente-stats-updated', {
+                type: 'cliente-stats-updated',
+                data: { 
+                    clienteNombre: newPedido.cliente.trim(),
+                    pedidoId: newPedido.id,
+                    accion: 'pedido-creado'
+                },
+                message: `Estadísticas actualizadas para cliente: ${newPedido.cliente.trim()}`
+            });
+        }
         
         res.status(201).json(newPedido);
         
@@ -1326,6 +1388,53 @@ app.put('/api/pedidos/:id', requirePermission('pedidos.edit'), async (req, res) 
             changes,
             message: `Pedido actualizado: ${updatedPedido.numeroPedidoCliente}${changes.length > 0 ? ` (${changes.join(', ')})` : ''}`
         });
+
+        // 🔥 EVENTO WEBSOCKET: Estadísticas de cliente actualizadas tras modificación de pedido
+        if (io) {
+            // Si cambió el cliente, actualizar estadísticas de ambos
+            if (previousPedido.cliente !== updatedPedido.cliente) {
+                if (previousPedido.cliente && previousPedido.cliente.trim() !== '') {
+                    io.emit('cliente-stats-updated', {
+                        type: 'cliente-stats-updated',
+                        data: { 
+                            clienteNombre: previousPedido.cliente.trim(),
+                            pedidoId: updatedPedido.id,
+                            accion: 'pedido-removido-del-cliente'
+                        },
+                        message: `Estadísticas actualizadas para cliente anterior: ${previousPedido.cliente.trim()}`
+                    });
+                }
+                
+                if (updatedPedido.cliente && updatedPedido.cliente.trim() !== '') {
+                    io.emit('cliente-stats-updated', {
+                        type: 'cliente-stats-updated',
+                        data: { 
+                            clienteNombre: updatedPedido.cliente.trim(),
+                            pedidoId: updatedPedido.id,
+                            accion: 'pedido-asignado-al-cliente'
+                        },
+                        message: `Estadísticas actualizadas para cliente nuevo: ${updatedPedido.cliente.trim()}`
+                    });
+                }
+            } else if (updatedPedido.cliente && updatedPedido.cliente.trim() !== '') {
+                // Solo actualizar estadísticas del cliente actual si cambió algo relevante
+                const relevantChanges = changes.some(change => 
+                    change.includes('Etapa:') || change.includes('metros') || change.includes('estado')
+                );
+                
+                if (relevantChanges) {
+                    io.emit('cliente-stats-updated', {
+                        type: 'cliente-stats-updated',
+                        data: { 
+                            clienteNombre: updatedPedido.cliente.trim(),
+                            pedidoId: updatedPedido.id,
+                            accion: 'pedido-modificado'
+                        },
+                        message: `Estadísticas actualizadas para cliente: ${updatedPedido.cliente.trim()}`
+                    });
+                }
+            }
+        }
         
         res.status(200).json(updatedPedido);
         
@@ -1356,6 +1465,19 @@ app.delete('/api/pedidos/:id', requirePermission('pedidos.delete'), async (req, 
             deletedPedido,
             message: `Pedido eliminado: ${deletedPedido?.numeroPedidoCliente || pedidoId}`
         });
+
+        // 🔥 EVENTO WEBSOCKET: Estadísticas de cliente actualizadas tras eliminación
+        if (io && deletedPedido && deletedPedido.cliente && deletedPedido.cliente.trim() !== '') {
+            io.emit('cliente-stats-updated', {
+                type: 'cliente-stats-updated',
+                data: { 
+                    clienteNombre: deletedPedido.cliente.trim(),
+                    pedidoId: pedidoId,
+                    accion: 'pedido-eliminado'
+                },
+                message: `Estadísticas actualizadas para cliente: ${deletedPedido.cliente.trim()}`
+            });
+        }
         
         res.status(204).send();
         
@@ -1394,6 +1516,459 @@ app.delete('/api/pedidos/all', async (req, res) => {
     } catch (error) {
         console.error("Error clearing collection:", error);
         res.status(500).json({ message: "Error interno del servidor al limpiar la colección." });
+    }
+});
+
+// =================================================================
+// RUTAS DE CLIENTES
+// =================================================================
+
+// GET /api/clientes - Obtener todos los clientes
+app.get('/api/clientes', async (req, res) => {
+    try {
+        if (!dbClient.isConnected()) {
+            return res.status(503).json({ 
+                message: 'Base de datos no disponible',
+                clientes: [] 
+            });
+        }
+
+        const query = `
+            SELECT 
+                id,
+                nombre,
+                contacto,
+                email,
+                telefono,
+                ciudad,
+                direccion,
+                pais,
+                codigo_postal as "codigoPostal",
+                fecha_registro as "fechaRegistro",
+                ultima_actividad as "ultimaActividad",
+                activo,
+                notas,
+                total_pedidos as "totalPedidos",
+                pedidos_activos as "pedidosActivos",
+                volumen_total as "volumenTotal",
+                monto_total as "montoTotal",
+                productos_mas_solicitados as "productosMasSolicitados"
+            FROM clientes 
+            ORDER BY nombre ASC
+        `;
+        
+        const result = await dbClient.pool.query(query);
+        const clientes = result.rows.map(row => ({
+            ...row,
+            fechaRegistro: row.fechaRegistro?.toISOString(),
+            ultimaActividad: row.ultimaActividad?.toISOString(),
+            volumenTotal: parseFloat(row.volumenTotal) || 0,
+            montoTotal: parseFloat(row.montoTotal) || 0
+        }));
+        
+        res.json(clientes);
+        
+    } catch (error) {
+        console.error('Error al obtener clientes:', error);
+        res.status(500).json({ message: 'Error interno del servidor al obtener clientes.' });
+    }
+});
+
+// GET /api/clientes/:id - Obtener un cliente específico
+app.get('/api/clientes/:id', async (req, res) => {
+    try {
+        if (!dbClient.isConnected()) {
+            return res.status(503).json({ message: 'Base de datos no disponible' });
+        }
+
+        const clienteId = req.params.id;
+        const query = `
+            SELECT 
+                id,
+                nombre,
+                contacto,
+                email,
+                telefono,
+                ciudad,
+                direccion,
+                pais,
+                codigo_postal as "codigoPostal",
+                fecha_registro as "fechaRegistro",
+                ultima_actividad as "ultimaActividad",
+                activo,
+                notas,
+                total_pedidos as "totalPedidos",
+                pedidos_activos as "pedidosActivos",
+                volumen_total as "volumenTotal",
+                monto_total as "montoTotal",
+                productos_mas_solicitados as "productosMasSolicitados"
+            FROM clientes 
+            WHERE id = $1
+        `;
+        
+        const result = await dbClient.pool.query(query, [clienteId]);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Cliente no encontrado.' });
+        }
+        
+        const cliente = {
+            ...result.rows[0],
+            fechaRegistro: result.rows[0].fechaRegistro?.toISOString(),
+            ultimaActividad: result.rows[0].ultimaActividad?.toISOString(),
+            volumenTotal: parseFloat(result.rows[0].volumenTotal) || 0,
+            montoTotal: parseFloat(result.rows[0].montoTotal) || 0
+        };
+        
+        res.json(cliente);
+        
+    } catch (error) {
+        console.error('Error al obtener cliente:', error);
+        res.status(500).json({ message: 'Error interno del servidor al obtener cliente.' });
+    }
+});
+
+// POST /api/clientes - Crear un nuevo cliente
+app.post('/api/clientes', async (req, res) => {
+    try {
+        if (!dbClient.isConnected()) {
+            return res.status(503).json({ message: 'Base de datos no disponible' });
+        }
+
+        const clienteData = req.body;
+        
+        // Validar campos requeridos
+        if (!clienteData.nombre || clienteData.nombre.trim() === '') {
+            return res.status(400).json({ message: 'El nombre del cliente es requerido.' });
+        }
+
+        const query = `
+            INSERT INTO clientes (
+                nombre, contacto, email, telefono, ciudad, direccion, 
+                pais, codigo_postal, activo, notas
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING 
+                id,
+                nombre,
+                contacto,
+                email,
+                telefono,
+                ciudad,
+                direccion,
+                pais,
+                codigo_postal as "codigoPostal",
+                fecha_registro as "fechaRegistro",
+                ultima_actividad as "ultimaActividad",
+                activo,
+                notas,
+                total_pedidos as "totalPedidos",
+                pedidos_activos as "pedidosActivos",
+                volumen_total as "volumenTotal",
+                monto_total as "montoTotal"
+        `;
+        
+        const values = [
+            clienteData.nombre.trim(),
+            clienteData.contacto || null,
+            clienteData.email || null,
+            clienteData.telefono || null,
+            clienteData.ciudad || null,
+            clienteData.direccion || null,
+            clienteData.pais || 'España',
+            clienteData.codigoPostal || null,
+            clienteData.activo !== undefined ? clienteData.activo : true,
+            clienteData.notas || null
+        ];
+        
+        const result = await dbClient.pool.query(query, values);
+        const nuevoCliente = {
+            ...result.rows[0],
+            fechaRegistro: result.rows[0].fechaRegistro?.toISOString(),
+            ultimaActividad: result.rows[0].ultimaActividad?.toISOString(),
+            volumenTotal: parseFloat(result.rows[0].volumenTotal) || 0,
+            montoTotal: parseFloat(result.rows[0].montoTotal) || 0
+        };
+        
+        // 🔥 EVENTO WEBSOCKET: Cliente creado
+        if (io) {
+            io.emit('cliente-created', {
+                type: 'cliente-created',
+                data: nuevoCliente,
+                message: `Nuevo cliente creado: ${nuevoCliente.nombre}`
+            });
+        }
+        
+        res.status(201).json(nuevoCliente);
+        
+    } catch (error) {
+        if (error.code === '23505') { // Violación de constraint unique
+            return res.status(409).json({ message: 'Ya existe un cliente con ese nombre.' });
+        }
+        console.error('Error al crear cliente:', error);
+        res.status(500).json({ message: 'Error interno del servidor al crear cliente.' });
+    }
+});
+
+// PUT /api/clientes/:id - Actualizar un cliente
+app.put('/api/clientes/:id', async (req, res) => {
+    try {
+        if (!dbClient.isConnected()) {
+            return res.status(503).json({ message: 'Base de datos no disponible' });
+        }
+
+        const clienteId = req.params.id;
+        const clienteData = req.body;
+        
+        // Validar que el cliente existe
+        const existingQuery = 'SELECT id FROM clientes WHERE id = $1';
+        const existingResult = await dbClient.pool.query(existingQuery, [clienteId]);
+        
+        if (existingResult.rows.length === 0) {
+            return res.status(404).json({ message: 'Cliente no encontrado.' });
+        }
+        
+        // Validar campos requeridos
+        if (!clienteData.nombre || clienteData.nombre.trim() === '') {
+            return res.status(400).json({ message: 'El nombre del cliente es requerido.' });
+        }
+
+        const query = `
+            UPDATE clientes SET
+                nombre = $1,
+                contacto = $2,
+                email = $3,
+                telefono = $4,
+                ciudad = $5,
+                direccion = $6,
+                pais = $7,
+                codigo_postal = $8,
+                activo = $9,
+                notas = $10,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $11
+            RETURNING 
+                id,
+                nombre,
+                contacto,
+                email,
+                telefono,
+                ciudad,
+                direccion,
+                pais,
+                codigo_postal as "codigoPostal",
+                fecha_registro as "fechaRegistro",
+                ultima_actividad as "ultimaActividad",
+                activo,
+                notas,
+                total_pedidos as "totalPedidos",
+                pedidos_activos as "pedidosActivos",
+                volumen_total as "volumenTotal",
+                monto_total as "montoTotal"
+        `;
+        
+        const values = [
+            clienteData.nombre.trim(),
+            clienteData.contacto || null,
+            clienteData.email || null,
+            clienteData.telefono || null,
+            clienteData.ciudad || null,
+            clienteData.direccion || null,
+            clienteData.pais || 'España',
+            clienteData.codigoPostal || null,
+            clienteData.activo !== undefined ? clienteData.activo : true,
+            clienteData.notas || null,
+            clienteId
+        ];
+        
+        const result = await dbClient.pool.query(query, values);
+        const clienteActualizado = {
+            ...result.rows[0],
+            fechaRegistro: result.rows[0].fechaRegistro?.toISOString(),
+            ultimaActividad: result.rows[0].ultimaActividad?.toISOString(),
+            volumenTotal: parseFloat(result.rows[0].volumenTotal) || 0,
+            montoTotal: parseFloat(result.rows[0].montoTotal) || 0
+        };
+        
+        // 🔥 EVENTO WEBSOCKET: Cliente actualizado
+        if (io) {
+            io.emit('cliente-updated', {
+                type: 'cliente-updated',
+                data: clienteActualizado,
+                message: `Cliente actualizado: ${clienteActualizado.nombre}`
+            });
+        }
+        
+        res.json(clienteActualizado);
+        
+    } catch (error) {
+        if (error.code === '23505') { // Violación de constraint unique
+            return res.status(409).json({ message: 'Ya existe un cliente con ese nombre.' });
+        }
+        console.error('Error al actualizar cliente:', error);
+        res.status(500).json({ message: 'Error interno del servidor al actualizar cliente.' });
+    }
+});
+
+// DELETE /api/clientes/:id - Eliminar un cliente
+app.delete('/api/clientes/:id', async (req, res) => {
+    try {
+        if (!dbClient.isConnected()) {
+            return res.status(503).json({ message: 'Base de datos no disponible' });
+        }
+
+        const clienteId = req.params.id;
+        
+        // Verificar si el cliente tiene pedidos asociados
+        const pedidosQuery = 'SELECT COUNT(*) as count FROM pedidos p JOIN clientes c ON p.cliente = c.nombre WHERE c.id = $1';
+        const pedidosResult = await dbClient.pool.query(pedidosQuery, [clienteId]);
+        const pedidosCount = parseInt(pedidosResult.rows[0].count);
+        
+        if (pedidosCount > 0) {
+            return res.status(409).json({ 
+                message: `No se puede eliminar el cliente porque tiene ${pedidosCount} pedido(s) asociado(s). Primero debe eliminar o reasignar los pedidos.` 
+            });
+        }
+        
+        // Obtener datos del cliente antes de eliminar para el evento WebSocket
+        const clienteQuery = 'SELECT * FROM clientes WHERE id = $1';
+        const clienteResult = await dbClient.pool.query(clienteQuery, [clienteId]);
+        
+        if (clienteResult.rows.length === 0) {
+            return res.status(404).json({ message: 'Cliente no encontrado.' });
+        }
+        
+        const clienteEliminado = clienteResult.rows[0];
+        
+        // Eliminar el cliente
+        const deleteQuery = 'DELETE FROM clientes WHERE id = $1';
+        await dbClient.pool.query(deleteQuery, [clienteId]);
+        
+        // 🔥 EVENTO WEBSOCKET: Cliente eliminado
+        if (io) {
+            io.emit('cliente-deleted', {
+                type: 'cliente-deleted',
+                data: { id: clienteId, nombre: clienteEliminado.nombre },
+                message: `Cliente eliminado: ${clienteEliminado.nombre}`
+            });
+        }
+        
+        res.status(200).json({ 
+            message: 'Cliente eliminado correctamente.',
+            clienteId: clienteId 
+        });
+        
+    } catch (error) {
+        console.error('Error al eliminar cliente:', error);
+        res.status(500).json({ message: 'Error interno del servidor al eliminar cliente.' });
+    }
+});
+
+// GET /api/clientes/:id/estadisticas - Obtener estadísticas detalladas de un cliente
+app.get('/api/clientes/:id/estadisticas', async (req, res) => {
+    try {
+        if (!dbClient.isConnected()) {
+            return res.status(503).json({ message: 'Base de datos no disponible' });
+        }
+
+        const clienteId = req.params.id;
+        
+        // Obtener el cliente
+        const clienteQuery = 'SELECT nombre FROM clientes WHERE id = $1';
+        const clienteResult = await dbClient.pool.query(clienteQuery, [clienteId]);
+        
+        if (clienteResult.rows.length === 0) {
+            return res.status(404).json({ message: 'Cliente no encontrado.' });
+        }
+        
+        const nombreCliente = clienteResult.rows[0].nombre;
+        
+        // Estadísticas básicas
+        const statsQuery = `
+            SELECT 
+                COUNT(*) as total_pedidos,
+                COUNT(CASE WHEN etapa_actual NOT IN ('COMPLETADO', 'ARCHIVADO') THEN 1 END) as pedidos_activos,
+                COUNT(CASE WHEN etapa_actual = 'COMPLETADO' THEN 1 END) as pedidos_completados,
+                COALESCE(SUM(CASE WHEN metros ~ '^[0-9]+(\.[0-9]+)?$' THEN metros::DECIMAL ELSE 0 END), 0) as volumen_total_metros
+            FROM pedidos 
+            WHERE cliente = $1
+        `;
+        
+        const statsResult = await dbClient.pool.query(statsQuery, [nombreCliente]);
+        const stats = statsResult.rows[0];
+        
+        // Productos más solicitados
+        const productosQuery = `
+            SELECT 
+                COALESCE(producto, desarrollo, 'Sin especificar') as producto,
+                COUNT(*) as cantidad,
+                COALESCE(SUM(CASE WHEN metros ~ '^[0-9]+(\.[0-9]+)?$' THEN metros::DECIMAL ELSE 0 END), 0) as volumen_total
+            FROM pedidos 
+            WHERE cliente = $1
+            GROUP BY COALESCE(producto, desarrollo, 'Sin especificar')
+            ORDER BY cantidad DESC
+            LIMIT 5
+        `;
+        
+        const productosResult = await dbClient.pool.query(productosQuery, [nombreCliente]);
+        
+        // Tendencia mensual (últimos 12 meses)
+        const tendenciaQuery = `
+            SELECT 
+                DATE_TRUNC('month', fecha_creacion::timestamp) as mes,
+                COUNT(*) as pedidos,
+                COALESCE(SUM(CASE WHEN metros ~ '^[0-9]+(\.[0-9]+)?$' THEN metros::DECIMAL ELSE 0 END), 0) as volumen
+            FROM pedidos 
+            WHERE cliente = $1 
+            AND fecha_creacion::timestamp >= CURRENT_DATE - INTERVAL '12 months'
+            GROUP BY DATE_TRUNC('month', fecha_creacion::timestamp)
+            ORDER BY mes DESC
+        `;
+        
+        const tendenciaResult = await dbClient.pool.query(tendenciaQuery, [nombreCliente]);
+        
+        // Etapas más comunes
+        const etapasQuery = `
+            SELECT 
+                etapa_actual as etapa,
+                COUNT(*) as frecuencia
+            FROM pedidos 
+            WHERE cliente = $1
+            GROUP BY etapa_actual
+            ORDER BY frecuencia DESC
+        `;
+        
+        const etapasResult = await dbClient.pool.query(etapasQuery, [nombreCliente]);
+        
+        // Tiempo promedio de producción (simplificado)
+        const tiempoPromedioProduccion = stats.pedidos_completados > 0 ? 7 : 0; // Placeholder
+        
+        const estadisticas = {
+            totalPedidos: parseInt(stats.total_pedidos),
+            pedidosActivos: parseInt(stats.pedidos_activos),
+            pedidosCompletados: parseInt(stats.pedidos_completados),
+            volumenTotalMetros: parseFloat(stats.volumen_total_metros),
+            tiempoPromedioProduccion,
+            productosMasSolicitados: productosResult.rows.map(row => ({
+                producto: row.producto,
+                cantidad: parseInt(row.cantidad),
+                volumenTotal: parseFloat(row.volumen_total)
+            })),
+            tendenciaMensual: tendenciaResult.rows.map(row => ({
+                mes: row.mes.toISOString(),
+                pedidos: parseInt(row.pedidos),
+                volumen: parseFloat(row.volumen)
+            })),
+            etapasMasComunes: etapasResult.rows.map(row => ({
+                etapa: row.etapa,
+                frecuencia: parseInt(row.frecuencia)
+            }))
+        };
+        
+        res.json(estadisticas);
+        
+    } catch (error) {
+        console.error('Error al obtener estadísticas del cliente:', error);
+        res.status(500).json({ message: 'Error interno del servidor al obtener estadísticas.' });
     }
 });
 

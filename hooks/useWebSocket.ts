@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { UserRole, Pedido } from '../types';
+import { UserRole, Pedido, Cliente } from '../types';
 import webSocketService, { NotificationData, ConnectedUser } from '../services/websocket';
 
 export interface UseWebSocketReturn {
@@ -8,10 +8,15 @@ export interface UseWebSocketReturn {
   connectedUsers: ConnectedUser[];
   removeNotification: (id: string) => void;
   emitActivity: (activity: string, data?: any) => void;
-  // Callbacks para sincronización de datos
+  // Callbacks para sincronización de datos de pedidos
   subscribeToPedidoCreated: (callback: (pedido: Pedido) => void) => () => void;
   subscribeToPedidoUpdated: (callback: (pedido: Pedido) => void) => () => void;
   subscribeToPedidoDeleted: (callback: (pedidoId: string) => void) => () => void;
+  // Callbacks para sincronización de datos de clientes
+  subscribeToClienteCreated: (callback: (cliente: Cliente) => void) => () => void;
+  subscribeToClienteUpdated: (callback: (cliente: Cliente) => void) => () => void;
+  subscribeToClienteDeleted: (callback: (clienteId: string) => void) => () => void;
+  subscribeToClienteStatsUpdated: (callback: (data: { clienteNombre: string; pedidoId: string; accion: string }) => void) => () => void;
 }
 
 export const useWebSocket = (userId: string, userRole: UserRole): UseWebSocketReturn => {
@@ -75,9 +80,14 @@ export const useWebSocket = (userId: string, userRole: UserRole): UseWebSocketRe
     connectedUsers,
     removeNotification,
     emitActivity,
-    // Callbacks para sincronización de datos
+    // Callbacks para sincronización de datos de pedidos
     subscribeToPedidoCreated: webSocketService.subscribeToPedidoCreated.bind(webSocketService),
     subscribeToPedidoUpdated: webSocketService.subscribeToPedidoUpdated.bind(webSocketService),
-    subscribeToPedidoDeleted: webSocketService.subscribeToPedidoDeleted.bind(webSocketService)
+    subscribeToPedidoDeleted: webSocketService.subscribeToPedidoDeleted.bind(webSocketService),
+    // Callbacks para sincronización de datos de clientes
+    subscribeToClienteCreated: webSocketService.subscribeToClienteCreated.bind(webSocketService),
+    subscribeToClienteUpdated: webSocketService.subscribeToClienteUpdated.bind(webSocketService),
+    subscribeToClienteDeleted: webSocketService.subscribeToClienteDeleted.bind(webSocketService),
+    subscribeToClienteStatsUpdated: webSocketService.subscribeToClienteStatsUpdated.bind(webSocketService)
   };
 };

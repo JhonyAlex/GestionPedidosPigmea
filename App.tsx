@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
-import { Pedido, Etapa, ViewType, UserRole, AuditEntry, Prioridad, EstadoCliché, HistorialEntry, DateField, Cliente } from './types';
+import { Pedido, Etapa, ViewType, UserRole, AuditEntry, Prioridad, EstadoCliché, HistorialEntry, DateField, Cliente, EstadisticasCliente } from './types';
 import { KANBAN_FUNNELS, ETAPAS, PRIORIDAD_ORDEN, PREPARACION_SUB_ETAPAS_IDS } from './constants';
 import { DateFilterOption } from './utils/date';
 import { calculateTotalProductionTime, generatePedidosPDF } from './utils/kpi';
@@ -73,7 +73,11 @@ const AppContent: React.FC = () => {
         emitActivity,
         subscribeToPedidoCreated,
         subscribeToPedidoUpdated,
-        subscribeToPedidoDeleted
+        subscribeToPedidoDeleted,
+        subscribeToClienteCreated,
+        subscribeToClienteUpdated,
+        subscribeToClienteDeleted,
+        subscribeToClienteStatsUpdated
     } = useWebSocket(currentUserId, currentUserRole);
 
     const generarEntradaHistorial = useCallback((usuarioRole: UserRole, accion: string, detalles: string): HistorialEntry => ({
@@ -82,6 +86,25 @@ const AppContent: React.FC = () => {
         accion,
         detalles
     }), [user]);
+
+    // Hook para gestión de clientes (debe ir antes que pedidos para proporcionar funciones)
+    const {
+        clientes,
+        isLoading: clientesLoading,
+        error: clientesError,
+        findClienteByName,
+        createClienteIfNotExists,
+        updateClienteStats,
+        createCliente,
+        updateCliente,
+        deleteCliente,
+        getClienteEstadisticas,
+        loadClientes,
+        handleClienteCreated,
+        handleClienteUpdated,
+        handleClienteDeleted,
+        handleClienteStatsUpdated
+    } = useClientesManager();
     
     const {
         pedidos,
@@ -106,7 +129,9 @@ const AppContent: React.FC = () => {
         setPedidoToSend,
         subscribeToPedidoCreated,
         subscribeToPedidoUpdated,
-        subscribeToPedidoDeleted
+        subscribeToPedidoDeleted,
+        createClienteIfNotExists,
+        updateClienteStats
     );
 
     const {
@@ -128,18 +153,6 @@ const AppContent: React.FC = () => {
       handleSort,
       updateSortConfig,
     } = useFiltrosYOrden(pedidos);
-
-    // Hook para gestión de clientes
-    const {
-        clientes,
-        findClienteByName,
-        createClienteIfNotExists,
-        updateClienteStats,
-        createCliente,
-        updateCliente,
-        deleteCliente,
-        getClienteEstadisticas
-    } = useClientesManager();
 
     // Estados del directorio de clientes
     const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
@@ -180,6 +193,31 @@ const AppContent: React.FC = () => {
             resetTraditionalStageFilter();
         }
     }, [view, resetStageFilters, resetTraditionalStageFilter, selectedStages.length, filters.stage]);
+    
+    // Configurar suscripciones WebSocket para clientes
+    useEffect(() => {
+        if (isConnected) {
+            console.log('🔗 Configurando suscripciones WebSocket para clientes...');
+            
+            // Configurar handlers para eventos de clientes
+            subscribeToClienteCreated?.(handleClienteCreated);
+            subscribeToClienteUpdated?.(handleClienteUpdated);
+            subscribeToClienteDeleted?.(handleClienteDeleted);
+            subscribeToClienteStatsUpdated?.(handleClienteStatsUpdated);
+            
+            console.log('✅ Suscripciones WebSocket para clientes configuradas');
+        }
+    }, [
+        isConnected,
+        subscribeToClienteCreated,
+        subscribeToClienteUpdated,
+        subscribeToClienteDeleted,
+        subscribeToClienteStatsUpdated,
+        handleClienteCreated,
+        handleClienteUpdated,
+        handleClienteDeleted,
+        handleClienteStatsUpdated
+    ]);
     
     const toggleTheme = () => {
         setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
@@ -456,13 +494,67 @@ const AppContent: React.FC = () => {
     };
 
     const handleEditCliente = (cliente: Cliente) => {
-        // Funcionalidad de edición por implementar
-        console.log('Editar cliente:', cliente.nombre);
+        // Por ahora, simplemente loggear para compatibilidad con ClienteModal
+        console.log('Editar cliente desde modal:', cliente.nombre);
+        // TODO: Implementar modal de edición
     };
 
-    const handleDeleteCliente = (clienteId: string) => {
-        deleteCliente(clienteId);
-        console.log('Cliente eliminado:', clienteId);
+    const handleDeleteCliente = async (clienteId: string) => {
+        try {
+            await deleteCliente(clienteId);
+            console.log('✅ Cliente eliminado');
+            setIsClienteModalOpen(false);
+            setSelectedCliente(null);
+        } catch (error) {
+            console.error('❌ Error al eliminar cliente:', error);
+        }
+    };
+
+    // Componente wrapper para ClienteModal que maneja estadísticas async
+    const ClienteModalWrapper: React.FC = () => {
+        const [estadisticas, setEstadisticas] = useState<EstadisticasCliente | null>(null);
+        const [loadingStats, setLoadingStats] = useState(true);
+
+        useEffect(() => {
+            if (selectedCliente) {
+                setLoadingStats(true);
+                getClienteEstadisticas(selectedCliente.id, pedidos)
+                    .then(stats => {
+                        setEstadisticas(stats);
+                        setLoadingStats(false);
+                    })
+                    .catch(error => {
+                        console.error('Error cargando estadísticas:', error);
+                        setLoadingStats(false);
+                    });
+            }
+        }, [selectedCliente?.id, pedidos]);
+
+        if (!selectedCliente) return null;
+
+        return (
+            <ClienteModal
+                cliente={selectedCliente}
+                pedidos={pedidos}
+                estadisticas={estadisticas || {
+                    totalPedidos: 0,
+                    pedidosActivos: 0,
+                    pedidosCompletados: 0,
+                    volumenTotalMetros: 0,
+                    tiempoPromedioProduccion: 0,
+                    productosMasSolicitados: [],
+                    tendenciaMensual: [],
+                    etapasMasComunes: []
+                }}
+                isOpen={isClienteModalOpen}
+                onClose={() => {
+                    setIsClienteModalOpen(false);
+                    setSelectedCliente(null);
+                }}
+                onEdit={handleEditCliente}
+                onDelete={handleDeleteCliente}
+            />
+        );
     };
     
     const handleExportPDF = () => {
@@ -744,20 +836,7 @@ const AppContent: React.FC = () => {
                 )}
 
                 {/* 🏢 Cliente Modal */}
-                {isClienteModalOpen && selectedCliente && (
-                    <ClienteModal
-                        cliente={selectedCliente}
-                        pedidos={pedidos}
-                        estadisticas={getClienteEstadisticas(selectedCliente.id, pedidos)}
-                        isOpen={isClienteModalOpen}
-                        onClose={() => {
-                            setIsClienteModalOpen(false);
-                            setSelectedCliente(null);
-                        }}
-                        onEdit={handleEditCliente}
-                        onDelete={handleDeleteCliente}
-                    />
-                )}
+                {isClienteModalOpen && selectedCliente && <ClienteModalWrapper />}
             </div>
         </DragDropContext>
     );

@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { Pedido, UserRole } from '../types';
+import { Pedido, UserRole, Cliente, EstadisticasCliente } from '../types';
 
 // Tipos para los eventos WebSocket
 export interface WebSocketEvents {
@@ -7,6 +7,10 @@ export interface WebSocketEvents {
   'pedido-created': (data: { pedido: Pedido; message: string; timestamp: string }) => void;
   'pedido-updated': (data: { pedido: Pedido; previousPedido?: Pedido; changes: string[]; message: string; timestamp: string }) => void;
   'pedido-deleted': (data: { pedidoId: string; deletedPedido?: Pedido; message: string; timestamp: string }) => void;
+  'cliente-created': (data: { type: string; data: Cliente; message: string; autoCreated?: boolean; timestamp: string }) => void;
+  'cliente-updated': (data: { type: string; data: Cliente; message: string; timestamp: string }) => void;
+  'cliente-deleted': (data: { type: string; data: { id: string; nombre: string }; message: string; timestamp: string }) => void;
+  'cliente-stats-updated': (data: { type: string; data: { clienteNombre: string; pedidoId: string; accion: string }; message: string; timestamp: string }) => void;
   'user-connected': (data: { userId: string; userRole: UserRole; connectedUsers: ConnectedUser[] }) => void;
   'user-disconnected': (data: { userId: string; connectedUsers: ConnectedUser[] }) => void;
   'users-list': (data: { connectedUsers: ConnectedUser[] }) => void;
@@ -51,6 +55,12 @@ class WebSocketService {
   private pedidoCreatedListeners: ((pedido: Pedido) => void)[] = [];
   private pedidoUpdatedListeners: ((pedido: Pedido) => void)[] = [];
   private pedidoDeletedListeners: ((pedidoId: string) => void)[] = [];
+  
+  // Callbacks para clientes en tiempo real
+  private clienteCreatedListeners: ((cliente: Cliente) => void)[] = [];
+  private clienteUpdatedListeners: ((cliente: Cliente) => void)[] = [];
+  private clienteDeletedListeners: ((clienteId: string) => void)[] = [];
+  private clienteStatsUpdatedListeners: ((data: { clienteNombre: string; pedidoId: string; accion: string }) => void)[] = [];
   
   // Callbacks para comentarios en tiempo real
   private commentAddedListeners: ((comment: any) => void)[] = [];
@@ -362,6 +372,59 @@ class WebSocketService {
       this.notifyPedidoDeletedListeners(data.pedidoId);
     });
 
+    // Eventos de clientes
+    this.socket.on('cliente-created', (data) => {
+      console.log('🏢 Cliente creado:', data);
+      const notificationType = data.autoCreated ? 'success' : 'info';
+      const title = data.autoCreated ? 'Cliente creado automáticamente' : 'Nuevo cliente';
+      
+      this.addNotification({
+        type: notificationType,
+        title: title,
+        message: data.message,
+        autoClose: true,
+        duration: data.autoCreated ? 3000 : 5000
+      });
+      
+      // Notificar a los listeners para sincronización automática
+      this.notifyClienteCreatedListeners(data.data);
+    });
+
+    this.socket.on('cliente-updated', (data) => {
+      console.log('📝 Cliente actualizado:', data);
+      this.addNotification({
+        type: 'info',
+        title: 'Cliente actualizado',
+        message: data.message,
+        autoClose: true,
+        duration: 4000
+      });
+      
+      // Notificar a los listeners para sincronización automática
+      this.notifyClienteUpdatedListeners(data.data);
+    });
+
+    this.socket.on('cliente-deleted', (data) => {
+      console.log('🗑️ Cliente eliminado:', data);
+      this.addNotification({
+        type: 'warning',
+        title: 'Cliente eliminado',
+        message: data.message,
+        autoClose: true,
+        duration: 4000
+      });
+      
+      // Notificar a los listeners para sincronización automática
+      this.notifyClienteDeletedListeners(data.data.id);
+    });
+
+    this.socket.on('cliente-stats-updated', (data) => {
+      console.log('📊 Estadísticas de cliente actualizadas:', data);
+      // No mostramos notificación para estadísticas para evitar spam
+      // Solo notificamos a los listeners para sincronización
+      this.notifyClienteStatsUpdatedListeners(data.data);
+    });
+
     // Eventos de usuarios
     this.socket.on('user-connected', (data) => {
       console.log('👤 Usuario conectado:', data);
@@ -524,6 +587,47 @@ class WebSocketService {
     };
   }
 
+  // Suscripciones para eventos de clientes
+  public subscribeToClienteCreated(callback: (cliente: Cliente) => void): () => void {
+    this.clienteCreatedListeners.push(callback);
+    return () => {
+      const index = this.clienteCreatedListeners.indexOf(callback);
+      if (index > -1) {
+        this.clienteCreatedListeners.splice(index, 1);
+      }
+    };
+  }
+
+  public subscribeToClienteUpdated(callback: (cliente: Cliente) => void): () => void {
+    this.clienteUpdatedListeners.push(callback);
+    return () => {
+      const index = this.clienteUpdatedListeners.indexOf(callback);
+      if (index > -1) {
+        this.clienteUpdatedListeners.splice(index, 1);
+      }
+    };
+  }
+
+  public subscribeToClienteDeleted(callback: (clienteId: string) => void): () => void {
+    this.clienteDeletedListeners.push(callback);
+    return () => {
+      const index = this.clienteDeletedListeners.indexOf(callback);
+      if (index > -1) {
+        this.clienteDeletedListeners.splice(index, 1);
+      }
+    };
+  }
+
+  public subscribeToClienteStatsUpdated(callback: (data: { clienteNombre: string; pedidoId: string; accion: string }) => void): () => void {
+    this.clienteStatsUpdatedListeners.push(callback);
+    return () => {
+      const index = this.clienteStatsUpdatedListeners.indexOf(callback);
+      if (index > -1) {
+        this.clienteStatsUpdatedListeners.splice(index, 1);
+      }
+    };
+  }
+
   public subscribeToCommentAdded(callback: (comment: any) => void): () => void {
     this.commentAddedListeners.push(callback);
     return () => {
@@ -557,6 +661,23 @@ class WebSocketService {
     this.pedidoDeletedListeners.forEach(listener => listener(pedidoId));
   }
 
+  // Métodos para notificar cambios de clientes
+  private notifyClienteCreatedListeners(cliente: Cliente) {
+    this.clienteCreatedListeners.forEach(listener => listener(cliente));
+  }
+
+  private notifyClienteUpdatedListeners(cliente: Cliente) {
+    this.clienteUpdatedListeners.forEach(listener => listener(cliente));
+  }
+
+  private notifyClienteDeletedListeners(clienteId: string) {
+    this.clienteDeletedListeners.forEach(listener => listener(clienteId));
+  }
+
+  private notifyClienteStatsUpdatedListeners(data: { clienteNombre: string; pedidoId: string; accion: string }) {
+    this.clienteStatsUpdatedListeners.forEach(listener => listener(data));
+  }
+
   private notifyCommentAddedListeners(comment: any) {
     this.commentAddedListeners.forEach(listener => listener(comment));
   }
@@ -583,6 +704,10 @@ class WebSocketService {
     this.pedidoCreatedListeners = [];
     this.pedidoUpdatedListeners = [];
     this.pedidoDeletedListeners = [];
+    this.clienteCreatedListeners = [];
+    this.clienteUpdatedListeners = [];
+    this.clienteDeletedListeners = [];
+    this.clienteStatsUpdatedListeners = [];
     this.commentAddedListeners = [];
     this.commentDeletedListeners = [];
     this.notificationListeners = [];
