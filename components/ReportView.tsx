@@ -15,36 +15,93 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, auditLog, onNavigateTo
         return pedidos.filter(p => p.prioridad === Prioridad.URGENTE && p.etapaActual !== Etapa.ARCHIVADO && p.etapaActual !== Etapa.COMPLETADO);
     }, [pedidos]);
 
-    const performanceChartData = useMemo(() => {
-        const completed = pedidos
+    const completedPedidos = useMemo(() => {
+        return pedidos
             .filter(p => p.etapaActual === Etapa.COMPLETADO || p.etapaActual === Etapa.ARCHIVADO)
             .sort((a,b) => {
-                const dateA = new Date(a.etapasSecuencia.slice(-1)[0]?.fecha || 0).getTime();
-                const dateB = new Date(b.etapasSecuencia.slice(-1)[0]?.fecha || 0).getTime();
-                return dateB - dateA;
-            })
-            .slice(0, 10); // Get last 10 completed orders
+                const dateA = new Date(a.fechaCreacion).getTime();
+                const dateB = new Date(b.fechaCreacion).getTime();
+                return dateA - dateB; // Sort by creation date ascending
+            });
+    }, [pedidos]);
+
+    const performanceChartData = useMemo(() => {
+        // Group orders by week based on creation date
+        const weeklyData: { [key: string]: { planned: number[], real: number[], count: number, orders: string[] } } = {};
+        
+        completedPedidos.forEach(pedido => {
+            const creationDate = new Date(pedido.fechaCreacion);
+            const weekStart = new Date(creationDate);
+            weekStart.setDate(creationDate.getDate() - creationDate.getDay()); // Start of week (Sunday)
+            const weekKey = weekStart.toISOString().slice(0, 10); // YYYY-MM-DD format
+            
+            if (!weeklyData[weekKey]) {
+                weeklyData[weekKey] = { planned: [], real: [], count: 0, orders: [] };
+            }
+            
+            const plannedMinutes = parseTimeToMinutes(pedido.tiempoProduccionPlanificado);
+            const realMinutes = calcularTiempoRealProduccion(pedido);
+            
+            weeklyData[weekKey].planned.push(plannedMinutes);
+            weeklyData[weekKey].real.push(realMinutes);
+            weeklyData[weekKey].orders.push(pedido.numeroPedidoCliente);
+            weeklyData[weekKey].count++;
+        });
+
+        // Calculate averages and prepare chart data
+        const sortedWeeks = Object.keys(weeklyData).sort();
+        const labels = sortedWeeks.map(weekKey => {
+            const date = new Date(weekKey);
+            const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+            const weekData = weeklyData[weekKey];
+            return `Sem ${date.toLocaleDateString('es-ES', options)} (${weekData.count} pedidos)`;
+        });
+
+        const plannedAvgs = sortedWeeks.map(weekKey => {
+            const data = weeklyData[weekKey].planned;
+            return data.length > 0 ? Math.round(data.reduce((a, b) => a + b, 0) / data.length) : 0;
+        });
+
+        const realAvgs = sortedWeeks.map(weekKey => {
+            const data = weeklyData[weekKey].real;
+            return data.length > 0 ? Math.round(data.reduce((a, b) => a + b, 0) / data.length) : 0;
+        });
+
+        const varianceData = realAvgs.map((real, index) => {
+            const planned = plannedAvgs[index];
+            return real - planned; // Positive = over planned, Negative = under planned
+        });
 
         return {
-            labels: completed.map(p => p.numeroPedidoCliente),
+            labels,
             datasets: [
                 {
-                    label: 'Tiempo Planificado (min)',
-                    data: completed.map(p => parseTimeToMinutes(p.tiempoProduccionPlanificado)),
-                    backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                    label: 'Tiempo Promedio Planificado (min)',
+                    data: plannedAvgs,
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: false,
+                    tension: 0.1,
                 },
                 {
-                    label: 'Tiempo Real (min)',
-                    data: completed.map(p => calcularTiempoRealProduccion(p)),
-                    backgroundColor: (p, index) => {
-                        const planned = parseTimeToMinutes(completed[index].tiempoProduccionPlanificado);
-                        const real = calcularTiempoRealProduccion(completed[index]);
-                        return real <= planned ? 'rgba(16, 185, 129, 0.7)' : 'rgba(239, 68, 68, 0.7)';
-                    },
+                    label: 'Tiempo Promedio Real (min)',
+                    data: realAvgs,
+                    borderColor: 'rgba(239, 68, 68, 1)',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    fill: false,
+                    tension: 0.1,
+                },
+                {
+                    label: 'Diferencia (Real - Plan) (min)',
+                    data: varianceData,
+                    borderColor: 'rgba(16, 185, 129, 1)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    fill: false,
+                    tension: 0.1,
                 }
             ]
         };
-    }, [pedidos]);
+    }, [completedPedidos]);
 
     // KPI Cards Data
     const kpiData = useMemo(() => {
@@ -346,9 +403,55 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, auditLog, onNavigateTo
                 </div>
                 {/* Performance Chart */}
                 <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                    <h2 className="text-xl font-bold text-blue-500 dark:text-blue-400 mb-4">Análisis Plan vs. Real (Últimos 10 Completados)</h2>
-                     <div className="h-[500px] w-full">
-                         <BarChart data={performanceChartData} />
+                    <h2 className="text-xl font-bold text-blue-500 dark:text-blue-400 mb-4">
+                        Análisis Plan vs. Real por Semanas (Todos los Pedidos Completados)
+                    </h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Comparación semanal de tiempos promedio planificados vs. reales para todos los pedidos completados, agrupados por fecha de creación.
+                        La línea verde muestra la diferencia: valores positivos indican tiempo superior al planificado.
+                    </p>
+                     <div className="h-[400px] w-full mb-4">
+                         <LineChart data={performanceChartData} />
+                     </div>
+                     
+                     {/* Performance Summary Cards */}
+                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                        <div className="bg-gray-50 dark:bg-gray-900/20 rounded-lg p-3 text-center">
+                            <h4 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Pedidos</h4>
+                            <p className="text-lg font-bold text-gray-800 dark:text-gray-300">
+                                {completedPedidos.length}
+                            </p>
+                        </div>
+                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center">
+                            <h4 className="text-sm font-medium text-blue-600 dark:text-blue-400">Promedio Plan</h4>
+                            <p className="text-lg font-bold text-blue-800 dark:text-blue-300">
+                                {performanceChartData.datasets[0]?.data?.length > 0 
+                                    ? Math.round(performanceChartData.datasets[0].data.reduce((a, b) => a + b, 0) / performanceChartData.datasets[0].data.length)
+                                    : 0
+                                } min
+                            </p>
+                        </div>
+                        <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 text-center">
+                            <h4 className="text-sm font-medium text-red-600 dark:text-red-400">Promedio Real</h4>
+                            <p className="text-lg font-bold text-red-800 dark:text-red-300">
+                                {performanceChartData.datasets[1]?.data?.length > 0 
+                                    ? Math.round(performanceChartData.datasets[1].data.reduce((a, b) => a + b, 0) / performanceChartData.datasets[1].data.length)
+                                    : 0
+                                } min
+                            </p>
+                        </div>
+                        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center">
+                            <h4 className="text-sm font-medium text-green-600 dark:text-green-400">Diferencia Promedio</h4>
+                            <p className="text-lg font-bold text-green-800 dark:text-green-300">
+                                {performanceChartData.datasets[2]?.data?.length > 0 
+                                    ? (() => {
+                                        const avgDiff = Math.round(performanceChartData.datasets[2].data.reduce((a, b) => a + b, 0) / performanceChartData.datasets[2].data.length);
+                                        return avgDiff >= 0 ? `+${avgDiff}` : `${avgDiff}`;
+                                    })()
+                                    : 0
+                                } min
+                            </p>
+                        </div>
                      </div>
                 </div>
             </div>
