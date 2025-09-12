@@ -116,7 +116,7 @@ export interface KanbanEtapa {
 
 export type ViewType = 'preparacion' | 'kanban' | 'list' | 'archived' | 'report' | 'permissions-debug';
 
-export type UserRole = 'Administrador' | 'Supervisor' | 'Operador';
+export type UserRole = 'Administrador' | 'Supervisor' | 'Operador' | 'Visualizador';
 
 export interface AuditEntry {
     id?: number;

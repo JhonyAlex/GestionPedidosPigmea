@@ -1611,6 +1611,179 @@ app.get('/api/admin/stats', async (req, res) => {
     }
 });
 
+// --- COMENTARIOS ROUTES ---
+
+// Obtener comentarios de un pedido
+app.get('/api/comments/:pedidoId', requireAuth, async (req, res) => {
+    try {
+        const { pedidoId } = req.params;
+        
+        const result = await dbClient.query(`
+            SELECT 
+                id,
+                pedido_id as "pedidoId",
+                user_id as "userId", 
+                user_role as "userRole",
+                username,
+                message,
+                is_system_message as "isSystemMessage",
+                is_edited as "isEdited",
+                edited_at as "editedAt",
+                created_at as "timestamp"
+            FROM pedido_comments 
+            WHERE pedido_id = $1 
+            ORDER BY created_at ASC
+        `, [pedidoId]);
+
+        res.json({
+            success: true,
+            comments: result.rows
+        });
+    } catch (error) {
+        console.error('Error al obtener comentarios:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error al obtener comentarios'
+        });
+    }
+});
+
+// Crear un nuevo comentario
+app.post('/api/comments', requireAuth, async (req, res) => {
+    try {
+        const { pedidoId, message, userId, userRole, username } = req.body;
+        const userFromToken = req.user;
+
+        // Validaciones
+        if (!pedidoId || !message?.trim()) {
+            return res.status(400).json({
+                success: false,
+                error: 'El pedidoId y mensaje son requeridos'
+            });
+        }
+
+        // Usar datos del token para seguridad
+        const finalUserId = userFromToken.id || userId;
+        const finalUserRole = userFromToken.role || userRole;
+        const finalUsername = userFromToken.username || username;
+
+        const result = await dbClient.query(`
+            INSERT INTO pedido_comments (
+                pedido_id, user_id, user_role, username, message, is_system_message
+            ) VALUES ($1, $2, $3, $4, $5, false)
+            RETURNING 
+                id,
+                pedido_id as "pedidoId",
+                user_id as "userId",
+                user_role as "userRole", 
+                username,
+                message,
+                is_system_message as "isSystemMessage",
+                created_at as "timestamp"
+        `, [pedidoId, finalUserId, finalUserRole, finalUsername, message.trim()]);
+
+        const newComment = result.rows[0];
+
+        // Emitir evento WebSocket
+        io.emit('comment:added', newComment);
+
+        // Log de auditoría
+        await dbClient.query(`
+            INSERT INTO audit_logs (user_id, username, action, module, details, ip_address, user_agent, affected_resource)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `, [
+            finalUserId,
+            finalUsername,
+            'COMMENT_CREATED',
+            'COMMENTS',
+            `Comentario agregado al pedido ${pedidoId}`,
+            req.ip,
+            req.get('User-Agent'),
+            newComment.id
+        ]);
+
+        res.status(201).json({
+            success: true,
+            comment: newComment
+        });
+    } catch (error) {
+        console.error('Error al crear comentario:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error al crear comentario'
+        });
+    }
+});
+
+// Eliminar un comentario
+app.delete('/api/comments/:commentId', requireAuth, async (req, res) => {
+    try {
+        const { commentId } = req.params;
+        const userFromToken = req.user;
+
+        // Verificar que el comentario existe y obtener info
+        const commentResult = await dbClient.query(`
+            SELECT user_id, pedido_id, username 
+            FROM pedido_comments 
+            WHERE id = $1
+        `, [commentId]);
+
+        if (commentResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Comentario no encontrado'
+            });
+        }
+
+        const comment = commentResult.rows[0];
+        const canDelete = comment.user_id === userFromToken.id || 
+                         userFromToken.role === 'ADMIN' || 
+                         userFromToken.role === 'Administrador';
+
+        if (!canDelete) {
+            return res.status(403).json({
+                success: false,
+                error: 'No tienes permisos para eliminar este comentario'
+            });
+        }
+
+        // Eliminar comentario
+        await dbClient.query('DELETE FROM pedido_comments WHERE id = $1', [commentId]);
+
+        // Emitir evento WebSocket
+        io.emit('comment:deleted', {
+            commentId,
+            pedidoId: comment.pedido_id
+        });
+
+        // Log de auditoría
+        await dbClient.query(`
+            INSERT INTO audit_logs (user_id, username, action, module, details, ip_address, user_agent, affected_resource)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `, [
+            userFromToken.id,
+            userFromToken.username,
+            'COMMENT_DELETED',
+            'COMMENTS',
+            `Comentario eliminado del pedido ${comment.pedido_id}`,
+            req.ip,
+            req.get('User-Agent'),
+            commentId
+        ]);
+
+        res.json({
+            success: true,
+            message: 'Comentario eliminado exitosamente'
+        });
+    } catch (error) {
+        console.error('Error al eliminar comentario:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error al eliminar comentario'
+        });
+    }
+});
+
 // --- SERVER START ---
 const PORT = process.env.PORT || 3001;
 

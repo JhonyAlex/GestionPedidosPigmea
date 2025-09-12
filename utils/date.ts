@@ -49,3 +49,32 @@ export const getDateRange = (filter: DateFilterOption): { start: Date, end: Date
     end.setHours(23, 59, 59, 999); // Set end of day for the end date
     return { start, end };
 };
+
+// Función para formatear tiempo relativo
+export const formatDistanceToNow = (date: Date, options?: { addSuffix?: boolean }): string => {
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 0) {
+        return 'en el futuro';
+    }
+    
+    const intervals = [
+        { label: 'año', seconds: 31536000 },
+        { label: 'mes', seconds: 2592000 },
+        { label: 'día', seconds: 86400 },
+        { label: 'hora', seconds: 3600 },
+        { label: 'minuto', seconds: 60 },
+    ];
+    
+    for (const interval of intervals) {
+        const count = Math.floor(diffInSeconds / interval.seconds);
+        if (count >= 1) {
+            const plural = count > 1 ? 's' : '';
+            const timeString = `${count} ${interval.label}${plural}`;
+            return options?.addSuffix ? `hace ${timeString}` : timeString;
+        }
+    }
+    
+    return options?.addSuffix ? 'hace unos segundos' : 'unos segundos';
+};

@@ -392,6 +392,24 @@ class PostgreSQLClient {
             `);
             console.log('⚠️ Tabla audit_logs y clave foránea procesadas (puede haber avisos)');
 
+            // TABLA DE COMENTARIOS
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS pedido_comments (
+                    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                    pedido_id VARCHAR(50) NOT NULL,
+                    user_id UUID,
+                    user_role VARCHAR(20) NOT NULL,
+                    username VARCHAR(50) NOT NULL,
+                    message TEXT NOT NULL,
+                    is_system_message BOOLEAN DEFAULT false,
+                    is_edited BOOLEAN DEFAULT false,
+                    edited_at TIMESTAMP WITH TIME ZONE,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                );
+            `);
+            console.log('✅ Tabla pedido_comments creada');
+
             // Índices para mejorar performance
             await client.query(`
                 CREATE INDEX IF NOT EXISTS idx_pedidos_etapa ON pedidos(etapa_actual);
@@ -406,6 +424,9 @@ class PostgreSQLClient {
                 CREATE INDEX IF NOT EXISTS idx_admin_users_role ON admin_users(role);
                 CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
                 CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
+                CREATE INDEX IF NOT EXISTS idx_pedido_comments_pedido_id ON pedido_comments(pedido_id);
+                CREATE INDEX IF NOT EXISTS idx_pedido_comments_user_id ON pedido_comments(user_id);
+                CREATE INDEX IF NOT EXISTS idx_pedido_comments_created_at ON pedido_comments(created_at);
             `);
             console.log('✅ Índices verificados');
 
