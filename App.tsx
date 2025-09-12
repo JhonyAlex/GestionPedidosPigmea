@@ -28,6 +28,7 @@ import { procesarDragEnd } from './utils/dragLogic';
 import { usePedidosManager } from './hooks/usePedidosManager';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useFiltrosYOrden } from './hooks/useFiltrosYOrden';
+import { useNavigateToPedido } from './hooks/useNavigateToPedido';
 import { auditService } from './services/audit';
 
 
@@ -123,6 +124,13 @@ const AppContent: React.FC = () => {
       sortConfig,
       handleSort,
     } = useFiltrosYOrden(pedidos);
+
+    // Hook para navegación a pedidos desde reportes
+    const { navigateToPedido } = useNavigateToPedido({
+        setView,
+        setSelectedPedido,
+        setHighlightedPedidoId
+    });
 
 
     useEffect(() => {
@@ -564,7 +572,11 @@ const AppContent: React.FC = () => {
                     if (currentUserRole !== 'Administrador') {
                     return <div className="p-8 text-center text-red-500">Acceso denegado.</div>;
                     }
-                return <ReportView pedidos={pedidos} auditLog={auditLog} />;
+                return <ReportView 
+                    pedidos={pedidos} 
+                    auditLog={auditLog} 
+                    onNavigateToPedido={navigateToPedido}
+                />;
             case 'permissions-debug':
                 return <PermissionsDebug />;
             default:

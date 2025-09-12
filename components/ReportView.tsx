@@ -7,9 +7,10 @@ import LineChart from './LineChart';
 interface ReportViewProps {
     pedidos: Pedido[];
     auditLog: AuditEntry[];
+    onNavigateToPedido?: (pedido: Pedido) => void;
 }
 
-const ReportView: React.FC<ReportViewProps> = ({ pedidos, auditLog }) => {
+const ReportView: React.FC<ReportViewProps> = ({ pedidos, auditLog, onNavigateToPedido }) => {
     const urgentPedidos = useMemo(() => {
         return pedidos.filter(p => p.prioridad === Prioridad.URGENTE && p.etapaActual !== Etapa.ARCHIVADO && p.etapaActual !== Etapa.COMPLETADO);
     }, [pedidos]);
@@ -301,9 +302,24 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, auditLog }) => {
                         {urgentPedidos.length > 0 ? (
                              <ul className="space-y-3">
                                 {urgentPedidos.map(p => (
-                                    <li key={p.id} className="p-3 bg-gray-100 dark:bg-gray-700 rounded-md">
+                                    <li 
+                                        key={p.id} 
+                                        className="p-3 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer transition-colors duration-150"
+                                        onClick={() => onNavigateToPedido?.(p)}
+                                        role="button"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                onNavigateToPedido?.(p);
+                                            }
+                                        }}
+                                    >
                                         <p className="font-semibold text-gray-800 dark:text-white">{p.numeroPedidoCliente}</p>
                                         <p className="text-sm text-gray-600 dark:text-gray-300">{p.cliente}</p>
+                                        <p className="text-xs text-red-500 dark:text-red-400 mt-1">
+                                            ⚡ Urgente - Haz clic para navegar al pedido
+                                        </p>
                                     </li>
                                 ))}
                             </ul>
