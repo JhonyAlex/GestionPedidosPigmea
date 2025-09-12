@@ -52,14 +52,13 @@ const CommentInput: React.FC<CommentInputProps> = ({
 
   return (
     <div className="border-t-2 border-gray-200 dark:border-gray-600 
-                    bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-750 
-                    shadow-lg">
+                    bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-750">
       <form onSubmit={handleSubmit} className="p-4">
         <div className="flex items-start space-x-3">
           <div className="flex-shrink-0">
             <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 
                             rounded-full flex items-center justify-center text-white text-sm font-semibold 
-                            shadow-md border border-indigo-400 dark:border-purple-500">
+                            border border-indigo-400 dark:border-purple-500">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
               </svg>
@@ -81,10 +80,10 @@ const CommentInput: React.FC<CommentInputProps> = ({
                 w-full px-4 py-3 rounded-xl resize-none 
                 border-2 transition-all duration-200
                 ${isExpanded 
-                  ? 'border-blue-500 dark:border-blue-400 shadow-md' 
-                  : 'border-gray-300 dark:border-gray-600 shadow-sm hover:shadow-md'
+                  ? 'border-blue-500 dark:border-blue-400' 
+                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                 }
-                focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:shadow-md
+                focus:outline-none focus:border-blue-500 dark:focus:border-blue-400
                 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
                 placeholder-gray-500 dark:placeholder-gray-400
                 ${disabled || isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}
@@ -135,9 +134,9 @@ const CommentInput: React.FC<CommentInputProps> = ({
                     disabled={!message.trim() || isSubmitting || message.length > 500}
                     className={`
                       px-5 py-2 text-sm font-semibold rounded-xl transition-all duration-200
-                      flex items-center space-x-2 shadow-md hover:shadow-lg
+                      flex items-center space-x-2
                       ${!message.trim() || isSubmitting || message.length > 500
-                        ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed shadow-sm'
+                        ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                         : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800'
                       }
                     `}

@@ -220,7 +220,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                 <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50">
             <div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg shadow-2xl w-full max-w-7xl max-h-[90vh] flex flex-col">
                 {/* Header */}
-                <div className="flex justify-between items-center p-8 pb-4">
+                <div className="flex justify-between items-center p-8 pb-4 bg-gradient-to-r from-slate-50 to-gray-100 dark:from-gray-800 dark:to-gray-750 rounded-t-lg border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-4">
                         <h2 className="text-3xl font-bold">Pedido: {pedido.numeroPedidoCliente}</h2>
                         <div className="flex items-center gap-2">
@@ -238,7 +238,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                     </div>
                     <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-3xl leading-none">&times;</button>
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 px-8 pb-6 font-mono">Registro Interno: {pedido.numeroRegistro}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 px-8 pb-6 font-mono bg-gradient-to-r from-slate-50 to-gray-100 dark:from-gray-800 dark:to-gray-750 border-b border-gray-200 dark:border-gray-700">Registro Interno: {pedido.numeroRegistro}</p>
                 
                 {/* Two-column layout */}
                 <div className="flex flex-1 min-h-0">
@@ -520,8 +520,8 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                     </div>
                     
                     {/* Comments panel - Right column */}
-                    <div className="w-80 xl:w-96 border-l-2 border-gray-300 dark:border-gray-600 flex flex-col bg-gray-50 dark:bg-gray-900 shadow-inner">
-                        <div className="p-4 border-b-2 border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800/80 shadow-sm">
+                    <div className="w-80 xl:w-96 border-l-2 border-gray-300 dark:border-gray-600 flex flex-col bg-gray-50 dark:bg-gray-900">
+                        <div className="p-4 border-b-2 border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800/80">
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                 <div className="p-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
                                     <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -534,13 +534,13 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                 Actividades y comentarios en tiempo real
                             </p>
                         </div>
-                        <div className="flex-1 min-h-0 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
+                        <div className="flex-1 bg-white dark:bg-gray-800">
                             <CommentSystem
                                 pedidoId={pedido.id}
                                 currentUserId={user?.id}
                                 currentUserRole={user?.role}
                                 canDeleteComments={false}
-                                className="h-full border-0 shadow-none"
+                                className="h-full"
                             />
                         </div>
                     </div>
