@@ -24,6 +24,23 @@ export const useComments = (pedidoId: string): UseCommentsReturn => {
   const { user } = useAuth();
   const { emitActivity } = useWebSocket(user?.id || '', (user?.role as UserRole) || 'Visualizador');
 
+  // Helper para obtener headers de autenticación
+  const getAuthHeaders = useCallback(() => {
+    if (!user?.id) return {};
+    
+    const headers: any = {
+      'x-user-id': String(user.id),
+      'x-user-role': user.role || 'OPERATOR'
+    };
+    
+    // Enviar también los permisos del usuario
+    if (user.permissions && Array.isArray(user.permissions)) {
+      headers['x-user-permissions'] = JSON.stringify(user.permissions);
+    }
+    
+    return headers;
+  }, [user]);
+
   // Cargar comentarios inicial
   const loadComments = useCallback(async () => {
     try {
@@ -32,8 +49,8 @@ export const useComments = (pedidoId: string): UseCommentsReturn => {
       
       const response = await fetch(`/api/comments/${pedidoId}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
         }
       });
 
@@ -49,7 +66,7 @@ export const useComments = (pedidoId: string): UseCommentsReturn => {
     } finally {
       setIsLoading(false);
     }
-  }, [pedidoId]);
+  }, [pedidoId, getAuthHeaders]);
 
   // Agregar comentario
   const addComment = useCallback(async (message: string) => {
@@ -64,8 +81,8 @@ export const useComments = (pedidoId: string): UseCommentsReturn => {
       const response = await fetch('/api/comments', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
         },
         body: JSON.stringify({
           pedidoId,
@@ -112,7 +129,7 @@ export const useComments = (pedidoId: string): UseCommentsReturn => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [user, pedidoId, emitActivity]);
+  }, [user, pedidoId, emitActivity, getAuthHeaders]);
 
   // Eliminar comentario
   const deleteComment = useCallback(async (commentId: string) => {
@@ -126,8 +143,8 @@ export const useComments = (pedidoId: string): UseCommentsReturn => {
       const response = await fetch(`/api/comments/${commentId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
         }
       });
 
@@ -151,7 +168,7 @@ export const useComments = (pedidoId: string): UseCommentsReturn => {
       setError(err instanceof Error ? err.message : 'Error al eliminar el comentario');
       throw err;
     }
-  }, [user, pedidoId, emitActivity]);
+  }, [user, pedidoId, emitActivity, getAuthHeaders]);
 
   // Refrescar comentarios
   const refreshComments = useCallback(async () => {
