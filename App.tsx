@@ -488,8 +488,26 @@ const AppContent: React.FC = () => {
 
                         <section>
                             <h2 className="text-3xl font-extrabold text-gray-800 dark:text-white mb-4 border-l-4 border-indigo-500 pl-4">Post-Impresión</h2>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-6">
-                                {KANBAN_FUNNELS.POST_IMPRESION.stages.map(etapaId => (
+                            
+                            {/* Primera fila: 5 etapas (Laminación SL2, Laminación NEXUS, Rebobinado S2DT, Rebobinado PROSLIT, Rebobinado TEMAC) */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-6">
+                                {KANBAN_FUNNELS.POST_IMPRESION.stages.slice(0, 5).map(etapaId => (
+                                    <KanbanColumn
+                                        key={etapaId}
+                                        etapa={ETAPAS[etapaId]}
+                                        pedidos={activePedidos.filter(p => p.etapaActual === etapaId)}
+                                        onSelectPedido={setSelectedPedido}
+                                        onArchiveToggle={handleArchiveToggle}
+                                        currentUserRole={currentUserRole}
+                                        onAdvanceStage={handleAdvanceStage}
+                                        highlightedPedidoId={highlightedPedidoId}
+                                    />
+                                ))}
+                            </div>
+
+                            {/* Segunda fila: 2 etapas (Perforación MIC, Perforación MAC) */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                {KANBAN_FUNNELS.POST_IMPRESION.stages.slice(5, 7).map(etapaId => (
                                     <KanbanColumn
                                         key={etapaId}
                                         etapa={ETAPAS[etapaId]}

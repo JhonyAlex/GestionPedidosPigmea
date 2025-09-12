@@ -21,7 +21,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ etapa, pedidos, onSelectPed
         <div className="flex flex-col bg-gray-200 dark:bg-gray-800 rounded-xl shadow-lg h-full">
             <div className={`px-4 py-2 rounded-t-xl ${etapa.color}`}>
                 <div className="flex justify-center items-center gap-2">
-                    <h2 className="text-lg font-bold text-white">{etapa.title}</h2>
+                    <h2 className="text-lg font-medium text-white">{etapa.title}</h2>
                     <span className="bg-black bg-opacity-25 text-white text-xs font-bold px-2 py-0.5 rounded-full">
                         {pedidos.length}
                     </span>

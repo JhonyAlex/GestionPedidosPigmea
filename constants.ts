@@ -54,13 +54,13 @@ export const KANBAN_FUNNELS = {
     POST_IMPRESION: {
         title: 'Post-Impresión',
         stages: [
-            Etapa.POST_LAMINACION_SL2,
-            Etapa.POST_LAMINACION_NEXUS,
-            Etapa.POST_REBOBINADO_S2DT,
-            Etapa.POST_REBOBINADO_PROSLIT,
-            Etapa.POST_PERFORACION_MIC,
-            Etapa.POST_PERFORACION_MAC,
-            Etapa.POST_REBOBINADO_TEMAC,
+            Etapa.POST_LAMINACION_SL2,      // Fila 1
+            Etapa.POST_LAMINACION_NEXUS,    // Fila 1
+            Etapa.POST_REBOBINADO_S2DT,     // Fila 1
+            Etapa.POST_REBOBINADO_PROSLIT,  // Fila 1
+            Etapa.POST_REBOBINADO_TEMAC,    // Fila 1
+            Etapa.POST_PERFORACION_MIC,     // Fila 2
+            Etapa.POST_PERFORACION_MAC,     // Fila 2
         ],
     },
 };
