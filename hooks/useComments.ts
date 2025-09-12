@@ -100,20 +100,9 @@ export const useComments = (pedidoId: string): UseCommentsReturn => {
 
       const data = await response.json();
       
-      // Agregar comentario al estado local inmediatamente
-      const newComment: Comment = {
-        id: data.comment.id,
-        pedidoId,
-        userId: user.id,
-        userRole: user.role,
-        username: user.username,
-        message: message.trim(),
-        timestamp: new Date(data.comment.timestamp),
-        isSystemMessage: false
-      };
+      // NO agregar comentario al estado local - dejar que WebSocket lo maneje
+      // Esto evita duplicados y asegura que todos los usuarios vean lo mismo
       
-      setComments(prev => [...prev, newComment]);
-
       // Emitir actividad para WebSocket
       emitActivity(`Comentario agregado al pedido ${pedidoId}`, {
         pedidoId,
