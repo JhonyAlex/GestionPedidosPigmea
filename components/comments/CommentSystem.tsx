@@ -80,16 +80,18 @@ const CommentSystem: React.FC<CommentSystemProps> = ({
         </div>
       </div>
 
-      {/* Comments List */}
-      <CommentList
-        comments={comments}
-        currentUserId={currentUserId}
-        canDeleteComments={canDeleteComments}
-        onDeleteComment={handleDeleteComment}
-        isLoading={isLoading}
-      />
+      {/* Comments List - Takes all available space */}
+      <div className="flex-1 min-h-0">
+        <CommentList
+          comments={comments}
+          currentUserId={currentUserId}
+          canDeleteComments={canDeleteComments}
+          onDeleteComment={handleDeleteComment}
+          isLoading={isLoading}
+        />
+      </div>
 
-      {/* Input */}
+      {/* Input - Fixed at bottom */}
       {currentUserId && currentUserRole && (
         <CommentInput
           onSubmit={handleAddComment}
