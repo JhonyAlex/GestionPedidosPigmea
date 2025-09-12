@@ -17,8 +17,8 @@ interface HeaderProps {
     activeFilters: { priority: string, stage: string, dateField: keyof Pedido };
     selectedStages: string[];
     onStageToggle: (stageId: string) => void;
-    antivahoFilter: 'all' | 'con' | 'sin';
-    onAntivahoFilterChange: (value: 'all' | 'con' | 'sin') => void;
+    antivahoFilter: 'all' | 'con' | 'sin' | 'hecho';
+    onAntivahoFilterChange: (value: 'all' | 'con' | 'sin' | 'hecho') => void;
     onDateFilterChange: (value: DateFilterOption) => void;
     activeDateFilter: DateFilterOption;
     customDateRange: { start: string; end: string };
@@ -261,12 +261,13 @@ const Header: React.FC<HeaderProps> = ({
                         <select
                             name="antivaho"
                             value={antivahoFilter}
-                            onChange={(e) => onAntivahoFilterChange(e.target.value as 'all' | 'con' | 'sin')}
+                            onChange={(e) => onAntivahoFilterChange(e.target.value as 'all' | 'con' | 'sin' | 'hecho')}
                             className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         >
                             <option value="all">Antivaho (Todos)</option>
                             <option value="con">Con Antivaho</option>
                             <option value="sin">Sin Antivaho</option>
+                            <option value="hecho">Antivaho Hecho</option>
                         </select>
                         
                         {/* Filtro de etapas como select para vistas que no son lista */}

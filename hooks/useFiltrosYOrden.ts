@@ -8,14 +8,14 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filters, setFilters] = useState<{ priority: string, stage: string, dateField: DateField }>({ priority: 'all', stage: 'all', dateField: 'fechaCreacion' });
     const [selectedStages, setSelectedStages] = useState<string[]>([]);
-    const [antivahoFilter, setAntivahoFilter] = useState<'all' | 'con' | 'sin'>('all');
+    const [antivahoFilter, setAntivahoFilter] = useState<'all' | 'con' | 'sin' | 'hecho'>('all');
     const [dateFilter, setDateFilter] = useState<DateFilterOption>('all');
     const [customDateRange, setCustomDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
     const [sortConfig, setSortConfig] = useState<{ key: keyof Pedido, direction: 'ascending' | 'descending' }>({ key: 'prioridad', direction: 'ascending' });
 
     const handleFilterChange = (name: string, value: string) => setFilters(prev => ({ ...prev, [name]: value }));
     const handleDateFilterChange = (value: string) => setDateFilter(value as DateFilterOption);
-    const handleAntivahoFilterChange = (value: 'all' | 'con' | 'sin') => setAntivahoFilter(value);
+    const handleAntivahoFilterChange = (value: 'all' | 'con' | 'sin' | 'hecho') => setAntivahoFilter(value);
     const handleCustomDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setCustomDateRange(prev => ({ ...prev, [name]: value }));
@@ -108,7 +108,8 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
             const dateMatch = !dateRange || (dateToFilter && new Date(dateToFilter) >= dateRange.start && new Date(dateToFilter) <= dateRange.end);
             const antivahoMatch = antivahoFilter === 'all' || 
                 (antivahoFilter === 'con' && p.antivaho === true) || 
-                (antivahoFilter === 'sin' && p.antivaho !== true);
+                (antivahoFilter === 'sin' && p.antivaho !== true) ||
+                (antivahoFilter === 'hecho' && p.antivaho === true && p.antivahoRealizado === true);
 
             return searchTermMatch && priorityMatch && stageMatch && dateMatch && antivahoMatch;
         });
