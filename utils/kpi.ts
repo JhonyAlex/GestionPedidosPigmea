@@ -275,13 +275,20 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
                 data.cell.styles.halign = 'center';
             }
 
-            // Highlight 'Capa' cell if layer is 3 or more
             const pedido = pedidos[data.row.index];
-            if (pedido && data.section === 'body' && data.column.index === 4) { // "Capa" column
-                const capaValue = pedido.capa;
-                const numericCapa = parseInt(capaValue, 10);
-                if (!isNaN(numericCapa) && numericCapa >= 3) {
-                    data.cell.styles.fillColor = [254, 202, 202]; // light red (red-200)
+            if (pedido && data.section === 'body') {
+                // Color red text for "Cliente / # Pedido" column when priority is urgent
+                if (data.column.index === 1 && pedido.prioridad === 'Urgente') { // "Cliente / # Pedido" column
+                    data.cell.styles.textColor = [139, 0, 0]; // Dark red color
+                }
+
+                // Highlight 'Capa' cell if layer is 3 or more
+                if (data.column.index === 4) { // "Capa" column
+                    const capaValue = pedido.capa;
+                    const numericCapa = parseInt(capaValue, 10);
+                    if (!isNaN(numericCapa) && numericCapa >= 3) {
+                        data.cell.styles.fillColor = [254, 202, 202]; // light red (red-200)
+                    }
                 }
             }
         },
