@@ -97,6 +97,7 @@ const Header: React.FC<HeaderProps> = ({
         { id: 'kanban', label: 'Producción', adminOnly: false },
         { id: 'list', label: 'Lista', adminOnly: false },
         { id: 'archived', label: 'Archivados', adminOnly: false },
+        { id: 'directorio', label: 'Clientes', adminOnly: false },
         { id: 'report', label: 'Reportes', adminOnly: !canViewReports() },
         { id: 'permissions-debug', label: '🔍 Debug Permisos', adminOnly: !canAccessAdmin() },
     ];

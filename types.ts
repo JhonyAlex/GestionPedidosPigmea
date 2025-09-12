@@ -54,6 +54,50 @@ export interface HistorialEntry {
 }
 
 
+export interface Cliente {
+    id: string;
+    nombre: string;
+    contacto?: string;
+    email?: string;
+    telefono?: string;
+    ciudad?: string;
+    direccion?: string;
+    pais?: string;
+    codigoPostal?: string;
+    fechaRegistro: string; // ISO 8601 date string
+    ultimaActividad?: string; // ISO 8601 date string
+    activo: boolean;
+    notas?: string;
+    // Campos calculados/estadísticas
+    totalPedidos?: number;
+    pedidosActivos?: number;
+    volumenTotal?: number; // metros totales
+    montoTotal?: number; // valor monetario si aplica
+    productosMasSolicitados?: string[];
+}
+
+export interface EstadisticasCliente {
+    totalPedidos: number;
+    pedidosActivos: number;
+    pedidosCompletados: number;
+    volumenTotalMetros: number;
+    tiempoPromedioProduccion: number; // en días
+    productosMasSolicitados: Array<{
+        producto: string;
+        cantidad: number;
+        volumenTotal: number;
+    }>;
+    tendenciaMensual: Array<{
+        mes: string;
+        pedidos: number;
+        volumen: number;
+    }>;
+    etapasMasComunes: Array<{
+        etapa: string;
+        frecuencia: number;
+    }>;
+}
+
 export interface Pedido {
     id: string;
     secuenciaPedido: number;
@@ -114,7 +158,7 @@ export interface KanbanEtapa {
     color: string;
 }
 
-export type ViewType = 'preparacion' | 'kanban' | 'list' | 'archived' | 'report' | 'permissions-debug';
+export type ViewType = 'preparacion' | 'kanban' | 'list' | 'archived' | 'report' | 'directorio' | 'permissions-debug';
 
 export type UserRole = 'Administrador' | 'Supervisor' | 'Operador' | 'Visualizador';
 
