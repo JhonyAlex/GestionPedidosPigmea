@@ -11,6 +11,8 @@ export interface WebSocketEvents {
   'user-disconnected': (data: { userId: string; connectedUsers: ConnectedUser[] }) => void;
   'users-list': (data: { connectedUsers: ConnectedUser[] }) => void;
   'user-activity-received': (data: { userId: string; userRole: UserRole; activity: string; data?: any }) => void;
+  'comment:added': (comment: any) => void;
+  'comment:deleted': (data: { commentId: string; pedidoId: string }) => void;
   
   // Eventos del cliente
   authenticate: (data: { userId: string; userRole: UserRole }) => void;
@@ -49,6 +51,10 @@ class WebSocketService {
   private pedidoCreatedListeners: ((pedido: Pedido) => void)[] = [];
   private pedidoUpdatedListeners: ((pedido: Pedido) => void)[] = [];
   private pedidoDeletedListeners: ((pedidoId: string) => void)[] = [];
+  
+  // Callbacks para comentarios en tiempo real
+  private commentAddedListeners: ((comment: any) => void)[] = [];
+  private commentDeletedListeners: ((data: { commentId: string; pedidoId: string }) => void)[] = [];
 
   constructor() {
     // Suprimir errores específicos de extensiones del navegador
@@ -393,6 +399,17 @@ class WebSocketService {
     this.socket.on('user-activity-received', (data) => {
       // Puedes manejar actividades específicas aquí
     });
+
+    // Eventos de comentarios
+    this.socket.on('comment:added', (comment) => {
+      console.log('💬 Nuevo comentario:', comment);
+      this.notifyCommentAddedListeners(comment);
+    });
+
+    this.socket.on('comment:deleted', (data) => {
+      console.log('🗑️ Comentario eliminado:', data);
+      this.notifyCommentDeletedListeners(data);
+    });
   }
 
   // Métodos públicos
@@ -507,6 +524,26 @@ class WebSocketService {
     };
   }
 
+  public subscribeToCommentAdded(callback: (comment: any) => void): () => void {
+    this.commentAddedListeners.push(callback);
+    return () => {
+      const index = this.commentAddedListeners.indexOf(callback);
+      if (index > -1) {
+        this.commentAddedListeners.splice(index, 1);
+      }
+    };
+  }
+
+  public subscribeToCommentDeleted(callback: (data: { commentId: string; pedidoId: string }) => void): () => void {
+    this.commentDeletedListeners.push(callback);
+    return () => {
+      const index = this.commentDeletedListeners.indexOf(callback);
+      if (index > -1) {
+        this.commentDeletedListeners.splice(index, 1);
+      }
+    };
+  }
+
   // Métodos para notificar cambios
   private notifyPedidoCreatedListeners(pedido: Pedido) {
     this.pedidoCreatedListeners.forEach(listener => listener(pedido));
@@ -518,6 +555,14 @@ class WebSocketService {
 
   private notifyPedidoDeletedListeners(pedidoId: string) {
     this.pedidoDeletedListeners.forEach(listener => listener(pedidoId));
+  }
+
+  private notifyCommentAddedListeners(comment: any) {
+    this.commentAddedListeners.forEach(listener => listener(comment));
+  }
+
+  private notifyCommentDeletedListeners(data: { commentId: string; pedidoId: string }) {
+    this.commentDeletedListeners.forEach(listener => listener(data));
   }
 
   public disconnect() {
@@ -538,6 +583,8 @@ class WebSocketService {
     this.pedidoCreatedListeners = [];
     this.pedidoUpdatedListeners = [];
     this.pedidoDeletedListeners = [];
+    this.commentAddedListeners = [];
+    this.commentDeletedListeners = [];
     this.notificationListeners = [];
     this.connectedUsersListeners = [];
   }

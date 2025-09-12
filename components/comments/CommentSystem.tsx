@@ -1,6 +1,9 @@
 import React from 'react';
 import { Comment, CommentFormData } from '../../types/comments';
 import { useComments } from '../../hooks/useComments';
+import { useWebSocket } from '../../hooks/useWebSocket';
+import { useAuth } from '../../contexts/AuthContext';
+import { UserRole } from '../../types';
 import CommentList from './CommentList';
 import CommentInput from './CommentInput';
 
@@ -19,6 +22,9 @@ const CommentSystem: React.FC<CommentSystemProps> = ({
   canDeleteComments = false,
   className = ''
 }) => {
+  const { user } = useAuth();
+  const { isConnected } = useWebSocket(user?.id || '', (user?.role as UserRole) || 'Visualizador');
+  
   const { 
     comments, 
     isLoading, 
@@ -62,8 +68,10 @@ const CommentSystem: React.FC<CommentSystemProps> = ({
           
           {/* Indicador de conexión */}
           <div className="flex items-center space-x-1">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-xs text-gray-500">En tiempo real</span>
+            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>
+            <span className="text-xs text-gray-500">
+              {isConnected ? 'En tiempo real' : 'Desconectado'}
+            </span>
           </div>
         </div>
       </div>

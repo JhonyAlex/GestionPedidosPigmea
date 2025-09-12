@@ -3,12 +3,7 @@ import { Comment, CommentSocketEvents } from '../types/comments';
 import { useWebSocket } from './useWebSocket';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../types';
-
-declare global {
-  interface Window {
-    socket?: any;
-  }
-}
+import webSocketService from '../services/websocket';
 
 interface UseCommentsReturn {
   comments: Comment[];
@@ -172,37 +167,35 @@ export const useComments = (pedidoId: string): UseCommentsReturn => {
 
   // Escuchar eventos de WebSocket para comentarios en tiempo real
   useEffect(() => {
-    if (!window.socket) return;
-
-    const handleCommentAdded = (data: CommentSocketEvents['commentAdded']) => {
-      if (data.pedidoId === pedidoId) {
+    const handleCommentAdded = (comment: Comment) => {
+      if (comment.pedidoId === pedidoId) {
         setComments(prev => {
           // Evitar duplicados
-          const exists = prev.some(comment => comment.id === data.id);
+          const exists = prev.some(c => c.id === comment.id);
           if (exists) return prev;
           
           return [...prev, {
-            ...data,
-            timestamp: new Date(data.timestamp)
+            ...comment,
+            timestamp: new Date(comment.timestamp)
           }];
         });
       }
     };
 
-    const handleCommentDeleted = (data: CommentSocketEvents['commentDeleted']) => {
+    const handleCommentDeleted = (data: { commentId: string; pedidoId: string }) => {
       if (data.pedidoId === pedidoId) {
         setComments(prev => prev.filter(comment => comment.id !== data.commentId));
       }
     };
 
-    // Suscribirse a eventos de WebSocket
-    window.socket.on('comment:added', handleCommentAdded);
-    window.socket.on('comment:deleted', handleCommentDeleted);
+    // Suscribirse a eventos usando el servicio WebSocket
+    const unsubscribeAdded = webSocketService.subscribeToCommentAdded(handleCommentAdded);
+    const unsubscribeDeleted = webSocketService.subscribeToCommentDeleted(handleCommentDeleted);
 
     // Cleanup
     return () => {
-      window.socket?.off('comment:added', handleCommentAdded);
-      window.socket?.off('comment:deleted', handleCommentDeleted);
+      unsubscribeAdded();
+      unsubscribeDeleted();
     };
   }, [pedidoId]);
 
