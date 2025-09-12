@@ -1,7 +1,6 @@
 import React from 'react';
 import { Comment, CommentFormData } from '../../types/comments';
 import { useComments } from '../../hooks/useComments';
-import { useWebSocket } from '../../hooks/useWebSocket';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserRole } from '../../types';
 import CommentList from './CommentList';
@@ -13,6 +12,7 @@ interface CommentSystemProps {
   currentUserRole?: string;
   canDeleteComments?: boolean;
   className?: string;
+  isConnected?: boolean;
 }
 
 const CommentSystem: React.FC<CommentSystemProps> = ({ 
@@ -20,10 +20,10 @@ const CommentSystem: React.FC<CommentSystemProps> = ({
   currentUserId, 
   currentUserRole,
   canDeleteComments = false,
-  className = ''
+  className = '',
+  isConnected = false
 }) => {
   const { user } = useAuth();
-  const { isConnected } = useWebSocket(user?.id || '', (user?.role as UserRole) || 'Visualizador');
   
   const { 
     comments, 

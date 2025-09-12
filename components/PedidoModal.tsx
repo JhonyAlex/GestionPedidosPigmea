@@ -40,9 +40,10 @@ interface PedidoModalProps {
     onAdvanceStage: (pedido: Pedido) => void;
     onSendToPrint: (pedido: Pedido) => void;
     onUpdateEtapa: (pedido: Pedido, newEtapa: Etapa) => void;
+    isConnected?: boolean;
 }
 
-const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onArchiveToggle, currentUserRole, onAdvanceStage, onSendToPrint, onDuplicate, onDelete, onUpdateEtapa }) => {
+const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onArchiveToggle, currentUserRole, onAdvanceStage, onSendToPrint, onDuplicate, onDelete, onUpdateEtapa, isConnected = false }) => {
     const [formData, setFormData] = useState<Pedido>(JSON.parse(JSON.stringify(pedido)));
     const [activeTab, setActiveTab] = useState<'detalles' | 'historial'>('detalles');
     const [showConfirmClose, setShowConfirmClose] = useState(false);
@@ -598,6 +599,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                 currentUserRole={user?.role}
                                 canDeleteComments={false}
                                 className="h-full"
+                                isConnected={isConnected}
                             />
                         </div>
                     </div>

@@ -621,6 +621,7 @@ const AppContent: React.FC = () => {
                         onAdvanceStage={handleAdvanceStage}
                         onSendToPrint={setPedidoToSend}
                         onUpdateEtapa={handleUpdatePedidoEtapa}
+                        isConnected={isConnected}
                     />
                 )}
                 {isAddModalOpen && (

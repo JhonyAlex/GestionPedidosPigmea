@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Comment, CommentSocketEvents } from '../types/comments';
-import { useWebSocket } from './useWebSocket';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../types';
 import webSocketService from '../services/websocket';
@@ -22,7 +21,6 @@ export const useComments = (pedidoId: string): UseCommentsReturn => {
   const [error, setError] = useState<string | null>(null);
   
   const { user } = useAuth();
-  const { emitActivity } = useWebSocket(user?.id || '', (user?.role as UserRole) || 'Visualizador');
 
   // Helper para obtener headers de autenticación
   const getAuthHeaders = useCallback(() => {
@@ -104,7 +102,7 @@ export const useComments = (pedidoId: string): UseCommentsReturn => {
       // Esto evita duplicados y asegura que todos los usuarios vean lo mismo
       
       // Emitir actividad para WebSocket
-      emitActivity(`Comentario agregado al pedido ${pedidoId}`, {
+      webSocketService.emitActivity(`Comentario agregado al pedido ${pedidoId}`, {
         pedidoId,
         commentId: data.comment.id,
         message: message.trim(),
@@ -118,7 +116,7 @@ export const useComments = (pedidoId: string): UseCommentsReturn => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [user, pedidoId, emitActivity, getAuthHeaders]);
+  }, [user, pedidoId, getAuthHeaders]);
 
   // Eliminar comentario
   const deleteComment = useCallback(async (commentId: string) => {
@@ -146,7 +144,7 @@ export const useComments = (pedidoId: string): UseCommentsReturn => {
       setComments(prev => prev.filter(comment => comment.id !== commentId));
 
       // Emitir actividad para WebSocket
-      emitActivity(`Comentario eliminado del pedido ${pedidoId}`, {
+      webSocketService.emitActivity(`Comentario eliminado del pedido ${pedidoId}`, {
         pedidoId,
         commentId,
         action: 'comment_deleted'
@@ -157,7 +155,7 @@ export const useComments = (pedidoId: string): UseCommentsReturn => {
       setError(err instanceof Error ? err.message : 'Error al eliminar el comentario');
       throw err;
     }
-  }, [user, pedidoId, emitActivity, getAuthHeaders]);
+  }, [user, pedidoId, getAuthHeaders]);
 
   // Refrescar comentarios
   const refreshComments = useCallback(async () => {
