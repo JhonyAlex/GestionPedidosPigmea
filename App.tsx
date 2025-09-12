@@ -123,6 +123,7 @@ const AppContent: React.FC = () => {
       handleCustomDateChange,
       sortConfig,
       handleSort,
+      updateSortConfig,
     } = useFiltrosYOrden(pedidos);
 
     // Hook para navegación a pedidos desde reportes
@@ -206,7 +207,7 @@ const AppContent: React.FC = () => {
           setPedidos,
           handleSavePedido: handleSavePedidoLogic,
           handleUpdatePedidoEtapa,
-          setSortConfig: handleSort as any // Re-sorting is handled inside the hook, but we need to pass a function
+          setSortConfig: updateSortConfig // Usar la función correcta para establecer el sorting
         });
 
     }, [pedidos, currentUserRole, processedPedidos, generarEntradaHistorial, logAction, handleSort, setPedidos, handleSavePedidoLogic, handleUpdatePedidoEtapa]);

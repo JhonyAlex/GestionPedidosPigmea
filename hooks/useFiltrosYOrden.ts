@@ -24,6 +24,11 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'ascending' ? 'descending' : 'ascending' }));
     }, []);
 
+    // Función específica para cambiar la configuración de sorting (útil para reordenamiento manual)
+    const updateSortConfig = useCallback((key: keyof Pedido, direction: 'ascending' | 'descending' = 'ascending') => {
+        setSortConfig({ key, direction });
+    }, []);
+
     const handleStageToggle = useCallback((stageId: string) => {
         if (stageId === 'all') {
             setSelectedStages([]);
@@ -179,5 +184,6 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         handleCustomDateChange,
         sortConfig,
         handleSort,
+        updateSortConfig,
     };
 };

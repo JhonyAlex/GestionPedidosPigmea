@@ -16,7 +16,7 @@ type ProcessDragEndArgs = {
   setPedidos: React.Dispatch<React.SetStateAction<Pedido[]>>;
   handleSavePedido: (pedido: Pedido) => Promise<any>;
   handleUpdatePedidoEtapa: (pedido: Pedido, newEtapa: Etapa) => Promise<void>;
-  setSortConfig: (key: keyof Pedido) => void;
+  setSortConfig: (key: keyof Pedido, direction?: 'ascending' | 'descending') => void;
 };
 
 export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> => {
@@ -82,8 +82,8 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
         // Actualizar el estado inmediatamente
         setPedidos(newPedidosList);
         
-        // NO llamar a setSortConfig para evitar re-sorting automático
-        // setSortConfig('orden'); // ← Esto causaba el problema
+        // Cambiar el sorting a 'orden' para mantener el orden manual
+        setSortConfig('orden', 'ascending');
         
         logAction(`Pedido ${movedPedido.numeroPedidoCliente} reordenado manualmente en la lista.`, movedPedido.id);
         
