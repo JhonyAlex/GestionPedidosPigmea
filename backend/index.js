@@ -10,6 +10,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcryptjs');
+const { v5: uuidv5 } = require('uuid');
 const PostgreSQLClient = require('./postgres-client');
 const { requirePermission, requireAnyPermission } = require('./middleware/permissions');
 const { authenticateUser, requireAuth, extractUserFromRequest } = require('./middleware/auth');
@@ -1684,6 +1685,18 @@ app.post('/api/comments', requireAuth, async (req, res) => {
         const finalUserRole = userFromToken.role || userRole;
         const finalUsername = userFromToken.username || username;
 
+        // Validar que finalUserId es un UUID válido, si no, generar uno temporal
+        let validUserId = finalUserId;
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        
+        if (!uuidRegex.test(finalUserId)) {
+            // Si no es un UUID válido (ej: "4" en modo desarrollo), usar un UUID temporal basado en el ID
+            // Esto asegura consistencia para el mismo usuario sin generar conflictos
+            const namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'; // UUID namespace estándar
+            validUserId = uuidv5(String(finalUserId), namespace);
+            console.log(`🔄 Convirtiendo user_id "${finalUserId}" a UUID: ${validUserId}`);
+        }
+
         const result = await dbClient.pool.query(`
             INSERT INTO pedido_comments (
                 pedido_id, user_id, user_role, username, message, is_system_message
@@ -1697,7 +1710,7 @@ app.post('/api/comments', requireAuth, async (req, res) => {
                 message,
                 is_system_message as "isSystemMessage",
                 created_at as "timestamp"
-        `, [pedidoId, finalUserId, finalUserRole, finalUsername, message.trim()]);
+        `, [pedidoId, validUserId, finalUserRole, finalUsername, message.trim()]);
 
         const newComment = result.rows[0];
 
@@ -1709,7 +1722,7 @@ app.post('/api/comments', requireAuth, async (req, res) => {
             INSERT INTO audit_logs (user_id, username, action, module, details, ip_address, user_agent, affected_resource)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         `, [
-            finalUserId,
+            validUserId,
             finalUsername,
             'COMMENT_CREATED',
             'COMMENTS',
