@@ -51,7 +51,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
   };
 
   return (
-    <div className="border-t border-gray-200 bg-white">
+    <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
       <form onSubmit={handleSubmit} className="p-4">
         <div className="flex items-start space-x-3">
           <div className="flex-shrink-0">
@@ -74,10 +74,12 @@ const CommentInput: React.FC<CommentInputProps> = ({
                 disabled={disabled || isSubmitting}
                 rows={isExpanded ? 3 : 1}
                 className={`
-                  w-full px-3 py-2 border border-gray-300 rounded-lg 
+                  w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
                   focus:ring-2 focus:ring-blue-500 focus:border-transparent 
                   resize-none transition-all duration-200
-                  ${disabled || isSubmitting ? 'bg-gray-50 cursor-not-allowed' : 'bg-white'}
+                  bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+                  placeholder-gray-500 dark:placeholder-gray-400
+                  ${disabled || isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}
                   ${isExpanded ? 'min-h-[80px]' : 'min-h-[40px]'}
                 `}
                 style={{ 
@@ -88,7 +90,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
               
               {/* Contador de caracteres */}
               {isExpanded && (
-                <div className="absolute bottom-2 right-2 text-xs text-gray-400">
+                <div className="absolute bottom-2 right-2 text-xs text-gray-400 dark:text-gray-500">
                   {message.length}/500
                 </div>
               )}
@@ -97,10 +99,10 @@ const CommentInput: React.FC<CommentInputProps> = ({
             {/* Botones de acción */}
             {isExpanded && (
               <div className="flex items-center justify-between mt-3">
-                <div className="text-xs text-gray-500">
-                  <kbd className="px-1 py-0.5 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded">
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  <kbd className="px-1 py-0.5 text-xs font-semibold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded">
                     Enter
-                  </kbd> para enviar, <kbd className="px-1 py-0.5 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded">
+                  </kbd> para enviar, <kbd className="px-1 py-0.5 text-xs font-semibold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded">
                     Shift+Enter
                   </kbd> para nueva línea
                 </div>
@@ -112,7 +114,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
                       setMessage('');
                       setIsExpanded(false);
                     }}
-                    className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                    className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
                     disabled={isSubmitting}
                   >
                     Cancelar
@@ -125,8 +127,8 @@ const CommentInput: React.FC<CommentInputProps> = ({
                       px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200
                       flex items-center space-x-1
                       ${!message.trim() || isSubmitting || message.length > 500
-                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+                        ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                        : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800'
                       }
                     `}
                   >

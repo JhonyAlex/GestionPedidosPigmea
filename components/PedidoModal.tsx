@@ -44,7 +44,7 @@ interface PedidoModalProps {
 
 const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onArchiveToggle, currentUserRole, onAdvanceStage, onSendToPrint, onDuplicate, onDelete, onUpdateEtapa }) => {
     const [formData, setFormData] = useState<Pedido>(JSON.parse(JSON.stringify(pedido)));
-    const [activeTab, setActiveTab] = useState<'detalles' | 'historial' | 'comentarios'>('detalles');
+    const [activeTab, setActiveTab] = useState<'detalles' | 'historial'>('detalles');
     const { user } = useAuth();
     const { 
         canEditPedidos, 
@@ -217,9 +217,10 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     }, [pedido.historial]);
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50">
-            <div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg shadow-2xl p-8 w-full max-w-5xl max-h-[90vh] flex flex-col">
-                <div className="flex justify-between items-center mb-1">
+                <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50">
+            <div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg shadow-2xl w-full max-w-7xl max-h-[90vh] flex flex-col">
+                {/* Header */}
+                <div className="flex justify-between items-center p-8 pb-4">
                     <div className="flex items-center gap-4">
                         <h2 className="text-3xl font-bold">Pedido: {pedido.numeroPedidoCliente}</h2>
                         <div className="flex items-center gap-2">
@@ -237,34 +238,29 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                     </div>
                     <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-3xl leading-none">&times;</button>
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 font-mono">Registro Interno: {pedido.numeroRegistro}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 px-8 pb-6 font-mono">Registro Interno: {pedido.numeroRegistro}</p>
                 
-                <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
-                    <button 
-                        onClick={() => setActiveTab('detalles')} 
-                        className={`py-2 px-4 text-sm font-medium transition-colors duration-200 ${activeTab === 'detalles' ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-                    >
-                        Detalles del Pedido
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('historial')} 
-                        className={`py-2 px-4 text-sm font-medium transition-colors duration-200 ${activeTab === 'historial' ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-                    >
-                        Historial de Actividad
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('comentarios')} 
-                        className={`py-2 px-4 text-sm font-medium transition-colors duration-200 flex items-center space-x-1 ${activeTab === 'comentarios' ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                        <span>Comentarios</span>
-                    </button>
-                </div>
+                {/* Two-column layout */}
+                <div className="flex flex-1 min-h-0">
+                    {/* Main content - Left column */}
+                    <div className="flex-1 flex flex-col min-w-0">
+                        <div className="flex border-b border-gray-200 dark:border-gray-700 px-8">
+                            <button 
+                                onClick={() => setActiveTab('detalles')} 
+                                className={`py-2 px-4 text-sm font-medium transition-colors duration-200 ${activeTab === 'detalles' ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                            >
+                                Detalles del Pedido
+                            </button>
+                            <button 
+                                onClick={() => setActiveTab('historial')} 
+                                className={`py-2 px-4 text-sm font-medium transition-colors duration-200 ${activeTab === 'historial' ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                            >
+                                Historial de Actividad
+                            </button>
+                        </div>
 
-                <div className="overflow-y-auto flex-grow">
-                    {activeTab === 'detalles' && (
+                        <div className="overflow-y-auto flex-1 p-8">
+                            {activeTab === 'detalles' && (
                         <>
                          {pedido.etapaActual !== Etapa.PREPARACION && (
                              <div className="bg-gray-100 dark:bg-gray-900/50 rounded-lg p-4 mb-6">
@@ -519,19 +515,33 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                 ))}
                             </ul>
                         </div>
-                    )}
+                            )}
+                        </div>
+                    </div>
                     
-                    {activeTab === 'comentarios' && (
-                        <div className="h-full">
+                    {/* Comments panel - Right column */}
+                    <div className="w-80 xl:w-96 border-l border-gray-200 dark:border-gray-700 flex flex-col bg-gray-50 dark:bg-gray-900/30">
+                        <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                </svg>
+                                Comentarios
+                            </h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                Actividades y comentarios en tiempo real
+                            </p>
+                        </div>
+                        <div className="flex-1 min-h-0 bg-white dark:bg-gray-800">
                             <CommentSystem
                                 pedidoId={pedido.id}
                                 currentUserId={user?.id}
                                 currentUserRole={user?.role}
-                                canDeleteComments={user?.role === 'Administrador' || user?.role === 'Supervisor'}
+                                canDeleteComments={false}
                                 className="h-full border-0 shadow-none"
                             />
                         </div>
-                    )}
+                    </div>
                 </div>
             </div>
         </div>
