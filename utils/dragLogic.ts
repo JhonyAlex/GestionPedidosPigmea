@@ -40,40 +40,66 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
 
     // Handle reordering in the list view (session only)
     if (destination.droppableId === 'pedido-list' && source.droppableId === 'pedido-list') {
-        const currentActivePedidos = processedPedidos.filter(p => p.etapaActual !== Etapa.ARCHIVADO && p.etapaActual !== Etapa.PREPARACION);
+        // Obtener solo los pedidos activos (los que se muestran en la lista)
+        const currentActivePedidos = processedPedidos.filter(p => 
+            p.etapaActual !== Etapa.ARCHIVADO && p.etapaActual !== Etapa.PREPARACION
+        );
 
+        // Crear una copia para reordenar
         const reorderedActivePedidos = Array.from(currentActivePedidos);
-        const [removed] = reorderedActivePedidos.splice(source.index, 1);
-        reorderedActivePedidos.splice(destination.index, 0, removed);
+        const [movedPedido] = reorderedActivePedidos.splice(source.index, 1);
+        reorderedActivePedidos.splice(destination.index, 0, movedPedido);
 
-        const newOrderMap = new Map(reorderedActivePedidos.map((p, index) => [p.id, index]));
-        const maxActiveOrder = reorderedActivePedidos.length;
+        // Crear un mapa de orden actualizado solo para los pedidos activos
+        const updatedOrders = new Map<string, number>();
+        reorderedActivePedidos.forEach((pedido, index) => {
+            updatedOrders.set(pedido.id, index);
+        });
 
-        const newFullPedidosList = pedidos.map(p => {
-            const newOrder = newOrderMap.get(p.id);
-            if (newOrder !== undefined) {
-                const originalPedido = pedidos.find(op => op.id === p.id);
-                if (originalPedido && originalPedido.orden !== newOrder) {
-                    const historialEntry = generarEntradaHistorial(currentUserRole, 'Reordenamiento Manual', `Orden cambiado de ${originalPedido.orden} a ${newOrder}.`);
-                    return { ...p, orden: newOrder, historial: [...p.historial, historialEntry] };
-                }
-                return { ...p, orden: newOrder };
-            } else {
-                return { ...p, orden: (p.orden || 0) + maxActiveOrder };
+        // Actualizar solo los pedidos que realmente cambiaron de orden
+        const newPedidosList = pedidos.map(pedido => {
+            const newOrder = updatedOrders.get(pedido.id);
+            if (newOrder !== undefined && newOrder !== pedido.orden) {
+                const historialEntry = generarEntradaHistorial(
+                    currentUserRole, 
+                    'Reordenamiento Manual', 
+                    `Orden cambiado de ${pedido.orden || 'sin orden'} a ${newOrder}.`
+                );
+                return { 
+                    ...pedido, 
+                    orden: newOrder, 
+                    historial: [...pedido.historial, historialEntry] 
+                };
             }
+            // Para pedidos activos que no cambiaron de orden, mantener su orden actual
+            if (newOrder !== undefined) {
+                return { ...pedido, orden: newOrder };
+            }
+            // Para pedidos no activos, mantener su orden original
+            return pedido;
         });
 
-        setPedidos(newFullPedidosList);
-        setSortConfig('orden');
-        logAction('Pedidos reordenados manualmente en la vista de lista.');
+        // Actualizar el estado inmediatamente
+        setPedidos(newPedidosList);
         
-        // Actualización en background
-        const changedPedidos = newFullPedidosList.filter(p => newOrderMap.has(p.id));
-        Promise.all(changedPedidos.map(p => store.update(p))).catch(error => {
-            console.error("Error al actualizar pedidos reordenados:", error);
-            // Opcional: revertir cambios en caso de error
-            setPedidos(pedidos);
+        // NO llamar a setSortConfig para evitar re-sorting automático
+        // setSortConfig('orden'); // ← Esto causaba el problema
+        
+        logAction(`Pedido ${movedPedido.numeroPedidoCliente} reordenado manualmente en la lista.`, movedPedido.id);
+        
+        // Actualización en background (solo para los pedidos que cambiaron)
+        const changedPedidos = newPedidosList.filter(p => {
+            const originalPedido = pedidos.find(op => op.id === p.id);
+            return originalPedido && originalPedido.orden !== p.orden;
         });
+        
+        if (changedPedidos.length > 0) {
+            Promise.all(changedPedidos.map(p => store.update(p))).catch(error => {
+                console.error("Error al actualizar pedidos reordenados:", error);
+                // En caso de error, no revertir automáticamente para evitar confusión
+                // El usuario puede recargar la página si es necesario
+            });
+        }
 
         return;
     }
