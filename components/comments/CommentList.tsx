@@ -108,23 +108,25 @@ const CommentList: React.FC<CommentListProps> = ({
   return (
     <div 
       ref={scrollRef}
-      className="flex-1 overflow-y-auto px-4 py-2 space-y-1 max-h-96"
-      style={{
-        scrollbarWidth: 'thin',
-        scrollbarColor: '#CBD5E0 transparent'
-      }}
+      className="flex-1 overflow-y-auto px-4 py-2 space-y-1 max-h-96 
+                 scrollbar-thin scrollbar-track-gray-100 dark:scrollbar-track-gray-800 
+                 scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 
+                 hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-500
+                 scrollbar-track-rounded-full scrollbar-thumb-rounded-full"
     >
       {Object.entries(groupedComments)
         .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
         .map(([dateString, dayComments]) => (
           <div key={dateString}>
             {/* Separador de fecha */}
-            <div className="flex items-center justify-center py-2">
-              <div className="flex-1 border-t border-gray-200 dark:border-gray-600"></div>
-              <div className="px-3 text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800">
+            <div className="flex items-center justify-center py-3">
+              <div className="flex-1 border-t-2 border-gray-200 dark:border-gray-600"></div>
+              <div className="px-4 py-1 text-xs font-bold text-gray-600 dark:text-gray-400 
+                            bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-800 
+                            border border-gray-200 dark:border-gray-600 rounded-full shadow-sm">
                 {formatDateSeparator(dateString)}
               </div>
-              <div className="flex-1 border-t border-gray-200 dark:border-gray-600"></div>
+              <div className="flex-1 border-t-2 border-gray-200 dark:border-gray-600"></div>
             </div>
             
             {/* Comentarios del día */}

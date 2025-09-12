@@ -51,11 +51,15 @@ const CommentInput: React.FC<CommentInputProps> = ({
   };
 
   return (
-    <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+    <div className="border-t-2 border-gray-200 dark:border-gray-600 
+                    bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-750 
+                    shadow-lg">
       <form onSubmit={handleSubmit} className="p-4">
         <div className="flex items-start space-x-3">
           <div className="flex-shrink-0">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 
+                            rounded-full flex items-center justify-center text-white text-sm font-semibold 
+                            shadow-md border border-indigo-400 dark:border-purple-500">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
               </svg>
@@ -73,15 +77,19 @@ const CommentInput: React.FC<CommentInputProps> = ({
                 placeholder={placeholder}
                 disabled={disabled || isSubmitting}
                 rows={isExpanded ? 3 : 1}
-                className={`
-                  w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
-                  focus:ring-2 focus:ring-blue-500 focus:border-transparent 
-                  resize-none transition-all duration-200
-                  bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
-                  placeholder-gray-500 dark:placeholder-gray-400
-                  ${disabled || isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}
-                  ${isExpanded ? 'min-h-[80px]' : 'min-h-[40px]'}
-                `}
+                              className={`
+                w-full px-4 py-3 rounded-xl resize-none 
+                border-2 transition-all duration-200
+                ${isExpanded 
+                  ? 'border-blue-500 dark:border-blue-400 shadow-md' 
+                  : 'border-gray-300 dark:border-gray-600 shadow-sm hover:shadow-md'
+                }
+                focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:shadow-md
+                bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+                placeholder-gray-500 dark:placeholder-gray-400
+                ${disabled || isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}
+                ${isExpanded ? 'min-h-[80px]' : 'min-h-[40px]'}
+              `}
                 style={{ 
                   scrollbarWidth: 'thin',
                   scrollbarColor: '#CBD5E0 transparent'
@@ -100,9 +108,11 @@ const CommentInput: React.FC<CommentInputProps> = ({
             {isExpanded && (
               <div className="flex items-center justify-between mt-3">
                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                  <kbd className="px-1 py-0.5 text-xs font-semibold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded">
+                  <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 dark:text-gray-200 
+                                 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded">
                     Enter
-                  </kbd> para enviar, <kbd className="px-1 py-0.5 text-xs font-semibold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded">
+                  </kbd> para enviar, <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 dark:text-gray-200 
+                                              bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded">
                     Shift+Enter
                   </kbd> para nueva línea
                 </div>
@@ -124,11 +134,11 @@ const CommentInput: React.FC<CommentInputProps> = ({
                     type="submit"
                     disabled={!message.trim() || isSubmitting || message.length > 500}
                     className={`
-                      px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200
-                      flex items-center space-x-1
+                      px-5 py-2 text-sm font-semibold rounded-xl transition-all duration-200
+                      flex items-center space-x-2 shadow-md hover:shadow-lg
                       ${!message.trim() || isSubmitting || message.length > 500
-                        ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800'
+                        ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed shadow-sm'
+                        : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800'
                       }
                     `}
                   >

@@ -61,15 +61,20 @@ const CommentSystem: React.FC<CommentSystemProps> = ({
       )}
 
       {/* Connection status indicator */}
-      <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+      <div className="px-4 py-3 border-b-2 border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-850 shadow-sm">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-600 dark:text-gray-400">
-            {comments.length} {comments.length === 1 ? 'comentario' : 'comentarios'}
-          </span>
-          <div className="flex items-center space-x-1">
-            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              {isConnected ? 'En tiempo real' : 'Desconectado'}
+          <div className="flex items-center space-x-2">
+            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+              {comments.length} {comments.length === 1 ? 'comentario' : 'comentarios'}
+            </span>
+            {comments.length > 0 && (
+              <div className="h-1 w-1 bg-gray-400 dark:bg-gray-500 rounded-full"></div>
+            )}
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className={`w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse shadow-sm shadow-green-300 dark:shadow-green-700' : 'bg-red-500 shadow-sm shadow-red-300 dark:shadow-red-700'}`}></div>
+            <span className={`text-xs font-medium ${isConnected ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+              {isConnected ? 'Conectado' : 'Desconectado'}
             </span>
           </div>
         </div>
