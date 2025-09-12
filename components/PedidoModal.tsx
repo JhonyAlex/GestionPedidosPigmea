@@ -45,6 +45,7 @@ interface PedidoModalProps {
 const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onArchiveToggle, currentUserRole, onAdvanceStage, onSendToPrint, onDuplicate, onDelete, onUpdateEtapa }) => {
     const [formData, setFormData] = useState<Pedido>(JSON.parse(JSON.stringify(pedido)));
     const [activeTab, setActiveTab] = useState<'detalles' | 'historial'>('detalles');
+    const [showConfirmClose, setShowConfirmClose] = useState(false);
     const { user } = useAuth();
     const { 
         canEditPedidos, 
@@ -56,10 +57,60 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     // Determinar si el modal es de solo lectura basado en permisos
     const isReadOnly = !canEditPedidos();
 
+    // Función para detectar si hay cambios no guardados
+    const hasUnsavedChanges = useMemo(() => {
+        return JSON.stringify(formData) !== JSON.stringify(pedido);
+    }, [formData, pedido]);
+
     useEffect(() => {
         // Hacer una copia profunda para evitar modificar el pedido original
         setFormData(JSON.parse(JSON.stringify(pedido)));
     }, [pedido]);
+
+    // Manejar tecla Escape
+    useEffect(() => {
+        const handleEscapeKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && !showConfirmClose) {
+                handleClose();
+            }
+        };
+
+        document.addEventListener('keydown', handleEscapeKey);
+        return () => {
+            document.removeEventListener('keydown', handleEscapeKey);
+        };
+    }, [hasUnsavedChanges, isReadOnly, showConfirmClose]);
+
+    // Manejar el cierre del modal con confirmación si hay cambios
+    const handleClose = () => {
+        if (hasUnsavedChanges && !isReadOnly) {
+            setShowConfirmClose(true);
+        } else {
+            onClose();
+        }
+    };
+
+    // Guardar cambios y cerrar
+    const handleSaveAndClose = () => {
+        const metrosValue = Number(formData.metros);
+        if (isNaN(metrosValue) || metrosValue <= 0) {
+            alert('Metros debe ser un número mayor a 0.');
+            return;
+        }
+        onSave(formData);
+        onClose();
+    };
+
+    // Descartar cambios y cerrar
+    const handleDiscardAndClose = () => {
+        setShowConfirmClose(false);
+        onClose();
+    };
+
+    // Cancelar el cierre
+    const handleCancelClose = () => {
+        setShowConfirmClose(false);
+    };
 
     const handleDataChange = (field: keyof Pedido, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -236,7 +287,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                             )}
                         </div>
                     </div>
-                    <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-3xl leading-none">&times;</button>
+                    <button onClick={handleClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-3xl leading-none">&times;</button>
                 </div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 px-8 pb-6 font-mono bg-gradient-to-r from-slate-50 to-gray-100 dark:from-gray-800 dark:to-gray-750 border-b border-gray-200 dark:border-gray-700">Registro Interno: {pedido.numeroRegistro}</p>
                 
@@ -465,7 +516,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                 )}
                             
                                 <div className="flex gap-4">
-                                    <button type="button" onClick={onClose} className="bg-gray-500 hover:bg-gray-400 text-white dark:bg-gray-600 dark:hover:bg-gray-500 font-bold py-2 px-4 rounded transition-colors duration-200">Cancelar</button>
+                                    <button type="button" onClick={handleClose} className="bg-gray-500 hover:bg-gray-400 text-white dark:bg-gray-600 dark:hover:bg-gray-500 font-bold py-2 px-4 rounded transition-colors duration-200">Cancelar</button>
                                     {!isReadOnly && (
                                         <>
                                             {canMovePedidos() && canAdvance && (
@@ -473,7 +524,13 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                     {advanceButtonTitle}
                                                 </button>
                                             )}
-                                            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200">Guardar Cambios</button>
+                                            <button type="submit" className={`font-bold py-2 px-4 rounded transition-colors duration-200 ${
+                                                hasUnsavedChanges 
+                                                    ? 'bg-orange-600 hover:bg-orange-700 text-white' 
+                                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                            }`}>
+                                                {hasUnsavedChanges ? '● Guardar Cambios' : 'Guardar Cambios'}
+                                            </button>
                                         </>
                                     )}
                                 </div>
@@ -546,6 +603,50 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                     </div>
                 </div>
             </div>
+
+            {/* Modal de confirmación para cambios no guardados */}
+            {showConfirmClose && (
+                <div className="fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-60">
+                    <div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg shadow-2xl max-w-md w-full mx-4">
+                        <div className="p-6">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center">
+                                    <svg className="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-semibold">Cambios no guardados</h3>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                                        Tienes cambios sin guardar que se perderán si cierras el modal.
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div className="flex flex-col gap-2">
+                                <button
+                                    onClick={handleSaveAndClose}
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors duration-200"
+                                >
+                                    Guardar y cerrar
+                                </button>
+                                <button
+                                    onClick={handleDiscardAndClose}
+                                    className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors duration-200"
+                                >
+                                    Descartar cambios y cerrar
+                                </button>
+                                <button
+                                    onClick={handleCancelClose}
+                                    className="w-full bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-900 dark:text-white font-medium py-2.5 px-4 rounded-lg transition-colors duration-200"
+                                >
+                                    Continuar editando
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
