@@ -1618,7 +1618,16 @@ app.get('/api/comments/:pedidoId', requireAuth, async (req, res) => {
     try {
         const { pedidoId } = req.params;
         
-        const result = await dbClient.query(`
+        // Verificar si la base de datos está disponible
+        if (!dbClient.isInitialized || !dbClient.pool) {
+            return res.json({
+                success: true,
+                comments: [],
+                message: 'Base de datos no disponible - modo desarrollo'
+            });
+        }
+        
+        const result = await dbClient.pool.query(`
             SELECT 
                 id,
                 pedido_id as "pedidoId",
@@ -1662,12 +1671,20 @@ app.post('/api/comments', requireAuth, async (req, res) => {
             });
         }
 
+        // Verificar si la base de datos está disponible
+        if (!dbClient.isInitialized || !dbClient.pool) {
+            return res.status(503).json({
+                success: false,
+                error: 'Base de datos no disponible - modo desarrollo'
+            });
+        }
+
         // Usar datos del token para seguridad
         const finalUserId = userFromToken.id || userId;
         const finalUserRole = userFromToken.role || userRole;
         const finalUsername = userFromToken.username || username;
 
-        const result = await dbClient.query(`
+        const result = await dbClient.pool.query(`
             INSERT INTO pedido_comments (
                 pedido_id, user_id, user_role, username, message, is_system_message
             ) VALUES ($1, $2, $3, $4, $5, false)
@@ -1688,7 +1705,7 @@ app.post('/api/comments', requireAuth, async (req, res) => {
         io.emit('comment:added', newComment);
 
         // Log de auditoría
-        await dbClient.query(`
+        await dbClient.pool.query(`
             INSERT INTO audit_logs (user_id, username, action, module, details, ip_address, user_agent, affected_resource)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         `, [
@@ -1721,8 +1738,16 @@ app.delete('/api/comments/:commentId', requireAuth, async (req, res) => {
         const { commentId } = req.params;
         const userFromToken = req.user;
 
+        // Verificar si la base de datos está disponible
+        if (!dbClient.isInitialized || !dbClient.pool) {
+            return res.status(503).json({
+                success: false,
+                error: 'Base de datos no disponible - modo desarrollo'
+            });
+        }
+
         // Verificar que el comentario existe y obtener info
-        const commentResult = await dbClient.query(`
+        const commentResult = await dbClient.pool.query(`
             SELECT user_id, pedido_id, username 
             FROM pedido_comments 
             WHERE id = $1
@@ -1748,7 +1773,7 @@ app.delete('/api/comments/:commentId', requireAuth, async (req, res) => {
         }
 
         // Eliminar comentario
-        await dbClient.query('DELETE FROM pedido_comments WHERE id = $1', [commentId]);
+        await dbClient.pool.query('DELETE FROM pedido_comments WHERE id = $1', [commentId]);
 
         // Emitir evento WebSocket
         io.emit('comment:deleted', {
@@ -1757,7 +1782,7 @@ app.delete('/api/comments/:commentId', requireAuth, async (req, res) => {
         });
 
         // Log de auditoría
-        await dbClient.query(`
+        await dbClient.pool.query(`
             INSERT INTO audit_logs (user_id, username, action, module, details, ip_address, user_agent, affected_resource)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         `, [
