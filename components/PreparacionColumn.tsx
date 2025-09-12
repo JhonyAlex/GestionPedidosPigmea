@@ -9,9 +9,10 @@ interface PreparacionColumnProps {
     onSelectPedido: (pedido: Pedido) => void;
     currentUserRole: UserRole;
     onSendToPrint: (pedido: Pedido) => void;
+    highlightedPedidoId?: string | null;
 }
 
-const PreparacionColumn: React.FC<PreparacionColumnProps> = ({ columna, pedidos, onSelectPedido, currentUserRole, onSendToPrint }) => {
+const PreparacionColumn: React.FC<PreparacionColumnProps> = ({ columna, pedidos, onSelectPedido, currentUserRole, onSendToPrint, highlightedPedidoId }) => {
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
@@ -52,6 +53,7 @@ const PreparacionColumn: React.FC<PreparacionColumnProps> = ({ columna, pedidos,
                                                 currentUserRole={currentUserRole} 
                                                 onAdvanceStage={() => {}} // Advance is handled by onSendToPrint
                                                 onSendToPrint={onSendToPrint}
+                                                highlightedPedidoId={highlightedPedidoId}
                                             />
                                         </div>
                                     )}

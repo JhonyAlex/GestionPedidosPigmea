@@ -239,7 +239,7 @@ const AppContent: React.FC = () => {
 
             setTimeout(() => {
                 setHighlightedPedidoId(null);
-            }, 800);
+            }, 5000); // 5 segundos
         }
     };
 
@@ -285,7 +285,7 @@ const AppContent: React.FC = () => {
                         // 3. Set timer to remove highlight from new position
                         setTimeout(() => {
                             setHighlightedPedidoId(null);
-                        }, 800);
+                        }, 5000); // 5 segundos
                     } else {
                         // If the update failed, remove the highlight
                         setHighlightedPedidoId(null);
@@ -342,7 +342,7 @@ const AppContent: React.FC = () => {
             // Remover resaltado
             setTimeout(() => {
                 setHighlightedPedidoId(null);
-            }, 800);
+            }, 5000); // 5 segundos
 
         } catch (error) {
             console.error('Error al reordenar secuencia:', error);
@@ -472,6 +472,7 @@ const AppContent: React.FC = () => {
                         onSelectPedido={setSelectedPedido}
                         currentUserRole={currentUserRole}
                         onSendToPrint={setPedidoToSend}
+                        highlightedPedidoId={highlightedPedidoId}
                     />
                 );
             case 'kanban':

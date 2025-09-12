@@ -64,21 +64,50 @@
         border-color: theme('colors.cyan.200');
       }
     }
-    .card-highlight {
-      animation: glow 1s ease-in-out;
-    }
-    .dark .card-highlight {
-       @keyframes glow-dark {
-        0%, 100% {
-          box-shadow: 0 0 3px theme('colors.indigo.400');
-          border-color: theme('colors.indigo.300');
-        }
-        50% {
-          box-shadow: 0 0 22px 6px theme('colors.indigo.500');
-          border-color: theme('colors.indigo.200');
-        }
+
+    /* Keyframes para tema claro */
+    @keyframes glow-light {
+      0% {
+        background-color: #d1fae5; /* emerald-100 */
+        border-left-color: #10b981; /* emerald-500 */
+        box-shadow: 0 4px 12px #a7f3d0; /* emerald-200 */
       }
-      animation-name: glow-dark;
+      50% {
+        background-color: #ecfdf5; /* emerald-50 */
+        border-left-color: #34d399; /* emerald-400 */
+        box-shadow: 0 2px 8px #d1fae5; /* emerald-100 */
+      }
+      100% {
+        background-color: #ffffff; /* white */
+        box-shadow: 0 1px 3px #e5e7eb; /* gray-200 */
+      }
+    }
+
+    /* Keyframes para tema oscuro */
+    @keyframes glow-dark {
+      0% {
+        background-color: #064e3b; /* emerald-900 */
+        border-left-color: #34d399; /* emerald-400 */
+        box-shadow: 0 4px 12px #065f46; /* emerald-800 */
+      }
+      50% {
+        background-color: #022c22; /* emerald-950 */
+        border-left-color: #10b981; /* emerald-500 */
+        box-shadow: 0 2px 8px #064e3b; /* emerald-900 */
+      }
+      100% {
+        background-color: #111827; /* gray-900 */
+        box-shadow: 0 1px 3px #000000; /* black */
+      }
+    }
+
+    /* Aplicación de la animación */
+    .card-highlight {
+      animation: glow-light 5s ease-out forwards;
+    }
+    
+    .dark .card-highlight {
+      animation: glow-dark 5s ease-out forwards;
     }
   </style>
 <script type="importmap">
