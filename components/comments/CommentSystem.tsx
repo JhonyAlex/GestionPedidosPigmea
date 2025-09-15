@@ -39,10 +39,17 @@ const CommentSystem: React.FC<CommentSystemProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (scrollRef.current) {
-      // En un contenedor flex-col-reverse, el "final" visual es la parte superior del scroll.
-      scrollRef.current.scrollTop = 0;
+      // Para un contenedor flex-col-reverse, el scroll se va al TOPE (0)
+      // para mostrar los elementos que están visualmente ABAJO.
+      // Usamos scrollIntoView en el último elemento para asegurar que sea visible.
+      const lastComment = scrollRef.current.querySelector(':scope > div > div:first-child');
+      if (lastComment) {
+        lastComment.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      } else {
+        scrollRef.current.scrollTop = 0;
+      }
     }
-  }, [comments, isLoading]); // Se activa cuando los comentarios cambian o terminan de cargar
+  }, [comments, isLoading]); // Se ejecuta cuando los comentarios cambian o terminan de cargar
 
   const handleAddComment = async (data: CommentFormData) => {
     if (!currentUserId || !currentUserRole) {
