@@ -29,6 +29,17 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# Ejecutar migraciones de base de datos
+echo "
+
+📜 Ejecutando migraciones de la base de datos..."
+./run-migrations.sh
+
+if [ $? -ne 0 ]; then
+    echo "❌ Error ejecutando las migraciones de la base de datos. Revisa el log anterior."
+    exit 1
+fi
+
 # Configurar archivo .env para producción
 echo "⚙️ Configurando variables de entorno para producción..."
 if [ ! -f ".env" ]; then
