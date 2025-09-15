@@ -122,6 +122,6 @@ const CommentList: React.FC<CommentListProps> = ({
         ))}
     </div>
   );
-});
+};
 
 export default CommentList;
