@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react'; // CORREGIDO: Imports en la parte superior
 import { Comment } from '../../types/comments';
 import CommentItem from './CommentItem';
 
@@ -21,6 +21,14 @@ const CommentList: React.FC<CommentListProps> = ({
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // CORREGIDO: useEffect va aquí, dentro del componente pero antes del return
+  // Efecto para hacer scroll automático al final de la lista
+  useEffect(() => {
+    if (scrollRef.current) {
+      // En un contenedor flex-col-reverse, el "final" visual es la parte superior del scroll.
+      scrollRef.current.scrollTop = 0;
+    }
+  }, [comments]); // Se ejecuta cada vez que la lista de comentarios cambia
 
   if (isLoading) {
     return (
@@ -83,17 +91,16 @@ const CommentList: React.FC<CommentListProps> = ({
 
   return (
     <div 
-      ref={scrollRef}
+      ref={scrollRef} // CORREGIDO: ref asignada aquí
       className="flex flex-col-reverse px-4 py-2 space-y-1"
     >
       {Object.entries(groupedComments)
         .sort(([a], [b]) => new Date(b).getTime() - new Date(a).getTime())
         .map(([dateString, dayComments]) => (
           <div key={dateString}>
-            {/* Comentarios del día - se renderizan antes del separador en el DOM
-                pero visualmente aparecen encima debido a flex-col-reverse */}
             {dayComments
-              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+              // CORREGIDO: Ordenación de más viejo a más nuevo
+              .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
               .map((comment) => (
                 <CommentItem
                   key={comment.id}
