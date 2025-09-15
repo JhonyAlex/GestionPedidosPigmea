@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 echo "=== INICIANDO SCRIPT DE MIGRACIÓN DE BASE DE DATOS ==="
 
