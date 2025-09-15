@@ -6,13 +6,15 @@ interface CommentInputProps {
   isSubmitting?: boolean;
   placeholder?: string;
   disabled?: boolean;
+  onIsTypingChange?: (isTyping: boolean) => void;
 }
 
 const CommentInput: React.FC<CommentInputProps> = ({ 
   onSubmit, 
   isSubmitting = false,
   placeholder = "Escribe un comentario...",
-  disabled = false
+  disabled = false,
+  onIsTypingChange
 }) => {
   const [message, setMessage] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
@@ -42,12 +44,14 @@ const CommentInput: React.FC<CommentInputProps> = ({
 
   const handleFocus = () => {
     setIsExpanded(true);
+    onIsTypingChange?.(true);
   };
 
   const handleBlur = () => {
     if (!message.trim()) {
       setIsExpanded(false);
     }
+    onIsTypingChange?.(false);
   };
 
   return (

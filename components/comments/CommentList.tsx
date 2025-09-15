@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useLayoutEffect, forwardRef, useImperativeHandle } from 'react';
 import { Comment } from '../../types/comments';
 import CommentItem from './CommentItem';
 
@@ -8,43 +8,76 @@ interface CommentListProps {
   canDeleteComments?: boolean;
   onDeleteComment?: (commentId: string) => void;
   isLoading?: boolean;
+  isTyping?: boolean;
 }
 
-const CommentList: React.FC<CommentListProps> = ({ 
+type CommentListHandle = {
+  scrollToBottom: (behavior?: ScrollBehavior) => void;
+};
+
+const CommentList = forwardRef<CommentListHandle, CommentListProps>(({
   comments, 
   currentUserId,
   canDeleteComments = false,
   onDeleteComment,
-  isLoading = false
-}) => {
+  isLoading = false,
+  isTyping = false
+}, ref) => {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const prevCommentsLength = useRef(comments.length);
+  const wasAtBottomRef = useRef(true);
 
-  // Auto-scroll al final cuando se agregan nuevos comentarios
-  useEffect(() => {
-    if (comments.length > prevCommentsLength.current && scrollRef.current) {
-      const scrollContainer = scrollRef.current;
-      scrollContainer.scrollTo({
-        top: scrollContainer.scrollHeight,
-        behavior: 'smooth'
-      });
-    }
-    prevCommentsLength.current = comments.length;
-  }, [comments.length]);
-
-  // Scroll inicial al final al cargar
-  useEffect(() => {
-    if (scrollRef.current && comments.length > 0) {
-      const scrollContainer = scrollRef.current;
-      // Usar setTimeout para asegurar que el DOM se ha renderizado
-      setTimeout(() => {
-        scrollContainer.scrollTo({
-          top: scrollContainer.scrollHeight,
-          behavior: 'auto'
+  useImperativeHandle(ref, () => ({
+    scrollToBottom: (behavior: ScrollBehavior = 'smooth') => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo({
+          top: scrollRef.current.scrollHeight,
+          behavior,
         });
-      }, 100);
+      }
+    },
+  }));
+
+  // On initial load, scroll to the bottom
+  useEffect(() => {
+    if (!isLoading && comments.length > 0 && scrollRef.current) {
+        // We do this to make sure it scrolls after the component is fully rendered
+        // and the initial comments are populated.
+        const timer = setTimeout(() => {
+            if (scrollRef.current) {
+                scrollRef.current.scrollTo({
+                    top: scrollRef.current.scrollHeight,
+                    behavior: 'auto',
+                });
+            }
+        }, 50);
+        return () => clearTimeout(timer);
     }
-  }, [comments.length]);
+  }, [isLoading, comments.length > 0]);
+
+
+  // Before the DOM updates, check if we are at the bottom.
+  useLayoutEffect(() => {
+    const element = scrollRef.current;
+    if (element) {
+      // Use a small tolerance
+      const isAtBottom = element.scrollHeight - element.scrollTop <= element.clientHeight + 50;
+      wasAtBottomRef.current = isAtBottom;
+    }
+  }, [comments]);
+
+  // After the DOM updates, scroll if needed.
+  useEffect(() => {
+    if (wasAtBottomRef.current && !isTyping) {
+        const element = scrollRef.current;
+        if (element) {
+            element.scrollTo({
+                top: element.scrollHeight,
+                behavior: 'smooth',
+            });
+        }
+    }
+  }, [comments, isTyping]);
+
 
   if (isLoading) {
     return (
@@ -145,6 +178,6 @@ const CommentList: React.FC<CommentListProps> = ({
         ))}
     </div>
   );
-};
+});
 
 export default CommentList;

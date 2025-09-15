@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { Comment, CommentFormData } from '../../types/comments';
 import { useComments } from '../../hooks/useComments';
 import { useAuth } from '../../contexts/AuthContext';
@@ -24,6 +24,8 @@ const CommentSystem: React.FC<CommentSystemProps> = ({
   isConnected = false
 }) => {
   const { user } = useAuth();
+  const [isTyping, setIsTyping] = useState(false);
+  const listRef = useRef<{ scrollToBottom: (behavior?: ScrollBehavior) => void }>(null);
   
   const { 
     comments, 
@@ -40,6 +42,7 @@ const CommentSystem: React.FC<CommentSystemProps> = ({
     }
     
     await addComment(data.message);
+    listRef.current?.scrollToBottom('smooth');
   };
 
   const handleDeleteComment = async (commentId: string) => {
@@ -83,11 +86,13 @@ const CommentSystem: React.FC<CommentSystemProps> = ({
       {/* Comments List - Takes all available space */}
       <div className="flex-1 min-h-0">
         <CommentList
+          ref={listRef}
           comments={comments}
           currentUserId={currentUserId}
           canDeleteComments={canDeleteComments}
           onDeleteComment={handleDeleteComment}
           isLoading={isLoading}
+          isTyping={isTyping}
         />
       </div>
 
@@ -98,6 +103,7 @@ const CommentSystem: React.FC<CommentSystemProps> = ({
           isSubmitting={isSubmitting}
           placeholder="Escribe una actividad o comentario..."
           disabled={!currentUserId || !currentUserRole}
+          onIsTypingChange={setIsTyping}
         />
       )}
 
