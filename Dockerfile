@@ -20,14 +20,16 @@ RUN npm install @vitejs/plugin-react vite terser --save-dev
 # Build the frontend (aplicación principal)
 RUN npm run build
 
-# Install psql client for migrations
-RUN apk add --no-cache postgresql-client
+# Install psql client and dos2unix utility
+RUN apk add --no-cache postgresql-client dos2unix
 
 # Copy entrypoint and migration scripts
 COPY backend/run-migrations.sh backend/run-migrations.sh
 COPY backend/docker-entrypoint.sh backend/docker-entrypoint.sh
 
-# Make scripts executable
+# Fix line endings and make scripts executable
+RUN dos2unix backend/run-migrations.sh
+RUN dos2unix backend/docker-entrypoint.sh
 RUN chmod +x backend/run-migrations.sh
 RUN chmod +x backend/docker-entrypoint.sh
 
