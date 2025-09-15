@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react'; // CORREGIDO: Imports en la parte superior
+import React, { useRef, useEffect } from 'react'; // CORREGIDO: Imports movidos a la parte superior
 import { Comment } from '../../types/comments';
 import CommentItem from './CommentItem';
 
@@ -12,7 +12,7 @@ interface CommentListProps {
 }
 
 const CommentList: React.FC<CommentListProps> = ({
-  comments, 
+  comments,
   currentUserId,
   canDeleteComments = false,
   onDeleteComment,
@@ -21,7 +21,6 @@ const CommentList: React.FC<CommentListProps> = ({
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // CORREGIDO: useEffect va aquí, dentro del componente pero antes del return
   // Efecto para hacer scroll automático al final de la lista
   useEffect(() => {
     if (scrollRef.current) {
@@ -54,13 +53,13 @@ const CommentList: React.FC<CommentListProps> = ({
             </svg>
           </div>
           <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">No hay comentarios</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Sé el primero en dejar un comentario sobre este pedido.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Sé el primero en dejar un comentario.</p>
         </div>
       </div>
     );
   }
 
-  // Agrupar comentarios por fecha para mostrar separadores
+  // Agrupar comentarios por fecha
   const groupedComments = comments.reduce((groups: { [key: string]: Comment[] }, comment) => {
     const date = new Date(comment.timestamp).toDateString();
     if (!groups[date]) {
@@ -75,44 +74,33 @@ const CommentList: React.FC<CommentListProps> = ({
     const today = new Date().toDateString();
     const yesterday = new Date(Date.now() - 86400000).toDateString();
     
-    if (dateString === today) {
-      return 'Hoy';
-    } else if (dateString === yesterday) {
-      return 'Ayer';
-    } else {
-      return date.toLocaleDateString('es-ES', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      });
-    }
+    if (dateString === today) return 'Hoy';
+    if (dateString === yesterday) return 'Ayer';
+    return date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
   };
 
   return (
-    <div 
-      ref={scrollRef} // CORREGIDO: ref asignada aquí
-      className="flex flex-col-reverse px-4 py-2 space-y-1"
-    >
+    <div ref={scrollRef} className="flex flex-col-reverse px-4 py-2 space-y-1">
       {Object.entries(groupedComments)
         .sort(([a], [b]) => new Date(b).getTime() - new Date(a).getTime())
         .map(([dateString, dayComments]) => (
-          <div key={dateString}>
-            {dayComments
-              // CORREGIDO: Ordenación de más viejo a más nuevo
-              .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-              .map((comment) => (
-                <CommentItem
-                  key={comment.id}
-                  comment={comment}
-                  currentUserId={currentUserId}
-                  canDeleteComments={canDeleteComments}
-                  onDelete={onDeleteComment}
-                />
-              ))}
-
-            {/* Separador de fecha */}
-            <div className="flex items-center justify-center py-3">
+          <React.Fragment key={dateString}>
+            {/* Primero renderizamos los comentarios del día */}
+            <div className="space-y-1">
+              {dayComments
+                .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+                .map((comment) => (
+                  <CommentItem
+                    key={comment.id}
+                    comment={comment}
+                    currentUserId={currentUserId}
+                    canDeleteComments={canDeleteComments}
+                    onDelete={onDeleteComment}
+                  />
+                ))}
+            </div>
+            {/* Luego, renderizamos el separador de fecha. flex-col-reverse lo pondrá arriba */}
+            <div className="flex items-center justify-center py-3 sticky top-0 bg-white dark:bg-gray-800 z-10">
               <div className="flex-1 border-t-2 border-gray-200 dark:border-gray-600"></div>
               <div className="px-4 py-1 text-xs font-bold text-gray-600 dark:text-gray-400
                             bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-800
@@ -121,7 +109,7 @@ const CommentList: React.FC<CommentListProps> = ({
               </div>
               <div className="flex-1 border-t-2 border-gray-200 dark:border-gray-600"></div>
             </div>
-          </div>
+          </React.Fragment>
         ))}
     </div>
   );

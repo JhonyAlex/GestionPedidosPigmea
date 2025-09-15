@@ -21,10 +21,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!message.trim() || isSubmitting) {
-      return;
-    }
+    if (!message.trim() || isSubmitting) return;
 
     try {
       await onSubmit({ message: message.trim() });
@@ -48,9 +45,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
   };
 
   const handleBlur = () => {
-    if (!message.trim()) {
-      setIsExpanded(false);
-    }
+    if (!message.trim()) setIsExpanded(false);
     onIsTypingChange?.(false);
   };
 
@@ -80,26 +75,15 @@ const CommentInput: React.FC<CommentInputProps> = ({
                 placeholder={placeholder}
                 disabled={disabled || isSubmitting}
                 rows={isExpanded ? 3 : 1}
-                              className={`
-                w-full px-4 py-3 rounded-xl resize-none 
-                border-2 transition-all duration-200
-                ${isExpanded 
-                  ? 'border-blue-500 dark:border-blue-400' 
-                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-                }
-                focus:outline-none focus:border-blue-500 dark:focus:border-blue-400
-                bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
-                placeholder-gray-500 dark:placeholder-gray-400
-                ${disabled || isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}
-                ${isExpanded ? 'min-h-[80px]' : 'min-h-[40px]'}
-              `}
-                style={{ 
-                  scrollbarWidth: 'thin',
-                  scrollbarColor: '#CBD5E0 transparent'
-                }}
+                className={`w-full px-4 py-3 rounded-xl resize-none border-2 transition-all duration-200
+                  ${isExpanded ? 'border-blue-500 dark:border-blue-400' : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}
+                  focus:outline-none focus:border-blue-500 dark:focus:border-blue-400
+                  bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+                  placeholder-gray-500 dark:placeholder-gray-400
+                  ${disabled || isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}
+                  ${isExpanded ? 'min-h-[80px]' : 'min-h-[40px]'}`}
+                style={{ scrollbarWidth: 'thin', scrollbarColor: '#CBD5E0 transparent' }}
               />
-              
-              {/* Contador de caracteres */}
               {isExpanded && (
                 <div className="absolute bottom-2 right-2 text-xs text-gray-400 dark:text-gray-500">
                   {message.length}/500
@@ -107,27 +91,21 @@ const CommentInput: React.FC<CommentInputProps> = ({
               )}
             </div>
             
-            {/* Botones de acción */}
             {isExpanded && (
-              <div className="flex items-center justify-between mt-3">
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 dark:text-gray-200 
-                                 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded">
+              <div className="flex items-center justify-between mt-2">
+                <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                  <kbd className="px-1 py-0.5 text-[9px] font-semibold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded">
                     Enter
-                  </kbd> para enviar, <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 dark:text-gray-200 
-                                              bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded">
+                  </kbd> para enviar, <kbd className="px-1 py-0.5 text-[9px] font-semibold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded">
                     Shift+Enter
                   </kbd> para nueva línea
                 </div>
                 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1">
                   <button
                     type="button"
-                    onClick={() => {
-                      setMessage('');
-                      setIsExpanded(false);
-                    }}
-                    className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                    onClick={() => { setMessage(''); setIsExpanded(false); }}
+                    className="px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
                     disabled={isSubmitting}
                   >
                     Cancelar
@@ -136,14 +114,11 @@ const CommentInput: React.FC<CommentInputProps> = ({
                   <button
                     type="submit"
                     disabled={!message.trim() || isSubmitting || message.length > 500}
-                    className={`
-                      px-5 py-2 text-sm font-semibold rounded-xl transition-all duration-200
-                      flex items-center space-x-2
+                    className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center space-x-2
                       ${!message.trim() || isSubmitting || message.length > 500
                         ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                         : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800'
-                      }
-                    `}
+                      }`}
                   >
                     {isSubmitting ? (
                       <>
