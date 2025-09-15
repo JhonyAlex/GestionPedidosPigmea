@@ -68,6 +68,16 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         setFormData(JSON.parse(JSON.stringify(pedido)));
     }, [pedido]);
 
+    // Efecto para controlar el scroll del body
+    useEffect(() => {
+        const originalStyle = window.getComputedStyle(document.body).overflow;
+        document.body.style.overflow = 'hidden';
+
+        return () => {
+            document.body.style.overflow = originalStyle;
+        };
+    }, []);
+
     // Manejar tecla Escape
     useEffect(() => {
         const handleEscapeKey = (event: KeyboardEvent) => {
