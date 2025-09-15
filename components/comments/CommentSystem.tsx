@@ -82,7 +82,7 @@ const CommentSystem: React.FC<CommentSystemProps> = ({
       </div>
 
       {/* Comments List - Takes all available space */}
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-track-gray-100 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-500">
         <CommentList
           comments={comments}
           currentUserId={currentUserId}

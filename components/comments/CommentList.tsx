@@ -84,11 +84,7 @@ const CommentList: React.FC<CommentListProps> = ({
   return (
     <div 
       ref={scrollRef}
-      className="flex flex-col-reverse h-full w-full overflow-y-auto px-4 py-2 space-y-1
-                 scrollbar-thin scrollbar-track-gray-100 dark:scrollbar-track-gray-800 
-                 scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 
-                 hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-500
-                 scrollbar-track-rounded-full scrollbar-thumb-rounded-full"
+      className="flex flex-col-reverse px-4 py-2 space-y-1"
     >
       {Object.entries(groupedComments)
         .sort(([a], [b]) => new Date(b).getTime() - new Date(a).getTime())
