@@ -6,7 +6,7 @@
 echo "
 
 📜 Ejecutando migraciones de la base de datos..."
-/app/backend/run-migrations.sh
+./run-migrations.sh
 
 # Verificar si las migraciones fallaron
 if [ $? -ne 0 ]; then
