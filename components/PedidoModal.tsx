@@ -602,7 +602,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                 Actividades y comentarios en tiempo real
                             </p>
                         </div>
-                        <div className="flex-1 bg-white dark:bg-gray-800 min-h-0"> 
+                        <div className="flex-1 bg-white dark:bg-gray-800">
                             <CommentSystem
                                 pedidoId={pedido.id}
                                 currentUserId={user?.id}
