@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Cambiar al directorio del script para que las rutas relativas funcionen
+cd "$(dirname "$0")"
+
 # Este script se ejecuta cada vez que el contenedor de Docker se inicia.
 
 # 1. Ejecutar las migraciones de la base de datos
