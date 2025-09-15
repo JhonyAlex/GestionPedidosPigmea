@@ -6,14 +6,14 @@ class PostgreSQLClient {
         this.isInitialized = false;
         
         // Priorizar variables individuales para mejor control y logging
-        if (process.env.POSTGRES_HOST) {
+        if (process.env.DB_HOST || process.env.POSTGRES_HOST) {
             // Configuración de conexión individual
             this.config = {
-                host: process.env.POSTGRES_HOST,
-                port: parseInt(process.env.POSTGRES_PORT) || 5432,
-                database: process.env.POSTGRES_DB,
-                user: process.env.POSTGRES_USER,
-                password: process.env.POSTGRES_PASSWORD,
+                host: process.env.POSTGRES_HOST || process.env.DB_HOST || 'localhost',
+                port: parseInt(process.env.POSTGRES_PORT || process.env.DB_PORT) || 5432,
+                database: process.env.POSTGRES_DB || process.env.DB_NAME || 'gestion_pedidos',
+                user: process.env.POSTGRES_USER || process.env.DB_USER || 'pigmea_user',
+                password: process.env.POSTGRES_PASSWORD || process.env.DB_PASSWORD,
                 ssl: false, // Deshabilitar SSL para conexiones internas de Docker
                 max: 20,
                 idleTimeoutMillis: 30000,
