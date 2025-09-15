@@ -20,8 +20,16 @@ RUN npm install @vitejs/plugin-react vite terser --save-dev
 # Build the frontend (aplicación principal)
 RUN npm run build
 
-# Copy built frontend to backend's dist directory
-RUN cp -r dist backend/
+# Install psql client for migrations
+RUN apk add --no-cache postgresql-client
+
+# Copy entrypoint and migration scripts
+COPY backend/run-migrations.sh backend/run-migrations.sh
+COPY backend/docker-entrypoint.sh backend/docker-entrypoint.sh
+
+# Make scripts executable
+RUN chmod +x backend/run-migrations.sh
+RUN chmod +x backend/docker-entrypoint.sh
 
 # Expose port
 EXPOSE 8080
@@ -29,5 +37,5 @@ EXPOSE 8080
 # Set environment
 ENV PORT=8080
 
-# Start the backend server
-CMD ["node", "backend/index.js"]
+# Set the entrypoint to our custom script
+ENTRYPOINT ["/app/backend/docker-entrypoint.sh"]
