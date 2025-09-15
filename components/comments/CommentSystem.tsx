@@ -25,7 +25,6 @@ const CommentSystem: React.FC<CommentSystemProps> = ({
 }) => {
   const { user } = useAuth();
   const [isTyping, setIsTyping] = useState(false);
-  const listRef = useRef<{ scrollToBottom: (behavior?: ScrollBehavior) => void }>(null);
   
   const { 
     comments, 
@@ -42,7 +41,6 @@ const CommentSystem: React.FC<CommentSystemProps> = ({
     }
     
     await addComment(data.message);
-    listRef.current?.scrollToBottom('smooth');
   };
 
   const handleDeleteComment = async (commentId: string) => {
@@ -86,7 +84,6 @@ const CommentSystem: React.FC<CommentSystemProps> = ({
       {/* Comments List - Takes all available space */}
       <div className="flex-1 min-h-0">
         <CommentList
-          ref={listRef}
           comments={comments}
           currentUserId={currentUserId}
           canDeleteComments={canDeleteComments}
