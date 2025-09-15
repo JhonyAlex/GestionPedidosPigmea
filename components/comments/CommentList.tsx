@@ -84,7 +84,7 @@ const CommentList: React.FC<CommentListProps> = ({
   return (
     <div 
       ref={scrollRef}
-      className="flex flex-col-reverse flex-1 overflow-y-auto px-4 py-2 space-y-1
+      className="flex flex-col-reverse h-full w-full overflow-y-auto px-4 py-2 space-y-1
                  scrollbar-thin scrollbar-track-gray-100 dark:scrollbar-track-gray-800 
                  scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 
                  hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-500
