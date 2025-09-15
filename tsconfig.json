@@ -24,6 +24,16 @@
       ]
     },
     "allowImportingTsExtensions": true,
-    "noEmit": true
+    "noEmit": true,
+    "include": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.d.ts"
+    ],
+    "exclude": [
+      "node_modules",
+      "dist",
+      "backend"
+    ]
   }
 }
