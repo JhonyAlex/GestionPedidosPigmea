@@ -24,14 +24,14 @@ RUN npm run build
 RUN apk add --no-cache postgresql-client dos2unix
 
 # Copy entrypoint and migration scripts
-COPY backend/run-migrations.sh backend/run-migrations.sh
-COPY backend/docker-entrypoint.sh backend/docker-entrypoint.sh
+COPY backend/run-migrations.sh /app/backend/run-migrations.sh
+COPY backend/docker-entrypoint.sh /app/backend/docker-entrypoint.sh
 
 # Fix line endings and make scripts executable
-RUN dos2unix backend/run-migrations.sh
-RUN dos2unix backend/docker-entrypoint.sh
-RUN chmod +x backend/run-migrations.sh
-RUN chmod +x backend/docker-entrypoint.sh
+RUN dos2unix /app/backend/run-migrations.sh
+RUN dos2unix /app/backend/docker-entrypoint.sh
+RUN chmod +x /app/backend/run-migrations.sh
+RUN chmod +x /app/backend/docker-entrypoint.sh
 
 # Expose port
 EXPOSE 8080
