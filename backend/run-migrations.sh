@@ -11,9 +11,9 @@ else
 fi
 
 # Validar que las variables de conexión a la BD están presentes
-if [ -z "$DB_HOST" ] || [ -z "$DB_PORT" ] || [ -z "$DB_NAME" ] || [ -z "$DB_USER" ] || [ -z "$DB_PASSWORD" ]; then
+if [ -z "$POSTGRES_HOST" ] || [ -z "$POSTGRES_PORT" ] || [ -z "$POSTGRES_DB" ] || [ -z "$POSTGRES_USER" ] || [ -z "$POSTGRES_PASSWORD" ]; then
     echo "❌ Error: Faltan una o más variables de entorno de la base de datos."
-    echo "Asegúrate de que DB_HOST, DB_PORT, DB_NAME, DB_USER y DB_PASSWORD estén definidas."
+    echo "Asegúrate de que POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER y POSTGRES_PASSWORD estén definidas."
     exit 1
 fi
 
@@ -38,7 +38,7 @@ apply_migration() {
     echo "🔄 Aplicando migración: $MIGRATION_NAME..."
     
     # Ejecutar el script SQL
-    PGPASSWORD=$DB_PASSWORD psql -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" -U "$DB_USER" -f "$MIGRATION_FILE"
+    PGPASSWORD=$POSTGRES_PASSWORD psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -d "$POSTGRES_DB" -U "$POSTGRES_USER" -f "$MIGRATION_FILE"
     
     if [ $? -eq 0 ]; then
         echo "✅ Migración '$MIGRATION_NAME' aplicada exitosamente."
