@@ -103,12 +103,7 @@ class WebSocketService {
 
   private connect() {
     try {
-      // Detectar la URL del servidor
-      const isDevelopment = typeof window !== 'undefined' && 
-                           (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-      const serverUrl = isDevelopment 
-        ? 'http://localhost:8080' 
-        : window.location.origin;
+      const serverUrl = import.meta.env.VITE_WS_URL || 'http://localhost:8080';
 
       this.socket = io(serverUrl, {
         autoConnect: true,

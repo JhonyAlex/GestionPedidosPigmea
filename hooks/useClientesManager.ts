@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Cliente, EstadisticasCliente } from '../types';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
 export const useClientesManager = () => {
     const [clientes, setClientes] = useState<Cliente[]>([]);
