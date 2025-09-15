@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'; // AÑADIDO: useRef y useEffect
+import React, { useState, useRef, useEffect } from 'react';
 import { Comment, CommentFormData } from '../../types/comments';
 import { useComments } from '../../hooks/useComments';
 import { useAuth } from '../../contexts/AuthContext';
@@ -34,29 +34,58 @@ const CommentSystem: React.FC<CommentSystemProps> = ({
     addComment, 
     deleteComment 
   } = useComments(pedidoId);
-  
-  // AÑADIDO: Lógica de scroll movida aquí
+
+  // Lógica de scroll movida a este componente
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (scrollRef.current) {
+      // En un contenedor flex-col-reverse, el "final" visual es la parte superior del scroll.
       scrollRef.current.scrollTop = 0;
     }
-  }, [comments, isLoading]); // Se ejecuta cuando los comentarios cambian o terminan de cargar
+  }, [comments, isLoading]); // Se activa cuando los comentarios cambian o terminan de cargar
 
   const handleAddComment = async (data: CommentFormData) => {
-    // ... (sin cambios aquí)
+    if (!currentUserId || !currentUserRole) {
+      throw new Error('Usuario no autenticado');
+    }
+    await addComment(data.message);
   };
 
   const handleDeleteComment = async (commentId: string) => {
-    // ... (sin cambios aquí)
+    await deleteComment(commentId);
   };
 
   return (
     <div className={`flex flex-col h-full bg-white dark:bg-gray-800 ${className}`}>
-      {/* ... (sin cambios en la parte de error y estado de conexión) ... */}
+      {error && (
+        <div className="mx-4 mt-4 p-3 bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-800 rounded-md">
+          <div className="flex items-center">
+            <svg className="w-4 h-4 text-red-500 dark:text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <span className="text-sm text-red-700 dark:text-red-300">{error}</span>
+          </div>
+        </div>
+      )}
 
-      {/* AÑADIDO: ref={scrollRef} al div con overflow-y-auto */}
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-track-gray-100 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-500">
+      <div className="px-4 py-3 border-b-2 border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-850 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+              {comments.length} {comments.length === 1 ? 'comentario' : 'comentarios'}
+            </span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className={`w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+            <span className={`text-xs font-medium ${isConnected ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+              {isConnected ? 'Conectado' : 'Desconectado'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Contenedor de la lista de comentarios con el scroll y la ref */}
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-track-gray-100 dark:scrollbar-track-gray-800 scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
         <CommentList
           comments={comments}
           currentUserId={currentUserId}
@@ -67,7 +96,16 @@ const CommentSystem: React.FC<CommentSystemProps> = ({
         />
       </div>
 
-      {/* ... (sin cambios en la parte del input y aviso de auth) ... */}
+      {/* CAMPO DE TEXTO Y BOTÓN (AHORA VISIBLES DE NUEVO) */}
+      {currentUserId && currentUserRole && (
+        <CommentInput
+          onSubmit={handleAddComment}
+          isSubmitting={isSubmitting}
+          placeholder="Escribe una actividad o comentario..."
+          disabled={!currentUserId || !currentUserRole}
+          onIsTypingChange={setIsTyping}
+        />
+      )}
     </div>
   );
 };
