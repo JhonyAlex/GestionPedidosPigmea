@@ -1,43 +1,28 @@
 #!/bin/sh
 
-echo "--- DEBUGGING START ---"
-echo "[DEBUG] Timestamp: $(date)"
-
-echo ""
-echo "[DEBUG] Current directory:"
-pwd
-
-echo ""
-echo "[DEBUG] Contents of /app (WORKDIR):"
-ls -la /app
-
-echo ""
-echo "[DEBUG] Contents of /app/backend:"
-ls -la /app/backend
-
-echo ""
-echo "[DEBUG] PATH variable:"
-echo "$PATH"
-
-echo ""
-echo "--- SCRIPT LOCATION DEBUG ---"
-echo "[DEBUG] Script path (\$0): $0"
-echo "[DEBUG] dirname of script path: $(dirname "$0")"
-
-echo ""
-echo "[DEBUG] Changing directory to script location..."
+# Cambiar al directorio del script para que las rutas relativas funcionen
 cd "$(dirname "$0")"
 
-echo ""
-echo "[DEBUG] New current directory:"
-pwd
+# Este script se ejecuta cada vez que el contenedor de Docker se inicia.
 
-echo ""
-echo "[DEBUG] Contents of new current directory (ls -la .):"
-ls -la .
+# 1. Ejecutar las migraciones de la base de datos
+echo "
 
-echo ""
-echo "--- DEBUGGING END ---"
+📜 Ejecutando migraciones de la base de datos..."
+./run-migrations.sh
 
-# Exit cleanly to allow reading the logs
-exit 0
+# Verificar si las migraciones fallaron
+if [ $? -ne 0 ]; then
+    echo "
+
+❌ LAS MIGRACIONES DE LA BASE DE DATOS FALLARON. EL SERVIDOR NO SE INICIARÁ.
+
+"
+    exit 1
+fi
+
+# 2. Iniciar la aplicación principal (el servidor de Node.js)
+echo "
+
+🚀 Migraciones completadas. Iniciando servidor Node.js..."
+exec node /app/backend/index.js
