@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
-import { Pedido, Etapa, ViewType, UserRole, AuditEntry, Prioridad, EstadoCliché, HistorialEntry, DateField, Cliente, EstadisticasCliente } from './types';
+import { Pedido, Etapa, ViewType, UserRole, AuditEntry, Prioridad, EstadoCliché, HistorialEntry, DateField } from './types';
 import { KANBAN_FUNNELS, ETAPAS, PRIORIDAD_ORDEN, PREPARACION_SUB_ETAPAS_IDS } from './constants';
 import { DateFilterOption } from './utils/date';
 import { calculateTotalProductionTime, generatePedidosPDF } from './utils/kpi';
@@ -22,15 +22,12 @@ import LoginModal from './components/LoginModal';
 import UserInfo from './components/UserInfo';
 import UserManagement from './components/UserManagement';
 import PermissionsDebug from './components/PermissionsDebug';
-import DirectorioView from './components/DirectorioView';
-import ClienteModal from './components/ClienteModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { calcularSiguienteEtapa, estaFueraDeSecuencia } from './utils/etapaLogic';
 import { procesarDragEnd } from './utils/dragLogic';
 import { usePedidosManager } from './hooks/usePedidosManager';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useFiltrosYOrden } from './hooks/useFiltrosYOrden';
-import { useClientesManager } from './hooks/useClientesManager';
 import { useNavigateToPedido } from './hooks/useNavigateToPedido';
 import { auditService } from './services/audit';
 
@@ -73,11 +70,7 @@ const AppContent: React.FC = () => {
         emitActivity,
         subscribeToPedidoCreated,
         subscribeToPedidoUpdated,
-        subscribeToPedidoDeleted,
-        subscribeToClienteCreated,
-        subscribeToClienteUpdated,
-        subscribeToClienteDeleted,
-        subscribeToClienteStatsUpdated
+        subscribeToPedidoDeleted
     } = useWebSocket(currentUserId, currentUserRole);
 
     const generarEntradaHistorial = useCallback((usuarioRole: UserRole, accion: string, detalles: string): HistorialEntry => ({
@@ -86,25 +79,6 @@ const AppContent: React.FC = () => {
         accion,
         detalles
     }), [user]);
-
-    // Hook para gestión de clientes (debe ir antes que pedidos para proporcionar funciones)
-    const {
-        clientes,
-        isLoading: clientesLoading,
-        error: clientesError,
-        findClienteByName,
-        createClienteIfNotExists,
-        updateClienteStats,
-        createCliente,
-        updateCliente,
-        deleteCliente,
-        getClienteEstadisticas,
-        loadClientes,
-        handleClienteCreated,
-        handleClienteUpdated,
-        handleClienteDeleted,
-        handleClienteStatsUpdated
-    } = useClientesManager();
     
     const {
         pedidos,
@@ -129,9 +103,7 @@ const AppContent: React.FC = () => {
         setPedidoToSend,
         subscribeToPedidoCreated,
         subscribeToPedidoUpdated,
-        subscribeToPedidoDeleted,
-        createClienteIfNotExists,
-        updateClienteStats
+        subscribeToPedidoDeleted
     );
 
     const {
@@ -153,10 +125,6 @@ const AppContent: React.FC = () => {
       handleSort,
       updateSortConfig,
     } = useFiltrosYOrden(pedidos);
-
-    // Estados del directorio de clientes
-    const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
-    const [isClienteModalOpen, setIsClienteModalOpen] = useState(false);
 
     // Hook para navegación a pedidos desde reportes
     const { navigateToPedido } = useNavigateToPedido({
@@ -193,31 +161,6 @@ const AppContent: React.FC = () => {
             resetTraditionalStageFilter();
         }
     }, [view, resetStageFilters, resetTraditionalStageFilter, selectedStages.length, filters.stage]);
-    
-    // Configurar suscripciones WebSocket para clientes
-    useEffect(() => {
-        if (isConnected) {
-            console.log('🔗 Configurando suscripciones WebSocket para clientes...');
-            
-            // Configurar handlers para eventos de clientes
-            subscribeToClienteCreated?.(handleClienteCreated);
-            subscribeToClienteUpdated?.(handleClienteUpdated);
-            subscribeToClienteDeleted?.(handleClienteDeleted);
-            subscribeToClienteStatsUpdated?.(handleClienteStatsUpdated);
-            
-            console.log('✅ Suscripciones WebSocket para clientes configuradas');
-        }
-    }, [
-        isConnected,
-        subscribeToClienteCreated,
-        subscribeToClienteUpdated,
-        subscribeToClienteDeleted,
-        subscribeToClienteStatsUpdated,
-        handleClienteCreated,
-        handleClienteUpdated,
-        handleClienteDeleted,
-        handleClienteStatsUpdated
-    ]);
     
     const toggleTheme = () => {
         setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
@@ -314,18 +257,8 @@ const AppContent: React.FC = () => {
     };
 
     const handleAddPedido = async (data: { pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'maquinaImpresion' | 'secuenciaTrabajo' | 'orden' | 'historial'>; secuenciaTrabajo: Etapa[]; }) => {
-        // 🆕 Crear cliente automáticamente si no existe
-        const cliente = createClienteIfNotExists(data.pedidoData.cliente);
-        
         const newPedido = await handleAddPedidoLogic(data);
         if (newPedido) {
-            // Actualizar estadísticas del cliente
-            updateClienteStats(cliente.nombre, {
-                totalPedidos: 1,
-                pedidosActivos: 1,
-                volumenTotal: typeof newPedido.metros === 'number' ? newPedido.metros : parseInt(newPedido.metros as string) || 0
-            });
-            
             logAction(`Nuevo pedido ${newPedido.numeroPedidoCliente} creado.`, newPedido.id);
             setIsAddModalOpen(false);
             // 🚀 Emitir actividad WebSocket
@@ -480,82 +413,6 @@ const AppContent: React.FC = () => {
         }
         setView(newView);
     }
-
-    // Manejadores del directorio de clientes
-    const handleSelectCliente = (cliente: Cliente) => {
-        setSelectedCliente(cliente);
-        setIsClienteModalOpen(true);
-    };
-
-    const handleCreateCliente = () => {
-        // Aquí podríamos abrir un modal de creación de cliente
-        // Por ahora, simplemente navegamos al directorio
-        console.log('Crear nuevo cliente - funcionalidad por implementar');
-    };
-
-    const handleEditCliente = (cliente: Cliente) => {
-        // Por ahora, simplemente loggear para compatibilidad con ClienteModal
-        console.log('Editar cliente desde modal:', cliente.nombre);
-        // TODO: Implementar modal de edición
-    };
-
-    const handleDeleteCliente = async (clienteId: string) => {
-        try {
-            await deleteCliente(clienteId);
-            console.log('✅ Cliente eliminado');
-            setIsClienteModalOpen(false);
-            setSelectedCliente(null);
-        } catch (error) {
-            console.error('❌ Error al eliminar cliente:', error);
-        }
-    };
-
-    // Componente wrapper para ClienteModal que maneja estadísticas async
-    const ClienteModalWrapper: React.FC = () => {
-        const [estadisticas, setEstadisticas] = useState<EstadisticasCliente | null>(null);
-        const [loadingStats, setLoadingStats] = useState(true);
-
-        useEffect(() => {
-            if (selectedCliente) {
-                setLoadingStats(true);
-                getClienteEstadisticas(selectedCliente.id, pedidos)
-                    .then(stats => {
-                        setEstadisticas(stats);
-                        setLoadingStats(false);
-                    })
-                    .catch(error => {
-                        console.error('Error cargando estadísticas:', error);
-                        setLoadingStats(false);
-                    });
-            }
-        }, [selectedCliente?.id, pedidos]);
-
-        if (!selectedCliente) return null;
-
-        return (
-            <ClienteModal
-                cliente={selectedCliente}
-                pedidos={pedidos}
-                estadisticas={estadisticas || {
-                    totalPedidos: 0,
-                    pedidosActivos: 0,
-                    pedidosCompletados: 0,
-                    volumenTotalMetros: 0,
-                    tiempoPromedioProduccion: 0,
-                    productosMasSolicitados: [],
-                    tendenciaMensual: [],
-                    etapasMasComunes: []
-                }}
-                isOpen={isClienteModalOpen}
-                onClose={() => {
-                    setIsClienteModalOpen(false);
-                    setSelectedCliente(null);
-                }}
-                onEdit={handleEditCliente}
-                onDelete={handleDeleteCliente}
-            />
-        );
-    };
     
     const handleExportPDF = () => {
         const pedidosToExport = view === 'list' ? activePedidos : (view === 'archived' ? archivedPedidos : []);
@@ -724,12 +581,6 @@ const AppContent: React.FC = () => {
                 />;
             case 'permissions-debug':
                 return <PermissionsDebug />;
-            case 'directorio':
-                return <DirectorioView
-                    clientes={clientes}
-                    onSelectCliente={handleSelectCliente}
-                    onCreateCliente={handleCreateCliente}
-                />;
             default:
                 return null;
         }
@@ -834,9 +685,6 @@ const AppContent: React.FC = () => {
                 {showUserManagement && (
                     <UserManagement onClose={() => setShowUserManagement(false)} />
                 )}
-
-                {/* 🏢 Cliente Modal */}
-                {isClienteModalOpen && selectedCliente && <ClienteModalWrapper />}
             </div>
         </DragDropContext>
     );

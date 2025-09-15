@@ -12,10 +12,7 @@ export const usePedidosManager = (
     // Agregamos los callbacks de sincronización
     subscribeToPedidoCreated?: (callback: (pedido: Pedido) => void) => () => void,
     subscribeToPedidoUpdated?: (callback: (pedido: Pedido) => void) => () => void,
-    subscribeToPedidoDeleted?: (callback: (pedidoId: string) => void) => () => void,
-    // Agregamos callbacks para gestión de clientes
-    createClienteIfNotExists?: (nombreCliente: string) => any,
-    updateClienteStats?: (nombreCliente: string, incrementos: any) => void
+    subscribeToPedidoDeleted?: (callback: (pedidoId: string) => void) => () => void
 ) => {
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -283,16 +280,6 @@ export const usePedidosManager = (
         const initialStage = Etapa.PREPARACION;
         const maxOrder = Math.max(...pedidos.map(p => p.orden), 0);
 
-        // 🏢 Crear cliente automáticamente si no existe
-        if (pedidoData.cliente && createClienteIfNotExists) {
-            try {
-                createClienteIfNotExists(pedidoData.cliente);
-                console.log(`🆕 Cliente verificado/creado automáticamente: ${pedidoData.cliente}`);
-            } catch (error) {
-                console.warn('❌ Error al crear cliente automáticamente:', error);
-            }
-        }
-
         const tempPedido: Pedido = {
             ...pedidoData,
             id: newId,
@@ -318,22 +305,6 @@ export const usePedidosManager = (
 
         const createdPedido = await store.create(newPedido);
         setPedidos(prev => [createdPedido, ...prev]);
-        
-        // 🏢 Actualizar estadísticas del cliente después de crear el pedido
-        if (createdPedido.cliente && updateClienteStats) {
-            try {
-                updateClienteStats(createdPedido.cliente, {
-                    totalPedidos: 1,
-                    pedidosActivos: 1,
-                    volumenTotal: typeof createdPedido.metros === 'number' ? createdPedido.metros : parseInt(createdPedido.metros) || 0,
-                    montoTotal: 0 // Por ahora, sin montos
-                });
-                console.log(`📊 Estadísticas de cliente actualizadas: ${createdPedido.cliente}`);
-            } catch (error) {
-                console.warn('❌ Error al actualizar estadísticas del cliente:', error);
-            }
-        }
-        
         return createdPedido;
     };
 
