@@ -30,6 +30,7 @@ export const PREPARACION_SUB_ETAPAS_IDS = {
   CLICHE_PENDIENTE: 'CLICHE_PENDIENTE',
   CLICHE_REPETICION: 'CLICHE_REPETICION',
   CLICHE_NUEVO: 'CLICHE_NUEVO',
+  LISTO_PARA_PRODUCCION: 'LISTO_PARA_PRODUCCION',
 } as const;
 
 
@@ -39,6 +40,7 @@ export const PREPARACION_COLUMNS = [
     { id: PREPARACION_SUB_ETAPAS_IDS.CLICHE_PENDIENTE, title: 'Cliché: Pendiente Cliente', color: 'bg-blue-500' },
     { id: PREPARACION_SUB_ETAPAS_IDS.CLICHE_REPETICION, title: 'Cliché: Repetición/Cambio', color: 'bg-indigo-500' },
     { id: PREPARACION_SUB_ETAPAS_IDS.CLICHE_NUEVO, title: 'Cliché: Nuevo', color: 'bg-purple-500' },
+    { id: PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION, title: 'Listo para Producción', color: 'bg-green-500' },
 ];
 
 export const KANBAN_FUNNELS = {

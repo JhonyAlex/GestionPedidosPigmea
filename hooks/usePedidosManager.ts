@@ -533,6 +533,20 @@ export const usePedidosManager = (
         setAntivahoModalState({ isOpen: false, pedido: null, toEtapa: null });
     };
 
+    const handleSetReadyForProduction = async (pedido: Pedido) => {
+        if (pedido.etapaActual !== Etapa.PREPARACION) return;
+
+        const historialEntry = generarEntradaHistorial(currentUserRole, 'Listo para Producción', `Pedido marcado como listo para el proceso productivo.`);
+
+        const updatedPedido = {
+            ...pedido,
+            subEtapaActual: PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION,
+            historial: [...(pedido.historial || []), historialEntry]
+        };
+
+        await handleSavePedido(updatedPedido, false); // generateHistory is false because we are creating a custom history entry
+    };
+
     return {
       pedidos,
       setPedidos,
@@ -550,5 +564,6 @@ export const usePedidosManager = (
       antivahoModalState,
       handleConfirmAntivaho,
       handleCancelAntivaho,
+      handleSetReadyForProduction,
     };
 };
