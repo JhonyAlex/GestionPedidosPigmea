@@ -39,11 +39,12 @@ interface PedidoModalProps {
     currentUserRole: UserRole;
     onAdvanceStage: (pedido: Pedido) => void;
     onSendToPrint: (pedido: Pedido) => void;
+    onSetReadyForProduction: (pedido: Pedido) => void;
     onUpdateEtapa: (pedido: Pedido, newEtapa: Etapa) => void;
     isConnected?: boolean;
 }
 
-const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onArchiveToggle, currentUserRole, onAdvanceStage, onSendToPrint, onDuplicate, onDelete, onUpdateEtapa, isConnected = false }) => {
+const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onArchiveToggle, currentUserRole, onAdvanceStage, onSendToPrint, onDuplicate, onDelete, onSetReadyForProduction, onUpdateEtapa, isConnected = false }) => {
     const [formData, setFormData] = useState<Pedido>(JSON.parse(JSON.stringify(pedido)));
     const [activeTab, setActiveTab] = useState<'detalles' | 'historial'>('detalles');
     const [showConfirmClose, setShowConfirmClose] = useState(false);
@@ -99,6 +100,15 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         } else {
             onClose();
         }
+    };
+
+    const handleReadyForProductionClick = () => {
+        if (!formData.materialDisponible || !formData.clicheDisponible) {
+            alert('Advertencia: No se puede mover el pedido a "Listo para Producción".\n\nCondiciones requeridas:\n- Material Disponible: Activo\n- Cliché Disponible: Activo');
+            return;
+        }
+        onSetReadyForProduction(formData);
+        onClose();
     };
 
     // Guardar cambios y cerrar
@@ -298,7 +308,14 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                             )}
                         </div>
                     </div>
-                    <button onClick={handleClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-3xl leading-none">&times;</button>
+                    <div className="flex items-center gap-4">
+                        {pedido.etapaActual === Etapa.PREPARACION && pedido.subEtapaActual !== 'LISTO_PARA_PRODUCCION' && canMovePedidos() && (
+                            <button onClick={handleReadyForProductionClick} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">
+                                Listo para Producción
+                            </button>
+                        )}
+                        <button onClick={handleClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-3xl leading-none">&times;</button>
+                    </div>
                 </div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 px-8 pb-6 font-mono bg-gradient-to-r from-slate-50 to-gray-100 dark:from-gray-800 dark:to-gray-750 border-b border-gray-200 dark:border-gray-700">Registro Interno: {pedido.numeroRegistro}</p>
                 
