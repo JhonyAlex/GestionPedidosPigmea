@@ -97,6 +97,7 @@ const AppContent: React.FC = () => {
         antivahoModalState,
         handleConfirmAntivaho,
         handleCancelAntivaho,
+        handleSetReadyForProduction,
     } = usePedidosManager(
         currentUserRole, 
         generarEntradaHistorial, 
@@ -472,6 +473,7 @@ const AppContent: React.FC = () => {
                         onSelectPedido={setSelectedPedido}
                         currentUserRole={currentUserRole}
                         onSendToPrint={setPedidoToSend}
+                        onSetReadyForProduction={handleSetReadyForProduction}
                         highlightedPedidoId={highlightedPedidoId}
                     />
                 );
