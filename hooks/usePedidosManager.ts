@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Pedido, UserRole, Etapa, HistorialEntry } from '../types';
 import { store } from '../services/storage';
-import { ETAPAS, KANBAN_FUNNELS } from '../constants';
+import { ETAPAS, KANBAN_FUNNELS, PREPARACION_SUB_ETAPAS_IDS } from '../constants';
 import { determinarEtapaPreparacion } from '../utils/preparacionLogic';
 import AntivahoConfirmationModal from '../components/AntivahoConfirmationModal';
 
@@ -536,15 +536,12 @@ export const usePedidosManager = (
     const handleSetReadyForProduction = async (pedido: Pedido) => {
         if (pedido.etapaActual !== Etapa.PREPARACION) return;
 
-        const historialEntry = generarEntradaHistorial(currentUserRole, 'Listo para Producción', `Pedido marcado como listo para el proceso productivo.`);
-
         const updatedPedido = {
             ...pedido,
             subEtapaActual: PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION,
-            historial: [...(pedido.historial || []), historialEntry]
         };
 
-        await handleSavePedido(updatedPedido, false); // generateHistory is false because we are creating a custom history entry
+        await handleSavePedido(updatedPedido, true);
     };
 
     return {
