@@ -473,7 +473,6 @@ const AppContent: React.FC = () => {
                         onSelectPedido={setSelectedPedido}
                         currentUserRole={currentUserRole}
                         onSendToPrint={setPedidoToSend}
-                        onSetReadyForProduction={handleSetReadyForProduction}
                         highlightedPedidoId={highlightedPedidoId}
                     />
                 );
@@ -623,6 +622,7 @@ const AppContent: React.FC = () => {
                         currentUserRole={currentUserRole}
                         onAdvanceStage={handleAdvanceStage}
                         onSendToPrint={setPedidoToSend}
+                        onSetReadyForProduction={handleSetReadyForProduction}
                         onUpdateEtapa={handleUpdatePedidoEtapa}
                         isConnected={isConnected}
                     />
