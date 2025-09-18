@@ -999,6 +999,42 @@ class PostgreSQLClient {
         return this.updateCliente(id, { estado: 'Archivado', fecha_baja: new Date() });
     }
 
+    // === MÉTODOS DE AUDITORÍA (LEGACY) ===
+
+    async getAuditLog(limit = 100) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                SELECT id, timestamp, user_role as "userRole", action, pedido_id as "pedidoId", details
+                FROM audit_log
+                ORDER BY timestamp DESC
+                LIMIT $1;
+            `;
+            const result = await client.query(query, [limit]);
+            return result.rows;
+        } finally {
+            client.release();
+        }
+    }
+
+    async logAuditAction(userRole, action, pedidoId = null, details = null) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                INSERT INTO audit_log (user_role, action, pedido_id, details)
+                VALUES ($1, $2, $3, $4)
+                RETURNING id, timestamp, user_role as "userRole", action, pedido_id as "pedidoId", details;
+            `;
+            const values = [userRole, action, pedidoId, details ? JSON.stringify(details) : null];
+            const result = await client.query(query, values);
+            return result.rows[0];
+        } finally {
+            client.release();
+        }
+    }
+
     // === MÉTODOS DE INTEGRIDAD DE DATOS ===
 
     async runDataIntegrityChecks() {
