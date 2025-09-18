@@ -41,6 +41,11 @@ export const usePermissions = () => {
     const canMovePedidos = () => canAccess('pedidos.move');
     const canArchivePedidos = () => canAccess('pedidos.archive');
 
+    const canViewClientes = () => canAccess('clientes.view');
+    const canCreateClientes = () => canAccess('clientes.create');
+    const canEditClientes = () => canAccess('clientes.edit');
+    const canDeleteClientes = () => canAccess('clientes.delete');
+
     const canViewUsers = () => canAccess('usuarios.view');
     const canCreateUsers = () => canAccess('usuarios.create');
     const canEditUsers = () => canAccess('usuarios.edit');
@@ -92,6 +97,11 @@ export const usePermissions = () => {
         canDeletePedidos,
         canMovePedidos,
         canArchivePedidos,
+        // Permisos de Clientes
+        canViewClientes,
+        canCreateClientes,
+        canEditClientes,
+        canDeleteClientes,
         // Permisos específicos de usuarios
         canViewUsers,
         canCreateUsers,

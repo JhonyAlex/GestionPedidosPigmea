@@ -80,7 +80,8 @@ const Header: React.FC<HeaderProps> = ({
         canViewReports, 
         canCreatePedidos, 
         canAccessAdmin, 
-        canViewConfig 
+        canViewConfig,
+        canViewClientes
     } = usePermissions();
     const currentUserRole = user?.role || 'Operador';
     const [isStageFiltersCollapsed, setIsStageFiltersCollapsed] = useState(false);
@@ -92,13 +93,14 @@ const Header: React.FC<HeaderProps> = ({
         }
     }, [currentView]);
     
-    const viewOptions: { id: ViewType; label: string, adminOnly: boolean }[] = [
-        { id: 'preparacion', label: 'Preparación', adminOnly: false },
-        { id: 'kanban', label: 'Producción', adminOnly: false },
-        { id: 'list', label: 'Lista', adminOnly: false },
-        { id: 'archived', label: 'Archivados', adminOnly: false },
-        { id: 'report', label: 'Reportes', adminOnly: !canViewReports() },
-        { id: 'permissions-debug', label: '🔍 Debug Permisos', adminOnly: !canAccessAdmin() },
+    const viewOptions: { id: ViewType; label: string, permissionCheck: () => boolean }[] = [
+        { id: 'preparacion', label: 'Preparación', permissionCheck: () => true },
+        { id: 'kanban', label: 'Producción', permissionCheck: () => true },
+        { id: 'list', label: 'Lista', permissionCheck: () => true },
+        { id: 'clientes', label: 'Clientes', permissionCheck: canViewClientes },
+        { id: 'archived', label: 'Archivados', permissionCheck: () => true },
+        { id: 'report', label: 'Reportes', permissionCheck: canViewReports },
+        { id: 'permissions-debug', label: '🔍 Debug Permisos', permissionCheck: canAccessAdmin },
     ];
 
     const dateFieldOptions: { value: keyof Pedido, label: string }[] = [
@@ -133,10 +135,7 @@ const Header: React.FC<HeaderProps> = ({
                     <div className="flex items-center gap-2 flex-wrap">
                         <div className="flex items-center gap-1 bg-gray-200 dark:bg-gray-700 rounded-lg p-1">
                             {viewOptions.map(opt => {
-                                // Para reportes, verificar permiso específico en lugar de solo rol de administrador
-                                if (opt.id === 'report' && !canViewReports()) return null;
-                                if (opt.id === 'permissions-debug' && !canAccessAdmin()) return null;
-                                if (opt.adminOnly && !canAccessAdmin()) return null;
+                            if (!opt.permissionCheck()) return null;
                                 return (
                                      <button
                                         key={opt.id}

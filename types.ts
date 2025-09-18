@@ -61,6 +61,12 @@ export interface Pedido {
     numeroRegistro: string; // Internal, system-generated
     numeroPedidoCliente: string; // User-provided
     cliente: string;
+    clienteId?: string; // UUID del cliente, para la nueva relación
+    clienteInfo?: { // Información básica del cliente para mostrar en la UI
+        id: string;
+        nombre: string;
+        contactoPrincipal?: string;
+    };
     maquinaImpresion: string;
     metros: number | string;
     fechaCreacion: string; // ISO 8601 date string
@@ -114,7 +120,7 @@ export interface KanbanEtapa {
     color: string;
 }
 
-export type ViewType = 'preparacion' | 'kanban' | 'list' | 'archived' | 'report' | 'permissions-debug';
+export type ViewType = 'preparacion' | 'kanban' | 'list' | 'archived' | 'report' | 'permissions-debug' | 'clientes' | 'cliente-detail';
 
 export type UserRole = 'Administrador' | 'Supervisor' | 'Operador' | 'Visualizador';
 
