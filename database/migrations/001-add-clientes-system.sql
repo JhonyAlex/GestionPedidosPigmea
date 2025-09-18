@@ -65,6 +65,7 @@ CREATE INDEX IF NOT EXISTS idx_clientes_created_at ON clientes(created_at);
 -- Se asume que la función `update_modified_column()` ya existe
 -- en la base de datos (creada por `create_user_permissions_table.sql`).
 
+DROP TRIGGER IF EXISTS trigger_update_clientes_updated_at ON clientes;
 CREATE TRIGGER trigger_update_clientes_updated_at
 BEFORE UPDATE ON clientes
 FOR EACH ROW
