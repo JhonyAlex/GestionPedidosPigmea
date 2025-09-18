@@ -5,8 +5,16 @@ class PostgreSQLClient {
         this.pool = null;
         this.isInitialized = false;
         
-        // Priorizar variables individuales para mejor control y logging
-        if (process.env.DB_HOST || process.env.POSTGRES_HOST) {
+        // Priorizar DATABASE_URL que es el estándar en producción
+        if (process.env.DATABASE_URL) {
+            this.config = {
+                connectionString: process.env.DATABASE_URL,
+                ssl: false, // Deshabilitar SSL para conexiones internas de Docker
+                max: 20,
+                idleTimeoutMillis: 30000,
+                connectionTimeoutMillis: 2000,
+            };
+        } else if (process.env.DB_HOST || process.env.POSTGRES_HOST) {
             // Configuración de conexión individual
             this.config = {
                 host: process.env.POSTGRES_HOST || process.env.DB_HOST || 'localhost',
@@ -14,14 +22,6 @@ class PostgreSQLClient {
                 database: process.env.POSTGRES_DB || process.env.DB_NAME || 'gestion_pedidos',
                 user: process.env.POSTGRES_USER || process.env.DB_USER || 'pigmea_user',
                 password: process.env.POSTGRES_PASSWORD || process.env.DB_PASSWORD,
-                ssl: false, // Deshabilitar SSL para conexiones internas de Docker
-                max: 20,
-                idleTimeoutMillis: 30000,
-                connectionTimeoutMillis: 2000,
-            };
-        } else if (process.env.DATABASE_URL) {
-            this.config = {
-                connectionString: process.env.DATABASE_URL,
                 ssl: false, // Deshabilitar SSL para conexiones internas de Docker
                 max: 20,
                 idleTimeoutMillis: 30000,
