@@ -611,6 +611,7 @@ const AppContent: React.FC = () => {
                             setView('clientes');
                         }}
                         onCrearPedido={handleCrearPedidoDesdeCliente}
+                        onPedidoSelect={navigateToPedido}
                     />
                 ) : null;
             default:
