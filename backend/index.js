@@ -1397,6 +1397,121 @@ app.delete('/api/pedidos/all', async (req, res) => {
     }
 });
 
+// === RUTAS DE CLIENTES ===
+
+// GET /api/clientes - Get all clientes with pagination, sorting, and filtering
+app.get('/api/clientes', requirePermission('clientes.view'), async (req, res) => {
+    try {
+        const { page, limit, sortBy, sortOrder, searchTerm, estado } = req.query;
+        const options = {
+            page: parseInt(page, 10) || 1,
+            limit: parseInt(limit, 10) || 20,
+            sortBy: sortBy || 'nombre',
+            sortOrder: sortOrder || 'ASC',
+            searchTerm: searchTerm || '',
+            estado: estado || null
+        };
+        const result = await dbClient.getAllClientes(options);
+        res.status(200).json(result);
+    } catch (error) {
+        console.error("Error in GET /api/clientes:", error);
+        res.status(500).json({ message: "Error interno del servidor al obtener los clientes." });
+    }
+});
+
+// GET /api/clientes/simple - Get a simple list of all active clients (for selectors)
+app.get('/api/clientes/simple', requirePermission('pedidos.create' || 'pedidos.edit'), async (req, res) => {
+    try {
+        const clientes = await dbClient.getAllClientesSimple();
+        res.status(200).json(clientes);
+    } catch (error) {
+        console.error("Error in GET /api/clientes/simple:", error);
+        res.status(500).json({ message: "Error interno del servidor al obtener la lista de clientes." });
+    }
+});
+
+// GET /api/clientes/stats - Get client statistics
+app.get('/api/clientes/stats', requirePermission('clientes.view'), async (req, res) => {
+    try {
+        const stats = await dbClient.getClienteStats();
+        res.status(200).json(stats);
+    } catch (error) {
+        console.error("Error in GET /api/clientes/stats:", error);
+        res.status(500).json({ message: "Error interno del servidor al obtener estadísticas de clientes." });
+    }
+});
+
+// GET /api/clientes/:id - Get a single cliente by ID
+app.get('/api/clientes/:id', requirePermission('clientes.view'), async (req, res) => {
+    try {
+        const cliente = await dbClient.getClienteById(req.params.id);
+        if (cliente) {
+            res.status(200).json(cliente);
+        } else {
+            res.status(404).json({ message: 'Cliente no encontrado.' });
+        }
+    } catch (error) {
+        console.error(`Error in GET /api/clientes/${req.params.id}:`, error);
+        res.status(500).json({ message: "Error interno del servidor al obtener el cliente." });
+    }
+});
+
+// GET /api/clientes/:id/historial - Get order history for a client
+app.get('/api/clientes/:id/historial', requirePermission('clientes.view'), async (req, res) => {
+    try {
+        const { page, limit } = req.query;
+        const options = {
+            page: parseInt(page, 10) || 1,
+            limit: parseInt(limit, 10) || 10,
+        };
+        const historial = await dbClient.getClienteHistorialPedidos(req.params.id, options);
+        res.status(200).json(historial);
+    } catch (error) {
+        console.error(`Error in GET /api/clientes/${req.params.id}/historial:`, error);
+        res.status(500).json({ message: "Error interno del servidor al obtener el historial." });
+    }
+});
+
+// POST /api/clientes - Create a new cliente
+app.post('/api/clientes', requirePermission('clientes.create'), async (req, res) => {
+    try {
+        const newCliente = await dbClient.createCliente(req.body);
+        broadcastToClients('cliente-created', { cliente: newCliente });
+        res.status(201).json(newCliente);
+    } catch (error) {
+        console.error("Error in POST /api/clientes:", error);
+        res.status(500).json({ message: "Error interno del servidor al crear el cliente." });
+    }
+});
+
+// PUT /api/clientes/:id - Update an existing cliente
+app.put('/api/clientes/:id', requirePermission('clientes.edit'), async (req, res) => {
+    try {
+        const updatedCliente = await dbClient.updateCliente(req.params.id, req.body);
+        broadcastToClients('cliente-updated', { cliente: updatedCliente });
+        res.status(200).json(updatedCliente);
+    } catch (error) {
+        console.error(`Error in PUT /api/clientes/${req.params.id}:`, error);
+        if (error.message.includes('no encontrado')) {
+            return res.status(404).json({ message: error.message });
+        }
+        res.status(500).json({ message: "Error interno del servidor al actualizar el cliente." });
+    }
+});
+
+// DELETE /api/clientes/:id - Soft-delete a cliente
+app.delete('/api/clientes/:id', requirePermission('clientes.delete'), async (req, res) => {
+    try {
+        const deletedCliente = await dbClient.deleteCliente(req.params.id);
+        broadcastToClients('cliente-deleted', { clienteId: req.params.id, cliente: deletedCliente });
+        res.status(200).json({ message: 'Cliente archivado exitosamente.', cliente: deletedCliente });
+    } catch (error) {
+        console.error(`Error in DELETE /api/clientes/${req.params.id}:`, error);
+        res.status(500).json({ message: "Error interno del servidor al archivar el cliente." });
+    }
+});
+
+
 // =================================================================
 // RUTAS ADMINISTRATIVAS
 // =================================================================
@@ -1609,6 +1724,27 @@ app.get('/api/admin/stats', async (req, res) => {
         res.status(500).json({
             error: 'Error interno del servidor'
         });
+    }
+});
+
+// Rutas de integridad de datos
+app.get('/api/admin/data-integrity/run-checks', requirePermission('usuarios.admin'), async (req, res) => {
+    try {
+        const results = await dbClient.runDataIntegrityChecks();
+        res.status(200).json(results);
+    } catch (error) {
+        console.error('Error ejecutando chequeos de integridad:', error);
+        res.status(500).json({ message: "Error interno del servidor." });
+    }
+});
+
+app.post('/api/admin/data-integrity/fix-missing-client-ids', requirePermission('usuarios.admin'), async (req, res) => {
+    try {
+        const result = await dbClient.fixMissingClientIds();
+        res.status(200).json({ message: `${result.updatedCount} pedidos han sido actualizados.`, ...result });
+    } catch (error) {
+        console.error('Error arreglando IDs de cliente faltantes:', error);
+        res.status(500).json({ message: "Error interno del servidor." });
     }
 });
 

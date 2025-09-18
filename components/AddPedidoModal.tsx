@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Pedido, Prioridad, TipoImpresion, Etapa, EstadoCliché, Cliente } from '../types';
-import ClienteSelector from './clientes/ClienteSelector';
+import React, { useState } from 'react';
+import { Pedido, Prioridad, TipoImpresion, Etapa, EstadoCliché } from '../types';
 import { KANBAN_FUNNELS, ETAPAS } from '../constants';
 import SequenceBuilder from './SequenceBuilder';
 import SeccionDatosTecnicosDeMaterial from './SeccionDatosTecnicosDeMaterial';
@@ -11,11 +10,9 @@ interface AddPedidoModalProps {
         pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'subEtapaActual' | 'maquinaImpresion' | 'secuenciaTrabajo' | 'orden' | 'historial'>;
         secuenciaTrabajo: Etapa[];
     }) => void;
-    preselectedCliente: {id: string, nombre: string} | null;
 }
 
 const initialFormData = {
-    clienteId: null,
     cliente: '',
     numeroPedidoCliente: '',
     metros: '',
@@ -44,23 +41,9 @@ const initialFormData = {
     minColor: null,
 };
 
-const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, preselectedCliente }) => {
+const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
     const [formData, setFormData] = useState<any>(initialFormData);
     const [secuenciaTrabajo, setSecuenciaTrabajo] = useState<Etapa[]>([]);
-    const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
-
-    useEffect(() => {
-        if (preselectedCliente) {
-            // The preselectedCliente object might not be a full `Cliente` object
-            const clientForState = { ...preselectedCliente, id: preselectedCliente.id } as Cliente;
-            setSelectedCliente(clientForState);
-            setFormData((prev: any) => ({
-                ...prev,
-                clienteId: preselectedCliente.id,
-                cliente: preselectedCliente.nombre,
-            }));
-        }
-    }, [preselectedCliente]);
 
     const handleDataChange = (field: keyof Pedido, value: any) => {
         setFormData((prev: any) => ({ ...prev, [field]: value }));
@@ -100,17 +83,8 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, presele
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Columna Izquierda */}
                         <div>
-                            <ClienteSelector
-                                selectedCliente={selectedCliente}
-                                onClienteSelect={(cliente) => {
-                                    setSelectedCliente(cliente);
-                                    setFormData((prev: any) => ({
-                                        ...prev,
-                                        clienteId: cliente?.id || null,
-                                        cliente: cliente?.nombre || '',
-                                    }));
-                                }}
-                            />
+                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Cliente</label>
+                            <input type="text" name="cliente" value={formData.cliente} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500" required />
                             
                             <label className="block mt-4 mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Número de Pedido Cliente</label>
                             <input type="text" name="numeroPedidoCliente" value={formData.numeroPedidoCliente} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" required />

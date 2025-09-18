@@ -62,13 +62,13 @@ CREATE INDEX IF NOT EXISTS idx_clientes_created_at ON clientes(created_at);
 -- =================================================================
 -- 3. TRIGGER PARA ACTUALIZACIÓN AUTOMÁTICA DE `updated_at`
 -- =================================================================
--- Se asume que la función `update_updated_at_column()` ya existe
--- en la base de datos (creada por `init-admin-system.sql`).
+-- Se asume que la función `update_modified_column()` ya existe
+-- en la base de datos (creada por `create_user_permissions_table.sql`).
 
 CREATE TRIGGER trigger_update_clientes_updated_at
 BEFORE UPDATE ON clientes
 FOR EACH ROW
-EXECUTE FUNCTION update_updated_at_column();
+EXECUTE FUNCTION update_modified_column();
 
 COMMENT ON TRIGGER trigger_update_clientes_updated_at ON clientes IS 'Actualiza el campo updated_at cada vez que se modifica una fila en la tabla clientes.';
 

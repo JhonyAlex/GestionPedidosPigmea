@@ -97,7 +97,7 @@ export const usePermissions = () => {
         canDeletePedidos,
         canMovePedidos,
         canArchivePedidos,
-        // Permisos de Clientes
+        // Permisos de clientes
         canViewClientes,
         canCreateClientes,
         canEditClientes,
