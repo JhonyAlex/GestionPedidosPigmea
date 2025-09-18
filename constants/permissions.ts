@@ -57,6 +57,36 @@ export const PERMISSION_CONFIG: PermissionConfig = {
                 }
             ]
         },
+        clientes: {
+            name: 'Gestión de Clientes',
+            description: 'Permisos para ver, crear, editar y eliminar clientes',
+            permissions: [
+                {
+                    id: 'clientes.view',
+                    name: 'Ver Clientes',
+                    description: 'Permite visualizar la lista y detalles de clientes',
+                    category: 'clientes'
+                },
+                {
+                    id: 'clientes.create',
+                    name: 'Crear Clientes',
+                    description: 'Permite crear nuevos clientes',
+                    category: 'clientes'
+                },
+                {
+                    id: 'clientes.edit',
+                    name: 'Editar Clientes',
+                    description: 'Permite modificar la información de clientes existentes',
+                    category: 'clientes'
+                },
+                {
+                    id: 'clientes.delete',
+                    name: 'Eliminar Clientes',
+                    description: 'Permite eliminar clientes del sistema',
+                    category: 'clientes'
+                }
+            ]
+        },
         usuarios: {
             name: 'Gestión de Usuarios',
             description: 'Permisos para administrar usuarios y sus accesos',
@@ -237,6 +267,11 @@ export const DEFAULT_ROLE_PERMISSIONS: RolePermissions[] = [
             { id: 'pedidos.export', name: 'Exportar Pedidos', description: 'Permite exportar datos de pedidos', category: 'pedidos', enabled: true },
             { id: 'pedidos.archive', name: 'Archivar Pedidos', description: 'Permite archivar y desarchivar pedidos', category: 'pedidos', enabled: true },
             
+            // Clientes - Ver, crear y editar
+            { id: 'clientes.view', name: 'Ver Clientes', description: 'Permite visualizar la lista y detalles de clientes', category: 'clientes', enabled: true },
+            { id: 'clientes.create', name: 'Crear Clientes', description: 'Permite crear nuevos clientes', category: 'clientes', enabled: true },
+            { id: 'clientes.edit', name: 'Editar Clientes', description: 'Permite modificar la información de clientes existentes', category: 'clientes', enabled: true },
+
             // Usuarios - Solo lectura
             { id: 'usuarios.view', name: 'Ver Usuarios', description: 'Permite ver la lista de usuarios del sistema', category: 'usuarios', enabled: true },
             
@@ -260,6 +295,9 @@ export const DEFAULT_ROLE_PERMISSIONS: RolePermissions[] = [
             { id: 'pedidos.view', name: 'Ver Pedidos', description: 'Permite visualizar la lista de pedidos', category: 'pedidos', enabled: true },
             { id: 'pedidos.edit', name: 'Editar Pedidos', description: 'Permite modificar pedidos existentes', category: 'pedidos', enabled: true },
             { id: 'pedidos.move', name: 'Mover Etapas', description: 'Permite cambiar pedidos entre etapas', category: 'pedidos', enabled: true },
+
+            // Clientes - Solo lectura
+            { id: 'clientes.view', name: 'Ver Clientes', description: 'Permite visualizar la lista y detalles de clientes', category: 'clientes', enabled: true },
             
             // Reportes - Solo vista básica
             { id: 'reportes.view', name: 'Ver Reportes', description: 'Permite acceder a la sección de reportes', category: 'reportes', enabled: true },
