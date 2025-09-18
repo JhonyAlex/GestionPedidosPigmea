@@ -12,14 +12,21 @@ else
     echo "ADVERTENCIA: Archivo .env no encontrado. Se usarán variables de entorno del sistema."
 fi
 
-# Validar que las variables de conexión a la BD están presentes
-if [ -z "$DB_HOST" ] || [ -z "$DB_PORT" ] || [ -z "$DB_NAME" ] || [ -z "$DB_USER" ] || [ -z "$DB_PASSWORD" ]; then
-    echo "❌ Error: Faltan una o más variables de entorno de la base de datos."
-    echo "Asegúrate de que DB_HOST, DB_PORT, DB_NAME, DB_USER y DB_PASSWORD estén definidas."
+# Construir la cadena de conexión para psql
+PSQL_CONN=""
+if [ -n "$DATABASE_URL" ]; then
+    echo "✅ Usando DATABASE_URL para la conexión."
+    PSQL_CONN="-d $DATABASE_URL"
+elif [ -n "$DB_HOST" ] && [ -n "$DB_USER" ] && [ -n "$DB_PASSWORD" ] && [ -n "$DB_NAME" ]; then
+    echo "✅ Usando variables de entorno DB_* para la conexión."
+    export PGPASSWORD=$DB_PASSWORD
+    PSQL_CONN="-h $DB_HOST -p ${DB_PORT:-5432} -d $DB_NAME -U $DB_USER"
+else
+    echo "❌ Error: No se encontraron variables de conexión a la base de datos (ni DATABASE_URL ni DB_HOST/DB_USER/etc)."
     exit 1
 fi
 
-echo "✅ Variables de base de datos encontradas."
+echo "✅ Variables de conexión configuradas."
 
 # Definir rutas a los archivos de migración
 MIGRATIONS_DIR="../database/migrations"
@@ -41,14 +48,13 @@ apply_migration() {
     echo "🔄 Aplicando migración: $MIGRATION_NAME..."
     
     # Ejecutar el script SQL
-    PGPASSWORD=$DB_PASSWORD psql -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" -U "$DB_USER" -f "$MIGRATION_FILE"
+    psql $PSQL_CONN -v ON_ERROR_STOP=1 -f "$MIGRATION_FILE"
     
     if [ $? -eq 0 ]; then
         echo "✅ Migración '$MIGRATION_NAME' aplicada exitosamente."
     else
         echo "❌ Error al aplicar la migración '$MIGRATION_NAME'."
-        # Considera si quieres que el script falle por completo si una migración falla
-        # exit 1 
+        exit 1
     fi
 }
 
