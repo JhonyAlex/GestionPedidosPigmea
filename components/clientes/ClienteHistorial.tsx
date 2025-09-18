@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ListFilter, Calendar } from 'lucide-react';
 import { clienteService } from '../../services/clienteService';
 import { ClienteHistorialResponse } from '../../types/cliente';
@@ -8,13 +7,13 @@ import { PRIORIDAD_COLORS } from '../../constants';
 
 interface ClienteHistorialProps {
   clienteId: string;
+  onPedidoSelect: (pedidoId: string) => void;
 }
 
-const ClienteHistorial: React.FC<ClienteHistorialProps> = ({ clienteId }) => {
+const ClienteHistorial: React.FC<ClienteHistorialProps> = ({ clienteId, onPedidoSelect }) => {
   const [historial, setHistorial] = useState<ClienteHistorialResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchHistorial = async () => {
@@ -43,8 +42,7 @@ const ClienteHistorial: React.FC<ClienteHistorialProps> = ({ clienteId }) => {
   };
 
   const handlePedidoClick = (pedidoId: string) => {
-    // Assuming a route like /pedidos/:id exists or that the kanban view can handle a selected ID
-    navigate(`/?pedidoId=${pedidoId}`);
+    onPedidoSelect(pedidoId);
   };
 
   if (loading) {

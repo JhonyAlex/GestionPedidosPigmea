@@ -29,9 +29,10 @@ interface ClienteDetailProps {
   clienteId: string;
   onBack: () => void;
   onCrearPedido: (cliente: {id: string, nombre: string}) => void;
+  onPedidoSelect: (pedidoId: string) => void;
 }
 
-const ClienteDetail: React.FC<ClienteDetailProps> = ({ clienteId, onBack, onCrearPedido }) => {
+const ClienteDetail: React.FC<ClienteDetailProps> = ({ clienteId, onBack, onCrearPedido, onPedidoSelect }) => {
   const { obtenerClientePorId, hasPermission } = useCliente();
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [loading, setLoading] = useState(true);
@@ -128,7 +129,7 @@ const ClienteDetail: React.FC<ClienteDetailProps> = ({ clienteId, onBack, onCrea
             </div>
           </div>
         )}
-        {activeTab === 'historial' && <ClienteHistorial clienteId={cliente.id} />}
+        {activeTab === 'historial' && <ClienteHistorial clienteId={cliente.id} onPedidoSelect={onPedidoSelect} />}
         {activeTab === 'comentarios' && (
           <div className="text-center text-gray-500 py-12">
             <p>La sección de comentarios para clientes estará disponible próximamente.</p>
