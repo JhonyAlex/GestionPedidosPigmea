@@ -80,8 +80,7 @@ const Header: React.FC<HeaderProps> = ({
         canViewReports, 
         canCreatePedidos, 
         canAccessAdmin, 
-        canViewConfig,
-        canViewClientes
+        canViewConfig
     } = usePermissions();
     const currentUserRole = user?.role || 'Operador';
     const [isStageFiltersCollapsed, setIsStageFiltersCollapsed] = useState(false);
@@ -93,14 +92,16 @@ const Header: React.FC<HeaderProps> = ({
         }
     }, [currentView]);
     
-    const viewOptions: { id: ViewType; label: string, permissionCheck: () => boolean }[] = [
-        { id: 'preparacion', label: 'Preparación', permissionCheck: () => true },
-        { id: 'kanban', label: 'Producción', permissionCheck: () => true },
-        { id: 'list', label: 'Lista', permissionCheck: () => true },
-        { id: 'clientes', label: 'Clientes', permissionCheck: canViewClientes },
-        { id: 'archived', label: 'Archivados', permissionCheck: () => true },
-        { id: 'report', label: 'Reportes', permissionCheck: canViewReports },
-        { id: 'permissions-debug', label: '🔍 Debug Permisos', permissionCheck: canAccessAdmin },
+    const { canViewClientes } = usePermissions();
+
+    const viewOptions: { id: ViewType; label: string, adminOnly: boolean, permission?: () => boolean }[] = [
+        { id: 'preparacion', label: 'Preparación', adminOnly: false },
+        { id: 'clientes', label: 'Clientes', adminOnly: false, permission: canViewClientes },
+        { id: 'kanban', label: 'Producción', adminOnly: false },
+        { id: 'list', label: 'Lista', adminOnly: false },
+        { id: 'archived', label: 'Archivados', adminOnly: false },
+        { id: 'report', label: 'Reportes', adminOnly: false, permission: canViewReports },
+        { id: 'permissions-debug', label: '🔍 Debug Permisos', adminOnly: true, permission: canAccessAdmin },
     ];
 
     const dateFieldOptions: { value: keyof Pedido, label: string }[] = [
@@ -122,6 +123,8 @@ const Header: React.FC<HeaderProps> = ({
     const activeButtonClass = "bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm";
     const inactiveButtonClass = "text-gray-600 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/10";
 
+    console.log('Permissions:', { canViewClientes: canViewClientes() });
+
     return (
         <header className="bg-white dark:bg-gray-800 shadow-md p-4 sticky top-0 z-40">
             <div className="container mx-auto">
@@ -135,7 +138,9 @@ const Header: React.FC<HeaderProps> = ({
                     <div className="flex items-center gap-2 flex-wrap">
                         <div className="flex items-center gap-1 bg-gray-200 dark:bg-gray-700 rounded-lg p-1">
                             {viewOptions.map(opt => {
-                            if (!opt.permissionCheck()) return null;
+                                // Renderizado condicional basado en permisos
+                                if (opt.permission && !opt.permission()) return null;
+                                if (opt.adminOnly && !canAccessAdmin()) return null; // Fallback para adminOnly
                                 return (
                                      <button
                                         key={opt.id}

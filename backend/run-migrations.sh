@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 echo "=== INICIANDO SCRIPT DE MIGRACIÓN DE BASE DE DATOS ==="
 
 # Cargar variables de entorno desde el archivo .env si existe
@@ -21,8 +23,9 @@ echo "✅ Variables de base de datos encontradas."
 
 # Definir rutas a los archivos de migración
 MIGRATIONS_DIR="../database/migrations"
-CLIENTES_MIGRATION="$MIGRATIONS_DIR/create_clientes_table.sql"
+PEDIDOS_MIGRATION="$MIGRATIONS_DIR/000-create-pedidos-table.sql"
 PERMISSIONS_MIGRATION="$MIGRATIONS_DIR/create_user_permissions_table.sql"
+CLIENTES_MIGRATION="$MIGRATIONS_DIR/001-add-clientes-system.sql"
 # Añade aquí futuras migraciones
 
 # Función para aplicar una migración
@@ -52,6 +55,7 @@ apply_migration() {
 # --- EJECUTAR MIGRACIONES ---
 # Las migraciones están diseñadas para ser idempotentes (se pueden ejecutar varias veces sin problemas)
 
+apply_migration "Crear Tabla de Pedidos" "$PEDIDOS_MIGRATION"
 apply_migration "Crear Tabla de Permisos" "$PERMISSIONS_MIGRATION"
 apply_migration "Crear Tabla de Clientes" "$CLIENTES_MIGRATION"
 

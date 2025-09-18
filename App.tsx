@@ -11,6 +11,7 @@ import AntivahoConfirmationModal from './components/AntivahoConfirmationModal';
 import Header from './components/Header';
 import PedidoList from './components/PedidoList';
 import ReportView from './components/ReportView';
+import ClientesList from './components/ClientesList';
 import ThemeSwitcher from './components/ThemeSwitcher';
 import CompletedPedidosList from './components/CompletedPedidosList';
 import PreparacionView from './components/PreparacionView';
@@ -23,9 +24,6 @@ import UserInfo from './components/UserInfo';
 import UserManagement from './components/UserManagement';
 import PermissionsDebug from './components/PermissionsDebug';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import ClientesList from './components/clientes/ClientesList';
-import ClienteDetail from './components/clientes/ClienteDetail';
-import { ClienteProvider } from './contexts/ClienteContext';
 import { calcularSiguienteEtapa, estaFueraDeSecuencia } from './utils/etapaLogic';
 import { procesarDragEnd } from './utils/dragLogic';
 import { usePedidosManager } from './hooks/usePedidosManager';
@@ -49,8 +47,6 @@ const AppContent: React.FC = () => {
     const [isDuplicating, setIsDuplicating] = useState(false);
     const [duplicatingMessage, setDuplicatingMessage] = useState('Duplicando pedido...');
     const [showUserManagement, setShowUserManagement] = useState(false);
-    const [selectedClienteId, setSelectedClienteId] = useState<string | null>(null);
-    const [preselectedCliente, setPreselectedCliente] = useState<{id: string, nombre: string} | null>(null);
 
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
         if (typeof window !== 'undefined' && localStorage.theme) {
@@ -262,17 +258,11 @@ const AppContent: React.FC = () => {
         setSelectedPedido(null);
     };
 
-    const handleCrearPedidoDesdeCliente = (cliente: {id: string, nombre: string}) => {
-        setPreselectedCliente(cliente);
-        setIsAddModalOpen(true);
-    };
-
     const handleAddPedido = async (data: { pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'maquinaImpresion' | 'secuenciaTrabajo' | 'orden' | 'historial'>; secuenciaTrabajo: Etapa[]; }) => {
         const newPedido = await handleAddPedidoLogic(data);
         if (newPedido) {
             logAction(`Nuevo pedido ${newPedido.numeroPedidoCliente} creado.`, newPedido.id);
             setIsAddModalOpen(false);
-            setPreselectedCliente(null); // Clear pre-selection after adding
             // 🚀 Emitir actividad WebSocket
             emitActivity('pedido-created', { 
                 pedidoId: newPedido.id, 
@@ -487,6 +477,8 @@ const AppContent: React.FC = () => {
                         highlightedPedidoId={highlightedPedidoId}
                     />
                 );
+            case 'clientes':
+                return <ClientesList />;
             case 'kanban':
                 return (
                     <main className="flex-grow p-4 md:p-8 flex flex-col gap-10">
@@ -593,27 +585,6 @@ const AppContent: React.FC = () => {
                 />;
             case 'permissions-debug':
                 return <PermissionsDebug />;
-            case 'clientes':
-                return (
-                    <ClientesList
-                        onSelectCliente={(clienteId) => {
-                            setSelectedClienteId(clienteId);
-                            setView('cliente-detail');
-                        }}
-                    />
-                );
-            case 'cliente-detail':
-                return selectedClienteId ? (
-                    <ClienteDetail
-                        clienteId={selectedClienteId}
-                        onBack={() => {
-                            setSelectedClienteId(null);
-                            setView('clientes');
-                        }}
-                        onCrearPedido={handleCrearPedidoDesdeCliente}
-                        onPedidoSelect={navigateToPedido}
-                    />
-                ) : null;
             default:
                 return null;
         }
@@ -661,12 +632,8 @@ const AppContent: React.FC = () => {
                 )}
                 {isAddModalOpen && (
                     <AddPedidoModal
-                        onClose={() => {
-                            setIsAddModalOpen(false);
-                            setPreselectedCliente(null); // Clear on close as well
-                        }}
+                        onClose={() => setIsAddModalOpen(false)}
                         onAdd={handleAddPedido}
-                        preselectedCliente={preselectedCliente}
                     />
                 )}
                 {pedidoToSend && (
@@ -732,9 +699,7 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
     return (
         <AuthProvider>
-            <ClienteProvider>
-                <AppContent />
-            </ClienteProvider>
+            <AppContent />
         </AuthProvider>
     );
 };

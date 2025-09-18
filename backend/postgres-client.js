@@ -137,27 +137,7 @@ class PostgreSQLClient {
                 console.log('⚠️ Algunas columnas no se pudieron agregar:', error.message);
             }
 
-            // Tabla de pedidos
-            await client.query(`
-                CREATE TABLE IF NOT EXISTS pedidos (
-                    id VARCHAR(255) PRIMARY KEY,
-                    numero_pedido_cliente VARCHAR(255),
-                    cliente VARCHAR(255),
-                    fecha_pedido TIMESTAMP,
-                    fecha_entrega TIMESTAMP,
-                    etapa_actual VARCHAR(100),
-                    prioridad VARCHAR(50),
-                    secuencia_pedido INTEGER,
-                    cantidad_piezas INTEGER,
-                    observaciones TEXT,
-                    datos_tecnicos JSONB,
-                    antivaho BOOLEAN DEFAULT false,
-                    camisa VARCHAR(100),
-                    data JSONB NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-            `);
+            // La tabla de pedidos ahora se crea por migración
 
             // Tabla de usuarios legacy
             await client.query(`
@@ -188,6 +168,159 @@ class PostgreSQLClient {
             
         } finally {
             client.release();
+        }
+    }
+
+    async ensureAdminUsersColumns(client) {
+        try {
+            // Verificar qué columnas existen en la tabla admin_users
+            const columnsResult = await client.query(`
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'admin_users'
+                AND table_schema = 'public'
+            `);
+
+            const existingColumns = columnsResult.rows.map(row => row.column_name);
+            console.log('📋 Columnas existentes en admin_users:', existingColumns.join(', '));
+
+            // Lista de columnas requeridas y sus definiciones
+            const requiredColumns = {
+                'email': 'VARCHAR(255) UNIQUE',
+                'first_name': 'VARCHAR(100) NOT NULL DEFAULT \'\'',
+                'last_name': 'VARCHAR(100) NOT NULL DEFAULT \'\'',
+                'password_hash': 'VARCHAR(255)',
+                'permissions': 'JSONB DEFAULT \'[]\'::jsonb',
+                'is_active': 'BOOLEAN DEFAULT true',
+                'last_login': 'TIMESTAMP WITH TIME ZONE',
+                'last_activity': 'TIMESTAMP WITH TIME ZONE',
+                'ip_address': 'INET',
+                'user_agent': 'TEXT',
+                'updated_at': 'TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP'
+            };
+
+            // Agregar columnas faltantes
+            for (const [columnName, columnDefinition] of Object.entries(requiredColumns)) {
+                if (!existingColumns.includes(columnName)) {
+                    console.log(`➕ Agregando columna faltante: ${columnName}`);
+                    try {
+                        await client.query(`
+                            ALTER TABLE admin_users
+                            ADD COLUMN ${columnName} ${columnDefinition}
+                        `);
+                        console.log(`✅ Columna ${columnName} agregada exitosamente`);
+                    } catch (error) {
+                        console.log(`⚠️ No se pudo agregar columna ${columnName}: ${error.message}`);
+                        // Continuar con las demás columnas
+                    }
+                }
+            }
+
+            // Verificar y actualizar el constraint del rol si es necesario
+            try {
+                await client.query(`
+                    DO $$
+                    BEGIN
+                        -- Eliminar constraint existente si existe
+                        IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'admin_users_role_check') THEN
+                            ALTER TABLE admin_users DROP CONSTRAINT admin_users_role_check;
+                        END IF;
+
+                        -- Agregar el constraint actualizado
+                        ALTER TABLE admin_users
+                        ADD CONSTRAINT admin_users_role_check
+                        CHECK (role IN ('ADMIN', 'SUPERVISOR', 'OPERATOR', 'VIEWER'));
+                    END $$;
+                `);
+                console.log('✅ Constraint de rol actualizado');
+            } catch (error) {
+                console.log('⚠️ No se pudo actualizar constraint de rol:', error.message);
+            }
+
+            // Migrar usuarios existentes que no tienen los campos requeridos
+            await this.migrateExistingUsers(client);
+
+        } catch (error) {
+            console.log('⚠️ Error verificando columnas de admin_users:', error.message);
+            // No lanzar error - el sistema puede continuar
+        }
+    }
+
+    async migrateExistingUsers(client) {
+        try {
+            console.log('🔄 Verificando usuarios existentes...');
+
+            // Actualizar usuarios que no tienen email
+            const updateResult = await client.query(`
+                UPDATE admin_users
+                SET
+                    email = COALESCE(NULLIF(email, ''), username || '@pigmea.local'),
+                    first_name = COALESCE(NULLIF(first_name, ''), username),
+                    last_name = COALESCE(NULLIF(last_name, ''), ''),
+                    permissions = COALESCE(permissions, '[]'::jsonb)
+                WHERE email IS NULL
+                   OR email = ''
+                   OR first_name IS NULL
+                   OR first_name = ''
+                   OR permissions IS NULL
+            `);
+
+            if (updateResult.rowCount > 0) {
+                console.log(`✅ Migrados ${updateResult.rowCount} usuarios existentes`);
+            } else {
+                console.log('✅ Todos los usuarios ya están actualizados');
+            }
+
+        } catch (error) {
+            console.log('⚠️ Error migrando usuarios:', error.message);
+        }
+    }
+
+    async findLegacyUserById(id) {
+        // Método específico para buscar en la tabla legacy users
+        if (!this.pool || !this.isInitialized) {
+            console.log('⚠️ Pool de conexiones no disponible para findLegacyUserById');
+            return null;
+        }
+
+        try {
+            const client = await this.pool.connect();
+            try {
+                console.log(`🔍 Buscando en tabla legacy users con ID: ${id}`);
+
+                // Determinar el tipo de búsqueda según el formato del ID
+                const isInteger = /^\d+$/.test(id);
+                let result;
+
+                if (isInteger) {
+                    // Buscar por ID entero
+                    result = await client.query('SELECT * FROM users WHERE id = $1', [parseInt(id)]);
+                } else {
+                    // Buscar por ID string
+                    result = await client.query('SELECT * FROM users WHERE id = $1', [id]);
+                }
+
+                console.log(`📋 Resultado consulta legacy: ${result.rows.length} filas encontradas`);
+
+                if (result.rows.length > 0) {
+                    console.log(`✅ Usuario encontrado en tabla legacy: ${result.rows[0].username}`);
+                    return {
+                        ...result.rows[0],
+                        isLegacy: true,
+                        // Mapear campos para compatibilidad
+                        displayName: result.rows[0].display_name || result.rows[0].username
+                    };
+                } else {
+                    console.log(`❌ Usuario con ID ${id} no encontrado en tabla legacy`);
+                    return null;
+                }
+
+            } finally {
+                client.release();
+            }
+        } catch (error) {
+            console.error(`❌ Error en findLegacyUserById para ID ${id}:`, error.message);
+            return null;
         }
     }
 
@@ -297,28 +430,8 @@ class PostgreSQLClient {
             `);
             console.log('✅ Tabla user_permissions verificada');
 
-            // Tabla de pedidos
-            await client.query(`
-                CREATE TABLE IF NOT EXISTS pedidos (
-                    id VARCHAR(255) PRIMARY KEY,
-                    numero_pedido_cliente VARCHAR(255),
-                    cliente VARCHAR(255),
-                    fecha_pedido TIMESTAMP,
-                    fecha_entrega TIMESTAMP,
-                    etapa_actual VARCHAR(100),
-                    prioridad VARCHAR(50),
-                    secuencia_pedido INTEGER,
-                    cantidad_piezas INTEGER,
-                    observaciones TEXT,
-                    datos_tecnicos JSONB,
-                    antivaho BOOLEAN DEFAULT false,
-                    camisa VARCHAR(100),
-                    data JSONB NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-            `);
-            console.log('✅ Tabla pedidos verificada');
+            // La tabla de pedidos ahora se crea por migración
+            console.log('✅ Tabla pedidos verificada (creada por migración)');
 
             // Tabla de usuarios legacy
             await client.query(`
@@ -469,19 +582,28 @@ class PostgreSQLClient {
     // === MÉTODOS PARA PEDIDOS ===
 
     async create(pedido) {
-        if (!this.isInitialized) {
-            throw new Error('Database not initialized');
-        }
-
+        if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
-        
         try {
+            // Si se proporciona clienteId, asegurarse de que el nombre del cliente coincida
+            if (pedido.clienteId) {
+                const clienteResult = await client.query('SELECT nombre FROM clientes WHERE id = $1', [pedido.clienteId]);
+                if (clienteResult.rowCount > 0) {
+                    pedido.cliente = clienteResult.rows[0].nombre;
+                }
+            }
+
+            // Asegurarse que el cliente_id está en el objeto `data`
+            if (pedido.clienteId && !pedido.data.clienteId) {
+                pedido.data.clienteId = pedido.clienteId;
+            }
+
             const query = `
                 INSERT INTO pedidos (
                     id, numero_pedido_cliente, cliente, fecha_pedido, fecha_entrega,
                     etapa_actual, prioridad, secuencia_pedido, cantidad_piezas,
-                    observaciones, datos_tecnicos, antivaho, camisa, data
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                    observaciones, datos_tecnicos, antivaho, camisa, data, cliente_id
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
                 RETURNING *;
             `;
             
@@ -499,40 +621,41 @@ class PostgreSQLClient {
                 JSON.stringify(pedido.datosTecnicos || {}),
                 pedido.antivaho || false,
                 pedido.camisa,
-                JSON.stringify(pedido)
+                JSON.stringify(pedido),
+                pedido.clienteId || null
             ];
 
-            const result = await client.query(query, values);
+            await client.query(query, values);
             return pedido;
-            
         } finally {
             client.release();
         }
     }
 
     async update(pedido) {
-        if (!this.isInitialized) {
-            throw new Error('Database not initialized');
-        }
-
+        if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
-        
         try {
+            // Si se proporciona clienteId, asegurarse de que el nombre del cliente coincida
+            if (pedido.clienteId) {
+                const clienteResult = await client.query('SELECT nombre FROM clientes WHERE id = $1', [pedido.clienteId]);
+                if (clienteResult.rowCount > 0) {
+                    pedido.cliente = clienteResult.rows[0].nombre;
+                }
+            }
+
+            // Asegurarse que el cliente_id está en el objeto `data`
+            if (pedido.clienteId && !pedido.data.clienteId) {
+                pedido.data.clienteId = pedido.clienteId;
+            }
+
             const query = `
                 UPDATE pedidos SET 
-                    numero_pedido_cliente = $2,
-                    cliente = $3,
-                    fecha_pedido = $4,
-                    fecha_entrega = $5,
-                    etapa_actual = $6,
-                    prioridad = $7,
-                    secuencia_pedido = $8,
-                    cantidad_piezas = $9,
-                    observaciones = $10,
-                    datos_tecnicos = $11,
-                    antivaho = $12,
-                    camisa = $13,
-                    data = $14
+                    numero_pedido_cliente = $2, cliente = $3, fecha_pedido = $4,
+                    fecha_entrega = $5, etapa_actual = $6, prioridad = $7,
+                    secuencia_pedido = $8, cantidad_piezas = $9, observaciones = $10,
+                    datos_tecnicos = $11, antivaho = $12, camisa = $13,
+                    data = $14, cliente_id = $15, updated_at = CURRENT_TIMESTAMP
                 WHERE id = $1
                 RETURNING *;
             `;
@@ -551,17 +674,13 @@ class PostgreSQLClient {
                 JSON.stringify(pedido.datosTecnicos || {}),
                 pedido.antivaho || false,
                 pedido.camisa,
-                JSON.stringify(pedido)
+                JSON.stringify(pedido),
+                pedido.clienteId || null
             ];
 
             const result = await client.query(query, values);
-            
-            if (result.rowCount === 0) {
-                throw new Error(`Pedido ${pedido.id} no encontrado para actualizar`);
-            }
-            
+            if (result.rowCount === 0) throw new Error(`Pedido ${pedido.id} no encontrado para actualizar`);
             return pedido;
-            
         } finally {
             client.release();
         }
@@ -664,495 +783,23 @@ class PostgreSQLClient {
         }
     }
 
-    // === MÉTODOS PARA USUARIOS ===
+    // === MÉTODOS PARA CLIENTES ===
 
-    async createUser(user) {
-        if (!this.isInitialized) {
-            throw new Error('Database not initialized');
-        }
-
+    async createCliente(clienteData) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
-        
         try {
             const query = `
-                INSERT INTO users (id, username, password, role, display_name)
-                VALUES ($1, $2, $3, $4, $5)
-                RETURNING id, username, role, display_name, created_at;
+                INSERT INTO clientes (nombre, cif, telefono, email, direccion_fiscal, codigo_postal, poblacion, provincia, pais, persona_contacto, notas, estado)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                RETURNING *;
             `;
-            
             const values = [
-                user.id,
-                user.username,
-                user.password,
-                user.role,
-                user.displayName
+                clienteData.nombre, clienteData.cif, clienteData.telefono, clienteData.email,
+                clienteData.direccion_fiscal, clienteData.codigo_postal, clienteData.poblacion,
+                clienteData.provincia, clienteData.pais, clienteData.persona_contacto,
+                clienteData.notas, clienteData.estado || 'Activo'
             ];
-
-            const result = await client.query(query, values);
-            return result.rows[0];
-            
-        } finally {
-            client.release();
-        }
-    }
-
-    async findUserByUsername(username) {
-        if (!this.isInitialized) {
-            throw new Error('Database not initialized');
-        }
-
-        const client = await this.pool.connect();
-        
-        try {
-            const result = await client.query(
-                'SELECT * FROM users WHERE username = $1', 
-                [username]
-            );
-            
-            return result.rows.length > 0 ? result.rows[0] : null;
-            
-        } finally {
-            client.release();
-        }
-    }
-
-    async updateUserLastLogin(username) {
-        if (!this.isInitialized) {
-            throw new Error('Database not initialized');
-        }
-
-        const client = await this.pool.connect();
-        
-        try {
-            await client.query(
-                'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE username = $1',
-                [username]
-            );
-            
-        } finally {
-            client.release();
-        }
-    }
-
-    async getAllUsers() {
-        if (!this.isInitialized) {
-            throw new Error('Database not initialized');
-        }
-
-        const client = await this.pool.connect();
-        
-        try {
-            const result = await client.query(
-                'SELECT id, username, role, display_name, created_at, last_login FROM users ORDER BY created_at DESC'
-            );
-            
-            return result.rows;
-            
-        } finally {
-            client.release();
-        }
-    }
-
-    async findUserById(userId) {
-        if (!this.isInitialized) {
-            throw new Error('Database not initialized');
-        }
-
-        const client = await this.pool.connect();
-        
-        try {
-            const result = await client.query(
-                'SELECT * FROM users WHERE id = $1',
-                [userId]
-            );
-            
-            return result.rows.length > 0 ? result.rows[0] : null;
-            
-        } finally {
-            client.release();
-        }
-    }
-
-    async updateUser(userId, updateData) {
-        if (!this.isInitialized) {
-            throw new Error('Database not initialized');
-        }
-
-        const client = await this.pool.connect();
-        
-        try {
-            const setClauses = [];
-            const values = [];
-            let paramIndex = 1;
-
-            if (updateData.username) {
-                setClauses.push(`username = $${paramIndex}`);
-                values.push(updateData.username);
-                paramIndex++;
-            }
-
-            if (updateData.role) {
-                setClauses.push(`role = $${paramIndex}`);
-                values.push(updateData.role);
-                paramIndex++;
-            }
-
-            if (updateData.displayName) {
-                setClauses.push(`display_name = $${paramIndex}`);
-                values.push(updateData.displayName);
-                paramIndex++;
-            }
-
-            if (updateData.password) {
-                setClauses.push(`password = $${paramIndex}`);
-                values.push(updateData.password);
-                paramIndex++;
-            }
-
-            if (setClauses.length === 0) {
-                throw new Error('No data to update');
-            }
-
-            values.push(userId);
-            const query = `
-                UPDATE users 
-                SET ${setClauses.join(', ')} 
-                WHERE id = $${paramIndex}
-                RETURNING id, username, role, display_name, created_at
-            `;
-
-            const result = await client.query(query, values);
-            
-            return result.rows[0];
-            
-        } finally {
-            client.release();
-        }
-    }
-
-    async deleteUser(userId) {
-        if (!this.isInitialized) {
-            throw new Error('Database not initialized');
-        }
-
-        const client = await this.pool.connect();
-        
-        try {
-            const result = await client.query(
-                'DELETE FROM users WHERE id = $1 RETURNING id',
-                [userId]
-            );
-            
-            return result.rows.length > 0;
-            
-        } finally {
-            client.release();
-        }
-    }
-
-    // === UTILIDADES ===
-
-    // Métodos de auditoría
-    async logAuditAction(userRole, action, pedidoId = null, details = null) {
-        const client = await this.pool.connect();
-        
-        try {
-            const result = await client.query(
-                'INSERT INTO audit_log (user_role, action, pedido_id, details) VALUES ($1, $2, $3, $4) RETURNING *',
-                [userRole, action, pedidoId, details]
-            );
-            return result.rows[0];
-        } finally {
-            client.release();
-        }
-    }
-
-    async getAuditLog(limit = 100) {
-        const client = await this.pool.connect();
-        
-        try {
-            const result = await client.query(
-                'SELECT * FROM audit_log ORDER BY timestamp DESC LIMIT $1',
-                [limit]
-            );
-            return result.rows.map(row => ({
-                id: row.id,
-                timestamp: row.timestamp.toISOString(),
-                userRole: row.user_role,
-                action: row.action,
-                pedidoId: row.pedido_id,
-                details: row.details
-            }));
-        } finally {
-            client.release();
-        }
-    }
-
-    async getStats() {
-        if (!this.isInitialized) {
-            throw new Error('Database not initialized');
-        }
-
-        const client = await this.pool.connect();
-        
-        try {
-            const pedidosCount = await client.query('SELECT COUNT(*) as count FROM pedidos');
-            const usersCount = await client.query('SELECT COUNT(*) as count FROM users');
-            const etapasStats = await client.query(`
-                SELECT etapa_actual, COUNT(*) as count 
-                FROM pedidos 
-                GROUP BY etapa_actual 
-                ORDER BY count DESC
-            `);
-            
-            return {
-                totalPedidos: parseInt(pedidosCount.rows[0].count),
-                totalUsuarios: parseInt(usersCount.rows[0].count),
-                pedidosPorEtapa: etapasStats.rows
-            };
-            
-        } finally {
-            client.release();
-        }
-    }
-
-    async close() {
-        if (this.pool) {
-            await this.pool.end();
-        }
-    }
-
-    // =================================================================
-    // FUNCIONES ADMINISTRATIVAS
-    // =================================================================
-
-    // --- GESTIÓN DE USUARIOS ADMINISTRATIVOS ---
-
-    async getAdminUserByUsername(username) {
-        const client = await this.pool.connect();
-        try {
-            const result = await client.query(
-                'SELECT * FROM public.admin_users WHERE username = $1',
-                [username]
-            );
-            return result.rows[0] || null;
-        } finally {
-            client.release();
-        }
-    }
-
-    async getAdminUserByEmail(email) {
-        const client = await this.pool.connect();
-        try {
-            const result = await client.query(
-                'SELECT * FROM admin_users WHERE email = $1',
-                [email]
-            );
-            return result.rows[0] || null;
-        } finally {
-            client.release();
-        }
-    }
-
-    async getAdminUserById(id) {
-        // Verificar que el pool esté disponible
-        if (!this.pool || !this.isInitialized) {
-            console.log('⚠️ Pool de conexiones no disponible para getAdminUserById');
-            return null;
-        }
-        
-        try {
-            const client = await this.pool.connect();
-            try {
-                console.log(`🔍 Buscando usuario con ID: ${id} (tipo: ${typeof id})`);
-                
-                // Determinar si el ID parece ser un UUID o un entero
-                const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
-                const isInteger = /^\d+$/.test(id);
-                
-                console.log(`🔍 ID detectado como: ${isUUID ? 'UUID' : isInteger ? 'Integer' : 'String'}`);
-                
-                let result;
-                
-                if (isUUID) {
-                    // Buscar en admin_users por UUID
-                    result = await client.query(
-                        'SELECT * FROM admin_users WHERE id = $1',
-                        [id]
-                    );
-                } else if (isInteger) {
-                    // Primero intentar en admin_users por UUID casting
-                    try {
-                        result = await client.query(
-                            'SELECT * FROM admin_users WHERE id::text = $1',
-                            [id]
-                        );
-                    } catch (uuidError) {
-                        console.log(`⚠️ No se pudo buscar en admin_users como UUID: ${uuidError.message}`);
-                        result = { rows: [] };
-                    }
-                } else {
-                    // Para IDs de tipo string, intentar ambas tablas
-                    result = { rows: [] };
-                }
-                
-                console.log(`📋 Resultado consulta admin_users: ${result.rows.length} filas encontradas`);
-                
-                if (result.rows.length > 0) {
-                    console.log(`✅ Usuario encontrado en admin_users: ${result.rows[0].username}`);
-                    return result.rows[0];
-                } else {
-                    console.log(`❌ Usuario con ID ${id} no encontrado en admin_users`);
-                    return null;
-                }
-                
-            } finally {
-                client.release();
-            }
-        } catch (error) {
-            console.error(`❌ Error en getAdminUserById para ID ${id}:`, error.message);
-            return null; // No lanzar error, devolver null para permitir búsqueda en tabla legacy
-        }
-    }
-
-    async findLegacyUserById(id) {
-        // Método específico para buscar en la tabla legacy users
-        if (!this.pool || !this.isInitialized) {
-            console.log('⚠️ Pool de conexiones no disponible para findLegacyUserById');
-            return null;
-        }
-        
-        try {
-            const client = await this.pool.connect();
-            try {
-                console.log(`🔍 Buscando en tabla legacy users con ID: ${id}`);
-                
-                // Determinar el tipo de búsqueda según el formato del ID
-                const isInteger = /^\d+$/.test(id);
-                let result;
-                
-                if (isInteger) {
-                    // Buscar por ID entero
-                    result = await client.query('SELECT * FROM users WHERE id = $1', [parseInt(id)]);
-                } else {
-                    // Buscar por ID string
-                    result = await client.query('SELECT * FROM users WHERE id = $1', [id]);
-                }
-                
-                console.log(`📋 Resultado consulta legacy: ${result.rows.length} filas encontradas`);
-                
-                if (result.rows.length > 0) {
-                    console.log(`✅ Usuario encontrado en tabla legacy: ${result.rows[0].username}`);
-                    return { 
-                        ...result.rows[0], 
-                        isLegacy: true,
-                        // Mapear campos para compatibilidad
-                        displayName: result.rows[0].display_name || result.rows[0].username
-                    };
-                } else {
-                    console.log(`❌ Usuario con ID ${id} no encontrado en tabla legacy`);
-                    return null;
-                }
-                
-            } finally {
-                client.release();
-            }
-        } catch (error) {
-            console.error(`❌ Error en findLegacyUserById para ID ${id}:`, error.message);
-            return null;
-        }
-    }
-
-    async getAllAdminUsers() {
-        const client = await this.pool.connect();
-        try {
-            const result = await client.query(
-                'SELECT * FROM admin_users ORDER BY created_at DESC'
-            );
-            return result.rows;
-        } finally {
-            client.release();
-        }
-    }
-
-    async createAdminUser(userData) {
-        const client = await this.pool.connect();
-        try {
-            const {
-                username,
-                email = `${username}@pigmea.local`,
-                firstName = username,
-                lastName = '',
-                role,
-                passwordHash,
-                permissions = [],
-                isActive = true
-            } = userData;
-
-            // Verificar qué columnas existen en la tabla
-            const columnsResult = await client.query(`
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_name = 'admin_users' 
-                AND table_schema = 'public'
-            `);
-            
-            const existingColumns = columnsResult.rows.map(row => row.column_name);
-
-            // Construir query dinámicamente basado en columnas existentes
-            const columns = ['username'];
-            const values = [username];
-            const placeholders = ['$1'];
-            let paramIndex = 2;
-
-            if (existingColumns.includes('email')) {
-                columns.push('email');
-                values.push(email);
-                placeholders.push(`$${paramIndex++}`);
-            }
-
-            if (existingColumns.includes('first_name')) {
-                columns.push('first_name');
-                values.push(firstName);
-                placeholders.push(`$${paramIndex++}`);
-            }
-
-            if (existingColumns.includes('last_name')) {
-                columns.push('last_name');
-                values.push(lastName);
-                placeholders.push(`$${paramIndex++}`);
-            }
-
-            if (existingColumns.includes('password_hash')) {
-                columns.push('password_hash');
-                values.push(passwordHash);
-                placeholders.push(`$${paramIndex++}`);
-            }
-
-            if (existingColumns.includes('role')) {
-                columns.push('role');
-                values.push(role);
-                placeholders.push(`$${paramIndex++}`);
-            }
-
-            if (existingColumns.includes('permissions')) {
-                columns.push('permissions');
-                values.push(JSON.stringify(permissions));
-                placeholders.push(`$${paramIndex++}`);
-            }
-
-            if (existingColumns.includes('is_active')) {
-                columns.push('is_active');
-                values.push(isActive);
-                placeholders.push(`$${paramIndex++}`);
-            }
-
-            const query = `
-                INSERT INTO admin_users (${columns.join(', ')})
-                VALUES (${placeholders.join(', ')})
-                RETURNING *
-            `;
-
             const result = await client.query(query, values);
             return result.rows[0];
         } finally {
@@ -1160,977 +807,293 @@ class PostgreSQLClient {
         }
     }
 
-    async updateAdminUser(id, updateData) {
+    async updateCliente(id, clienteData) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
         try {
             const setParts = [];
             const values = [];
             let valueIndex = 1;
 
-            if (updateData.username !== undefined) {
-                setParts.push(`username = $${valueIndex++}`);
-                values.push(updateData.username);
-            }
-            if (updateData.email !== undefined) {
-                setParts.push(`email = $${valueIndex++}`);
-                values.push(updateData.email);
-            }
-            if (updateData.firstName !== undefined) {
-                setParts.push(`first_name = $${valueIndex++}`);
-                values.push(updateData.firstName);
-            }
-            if (updateData.lastName !== undefined) {
-                setParts.push(`last_name = $${valueIndex++}`);
-                values.push(updateData.lastName);
-            }
-            if (updateData.displayName !== undefined) {
-                // Mapear displayName a first_name y last_name si no están definidos por separado
-                const names = updateData.displayName.split(' ');
-                if (!updateData.firstName && !updateData.lastName) {
-                    setParts.push(`first_name = $${valueIndex++}`);
-                    values.push(names[0] || '');
-                    setParts.push(`last_name = $${valueIndex++}`);
-                    values.push(names.slice(1).join(' ') || '');
+            const validKeys = ['nombre', 'cif', 'telefono', 'email', 'direccion_fiscal', 'codigo_postal', 'poblacion', 'provincia', 'pais', 'persona_contacto', 'notas', 'estado', 'fecha_baja'];
+            Object.keys(clienteData).forEach(key => {
+                if (validKeys.includes(key)) {
+                    setParts.push(`${key} = $${valueIndex++}`);
+                    values.push(clienteData[key]);
                 }
-            }
-            if (updateData.passwordHash !== undefined) {
-                setParts.push(`password_hash = $${valueIndex++}`);
-                values.push(updateData.passwordHash);
-            }
-            if (updateData.role !== undefined) {
-                setParts.push(`role = $${valueIndex++}`);
-                values.push(updateData.role);
-            }
-            if (updateData.isActive !== undefined) {
-                setParts.push(`is_active = $${valueIndex++}`);
-                values.push(updateData.isActive);
-            }
-            if (updateData.permissions !== undefined) {
-                setParts.push(`permissions = $${valueIndex++}`);
-                values.push(JSON.stringify(updateData.permissions));
+            });
+
+            if (setParts.length === 0) {
+                // If only invalid keys were passed, we can either throw an error or return the existing object.
+                // Returning the existing object might be safer to prevent crashes.
+                return this.getClienteById(id);
             }
 
-            setParts.push(`updated_at = CURRENT_TIMESTAMP`);
             values.push(id);
-
             const query = `
-                UPDATE admin_users 
-                SET ${setParts.join(', ')}
+                UPDATE clientes
+                SET ${setParts.join(', ')}, updated_at = CURRENT_TIMESTAMP
                 WHERE id = $${valueIndex}
-                RETURNING *
+                RETURNING *;
             `;
 
             const result = await client.query(query, values);
+            if (result.rowCount === 0) throw new Error(`Cliente con ID ${id} no encontrado.`);
             return result.rows[0];
         } finally {
             client.release();
         }
     }
 
-    async deleteAdminUser(id) {
-        const client = await this.pool.connect();
-        try {
-            await client.query('DELETE FROM admin_users WHERE id = $1', [id]);
-            return true;
-        } finally {
-            client.release();
-        }
-    }
-
-    async updateUserLastLogin(userId, ipAddress, userAgent) {
-        const client = await this.pool.connect();
-        try {
-            await client.query(`
-                UPDATE admin_users 
-                SET last_login = CURRENT_TIMESTAMP, 
-                    updated_at = CURRENT_TIMESTAMP,
-                    ip_address = $2,
-                    user_agent = $3
-                WHERE id = $1
-            `, [userId, ipAddress, userAgent]);
-            console.log('✅ Last login actualizado para usuario ID:', userId);
-        } finally {
-            client.release();
-        }
-    }
-
-    async updateUserLastActivity(userId, ipAddress, userAgent) {
-        // Verificar que el pool esté disponible
-        if (!this.pool || !this.isInitialized) {
-            console.log('⚠️ Pool de conexiones no disponible para updateUserLastActivity');
-            return;
-        }
-        
-        const client = await this.pool.connect();
-        try {
-            await client.query(`
-                UPDATE admin_users 
-                SET last_activity = CURRENT_TIMESTAMP,
-                    ip_address = $2,
-                    user_agent = $3
-                WHERE id = $1
-            `, [userId, ipAddress, userAgent]);
-        } finally {
-            client.release();
-        }
-    }
-
-    async updateUserPassword(userId, passwordHash) {
-        const client = await this.pool.connect();
-        try {
-            await client.query(`
-                UPDATE admin_users 
-                SET password_hash = $2, updated_at = CURRENT_TIMESTAMP
-                WHERE id = $1
-            `, [userId, passwordHash]);
-        } finally {
-            client.release();
-        }
-    }
-
-    async bulkDeleteAdminUsers(userIds) {
-        const client = await this.pool.connect();
-        try {
-            const result = await client.query(
-                'DELETE FROM admin_users WHERE id = ANY($1)',
-                [userIds]
-            );
-            return { deletedCount: result.rowCount };
-        } finally {
-            client.release();
-        }
-    }
-
-    async getUserActivity() {
-        const client = await this.pool.connect();
-        try {
-            const result = await client.query(`
-                SELECT 
-                    u.id as user_id,
-                    u.username,
-                    u.last_activity,
-                    COALESCE(daily.actions_today, 0) as actions_today,
-                    COALESCE(total.total_actions, 0) as total_actions
-                FROM admin_users u
-                LEFT JOIN (
-                    SELECT user_id, COUNT(*) as actions_today
-                    FROM audit_logs 
-                    WHERE created_at >= CURRENT_DATE
-                    GROUP BY user_id
-                ) daily ON u.id = daily.user_id
-                LEFT JOIN (
-                    SELECT user_id, COUNT(*) as total_actions
-                    FROM audit_logs 
-                    GROUP BY user_id
-                ) total ON u.id = total.user_id
-                WHERE u.is_active = true
-                ORDER BY u.last_activity DESC NULLS LAST
-            `);
-            return result.rows;
-        } finally {
-            client.release();
-        }
-    }
-
-    // --- GESTIÓN DE AUDITORÍA ---
-
-    async createAuditLog(logData) {
-        // Verificar que el pool esté disponible
-        if (!this.pool || !this.isInitialized) {
-            console.log('⚠️ Pool de conexiones no disponible, saltando log de auditoría');
-            return;
-        }
-        
-        const client = await this.pool.connect();
-        try {
-            const {
-                userId,
-                username,
-                action,
-                module,
-                details,
-                ipAddress,
-                userAgent,
-                affectedResource
-            } = logData;
-
-            await client.query(`
-                INSERT INTO audit_logs (
-                    user_id, username, action, module, details,
-                    ip_address, user_agent, affected_resource
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            `, [
-                userId, username, action, module, details,
-                ipAddress, userAgent, affectedResource
-            ]);
-        } finally {
-            client.release();
-        }
-    }
-
-    async getAuditLogs(page = 1, limit = 50, filters = {}) {
-        // Verificar que el pool esté disponible
-        if (!this.pool || !this.isInitialized) {
-            console.log('⚠️ Pool de conexiones no disponible, devolviendo logs vacíos');
-            return { logs: [], total: 0, page, limit };
-        }
-        
+    async getAllClientes({ page = 1, limit = 20, sortBy = 'nombre', sortOrder = 'ASC', searchTerm = '', estado = null }) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
         try {
             const offset = (page - 1) * limit;
-            const conditions = [];
-            const values = [];
-            let valueIndex = 1;
+            const whereClauses = [];
+            const queryParams = [];
 
-            if (filters.userId) {
-                conditions.push(`user_id = $${valueIndex++}`);
-                values.push(filters.userId);
-            }
-            if (filters.action) {
-                conditions.push(`action ILIKE $${valueIndex++}`);
-                values.push(`%${filters.action}%`);
-            }
-            if (filters.module) {
-                conditions.push(`module = $${valueIndex++}`);
-                values.push(filters.module);
-            }
-            if (filters.startDate) {
-                conditions.push(`created_at >= $${valueIndex++}`);
-                values.push(filters.startDate);
-            }
-            if (filters.endDate) {
-                conditions.push(`created_at <= $${valueIndex++}`);
-                values.push(filters.endDate);
+            if (searchTerm) {
+                whereClauses.push(`(nombre ILIKE $${queryParams.length + 1} OR cif ILIKE $${queryParams.length + 1} OR email ILIKE $${queryParams.length + 1})`);
+                queryParams.push(`%${searchTerm}%`);
             }
 
-            const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+            if (estado) {
+                whereClauses.push(`estado = $${queryParams.length + 1}`);
+                queryParams.push(estado);
+            }
 
-            // Consulta para obtener logs
-            const logsQuery = `
-                SELECT * FROM audit_logs 
-                ${whereClause}
-                ORDER BY created_at DESC 
-                LIMIT $${valueIndex++} OFFSET $${valueIndex++}
-            `;
-            values.push(limit, offset);
+            const where = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+            
+            const validSortColumns = ['nombre', 'cif', 'poblacion', 'estado', 'created_at', 'total_pedidos'];
+            const safeSortBy = validSortColumns.includes(sortBy) ? sortBy : 'nombre';
+            const safeSortOrder = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
 
-            // Consulta para obtener total
-            const countQuery = `
-                SELECT COUNT(*) as total FROM audit_logs ${whereClause}
+            const baseQuery = `
+                FROM clientes c
+                LEFT JOIN (
+                    SELECT cliente_id, COUNT(*) as total_pedidos
+                    FROM pedidos
+                    GROUP BY cliente_id
+                ) p ON c.id = p.cliente_id
+                ${where}
             `;
 
-            const [logsResult, countResult] = await Promise.all([
-                client.query(logsQuery, values.slice(0, -2)), // Sin limit y offset para count
-                client.query(countQuery, values.slice(0, -2))
-            ]);
+            const countQuery = `SELECT COUNT(*) as total ${baseQuery}`;
+            const totalResult = await client.query(countQuery, queryParams);
+            const total = parseInt(totalResult.rows[0].total, 10);
 
-            const total = parseInt(countResult.rows[0].total);
-            const totalPages = Math.ceil(total / limit);
+            const dataQuery = `
+                SELECT c.*, COALESCE(p.total_pedidos, 0) as total_pedidos
+                ${baseQuery}
+                ORDER BY ${safeSortBy} ${safeSortOrder}
+                LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
+            `;
+            queryParams.push(limit, offset);
+
+            const dataResult = await client.query(dataQuery, queryParams);
 
             return {
-                logs: logsResult.rows,
+                data: dataResult.rows,
                 total,
                 page,
-                totalPages,
-                limit
+                limit,
+                totalPages: Math.ceil(total / limit)
             };
         } finally {
             client.release();
         }
     }
 
-    async getRecentAuditLogs(limit = 10) {
+    async getAllClientesSimple() {
+        if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
         try {
-            const result = await client.query(`
-                SELECT * FROM audit_logs 
-                ORDER BY created_at DESC 
-                LIMIT $1
-            `, [limit]);
+            const query = `
+                SELECT id, nombre
+                FROM clientes
+                WHERE estado = 'Activo'
+                ORDER BY nombre ASC;
+            `;
+            const result = await client.query(query);
             return result.rows;
         } finally {
             client.release();
         }
     }
 
-    // --- CONFIGURACIÓN DEL SISTEMA ---
-
-    async getSystemConfig() {
+    async getClienteById(id) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
         try {
-            const result = await client.query('SELECT * FROM system_config ORDER BY category, config_key');
-            return result.rows;
-        } finally {
-            client.release();
-        }
-    }
-
-    async getSystemConfigByKey(key) {
-        const client = await this.pool.connect();
-        try {
-            const result = await client.query('SELECT * FROM system_config WHERE config_key = $1', [key]);
+            const query = `
+                SELECT c.*,
+                       COALESCE(p_activos.count, 0) as pedidos_activos,
+                       COALESCE(p_total.count, 0) as pedidos_historicos,
+                       p_total.ultima_fecha_pedido
+                FROM clientes c
+                LEFT JOIN (
+                    SELECT cliente_id, COUNT(*) as count
+                    FROM pedidos
+                    WHERE etapa_actual NOT IN ('Entregado', 'Cancelado')
+                    GROUP BY cliente_id
+                ) p_activos ON c.id = p_activos.cliente_id
+                LEFT JOIN (
+                    SELECT cliente_id, COUNT(*) as count, MAX(fecha_pedido) as ultima_fecha_pedido
+                    FROM pedidos
+                    GROUP BY cliente_id
+                ) p_total ON c.id = p_total.cliente_id
+                WHERE c.id = $1;
+            `;
+            const result = await client.query(query, [id]);
             return result.rows[0] || null;
         } finally {
             client.release();
         }
     }
 
-    async updateSystemConfig(key, value, updatedBy) {
+    async getClienteHistorialPedidos(id, { page = 1, limit = 10 }) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
         try {
-            const result = await client.query(`
-                UPDATE system_config 
-                SET config_value = $2, updated_by = $3, updated_at = CURRENT_TIMESTAMP
-                WHERE config_key = $1
-                RETURNING *
-            `, [key, value, updatedBy]);
-            return result.rows[0];
-        } finally {
-            client.release();
-        }
-    }
+            const offset = (page - 1) * limit;
 
-    // --- BACKUPS DE BASE DE DATOS ---
+            const countQuery = 'SELECT COUNT(*) as total FROM pedidos WHERE cliente_id = $1';
+            const totalResult = await client.query(countQuery, [id]);
+            const total = parseInt(totalResult.rows[0].total, 10);
 
-    async createDatabaseBackup(backupData) {
-        const client = await this.pool.connect();
-        try {
-            const {
-                filename,
-                filePath,
-                fileSize,
-                backupType,
-                createdBy
-            } = backupData;
-
-            const result = await client.query(`
-                INSERT INTO database_backups (
-                    filename, file_path, file_size, backup_type, created_by, status
-                ) VALUES ($1, $2, $3, $4, $5, 'in_progress')
-                RETURNING *
-            `, [filename, filePath, fileSize, backupType, createdBy]);
-
-            return result.rows[0];
-        } finally {
-            client.release();
-        }
-    }
-
-    async updateBackupStatus(backupId, status, errorMessage = null) {
-        const client = await this.pool.connect();
-        try {
-            const result = await client.query(`
-                UPDATE database_backups 
-                SET status = $2, error_message = $3, completed_at = CURRENT_TIMESTAMP
-                WHERE id = $1
-                RETURNING *
-            `, [backupId, status, errorMessage]);
-            return result.rows[0];
-        } finally {
-            client.release();
-        }
-    }
-
-    async getDatabaseBackups() {
-        const client = await this.pool.connect();
-        try {
-            const result = await client.query(`
-                SELECT b.*, u.username as created_by_username
-                FROM database_backups b
-                LEFT JOIN admin_users u ON b.created_by = u.id
-                ORDER BY b.created_at DESC
-            `);
-            return result.rows;
-        } finally {
-            client.release();
-        }
-    }
-
-    async deleteDatabaseBackup(backupId) {
-        const client = await this.pool.connect();
-        try {
-            await client.query('DELETE FROM database_backups WHERE id = $1', [backupId]);
-            return true;
-        } finally {
-            client.release();
-        }
-    }
-
-    // --- ESTADÍSTICAS ADMINISTRATIVAS ---
-
-    async getAdminDashboardData() {
-        const client = await this.pool.connect();
-        try {
-            // Estadísticas básicas
-            const statsQuery = `
-                SELECT 
-                    (SELECT COUNT(*) FROM admin_users) as total_users,
-                    (SELECT COUNT(*) FROM admin_users WHERE is_active = true) as active_users,
-                    (SELECT COUNT(*) FROM pedidos) as total_pedidos,
-                    (SELECT COUNT(*) FROM pedidos WHERE DATE(created_at) = CURRENT_DATE) as pedidos_hoy,
-                    (SELECT COUNT(*) FROM pedidos WHERE etapa_actual = 'COMPLETADO') as pedidos_completados,
-                    (SELECT COUNT(*) FROM admin_users WHERE last_activity > CURRENT_TIMESTAMP - INTERVAL '30 minutes') as usuarios_conectados,
-                    (SELECT COUNT(*) FROM audit_logs WHERE created_at > CURRENT_TIMESTAMP - INTERVAL '24 hours') as sesiones_activas
+            const dataQuery = `
+                SELECT id, data->>'numeroPedidoCliente' as numero_pedido_cliente, etapa_actual, fecha_pedido, fecha_entrega, (data->>'cantidadPiezas')::int as cantidad_piezas
+                FROM pedidos
+                WHERE cliente_id = $1
+                ORDER BY fecha_pedido DESC
+                LIMIT $2 OFFSET $3
             `;
+            const dataResult = await client.query(dataQuery, [id, limit, offset]);
 
-            // Tiempo promedio de completado
-            const avgTimeQuery = `
-                SELECT COALESCE(AVG(
-                    EXTRACT(EPOCH FROM (
-                        (historial->>-1)::jsonb->>'timestamp'
-                    )::timestamp - created_at) / 60
-                ), 0) as promedio_tiempo_completado
-                FROM pedidos 
-                WHERE etapa_actual = 'COMPLETADO' 
-                AND jsonb_array_length(historial) > 1
-            `;
+            return {
+                data: dataResult.rows,
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            };
+        } finally {
+            client.release();
+        }
+    }
 
-            const [statsResult, avgTimeResult] = await Promise.all([
-                client.query(statsQuery),
-                client.query(avgTimeQuery)
+    async getClienteStats() {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query('SELECT * FROM obtener_estadisticas_clientes();');
+            return result.rows[0];
+        } finally {
+            client.release();
+        }
+    }
+
+    async deleteCliente(id) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        return this.updateCliente(id, { estado: 'Archivado', fecha_baja: new Date() });
+    }
+
+    // === MÉTODOS DE INTEGRIDAD DE DATOS ===
+
+    async runDataIntegrityChecks() {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const results = {};
+
+            const [pedidosSinClienteId, pedidosConClienteIdInvalido, clientesDuplicadosCif, clientesDuplicadosNombre] = await Promise.all([
+                client.query(`
+                    SELECT id, cliente, numero_pedido_cliente
+                    FROM pedidos
+                    WHERE cliente_id IS NULL;
+                `),
+                client.query(`
+                    SELECT p.id, p.cliente_id, p.cliente
+                    FROM pedidos p
+                    LEFT JOIN clientes c ON p.cliente_id = c.id
+                    WHERE p.cliente_id IS NOT NULL AND c.id IS NULL;
+                `),
+                client.query(`
+                    SELECT cif, COUNT(*) as count, ARRAY_AGG(id) as ids, ARRAY_AGG(nombre) as nombres
+                    FROM clientes
+                    WHERE cif IS NOT NULL AND cif != ''
+                    GROUP BY cif
+                    HAVING COUNT(*) > 1;
+                `),
+                client.query(`
+                    SELECT nombre, COUNT(*) as count, ARRAY_AGG(id) as ids
+                    FROM clientes
+                    GROUP BY nombre
+                    HAVING COUNT(*) > 1;
+                `)
             ]);
 
-            const stats = statsResult.rows[0];
-            const avgTime = avgTimeResult.rows[0].promedio_tiempo_completado || 0;
-
-            return {
-                stats: {
-                    totalUsers: parseInt(stats.total_users),
-                    activeUsers: parseInt(stats.active_users),
-                    totalPedidos: parseInt(stats.total_pedidos),
-                    pedidosHoy: parseInt(stats.pedidos_hoy),
-                    pedidosCompletados: parseInt(stats.pedidos_completados),
-                    promedioTiempoCompletado: Math.round(avgTime),
-                    usuariosConectados: parseInt(stats.usuarios_conectados),
-                    sesionesActivas: parseInt(stats.sesiones_activas)
-                }
+            results.pedidos_sin_cliente_id = {
+                count: pedidosSinClienteId.rowCount,
+                items: pedidosSinClienteId.rows,
             };
-        } finally {
-            client.release();
-        }
-    }
-
-    async getSystemHealth() {
-        const client = await this.pool.connect();
-        try {
-            const startTime = Date.now();
-            
-            // Test de conexión y tiempo de respuesta
-            await client.query('SELECT 1');
-            const responseTime = Date.now() - startTime;
-
-            // Estadísticas de conexiones
-            const connectionStats = await client.query(`
-                SELECT 
-                    count(*) as total_connections,
-                    count(*) filter (where state = 'active') as active_connections
-                FROM pg_stat_activity 
-                WHERE datname = current_database()
-            `);
-
-            const connections = connectionStats.rows[0];
-
-            return {
-                database: {
-                    status: responseTime < 100 ? 'healthy' : responseTime < 500 ? 'warning' : 'error',
-                    connections: parseInt(connections.total_connections),
-                    responseTime: responseTime
-                },
-                server: {
-                    status: 'healthy',
-                    uptime: process.uptime(),
-                    cpuUsage: Math.round(process.cpuUsage().user / 1000000), // Aproximación
-                    memoryUsage: Math.round((process.memoryUsage().heapUsed / process.memoryUsage().heapTotal) * 100)
-                },
-                websocket: {
-                    status: 'healthy',
-                    connections: 0 // Se actualizará desde el servidor WebSocket
-                }
+            results.pedidos_con_cliente_id_invalido = {
+                count: pedidosConClienteIdInvalido.rowCount,
+                items: pedidosConClienteIdInvalido.rows,
             };
-        } finally {
-            client.release();
-        }
-    }
-
-    // --- NOTIFICACIONES DEL SISTEMA ---
-
-    async createSystemNotification(notificationData) {
-        const client = await this.pool.connect();
-        try {
-            const {
-                title,
-                message,
-                type,
-                targetUsers,
-                createdBy,
-                expiresAt
-            } = notificationData;
-
-            const result = await client.query(`
-                INSERT INTO system_notifications (
-                    title, message, notification_type, target_users, created_by, expires_at
-                ) VALUES ($1, $2, $3, $4, $5, $6)
-                RETURNING *
-            `, [title, message, type, JSON.stringify(targetUsers || []), createdBy, expiresAt]);
-
-            return result.rows[0];
-        } finally {
-            client.release();
-        }
-    }
-
-    async getSystemNotifications(userId = null) {
-        const client = await this.pool.connect();
-        try {
-            let query = `
-                SELECT * FROM system_notifications 
-                WHERE (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
-                AND is_read = false
-            `;
-            const values = [];
-
-            if (userId) {
-                query += ` AND (target_users = '[]'::jsonb OR target_users ? $1)`;
-                values.push(userId);
-            }
-
-            query += ` ORDER BY created_at DESC`;
-
-            const result = await client.query(query, values);
-            return result.rows;
-        } finally {
-            client.release();
-        }
-    }
-
-    // Función para verificar y agregar columnas faltantes en admin_users
-    async ensureAdminUsersColumns(client) {
-        try {
-            // Verificar qué columnas existen en la tabla admin_users
-            const columnsResult = await client.query(`
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_name = 'admin_users' 
-                AND table_schema = 'public'
-            `);
-            
-            const existingColumns = columnsResult.rows.map(row => row.column_name);
-            console.log('📋 Columnas existentes en admin_users:', existingColumns.join(', '));
-
-            // Lista de columnas requeridas y sus definiciones
-            const requiredColumns = {
-                'email': 'VARCHAR(255) UNIQUE',
-                'first_name': 'VARCHAR(100) NOT NULL DEFAULT \'\'',
-                'last_name': 'VARCHAR(100) NOT NULL DEFAULT \'\'', 
-                'password_hash': 'VARCHAR(255)',
-                'permissions': 'JSONB DEFAULT \'[]\'::jsonb',
-                'is_active': 'BOOLEAN DEFAULT true',
-                'last_login': 'TIMESTAMP WITH TIME ZONE',
-                'last_activity': 'TIMESTAMP WITH TIME ZONE',
-                'ip_address': 'INET',
-                'user_agent': 'TEXT',
-                'updated_at': 'TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP'
+            results.clientes_duplicados_cif = {
+                count: clientesDuplicadosCif.rowCount,
+                items: clientesDuplicadosCif.rows,
+            };
+            results.clientes_duplicados_nombre = {
+                count: clientesDuplicadosNombre.rowCount,
+                items: clientesDuplicadosNombre.rows,
             };
 
-            // Agregar columnas faltantes
-            for (const [columnName, columnDefinition] of Object.entries(requiredColumns)) {
-                if (!existingColumns.includes(columnName)) {
-                    console.log(`➕ Agregando columna faltante: ${columnName}`);
-                    try {
-                        await client.query(`
-                            ALTER TABLE admin_users 
-                            ADD COLUMN ${columnName} ${columnDefinition}
-                        `);
-                        console.log(`✅ Columna ${columnName} agregada exitosamente`);
-                    } catch (error) {
-                        console.log(`⚠️ No se pudo agregar columna ${columnName}: ${error.message}`);
-                        // Continuar con las demás columnas
-                    }
-                }
-            }
-
-            // Verificar y actualizar el constraint del rol si es necesario
-            try {
-                await client.query(`
-                    DO $$
-                    BEGIN
-                        -- Eliminar constraint existente si existe
-                        IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'admin_users_role_check') THEN
-                            ALTER TABLE admin_users DROP CONSTRAINT admin_users_role_check;
-                        END IF;
-                        
-                        -- Agregar el constraint actualizado
-                        ALTER TABLE admin_users 
-                        ADD CONSTRAINT admin_users_role_check 
-                        CHECK (role IN ('ADMIN', 'SUPERVISOR', 'OPERATOR', 'VIEWER'));
-                    END $$;
-                `);
-                console.log('✅ Constraint de rol actualizado');
-            } catch (error) {
-                console.log('⚠️ No se pudo actualizar constraint de rol:', error.message);
-            }
-
-            // Migrar usuarios existentes que no tienen los campos requeridos
-            await this.migrateExistingUsers(client);
-
-        } catch (error) {
-            console.log('⚠️ Error verificando columnas de admin_users:', error.message);
-            // No lanzar error - el sistema puede continuar
+            return results;
+        } finally {
+            client.release();
         }
     }
 
-    async migrateExistingUsers(client) {
+    async fixMissingClientIds() {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
         try {
-            console.log('🔄 Verificando usuarios existentes...');
+            await client.query('BEGIN');
             
-            // Actualizar usuarios que no tienen email
+            // Intenta matchear por nombre de cliente exacto
             const updateResult = await client.query(`
-                UPDATE admin_users 
-                SET 
-                    email = COALESCE(NULLIF(email, ''), username || '@pigmea.local'),
-                    first_name = COALESCE(NULLIF(first_name, ''), username),
-                    last_name = COALESCE(NULLIF(last_name, ''), ''),
-                    permissions = COALESCE(permissions, '[]'::jsonb)
-                WHERE email IS NULL 
-                   OR email = '' 
-                   OR first_name IS NULL 
-                   OR first_name = ''
-                   OR permissions IS NULL
+                UPDATE pedidos p
+                SET cliente_id = c.id
+                FROM clientes c
+                WHERE p.cliente_id IS NULL AND p.cliente = c.nombre;
             `);
             
-            if (updateResult.rowCount > 0) {
-                console.log(`✅ Migrados ${updateResult.rowCount} usuarios existentes`);
-            } else {
-                console.log('✅ Todos los usuarios ya están actualizados');
-            }
-            
-        } catch (error) {
-            console.log('⚠️ Error migrando usuarios:', error.message);
-        }
-    }
-
-    // =================== MÉTODOS DE GESTIÓN DE PERMISOS ===================
-
-    /**
-     * Obtiene los permisos de un usuario específico
-     * @param {string} userId - ID del usuario
-     * @returns {Promise<Array>} - Array de permisos del usuario
-     */
-    async getUserPermissions(userId) {
-        if (!this.isInitialized) await this.init();
-        
-        try {
-            console.log(`🔍 Obteniendo permisos para usuario ID: ${userId}`);
-            
-            // Determinar si el ID parece ser un UUID
-            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId);
-            const isInteger = /^\d+$/.test(userId);
-            
-            console.log(`🔍 ID detectado como: ${isUUID ? 'UUID' : isInteger ? 'Integer' : 'String'}`);
-            
-            let result;
-            
-            if (isUUID) {
-                // Buscar permisos usando UUID directo
-                result = await this.pool.query(
-                    `SELECT permission_id, enabled 
-                     FROM user_permissions 
-                     WHERE user_id = $1`,
-                    [userId]
-                );
-            } else {
-                // Para IDs no-UUID, es probable que no tengan permisos en la nueva tabla
-                console.log(`⚠️ ID no es UUID válido, usuario probablemente no tiene permisos configurados`);
-                result = { rows: [] };
-            }
-            
-            console.log(`📋 Permisos encontrados: ${result.rows.length}`);
-            return result.rows;
-            
-        } catch (error) {
-            console.error('Error al obtener permisos del usuario:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Guarda los permisos de un usuario en la base de datos
-     * @param {string} userId - ID del usuario
-     * @param {string} grantedBy - ID del usuario que otorga los permisos
-     * @param {Array} permissions - Array de objetos {permissionId, enabled}
-     * @returns {Promise<void>}
-     */
-    async saveUserPermissions(userId, grantedBy, permissions) {
-        if (!this.isInitialized) await this.init();
-        
-        const client = await this.pool.connect();
-        
-        try {
-            await client.query('BEGIN');
-            
-            // Eliminar permisos existentes
-            await client.query('DELETE FROM user_permissions WHERE user_id = $1', [userId]);
-            
-            // Insertar nuevos permisos
-            for (const perm of permissions) {
-                await client.query(
-                    `INSERT INTO user_permissions 
-                     (user_id, permission_id, enabled, granted_by)
-                     VALUES ($1, $2, $3, $4)`,
-                    [userId, perm.permissionId, perm.enabled, grantedBy]
-                );
-            }
-            
             await client.query('COMMIT');
-            
-            // Registrar en audit_logs
-            await this.logAuditEvent({
-                userId: grantedBy,
-                action: 'UPDATE_PERMISSIONS',
-                module: 'SECURITY',
-                details: `Updated permissions for user ${userId}`,
-                metadata: { updatedPermissions: permissions }
-            });
-            
+            return { updatedCount: updateResult.rowCount };
         } catch (error) {
             await client.query('ROLLBACK');
-            console.error('Error al guardar permisos del usuario:', error);
             throw error;
         } finally {
             client.release();
         }
     }
 
-    /**
-     * Inicializa los permisos predeterminados para un usuario según su rol
-     * @param {string} userId - ID del usuario
-     * @param {string} role - Rol del usuario
-     * @param {string} grantedBy - ID del usuario que otorga los permisos
-     * @returns {Promise<void>}
-     */
-    async initializeDefaultPermissions(userId, role, grantedBy) {
-        if (!this.isInitialized) await this.init();
-        
-        try {
-            // Obtener la lista de permisos predeterminados según el rol
-            const defaultPermissions = this.getDefaultPermissionsForRole(role);
-            
-            // Guardar los permisos predeterminados
-            await this.saveUserPermissions(userId, grantedBy, defaultPermissions);
-            
-        } catch (error) {
-            console.error('Error al inicializar permisos predeterminados:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Devuelve los permisos predeterminados para un rol específico
-     * @param {string} role - Rol del usuario (ADMIN, SUPERVISOR, OPERATOR, VIEWER)
-     * @returns {Array} - Array de objetos {permissionId, enabled}
-     */
-    getDefaultPermissionsForRole(role) {
-        // Esta función debe mantenerse sincronizada con constants/permissions.ts
-        const permissions = [];
-        
-        // Permisos comunes para todos los roles
-        const commonPermissions = [
-            { permissionId: 'pedidos.view', enabled: true },
-            { permissionId: 'dashboard.view', enabled: true }
-        ];
-        
-        permissions.push(...commonPermissions);
-        
-        // Permisos específicos por rol
-        switch (role.toUpperCase()) {
-            case 'ADMIN':
-                permissions.push(
-                    { permissionId: 'usuarios.admin', enabled: true },
-                    { permissionId: 'permisos.admin', enabled: true },
-                    { permissionId: 'pedidos.edit', enabled: true },
-                    { permissionId: 'pedidos.delete', enabled: true },
-                    { permissionId: 'pedidos.print', enabled: true },
-                    { permissionId: 'secuencia.manage', enabled: true },
-                    { permissionId: 'reportes.view', enabled: true },
-                    { permissionId: 'datos.export', enabled: true }
-                );
-                break;
-                
-            case 'SUPERVISOR':
-                permissions.push(
-                    { permissionId: 'pedidos.edit', enabled: true },
-                    { permissionId: 'pedidos.print', enabled: true },
-                    { permissionId: 'secuencia.manage', enabled: true },
-                    { permissionId: 'reportes.view', enabled: true },
-                    { permissionId: 'datos.export', enabled: true }
-                );
-                break;
-                
-            case 'OPERATOR':
-                permissions.push(
-                    { permissionId: 'pedidos.edit', enabled: true },
-                    { permissionId: 'pedidos.print', enabled: true }
-                );
-                break;
-                
-            case 'VIEWER':
-                // Solo tiene los permisos comunes
-                break;
-                
-            default:
-                // Si el rol no es reconocido, solo permisos de visualización
-                break;
-        }
-        
-        return permissions;
-    }
-
-    /**
-     * Obtiene todos los permisos disponibles en el sistema
-     * @returns {Promise<Array>} - Array de objetos de permiso
-     */
-    async getAllPermissions() {
-        try {
-            // Cargar el mapa de permisos desde el archivo JSON
-            const permissionsMap = require('./permissions-map.json');
-            return Object.values(permissionsMap);
-        } catch (error) {
-            console.error('Error al obtener permisos del sistema:', error);
-            return [];
-        }
-    }
-
-    /**
-     * Obtiene la configuración de permisos del sistema en formato compatible con el frontend
-     * @returns {Promise<Object>} - Configuración de permisos
-     */
-    async getAllSystemPermissions() {
-        try {
-            // Cargar el mapa de permisos desde el archivo JSON
-            const permissionsMap = require('./permissions-map.json');
-            
-            // Organizar por categorías
-            const categories = {};
-            
-            // Agrupar permisos por categoría
-            Object.values(permissionsMap).forEach(perm => {
-                if (!categories[perm.category]) {
-                    categories[perm.category] = {
-                        name: perm.category.charAt(0).toUpperCase() + perm.category.slice(1),
-                        description: `Permisos para ${perm.category}`,
-                        permissions: []
-                    };
-                }
-                
-                categories[perm.category].permissions.push({
-                    id: perm.id,
-                    name: perm.action.charAt(0).toUpperCase() + perm.action.slice(1) + ' ' + perm.category.charAt(0).toUpperCase() + perm.category.slice(1),
-                    description: perm.description
-                });
-            });
-            
-            return { categories };
-        } catch (error) {
-            console.error('Error al obtener configuración de permisos:', error);
-            return { categories: {} };
-        }
-    }
-
-    /**
-     * Migra los permisos almacenados en JSONB a la nueva tabla de permisos
-     * @returns {Promise<void>}
-     */
-    async migrateJsonbPermissionsToTable() {
-        if (!this.isInitialized) await this.init();
-        
-        const client = await this.pool.connect();
-        
-        try {
-            await client.query('BEGIN');
-            
-            // Obtener todos los usuarios con permisos JSONB
-            const usersResult = await client.query(
-                `SELECT id, username, role, permissions 
-                 FROM admin_users 
-                 WHERE permissions IS NOT NULL AND permissions != '[]'::jsonb`
-            );
-            
-            for (const user of usersResult.rows) {
-                const permissions = user.permissions;
-                
-                // Si el usuario tiene permisos JSONB, migrarlos a la tabla
-                if (permissions && Array.isArray(permissions) && permissions.length > 0) {
-                    // Primero eliminar permisos existentes en la tabla
-                    await client.query('DELETE FROM user_permissions WHERE user_id = $1', [user.id]);
-                    
-                    // Insertar cada permiso en la nueva tabla
-                    for (const perm of permissions) {
-                        await client.query(
-                            `INSERT INTO user_permissions 
-                             (user_id, permission_id, enabled, granted_by)
-                             VALUES ($1, $2, $3, $4)
-                             ON CONFLICT (user_id, permission_id) DO UPDATE
-                             SET enabled = $3, updated_at = CURRENT_TIMESTAMP`,
-                            [user.id, perm.id || perm.permissionId, perm.enabled !== false, user.id]
-                        );
-                    }
-                    
-                    console.log(`✅ Migrados ${permissions.length} permisos para usuario ${user.username}`);
-                }
-            }
-            
-            await client.query('COMMIT');
-            console.log('✅ Migración de permisos JSONB completada');
-            
-        } catch (error) {
-            await client.query('ROLLBACK');
-            console.error('❌ Error al migrar permisos JSONB:', error);
-            throw error;
-        } finally {
-            client.release();
-        }
-    }
-
-    // Método para audit events (necesario para middleware de permisos)
-    async logAuditEvent(userId, action, details, resourceType = null, resourceId = null) {
-        try {
-            if (!this.isInitialized) {
-                console.warn('Database not initialized, skipping audit log');
-                return;
-            }
-
-            const client = await this.pool.connect();
-            try {
-                await client.query(`
-                    INSERT INTO audit_log (user_id, action, details, resource_type, resource_id, timestamp)
-                    VALUES ($1, $2, $3, $4, $5, NOW())
-                `, [userId, action, JSON.stringify(details), resourceType, resourceId]);
-            } finally {
-                client.release();
-            }
-        } catch (error) {
-            console.error('Error logging audit event:', error);
-            // No lanzar error para no interrumpir la operación principal
-        }
-    }
-
-    // Verificar si un usuario tiene un permiso específico
     async hasPermission(userId, permissionId, userFromRequest = null) {
         try {
             console.log(`🔍 Verificando permiso '${permissionId}' para usuario ID: ${userId}`);
             
-            // Verificar si el usuario es administrador (acceso completo)
             const userRole = userFromRequest?.role || 'OPERATOR';
             if (userRole === 'Administrador' || userRole === 'ADMIN') {
                 console.log(`👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS`);
                 return true;
             }
             
-            // Si la base de datos no está inicializada, usar lógica de fallback
-            if (!this.isInitialized || !this.client) {
+            if (!this.isInitialized) {
                 console.log(`🔧 BD no disponible, usando permisos del frontend en modo desarrollo`);
                 
-                // Si tenemos permisos del usuario desde el frontend (modo desarrollo), usarlos
                 if (userFromRequest && userFromRequest.permissions && Array.isArray(userFromRequest.permissions)) {
                     const userPermission = userFromRequest.permissions.find(perm => perm.id === permissionId);
                     const hasPermission = userPermission ? userPermission.enabled : false;
@@ -2139,7 +1102,6 @@ class PostgreSQLClient {
                     return hasPermission;
                 }
                 
-                // Fallback: usar permisos por defecto del rol
                 const rolePermissions = this.getDefaultPermissionsForRole(userRole);
                 const hasPermission = rolePermissions.some(perm => 
                     perm.permissionId === permissionId && perm.enabled
@@ -2149,33 +1111,19 @@ class PostgreSQLClient {
                 return hasPermission;
             }
             
-            // Primero intentar obtener usuario para verificar rol
-            let user = null;
-            try {
-                user = await this.getAdminUserById(userId);
-            } catch (userError) {
-                console.log(`⚠️ Error obteniendo usuario de admin_users: ${userError.message}`);
-            }
+            let user = await this.getAdminUserById(userId);
             
             if (!user) {
-                // Si no se encuentra en admin_users, buscar en tabla legacy
-                let legacyUser = null;
-                try {
-                    legacyUser = await this.findLegacyUserById(userId);
-                } catch (legacyError) {
-                    console.log(`⚠️ Error obteniendo usuario legacy: ${legacyError.message}`);
-                }
+                let legacyUser = await this.findLegacyUserById(userId);
                 
                 if (legacyUser) {
                     console.log(`👤 Usuario legacy encontrado: ${legacyUser.username}, rol: ${legacyUser.role}`);
                     
-                    // Si es administrador legacy, dar acceso completo
                     if (legacyUser.role === 'ADMIN' || legacyUser.role === 'Administrador') {
                         console.log(`👑 Usuario administrador legacy - TODOS LOS PERMISOS CONCEDIDOS`);
                         return true;
                     }
                     
-                    // Para usuarios legacy no administradores, usar permisos por defecto según rol
                     const defaultPermissions = this.getDefaultPermissionsForRole(legacyUser.role);
                     const hasPermission = defaultPermissions.some(perm => 
                         perm.permissionId === permissionId && perm.enabled
@@ -2185,8 +1133,6 @@ class PostgreSQLClient {
                     return hasPermission;
                 }
                 
-                // Si no encontramos el usuario en ningún sitio, 
-                // en caso de error de BD, dar permisos por defecto para evitar bloqueos
                 console.log(`⚠️ Usuario ${userId} no encontrado, asignando permisos de administrador por seguridad`);
                 const fallbackPermissions = this.getDefaultPermissionsForRole('ADMIN');
                 const hasPermission = fallbackPermissions.some(perm => 
@@ -2199,19 +1145,16 @@ class PostgreSQLClient {
             
             console.log(`👤 Usuario encontrado: ${user.username}, rol: ${user.role}`);
             
-            // Si es administrador, dar acceso completo
             if (user.role === 'ADMIN' || user.role === 'Administrador') {
                 console.log(`👑 Usuario administrador con BD - TODOS LOS PERMISOS CONCEDIDOS`);
                 return true;
             }
             
-            // Verificar si es UUID válido para buscar en user_permissions
             const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId);
             
             if (isValidUUID && this.isInitialized) {
                 try {
-                    // Buscar permisos específicos en user_permissions
-                    const result = await this.client.query(
+                    const result = await this.pool.query(
                         'SELECT enabled FROM user_permissions WHERE user_id = $1 AND permission_id = $2',
                         [userId, permissionId]
                     );
@@ -2226,7 +1169,6 @@ class PostgreSQLClient {
                 }
             }
             
-            // Si no hay permisos específicos, usar permisos por defecto según rol
             console.log(`🔧 Usando permisos por defecto para rol: ${user.role}`);
             const defaultPermissions = this.getDefaultPermissionsForRole(user.role);
             const hasPermission = defaultPermissions.some(perm => 
@@ -2238,18 +1180,15 @@ class PostgreSQLClient {
             
         } catch (error) {
             console.error('Error verificando permiso:', error);
-            
-            // En caso de error, permitir acceso para evitar bloquear el sistema
             console.log(`🔧 Error en verificación de permisos, permitiendo acceso por seguridad`);
             return true;
         }
     }
 
-    // Obtener permisos por defecto según el rol
     getDefaultPermissionsForRole(role) {
-        // Permisos base disponibles en el sistema (usando formato del backend)
         const allPermissions = [
             'pedidos.create', 'pedidos.view', 'pedidos.edit', 'pedidos.delete',
+            'clientes.view', 'clientes.create', 'clientes.edit', 'clientes.delete',
             'usuarios.admin', 'usuarios.view', 'usuarios.create', 'usuarios.delete', 
             'reportes.view', 'reportes.export', 'datos.import',
             'configuracion.admin', 'configuracion.view',
@@ -2267,32 +1206,21 @@ class PostgreSQLClient {
         switch (role) {
             case 'ADMIN':
             case 'Administrador':
-                // Administrador tiene todos los permisos
                 allPermissions.forEach(permission => {
-                    defaultPermissions.push({
-                        permissionId: permission,
-                        enabled: true
-                    });
+                    defaultPermissions.push({ permissionId: permission, enabled: true });
                 });
                 break;
-
             case 'SUPERVISOR':
             case 'Supervisor':
-                // Supervisor tiene la mayoría de permisos excepto gestión crítica
                 const supervisorPermissions = allPermissions.filter(p => 
                     !['usuarios.delete', 'backup.admin', 'restore.admin', 'permisos.admin'].includes(p)
                 );
                 supervisorPermissions.forEach(permission => {
-                    defaultPermissions.push({
-                        permissionId: permission,
-                        enabled: true
-                    });
+                    defaultPermissions.push({ permissionId: permission, enabled: true });
                 });
                 break;
-
             case 'OPERATOR':
             case 'Operador':
-                // Operador tiene permisos operativos básicos
                 const operatorPermissions = [
                     'pedidos.create', 'pedidos.view', 'pedidos.edit',
                     'pedidos.process', 'pedidos.complete',
@@ -2301,36 +1229,23 @@ class PostgreSQLClient {
                     'secuencias.admin', 'secuencias.edit'
                 ];
                 operatorPermissions.forEach(permission => {
-                    defaultPermissions.push({
-                        permissionId: permission,
-                        enabled: true
-                    });
+                    defaultPermissions.push({ permissionId: permission, enabled: true });
                 });
                 break;
-
             case 'VIEWER':
             case 'Visualizador':
-                // Visualizador solo puede ver
                 const viewerPermissions = [
                     'pedidos.view', 'dashboard.view', 'inventario.view',
-                    'reportes.view', 'antivaho.view'
+                    'reportes.view', 'antivaho.view', 'clientes.view'
                 ];
                 viewerPermissions.forEach(permission => {
-                    defaultPermissions.push({
-                        permissionId: permission,
-                        enabled: true
-                    });
+                    defaultPermissions.push({ permissionId: permission, enabled: true });
                 });
                 break;
-
             default:
-                // Por defecto dar permisos mínimos de operador
                 const defaultOps = ['pedidos.view', 'dashboard.view'];
                 defaultOps.forEach(permission => {
-                    defaultPermissions.push({
-                        permissionId: permission,
-                        enabled: true
-                    });
+                    defaultPermissions.push({ permissionId: permission, enabled: true });
                 });
                 break;
         }
