@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { Pedido, Prioridad, TipoImpresion, Etapa, EstadoCliché } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Pedido, Prioridad, TipoImpresion, Etapa, EstadoCliché, Cliente } from '../types';
 import { KANBAN_FUNNELS, ETAPAS } from '../constants';
 import SequenceBuilder from './SequenceBuilder';
 import SeccionDatosTecnicosDeMaterial from './SeccionDatosTecnicosDeMaterial';
+import { useClientesManager, ClienteCreateRequest } from '../hooks/useClientesManager';
+import ClienteModal from './ClienteModal';
 
 interface AddPedidoModalProps {
     onClose: () => void;
@@ -10,6 +12,7 @@ interface AddPedidoModalProps {
         pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'subEtapaActual' | 'maquinaImpresion' | 'secuenciaTrabajo' | 'orden' | 'historial'>;
         secuenciaTrabajo: Etapa[];
     }) => void;
+    clientes: Cliente[];
 }
 
 const initialFormData = {
@@ -41,9 +44,15 @@ const initialFormData = {
     minColor: null,
 };
 
-const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
+const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, clientes: initialClientes }) => {
     const [formData, setFormData] = useState<any>(initialFormData);
     const [secuenciaTrabajo, setSecuenciaTrabajo] = useState<Etapa[]>([]);
+    const { clientes, addCliente, fetchClientes } = useClientesManager();
+    const [isClienteModalOpen, setClienteModalOpen] = useState(false);
+
+    useEffect(() => {
+        fetchClientes();
+    }, []);
 
     const handleDataChange = (field: keyof Pedido, value: any) => {
         setFormData((prev: any) => ({ ...prev, [field]: value }));
@@ -52,12 +61,24 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
         
-        if (type === 'checkbox') {
+        if (name === "cliente" && value === "add_new_cliente") {
+            setClienteModalOpen(true);
+        } else if (type === 'checkbox') {
             const { checked } = e.target as HTMLInputElement;
             setFormData(prev => ({ ...prev, [name]: checked }));
         } else {
             const valueToSet = type === 'number' ? parseInt(value, 10) || 0 : value;
             setFormData(prev => ({ ...prev, [name]: valueToSet }));
+        }
+    };
+
+    const handleSaveCliente = async (clienteData: ClienteCreateRequest) => {
+        try {
+            const nuevoCliente = await addCliente(clienteData);
+            setFormData(prev => ({ ...prev, cliente: nuevoCliente.nombre }));
+            setClienteModalOpen(false);
+        } catch (error) {
+            console.error("Error al crear cliente:", error);
         }
     };
 
@@ -84,7 +105,13 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
                         {/* Columna Izquierda */}
                         <div>
                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Cliente</label>
-                            <input type="text" name="cliente" value={formData.cliente} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500" required />
+                            <select name="cliente" value={formData.cliente} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500" required>
+                                <option value="">Seleccione un cliente</option>
+                                {clientes.map(cliente => (
+                                    <option key={cliente.id} value={cliente.nombre}>{cliente.nombre}</option>
+                                ))}
+                                <option value="add_new_cliente">-- Crear nuevo cliente --</option>
+                            </select>
                             
                             <label className="block mt-4 mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Número de Pedido Cliente</label>
                             <input type="text" name="numeroPedidoCliente" value={formData.numeroPedidoCliente} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" required />
@@ -181,6 +208,14 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
                         </div>
                     </div>
                 </form>
+                {isClienteModalOpen && (
+                    <ClienteModal
+                        isOpen={isClienteModalOpen}
+                        onClose={() => setClienteModalOpen(false)}
+                        onSave={handleSaveCliente}
+                        cliente={null}
+                    />
+                )}
             </div>
         </div>
     );
