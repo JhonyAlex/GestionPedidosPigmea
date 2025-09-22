@@ -923,10 +923,18 @@ class PostgreSQLClient {
                 RETURNING *;
             `;
             const values = [
-                clienteData.nombre, clienteData.cif, clienteData.telefono, clienteData.email,
-                clienteData.direccion_fiscal, clienteData.codigo_postal, clienteData.poblacion,
-                clienteData.provincia, clienteData.pais, clienteData.persona_contacto,
-                clienteData.notas, clienteData.estado || 'Activo'
+                clienteData.nombre,
+                clienteData.cif || null,
+                clienteData.telefono || null,
+                clienteData.email || null,
+                clienteData.direccion_fiscal || null,
+                clienteData.codigo_postal || null,
+                clienteData.poblacion || null,
+                clienteData.provincia || null,
+                clienteData.pais || null,
+                clienteData.persona_contacto || null,
+                clienteData.notas || null,
+                clienteData.estado || 'Activo'
             ];
             const result = await client.query(query, values);
             return result.rows[0];
