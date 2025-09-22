@@ -43,6 +43,134 @@ class PostgreSQLClient {
         }
     }
 
+    // === MÉTODOS PARA ADMIN USERS ===
+
+    async getAdminUserByUsername(username) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query('SELECT * FROM admin_users WHERE username = $1', [username]);
+            return result.rows[0];
+        } finally {
+            client.release();
+        }
+    }
+
+    async getAdminUserById(id) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query('SELECT * FROM admin_users WHERE id = $1', [id]);
+            return result.rows[0];
+        } finally {
+            client.release();
+        }
+    }
+
+    async getAllAdminUsers() {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query('SELECT * FROM admin_users ORDER BY username');
+            return result.rows;
+        } finally {
+            client.release();
+        }
+    }
+
+    async createAdminUser(userData) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const { username, email, firstName, lastName, passwordHash, role, isActive } = userData;
+            const query = `
+                INSERT INTO admin_users (username, email, first_name, last_name, password_hash, role, is_active)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                RETURNING *;
+            `;
+            const values = [username, email, firstName, lastName, passwordHash, role, isActive];
+            const result = await client.query(query, values);
+            return result.rows[0];
+        } finally {
+            client.release();
+        }
+    }
+
+    async updateAdminUser(id, updateData) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const setParts = [];
+            const values = [];
+            let valueIndex = 1;
+
+            const validKeys = ['username', 'email', 'first_name', 'last_name', 'role', 'is_active'];
+            for (const key of validKeys) {
+                if (updateData[key] !== undefined) {
+                    setParts.push(`${key} = $${valueIndex++}`);
+                    values.push(updateData[key]);
+                }
+            }
+
+            if (setParts.length === 0) {
+                return this.getAdminUserById(id);
+            }
+
+            values.push(id);
+            const query = `
+                UPDATE admin_users
+                SET ${setParts.join(', ')}
+                WHERE id = $${valueIndex}
+                RETURNING *;
+            `;
+
+            const result = await client.query(query, values);
+            return result.rows[0];
+        } finally {
+            client.release();
+        }
+    }
+
+    async deleteAdminUser(id) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            await client.query('DELETE FROM admin_users WHERE id = $1', [id]);
+        } finally {
+            client.release();
+        }
+    }
+
+    async updateUserLastLogin(id, ipAddress, userAgent) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                UPDATE admin_users
+                SET last_login = CURRENT_TIMESTAMP, ip_address = $2, user_agent = $3
+                WHERE id = $1;
+            `;
+            await client.query(query, [id, ipAddress, userAgent]);
+        } finally {
+            client.release();
+        }
+    }
+
+    async updateUserPassword(id, passwordHash) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                UPDATE admin_users
+                SET password_hash = $2
+                WHERE id = $1;
+            `;
+            await client.query(query, [id, passwordHash]);
+        } finally {
+            client.release();
+        }
+    }
+
     async init() {
         try {
             this.pool = new Pool(this.config);
