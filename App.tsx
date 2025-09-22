@@ -29,6 +29,7 @@ import { procesarDragEnd } from './utils/dragLogic';
 import { usePedidosManager } from './hooks/usePedidosManager';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useFiltrosYOrden } from './hooks/useFiltrosYOrden';
+import { useClientesManager } from './hooks/useClientesManager';
 import { useNavigateToPedido } from './hooks/useNavigateToPedido';
 import { auditService } from './services/audit';
 
@@ -134,6 +135,8 @@ const AppContent: React.FC = () => {
         setSelectedPedido,
         setHighlightedPedidoId
     });
+
+    const { clientes } = useClientesManager();
 
 
     useEffect(() => {
@@ -634,6 +637,7 @@ const AppContent: React.FC = () => {
                     <AddPedidoModal
                         onClose={() => setIsAddModalOpen(false)}
                         onAdd={handleAddPedido}
+                        clientes={clientes}
                     />
                 )}
                 {pedidoToSend && (

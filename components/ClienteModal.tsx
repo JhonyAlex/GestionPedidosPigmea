@@ -63,10 +63,10 @@ const ClienteModal: React.FC<ClienteModalProps> = ({ isOpen, onClose, onSave, cl
     setIsSaving(true);
 
     // Basic validation
-    if (!formData.nombre || !formData.cif || !formData.telefono || !formData.email) {
-      setError("Nombre, CIF, Teléfono y Email son campos obligatorios.");
-      setIsSaving(false);
-      return;
+    if (!formData.nombre) {
+        setError("El nombre es un campo obligatorio.");
+        setIsSaving(false);
+        return;
     }
 
     try {
@@ -138,20 +138,20 @@ const ClienteModal: React.FC<ClienteModalProps> = ({ isOpen, onClose, onSave, cl
                 <input type="text" name="razon_social" id="razon_social" value={formData.razon_social} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600" />
               </div>
               <div>
-                <label htmlFor="cif" className="block text-sm font-medium text-gray-700 dark:text-gray-300">CIF *</label>
-                <input type="text" name="cif" id="cif" value={formData.cif} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600" required />
+                <label htmlFor="cif" className="block text-sm font-medium text-gray-700 dark:text-gray-300">CIF</label>
+                <input type="text" name="cif" id="cif" value={formData.cif} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600" />
               </div>
               <div>
                 <label htmlFor="persona_contacto" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Persona de Contacto</label>
                 <input type="text" name="persona_contacto" id="persona_contacto" value={formData.persona_contacto} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600" />
               </div>
               <div>
-                <label htmlFor="telefono" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Teléfono *</label>
-                <input type="tel" name="telefono" id="telefono" value={formData.telefono} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600" required />
+                <label htmlFor="telefono" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Teléfono</label>
+                <input type="tel" name="telefono" id="telefono" value={formData.telefono} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600" />
               </div>
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email *</label>
-                <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600" required />
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600" />
               </div>
             </div>
 
