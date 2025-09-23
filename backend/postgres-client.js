@@ -946,8 +946,19 @@ class PostgreSQLClient {
             console.log('🔍 createCliente - Values:', values);
             
             const result = await client.query(query, values);
-            console.log('✅ Cliente creado exitosamente:', result.rows[0].id);
-            return result.rows[0];
+            const newCliente = result.rows[0];
+
+            if (newCliente.direccion_fiscal !== undefined) {
+                newCliente.direccion = newCliente.direccion_fiscal;
+                delete newCliente.direccion_fiscal;
+            }
+            if (newCliente.notas !== undefined) {
+                newCliente.observaciones = newCliente.notas;
+                delete newCliente.notas;
+            }
+            
+            console.log('✅ Cliente creado exitosamente:', newCliente.id);
+            return newCliente;
         } finally {
             client.release();
         }
