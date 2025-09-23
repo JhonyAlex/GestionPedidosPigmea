@@ -1475,12 +1475,28 @@ app.get('/api/clientes/:id/historial', requirePermission('clientes.view'), async
 // POST /api/clientes - Create a new cliente
 app.post('/api/clientes', requirePermission('clientes.create'), async (req, res) => {
     try {
+        console.log('🔍 POST /api/clientes - Datos recibidos:', JSON.stringify(req.body, null, 2));
+        console.log('🔍 Database initialized:', dbClient.isInitialized);
+        
         const newCliente = await dbClient.createCliente(req.body);
+        console.log('✅ Cliente creado exitosamente:', newCliente.id);
+        
         broadcastToClients('cliente-created', { cliente: newCliente });
         res.status(201).json(newCliente);
     } catch (error) {
-        console.error("Error in POST /api/clientes:", error);
-        res.status(500).json({ message: "Error interno del servidor al crear el cliente." });
+        console.error("❌ Error in POST /api/clientes:");
+        console.error("   Error message:", error.message);
+        console.error("   Error code:", error.code);
+        console.error("   Error detail:", error.detail);
+        console.error("   Stack trace:", error.stack);
+        res.status(500).json({
+            message: "Error interno del servidor al crear el cliente.",
+            debug: process.env.NODE_ENV === 'development' ? {
+                error: error.message,
+                code: error.code,
+                detail: error.detail
+            } : undefined
+        });
     }
 });
 
@@ -2020,3 +2036,4 @@ process.on('SIGINT', async () => {
     process.exit(0);
 });
 // Force deploy Thu Sep  4 15:22:25 UTC 2025
+
