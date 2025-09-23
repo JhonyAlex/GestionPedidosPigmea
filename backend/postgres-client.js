@@ -1023,8 +1023,20 @@ class PostgreSQLClient {
             const result = await client.query(query, values);
             if (result.rowCount === 0) throw new Error(`Cliente con ID ${id} no encontrado.`);
             
-            console.log('✅ Cliente actualizado exitosamente:', result.rows[0].id);
-            return result.rows[0];
+            const updatedCliente = result.rows[0];
+
+            // Map backend fields to frontend fields before returning
+            if (updatedCliente.direccion_fiscal !== undefined) {
+                updatedCliente.direccion = updatedCliente.direccion_fiscal;
+                delete updatedCliente.direccion_fiscal;
+            }
+            if (updatedCliente.notas !== undefined) {
+                updatedCliente.observaciones = updatedCliente.notas;
+                delete updatedCliente.notas;
+            }
+            
+            console.log('✅ Cliente actualizado exitosamente:', updatedCliente.id);
+            return updatedCliente;
         } finally {
             client.release();
         }
@@ -1131,7 +1143,18 @@ class PostgreSQLClient {
                 WHERE c.id = $1;
             `;
             const result = await client.query(query, [id]);
-            return result.rows[0] || null;
+            const cliente = result.rows[0] || null;
+            if (cliente) {
+                if (cliente.direccion_fiscal !== undefined) {
+                    cliente.direccion = cliente.direccion_fiscal;
+                    delete cliente.direccion_fiscal;
+                }
+                if (cliente.notas !== undefined) {
+                    cliente.observaciones = cliente.notas;
+                    delete cliente.notas;
+                }
+            }
+            return cliente;
         } finally {
             client.release();
         }
