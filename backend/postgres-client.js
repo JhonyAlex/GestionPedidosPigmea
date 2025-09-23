@@ -1436,6 +1436,17 @@ class PostgreSQLClient {
         console.log(`🔧 Permisos por defecto para rol ${role}:`, defaultPermissions.length, 'permisos');
         return defaultPermissions;
     }
+
+    // === MÉTODO DE CIERRE ===
+    async close() {
+        if (this.pool) {
+            console.log('🔄 Cerrando conexiones a PostgreSQL...');
+            await this.pool.end();
+            this.pool = null;
+            this.isInitialized = false;
+            console.log('✅ Conexiones a PostgreSQL cerradas');
+        }
+    }
 }
 
 module.exports = PostgreSQLClient;
