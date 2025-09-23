@@ -927,13 +927,15 @@ class PostgreSQLClient {
                 clienteData.cif || null,
                 clienteData.telefono || null,
                 clienteData.email || null,
-                clienteData.direccion_fiscal || null,
+                // Mapeo de campos frontend -> backend
+                clienteData.direccion_fiscal || clienteData.direccion || null,
                 clienteData.codigo_postal || null,
                 clienteData.poblacion || null,
                 clienteData.provincia || null,
                 clienteData.pais || null,
                 clienteData.persona_contacto || null,
-                clienteData.notas || null,
+                // Mapeo: observaciones (frontend) -> notas (backend)
+                clienteData.notas || clienteData.observaciones || null,
                 clienteData.estado || 'Activo'
             ];
             const result = await client.query(query, values);
@@ -951,11 +953,20 @@ class PostgreSQLClient {
             const values = [];
             let valueIndex = 1;
 
-            const validKeys = ['nombre', 'cif', 'telefono', 'email', 'direccion_fiscal', 'codigo_postal', 'poblacion', 'provincia', 'pais', 'persona_contacto', 'notas', 'estado', 'fecha_baja'];
-            Object.keys(clienteData).forEach(key => {
-                if (validKeys.includes(key)) {
+            // Mapear campos del frontend a backend
+            const mappedData = {
+                ...clienteData,
+                // Mapeo: direccion (frontend) -> direccion_fiscal (backend)
+                direccion_fiscal: clienteData.direccion_fiscal || clienteData.direccion,
+                // Mapeo: observaciones (frontend) -> notas (backend)
+                notas: clienteData.notas || clienteData.observaciones
+            };
+
+            const validKeys = ['nombre', 'razon_social', 'cif', 'telefono', 'email', 'direccion_fiscal', 'codigo_postal', 'poblacion', 'provincia', 'pais', 'persona_contacto', 'notas', 'estado', 'fecha_baja'];
+            Object.keys(mappedData).forEach(key => {
+                if (validKeys.includes(key) && mappedData[key] !== undefined) {
                     setParts.push(`${key} = $${valueIndex++}`);
-                    values.push(clienteData[key]);
+                    values.push(mappedData[key]);
                 }
             });
 
