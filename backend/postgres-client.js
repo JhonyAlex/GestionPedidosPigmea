@@ -917,17 +917,20 @@ class PostgreSQLClient {
         if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
         try {
+            console.log('🔍 createCliente - Datos recibidos:', JSON.stringify(clienteData, null, 2));
+            
             const query = `
-                INSERT INTO clientes (nombre, cif, telefono, email, direccion_fiscal, codigo_postal, poblacion, provincia, pais, persona_contacto, notas, estado)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                INSERT INTO clientes (nombre, razon_social, cif, telefono, email, direccion_fiscal, codigo_postal, poblacion, provincia, pais, persona_contacto, notas, estado)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                 RETURNING *;
             `;
             const values = [
                 clienteData.nombre,
+                clienteData.razon_social || null,
                 clienteData.cif || null,
                 clienteData.telefono || null,
                 clienteData.email || null,
-                // Mapeo de campos frontend -> backend
+                // Mapeo: direccion (frontend) -> direccion_fiscal (backend)
                 clienteData.direccion_fiscal || clienteData.direccion || null,
                 clienteData.codigo_postal || null,
                 clienteData.poblacion || null,
@@ -938,7 +941,12 @@ class PostgreSQLClient {
                 clienteData.notas || clienteData.observaciones || null,
                 clienteData.estado || 'Activo'
             ];
+            
+            console.log('🔍 createCliente - Query:', query);
+            console.log('🔍 createCliente - Values:', values);
+            
             const result = await client.query(query, values);
+            console.log('✅ Cliente creado exitosamente:', result.rows[0].id);
             return result.rows[0];
         } finally {
             client.release();
@@ -949,30 +957,44 @@ class PostgreSQLClient {
         if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
         try {
+            console.log('🔍 updateCliente - Datos recibidos:', JSON.stringify(clienteData, null, 2));
+            
             const setParts = [];
             const values = [];
             let valueIndex = 1;
 
-            // Mapear campos del frontend a backend
-            const mappedData = {
-                ...clienteData,
-                // Mapeo: direccion (frontend) -> direccion_fiscal (backend)
-                direccion_fiscal: clienteData.direccion_fiscal || clienteData.direccion,
-                // Mapeo: observaciones (frontend) -> notas (backend)
-                notas: clienteData.notas || clienteData.observaciones
-            };
+            // Crear objeto limpio solo con campos válidos y mapeo correcto
+            const cleanData = {};
+            
+            // Mapeo directo de campos que coinciden
+            const directFields = ['nombre', 'razon_social', 'cif', 'telefono', 'email', 'codigo_postal', 'poblacion', 'provincia', 'pais', 'persona_contacto', 'estado', 'fecha_baja'];
+            directFields.forEach(field => {
+                if (clienteData[field] !== undefined) {
+                    cleanData[field] = clienteData[field];
+                }
+            });
+            
+            // Mapeo específico de campos con nombres diferentes
+            if (clienteData.direccion !== undefined || clienteData.direccion_fiscal !== undefined) {
+                cleanData.direccion_fiscal = clienteData.direccion_fiscal || clienteData.direccion;
+            }
+            
+            if (clienteData.observaciones !== undefined || clienteData.notas !== undefined) {
+                cleanData.notas = clienteData.notas || clienteData.observaciones;
+            }
+            
+            console.log('🔄 updateCliente - Datos mapeados:', JSON.stringify(cleanData, null, 2));
 
-            const validKeys = ['nombre', 'razon_social', 'cif', 'telefono', 'email', 'direccion_fiscal', 'codigo_postal', 'poblacion', 'provincia', 'pais', 'persona_contacto', 'notas', 'estado', 'fecha_baja'];
-            Object.keys(mappedData).forEach(key => {
-                if (validKeys.includes(key) && mappedData[key] !== undefined) {
+            // Construir query con solo campos válidos
+            Object.keys(cleanData).forEach(key => {
+                if (cleanData[key] !== undefined) {
                     setParts.push(`${key} = $${valueIndex++}`);
-                    values.push(mappedData[key]);
+                    values.push(cleanData[key]);
                 }
             });
 
             if (setParts.length === 0) {
-                // If only invalid keys were passed, we can either throw an error or return the existing object.
-                // Returning the existing object might be safer to prevent crashes.
+                console.log('⚠️ No hay campos válidos para actualizar');
                 return this.getClienteById(id);
             }
 
@@ -983,9 +1005,14 @@ class PostgreSQLClient {
                 WHERE id = $${valueIndex}
                 RETURNING *;
             `;
+            
+            console.log('🔍 Query SQL:', query);
+            console.log('🔍 Values:', values);
 
             const result = await client.query(query, values);
             if (result.rowCount === 0) throw new Error(`Cliente con ID ${id} no encontrado.`);
+            
+            console.log('✅ Cliente actualizado exitosamente:', result.rows[0].id);
             return result.rows[0];
         } finally {
             client.release();
