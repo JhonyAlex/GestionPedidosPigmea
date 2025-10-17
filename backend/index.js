@@ -1389,11 +1389,42 @@ app.delete('/api/pedidos/all', async (req, res) => {
     try {
         await dbClient.clear();
         
-        res.status(200).json({ message: 'Todos los pedidos han sido eliminados.' });
+        // 🔥 EVENTO WEBSOCKET: Todos los pedidos eliminados
+        broadcastToClients('pedidos-cleared', {
+            message: 'Todos los pedidos han sido eliminados'
+        });
+        
+        res.status(204).send();
         
     } catch (error) {
-        console.error("Error clearing collection:", error);
-        res.status(500).json({ message: "Error interno del servidor al limpiar la colección." });
+        console.error("Error clearing all pedidos:", error);
+        res.status(500).json({ message: "Error interno del servidor al eliminar todos los pedidos." });
+    }
+});
+
+// GET /api/pedidos/search/:term - Search pedidos by various fields including numero_compra
+app.get('/api/pedidos/search/:term', async (req, res) => {
+    try {
+        const searchTerm = req.params.term;
+        
+        if (!searchTerm || searchTerm.trim().length === 0) {
+            return res.status(400).json({ message: 'Término de búsqueda requerido.' });
+        }
+        
+        if (!dbClient.isInitialized) {
+            console.log('⚠️ BD no disponible - devolviendo datos vacíos');
+            return res.status(200).json([]);
+        }
+        
+        const results = await dbClient.searchPedidos(searchTerm.trim());
+        res.status(200).json(results);
+        
+    } catch (error) {
+        console.error(`Error searching pedidos with term "${req.params.term}":`, error);
+        res.status(500).json({ 
+            message: "Error interno del servidor al buscar pedidos.",
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 });
 

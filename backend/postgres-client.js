@@ -657,6 +657,7 @@ class PostgreSQLClient {
                 CREATE INDEX IF NOT EXISTS idx_pedidos_cliente ON pedidos(cliente);
                 CREATE INDEX IF NOT EXISTS idx_pedidos_fecha_entrega ON pedidos(fecha_entrega);
                 CREATE INDEX IF NOT EXISTS idx_pedidos_secuencia ON pedidos(secuencia_pedido);
+                CREATE INDEX IF NOT EXISTS idx_pedidos_numero_compra ON pedidos(numero_compra);
                 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
                 CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp);
                 CREATE INDEX IF NOT EXISTS idx_audit_user_role ON audit_log(user_role);
@@ -730,8 +731,8 @@ class PostgreSQLClient {
                 INSERT INTO pedidos (
                     id, numero_pedido_cliente, cliente, fecha_pedido, fecha_entrega, nueva_fecha_entrega,
                     etapa_actual, prioridad, secuencia_pedido, cantidad_piezas,
-                    observaciones, datos_tecnicos, antivaho, camisa, data, cliente_id
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+                    observaciones, datos_tecnicos, antivaho, camisa, numero_compra, data, cliente_id
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
                 RETURNING *;
             `;
             
@@ -750,6 +751,7 @@ class PostgreSQLClient {
                 JSON.stringify(pedido.datosTecnicos || {}),
                 pedido.antivaho || false,
                 pedido.camisa,
+                pedido.numeroCompra || null,
                 JSON.stringify(pedido),
                 pedido.clienteId || null
             ];
@@ -783,8 +785,8 @@ class PostgreSQLClient {
                     numero_pedido_cliente = $2, cliente = $3, fecha_pedido = $4,
                     fecha_entrega = $5, nueva_fecha_entrega = $6, etapa_actual = $7, prioridad = $8,
                     secuencia_pedido = $9, cantidad_piezas = $10, observaciones = $11,
-                    datos_tecnicos = $12, antivaho = $13, camisa = $14,
-                    data = $15, cliente_id = $16, updated_at = CURRENT_TIMESTAMP
+                    datos_tecnicos = $12, antivaho = $13, camisa = $14, numero_compra = $15,
+                    data = $16, cliente_id = $17, updated_at = CURRENT_TIMESTAMP
                 WHERE id = $1
                 RETURNING *;
             `;
@@ -804,6 +806,7 @@ class PostgreSQLClient {
                 JSON.stringify(pedido.datosTecnicos || {}),
                 pedido.antivaho || false,
                 pedido.camisa,
+                pedido.numeroCompra || null,
                 JSON.stringify(pedido),
                 pedido.clienteId || null
             ];
@@ -908,6 +911,34 @@ class PostgreSQLClient {
         } catch (error) {
             await client.query('ROLLBACK');
             throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    async searchPedidos(searchTerm) {
+        if (!this.isInitialized) {
+            throw new Error('Database not initialized');
+        }
+
+        const client = await this.pool.connect();
+        
+        try {
+            const query = `
+                SELECT data FROM pedidos 
+                WHERE 
+                    numero_pedido_cliente ILIKE $1 OR
+                    cliente ILIKE $1 OR
+                    numero_compra ILIKE $1 OR
+                    etapa_actual ILIKE $1 OR
+                    observaciones ILIKE $1
+                ORDER BY secuencia_pedido DESC
+            `;
+            
+            const searchPattern = `%${searchTerm}%`;
+            const result = await client.query(query, [searchPattern]);
+            return result.rows.map(row => row.data);
+            
         } finally {
             client.release();
         }

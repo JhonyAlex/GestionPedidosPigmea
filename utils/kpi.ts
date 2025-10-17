@@ -204,6 +204,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
     const tableColumn = [
         "Desarrollo",
         "Cliente / # Pedido",
+        "Nº Compra",
         "Metros",
         "Tipo",
         "Capa",
@@ -229,6 +230,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
         return [
             p.desarrollo || '-',
             { content: `${p.cliente}\n${p.numeroPedidoCliente}`, styles: { fontStyle: 'bold' }},
+            p.numeroCompra || '-',
             p.metros,
             p.tipoImpresion.replace(' (SUP)', '').replace(' (TTE)', ''),
             p.capa,

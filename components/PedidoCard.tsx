@@ -125,6 +125,12 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
             
             <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{pedido.cliente}</p>
             
+            {pedido.numeroCompra && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    <span className="font-medium">Nº Compra:</span> {pedido.numeroCompra}
+                </p>
+            )}
+            
             <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
                 <span className="flex items-center" title="Fecha Entrega">
                     <CalendarIcon /> {pedido.fechaEntrega}
