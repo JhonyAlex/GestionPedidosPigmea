@@ -1428,6 +1428,112 @@ app.get('/api/pedidos/search/:term', async (req, res) => {
     }
 });
 
+// === ENDPOINT DE MIGRACIONES ===
+
+// POST /api/admin/migrate - Aplicar migraciones pendientes
+app.post('/api/admin/migrate', requirePermission('usuarios.admin'), async (req, res) => {
+    try {
+        console.log('🔧 Iniciando aplicación de migraciones...');
+        
+        if (!dbClient.isInitialized) {
+            return res.status(500).json({ message: 'Base de datos no inicializada' });
+        }
+
+        const client = await dbClient.pool.connect();
+        let results = [];
+        
+        try {
+            // Migración 1: nueva_fecha_entrega
+            try {
+                await client.query(`
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'pedidos' AND column_name = 'nueva_fecha_entrega'
+                        ) THEN
+                            ALTER TABLE pedidos ADD COLUMN nueva_fecha_entrega TIMESTAMP;
+                            CREATE INDEX IF NOT EXISTS idx_pedidos_nueva_fecha_entrega ON pedidos(nueva_fecha_entrega);
+                            RAISE NOTICE 'Columna nueva_fecha_entrega agregada';
+                        ELSE
+                            RAISE NOTICE 'Columna nueva_fecha_entrega ya existe';
+                        END IF;
+                    END $$;
+                `);
+                results.push({ migration: 'nueva_fecha_entrega', status: 'success' });
+            } catch (error) {
+                console.error('Error en migración nueva_fecha_entrega:', error);
+                results.push({ migration: 'nueva_fecha_entrega', status: 'error', error: error.message });
+            }
+
+            // Migración 2: numero_compra
+            try {
+                await client.query(`
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'pedidos' AND column_name = 'numero_compra'
+                        ) THEN
+                            ALTER TABLE pedidos ADD COLUMN numero_compra VARCHAR(50);
+                            CREATE INDEX IF NOT EXISTS idx_pedidos_numero_compra ON pedidos(numero_compra);
+                            RAISE NOTICE 'Columna numero_compra agregada';
+                        ELSE
+                            RAISE NOTICE 'Columna numero_compra ya existe';
+                        END IF;
+                    END $$;
+                `);
+                
+                // Crear índice GIN para búsquedas de texto
+                try {
+                    await client.query('CREATE EXTENSION IF NOT EXISTS pg_trgm;');
+                    await client.query(`
+                        CREATE INDEX IF NOT EXISTS idx_pedidos_numero_compra_text 
+                        ON pedidos USING gin(numero_compra gin_trgm_ops);
+                    `);
+                } catch (ginError) {
+                    console.log('⚠️ No se pudo crear índice GIN:', ginError.message);
+                }
+                
+                results.push({ migration: 'numero_compra', status: 'success' });
+            } catch (error) {
+                console.error('Error en migración numero_compra:', error);
+                results.push({ migration: 'numero_compra', status: 'error', error: error.message });
+            }
+
+            // Verificar estado final
+            const checkResult = await client.query(`
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'pedidos' 
+                AND column_name IN ('nueva_fecha_entrega', 'numero_compra')
+                ORDER BY column_name;
+            `);
+            
+            const existingColumns = checkResult.rows.map(row => row.column_name);
+            
+            console.log('✅ Migraciones completadas. Columnas presentes:', existingColumns);
+            
+            res.status(200).json({
+                message: 'Migraciones aplicadas',
+                results,
+                existingColumns,
+                success: true
+            });
+            
+        } finally {
+            client.release();
+        }
+        
+    } catch (error) {
+        console.error('Error aplicando migraciones:', error);
+        res.status(500).json({ 
+            message: 'Error aplicando migraciones',
+            error: error.message
+        });
+    }
+});
+
 // === RUTAS DE CLIENTES ===
 
 // GET /api/clientes - Get all clientes with pagination, sorting, and filtering

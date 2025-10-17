@@ -12,7 +12,7 @@ DB_USER=${POSTGRES_USER:-pigmea_user}
 DB_PASSWORD=${POSTGRES_PASSWORD:-}
 
 # Archivo de migración
-MIGRATION_FILE="./database/migrations/006-add-nueva-fecha-entrega.sql"
+MIGRATION_FILE="./migrations/006-add-nueva-fecha-entrega.sql"
 
 # Verificar que el archivo de migración existe
 if [ ! -f "$MIGRATION_FILE" ]; then
