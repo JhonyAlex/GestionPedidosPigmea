@@ -728,10 +728,10 @@ class PostgreSQLClient {
 
             const query = `
                 INSERT INTO pedidos (
-                    id, numero_pedido_cliente, cliente, fecha_pedido, fecha_entrega,
+                    id, numero_pedido_cliente, cliente, fecha_pedido, fecha_entrega, nueva_fecha_entrega,
                     etapa_actual, prioridad, secuencia_pedido, cantidad_piezas,
                     observaciones, datos_tecnicos, antivaho, camisa, data, cliente_id
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
                 RETURNING *;
             `;
             
@@ -741,6 +741,7 @@ class PostgreSQLClient {
                 pedido.cliente,
                 pedido.fechaPedido ? new Date(pedido.fechaPedido) : null,
                 pedido.fechaEntrega ? new Date(pedido.fechaEntrega) : null,
+                pedido.nuevaFechaEntrega ? new Date(pedido.nuevaFechaEntrega) : null,
                 pedido.etapaActual,
                 pedido.prioridad,
                 pedido.secuenciaPedido,
@@ -780,10 +781,10 @@ class PostgreSQLClient {
             const query = `
                 UPDATE pedidos SET 
                     numero_pedido_cliente = $2, cliente = $3, fecha_pedido = $4,
-                    fecha_entrega = $5, etapa_actual = $6, prioridad = $7,
-                    secuencia_pedido = $8, cantidad_piezas = $9, observaciones = $10,
-                    datos_tecnicos = $11, antivaho = $12, camisa = $13,
-                    data = $14, cliente_id = $15, updated_at = CURRENT_TIMESTAMP
+                    fecha_entrega = $5, nueva_fecha_entrega = $6, etapa_actual = $7, prioridad = $8,
+                    secuencia_pedido = $9, cantidad_piezas = $10, observaciones = $11,
+                    datos_tecnicos = $12, antivaho = $13, camisa = $14,
+                    data = $15, cliente_id = $16, updated_at = CURRENT_TIMESTAMP
                 WHERE id = $1
                 RETURNING *;
             `;
@@ -794,6 +795,7 @@ class PostgreSQLClient {
                 pedido.cliente,
                 pedido.fechaPedido ? new Date(pedido.fechaPedido) : null,
                 pedido.fechaEntrega ? new Date(pedido.fechaEntrega) : null,
+                pedido.nuevaFechaEntrega ? new Date(pedido.nuevaFechaEntrega) : null,
                 pedido.etapaActual,
                 pedido.prioridad,
                 pedido.secuenciaPedido,

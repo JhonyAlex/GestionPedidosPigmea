@@ -107,7 +107,7 @@ export const usePedidosManager = (
             const newHistoryEntries: HistorialEntry[] = [];
             const fieldsToCompare: Array<keyof Pedido> = [
                 // Información básica
-                'numeroPedidoCliente', 'cliente', 'metros', 'fechaEntrega', 'fechaFinalizacion', 'prioridad', 
+                'numeroPedidoCliente', 'cliente', 'metros', 'fechaEntrega', 'nuevaFechaEntrega', 'fechaFinalizacion', 'prioridad', 
                 'maquinaImpresion', 'orden',
                 // Información de producción
                 'tipoImpresion', 'desarrollo', 'capa', 'tiempoProduccionPlanificado', 'tiempoTotalProduccion',

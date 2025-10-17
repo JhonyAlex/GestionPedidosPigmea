@@ -168,6 +168,7 @@ const PedidoRow: React.FC<{
             <td className="px-6 py-4 text-right text-gray-900 dark:text-white w-24">{pedido.metros} m</td>
             <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-28">{pedido.tiempoProduccionPlanificado}</td>
             <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-28">{pedido.fechaEntrega}</td>
+            <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-32">{pedido.nuevaFechaEntrega || '-'}</td>
             <td className="px-6 py-4 text-center w-28">
                 <div className="flex justify-center items-center space-x-3">
                     <button onClick={() => onSelectPedido(pedido)} className="text-blue-500 hover:text-blue-400 dark:text-blue-400 dark:hover:text-blue-300" title="Ver/Editar">
@@ -224,6 +225,7 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
                                 <SortableHeaderTh label="Metros" sortKey="metros" onSort={onSort} sortConfig={sortConfig} width="w-24" className="text-right" />
                                 <SortableHeaderTh label="T. Planificado" sortKey="tiempoProduccionPlanificado" onSort={onSort} sortConfig={sortConfig} width="w-28" className="text-center" />
                                 <SortableHeaderTh label="F. Entrega" sortKey="fechaEntrega" onSort={onSort} sortConfig={sortConfig} width="w-28" className="text-center" />
+                                <SortableHeaderTh label="Nueva F. Entrega" sortKey="nuevaFechaEntrega" onSort={onSort} sortConfig={sortConfig} width="w-32" className="text-center" />
                                 <th className="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center w-28">
                                     Acciones
                                 </th>
@@ -239,7 +241,7 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
                                     >
                                         {pedidos.length === 0 ? (
                                             <tr>
-                                                <td colSpan={12} className="text-center py-10 text-gray-500">
+                                                <td colSpan={13} className="text-center py-10 text-gray-500">
                                                     No se encontraron pedidos con los filtros actuales.
                                                 </td>
                                             </tr>

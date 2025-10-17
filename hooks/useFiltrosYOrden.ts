@@ -143,6 +143,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
 
                     case 'fechaCreacion':
                     case 'fechaEntrega':
+                    case 'nuevaFechaEntrega':
                     case 'fechaFinalizacion':
                         const dateA = aValue ? new Date(aValue as string).getTime() : 0;
                         const dateB = bValue ? new Date(bValue as string).getTime() : 0;

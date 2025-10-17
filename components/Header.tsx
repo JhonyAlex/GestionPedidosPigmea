@@ -107,6 +107,7 @@ const Header: React.FC<HeaderProps> = ({
     const dateFieldOptions: { value: keyof Pedido, label: string }[] = [
         { value: 'fechaCreacion', label: 'F. Creación' },
         { value: 'fechaEntrega', label: 'F. Entrega' },
+        { value: 'nuevaFechaEntrega', label: 'Nueva F. Entrega' },
         { value: 'fechaFinalizacion', label: 'F. Finalización' },
     ];
 

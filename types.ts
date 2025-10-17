@@ -65,6 +65,7 @@ export interface Pedido {
     metros: number | string;
     fechaCreacion: string; // ISO 8601 date string
     fechaEntrega: string; // YYYY-MM-DD
+    nuevaFechaEntrega?: string; // YYYY-MM-DD
     fechaFinalizacion?: string; // ISO 8601 date string
     etapaActual: Etapa;
     subEtapaActual?: string;
@@ -127,7 +128,7 @@ export interface AuditEntry {
     details?: any;
 }
 
-export type DateField = 'fechaCreacion' | 'fechaEntrega' | 'fechaFinalizacion';
+export type DateField = 'fechaCreacion' | 'fechaEntrega' | 'nuevaFechaEntrega' | 'fechaFinalizacion';
 
 // === TIPOS DE AUTENTICACIÓN ===
 

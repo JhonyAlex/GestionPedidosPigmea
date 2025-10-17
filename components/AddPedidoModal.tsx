@@ -20,6 +20,7 @@ const initialFormData = {
     numeroPedidoCliente: '',
     metros: '',
     fechaEntrega: '',
+    nuevaFechaEntrega: '',
     prioridad: Prioridad.NORMAL,
     tipoImpresion: TipoImpresion.SUPERFICIE,
     desarrollo: '',
@@ -168,7 +169,12 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                     <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Fecha de Entrega</label>
                                     <input type="date" name="fechaEntrega" value={formData.fechaEntrega} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" required/>
                                 </div>
-                                 <div className="grid grid-cols-2 gap-y-4 pt-6">
+                                <div>
+                                    <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Nueva Fecha Entrega</label>
+                                    <input type="date" name="nuevaFechaEntrega" value={formData.nuevaFechaEntrega} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"/>
+                                </div>
+                             </div>
+                             <div className="grid grid-cols-2 gap-4 mt-4">
                                      <div className="flex items-center">
                                         <input type="checkbox" id="materialDisponible" name="materialDisponible" checked={formData.materialDisponible} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                         <label htmlFor="materialDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Material Disponible</label>
@@ -178,7 +184,6 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                         <label htmlFor="clicheDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Cliché Disponible</label>
                                      </div>
                                  </div>
-                             </div>
                         </div>
                     </div>
                     

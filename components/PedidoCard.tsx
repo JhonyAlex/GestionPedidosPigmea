@@ -125,14 +125,22 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
             
             <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{pedido.cliente}</p>
             
-            <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+            <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
                 <span className="flex items-center" title="Fecha Entrega">
                     <CalendarIcon /> {pedido.fechaEntrega}
                 </span>
                 <span className="flex items-center" title="Metros">
                     <RulerIcon /> {pedido.metros} m
                 </span>
-                <div className="flex items-center gap-1">
+            </div>
+            
+            {pedido.nuevaFechaEntrega && (
+                <div className="flex items-center text-xs text-blue-600 dark:text-blue-400 mb-2">
+                    <CalendarIcon /> <span className="font-semibold">Nueva: {pedido.nuevaFechaEntrega}</span>
+                </div>
+            )}
+            
+            <div className="flex items-center justify-end gap-1">
                      {canAdvance && canMovePedidos() && (
                         <button 
                             onClick={handleAdvanceClick} 
@@ -154,7 +162,6 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
                         </button>
                     )}
                 </div>
-            </div>
         </div>
     );
 };

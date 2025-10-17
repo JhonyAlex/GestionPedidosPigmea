@@ -213,12 +213,18 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
         "Siguiente",
         "Observaciones",
         "F. Creación",
-        "F. Entrega"
+        "F. Entrega",
+        "Nueva F. Entrega"
     ];
     
     const tableRows = pedidos.map(p => {
         const fechaEntregaParts = p.fechaEntrega.split('-');
         const formattedFechaEntrega = fechaEntregaParts.length === 3 ? `${fechaEntregaParts[2]}/${fechaEntregaParts[1]}/${fechaEntregaParts[0]}` : p.fechaEntrega;
+        
+        const nuevaFechaEntregaParts = p.nuevaFechaEntrega ? p.nuevaFechaEntrega.split('-') : null;
+        const formattedNuevaFechaEntrega = nuevaFechaEntregaParts && nuevaFechaEntregaParts.length === 3 
+            ? `${nuevaFechaEntregaParts[2]}/${nuevaFechaEntregaParts[1]}/${nuevaFechaEntregaParts[0]}` 
+            : (p.nuevaFechaEntrega || '-');
         
         return [
             p.desarrollo || '-',
@@ -233,6 +239,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             p.observaciones,
             new Date(p.fechaCreacion).toLocaleDateString('es-ES'),
             formattedFechaEntrega,
+            formattedNuevaFechaEntrega,
         ];
     });
     
