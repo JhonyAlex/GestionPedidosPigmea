@@ -727,22 +727,41 @@ class PostgreSQLClient {
                 pedido.data.clienteId = pedido.clienteId;
             }
 
-            const query = `
-                INSERT INTO pedidos (
-                    id, numero_pedido_cliente, cliente, fecha_pedido, fecha_entrega, nueva_fecha_entrega,
-                    etapa_actual, prioridad, secuencia_pedido, cantidad_piezas,
-                    observaciones, datos_tecnicos, antivaho, camisa, numero_compra, data, cliente_id
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-                RETURNING *;
-            `;
+            // Verificar qué columnas existen en la tabla
+            const columnsResult = await client.query(`
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'pedidos' 
+                AND table_schema = 'public'
+            `);
             
-            const values = [
+            const existingColumns = columnsResult.rows.map(row => row.column_name);
+            
+            // Lista base de columnas que siempre deben existir
+            const baseColumns = [
+                'id', 'numero_pedido_cliente', 'cliente', 'fecha_pedido', 'fecha_entrega',
+                'etapa_actual', 'prioridad', 'secuencia_pedido', 'cantidad_piezas',
+                'observaciones', 'datos_tecnicos', 'antivaho', 'camisa', 'data', 'cliente_id'
+            ];
+            
+            // Columnas opcionales que pueden no existir
+            const optionalColumns = ['nueva_fecha_entrega', 'numero_compra'];
+            
+            // Construir lista de columnas a insertar
+            const columnsToInsert = baseColumns.filter(col => existingColumns.includes(col));
+            optionalColumns.forEach(col => {
+                if (existingColumns.includes(col)) {
+                    columnsToInsert.push(col);
+                }
+            });
+            
+            // Construir lista de valores correspondientes
+            const baseValues = [
                 pedido.id,
                 pedido.numeroPedidoCliente,
                 pedido.cliente,
                 pedido.fechaPedido ? new Date(pedido.fechaPedido) : null,
                 pedido.fechaEntrega ? new Date(pedido.fechaEntrega) : null,
-                pedido.nuevaFechaEntrega ? new Date(pedido.nuevaFechaEntrega) : null,
                 pedido.etapaActual,
                 pedido.prioridad,
                 pedido.secuenciaPedido,
@@ -751,10 +770,28 @@ class PostgreSQLClient {
                 JSON.stringify(pedido.datosTecnicos || {}),
                 pedido.antivaho || false,
                 pedido.camisa,
-                pedido.numeroCompra || null,
                 JSON.stringify(pedido),
                 pedido.clienteId || null
             ];
+            
+            const values = [...baseValues];
+            
+            // Agregar valores opcionales solo si las columnas existen
+            if (existingColumns.includes('nueva_fecha_entrega')) {
+                values.push(pedido.nuevaFechaEntrega ? new Date(pedido.nuevaFechaEntrega) : null);
+            }
+            if (existingColumns.includes('numero_compra')) {
+                values.push(pedido.numeroCompra || null);
+            }
+            
+            // Construir placeholders para los valores
+            const placeholders = columnsToInsert.map((_, index) => `$${index + 1}`).join(', ');
+            
+            const query = `
+                INSERT INTO pedidos (${columnsToInsert.join(', ')})
+                VALUES (${placeholders})
+                RETURNING *;
+            `;
 
             await client.query(query, values);
             return pedido;
@@ -780,24 +817,43 @@ class PostgreSQLClient {
                 pedido.data.clienteId = pedido.clienteId;
             }
 
-            const query = `
-                UPDATE pedidos SET 
-                    numero_pedido_cliente = $2, cliente = $3, fecha_pedido = $4,
-                    fecha_entrega = $5, nueva_fecha_entrega = $6, etapa_actual = $7, prioridad = $8,
-                    secuencia_pedido = $9, cantidad_piezas = $10, observaciones = $11,
-                    datos_tecnicos = $12, antivaho = $13, camisa = $14, numero_compra = $15,
-                    data = $16, cliente_id = $17, updated_at = CURRENT_TIMESTAMP
-                WHERE id = $1
-                RETURNING *;
-            `;
+            // Verificar qué columnas existen dinámicamente para evitar errores
+            const columnsResult = await client.query(`
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'pedidos' 
+                AND column_name IN ('nueva_fecha_entrega', 'numero_compra')
+            `);
             
-            const values = [
+            const existingColumns = columnsResult.rows.map(row => row.column_name);
+            const hasNuevaFecha = existingColumns.includes('nueva_fecha_entrega');
+            const hasNumeroCompra = existingColumns.includes('numero_compra');
+
+            // Construir query dinámicamente basado en columnas existentes
+            let updateFields = [
+                'numero_pedido_cliente = $2',
+                'cliente = $3',
+                'fecha_pedido = $4',
+                'fecha_entrega = $5',
+                'etapa_actual = $6',
+                'prioridad = $7',
+                'secuencia_pedido = $8',
+                'cantidad_piezas = $9',
+                'observaciones = $10',
+                'datos_tecnicos = $11',
+                'antivaho = $12',
+                'camisa = $13',
+                'data = $14',
+                'cliente_id = $15',
+                'updated_at = CURRENT_TIMESTAMP'
+            ];
+
+            let values = [
                 pedido.id,
                 pedido.numeroPedidoCliente,
                 pedido.cliente,
                 pedido.fechaPedido ? new Date(pedido.fechaPedido) : null,
                 pedido.fechaEntrega ? new Date(pedido.fechaEntrega) : null,
-                pedido.nuevaFechaEntrega ? new Date(pedido.nuevaFechaEntrega) : null,
                 pedido.etapaActual,
                 pedido.prioridad,
                 pedido.secuenciaPedido,
@@ -806,10 +862,40 @@ class PostgreSQLClient {
                 JSON.stringify(pedido.datosTecnicos || {}),
                 pedido.antivaho || false,
                 pedido.camisa,
-                pedido.numeroCompra || null,
                 JSON.stringify(pedido),
                 pedido.clienteId || null
             ];
+
+            // Agregar nueva_fecha_entrega solo si la columna existe
+            if (hasNuevaFecha) {
+                updateFields.splice(5, 0, 'nueva_fecha_entrega = $6'); // Insertar después de fecha_entrega
+                values.splice(5, 0, pedido.nuevaFechaEntrega ? new Date(pedido.nuevaFechaEntrega) : null);
+                // Reajustar índices de parámetros
+                for (let i = 6; i < updateFields.length; i++) {
+                    updateFields[i] = updateFields[i].replace(/\$(\d+)/, (match, num) => `$${parseInt(num) + 1}`);
+                }
+            }
+
+            // Agregar numero_compra solo si la columna existe
+            if (hasNumeroCompra) {
+                const insertIndex = hasNuevaFecha ? 14 : 13; // Ajustar según si nueva_fecha_entrega está presente
+                updateFields.splice(insertIndex, 0, `numero_compra = $${insertIndex + 1}`);
+                values.splice(insertIndex, 0, pedido.numeroCompra || null);
+                // Reajustar índices de parámetros posteriores
+                for (let i = insertIndex + 1; i < updateFields.length; i++) {
+                    updateFields[i] = updateFields[i].replace(/\$(\d+)/, (match, num) => `$${parseInt(num) + 1}`);
+                }
+            }
+
+            const query = `
+                UPDATE pedidos SET 
+                    ${updateFields.join(', ')}
+                WHERE id = $1
+                RETURNING *;
+            `;
+
+            console.log(`🔄 Actualizando pedido ${pedido.id} con columnas disponibles:`, 
+                      `nueva_fecha_entrega=${hasNuevaFecha}, numero_compra=${hasNumeroCompra}`);
 
             const result = await client.query(query, values);
             if (result.rowCount === 0) throw new Error(`Pedido ${pedido.id} no encontrado para actualizar`);
