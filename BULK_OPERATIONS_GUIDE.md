@@ -50,7 +50,7 @@ Sistema completo de selección múltiple para tarjetas Kanban con dos operacione
 ## 📁 Archivos Creados/Modificados
 
 ### Nuevos Componentes
-1. **`hooks/useBulkOperations.ts`** - Hook personalizado para operaciones masivas
+1. **`hooks/useBulkOperations.ts`** - Hook personalizado para operaciones masivas con autenticación
 2. **`components/BulkActionsToolbar.tsx`** - Toolbar flotante inferior
 3. **`components/DeleteConfirmationModal.tsx`** - Modal de confirmación destructiva
 4. **`components/BulkDateUpdateModal.tsx`** - Modal de actualización de fechas
@@ -63,6 +63,11 @@ Sistema completo de selección múltiple para tarjetas Kanban con dos operacione
 5. **`App.tsx`** - Integración de bulk operations en todas las vistas
 6. **`src/index.css`** - Animación de slide-up
 7. **`backend/index.js`** - Endpoints de operaciones masivas
+
+### 🔐 Autenticación
+- Las peticiones envían headers `x-user-id` y `x-user-role` desde localStorage
+- Compatible con el middleware de autenticación existente
+- No requiere cambios en el backend de autenticación
 
 ---
 

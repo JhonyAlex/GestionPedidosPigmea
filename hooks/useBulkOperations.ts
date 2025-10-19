@@ -38,11 +38,23 @@ export const useBulkOperations = (): UseBulkOperationsReturn => {
 
   const bulkDelete = useCallback(async (ids: string[]): Promise<{ success: boolean; deletedCount: number; error?: string }> => {
     try {
+      // Obtener usuario del localStorage para enviar en headers
+      const userString = localStorage.getItem('pigmea_user');
+      const user = userString ? JSON.parse(userString) : null;
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Agregar headers de autenticación si hay usuario
+      if (user) {
+        headers['x-user-id'] = user.id;
+        headers['x-user-role'] = user.role;
+      }
+      
       const response = await fetch(`${API_URL}/pedidos/bulk-delete`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({ ids }),
         credentials: 'include',
       });
@@ -84,11 +96,23 @@ export const useBulkOperations = (): UseBulkOperationsReturn => {
     nuevaFechaEntrega: string
   ): Promise<{ success: boolean; updatedCount: number; error?: string }> => {
     try {
+      // Obtener usuario del localStorage para enviar en headers
+      const userString = localStorage.getItem('pigmea_user');
+      const user = userString ? JSON.parse(userString) : null;
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Agregar headers de autenticación si hay usuario
+      if (user) {
+        headers['x-user-id'] = user.id;
+        headers['x-user-role'] = user.role;
+      }
+      
       const response = await fetch(`${API_URL}/pedidos/bulk-update-date`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({ ids, nuevaFechaEntrega }),
         credentials: 'include',
       });
