@@ -1,0 +1,17 @@
+# Configuración para aumentar timeout de Docker en Dokploy
+# Archivo: /etc/docker/daemon.json (en el servidor Dokploy)
+
+{
+  "max-concurrent-downloads": 3,
+  "max-concurrent-uploads": 5,
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  },
+  "registry-mirrors": [
+    "https://mirror.gcr.io"
+  ],
+  "dns": ["8.8.8.8", "8.8.4.4"],
+  "insecure-registries": []
+}
