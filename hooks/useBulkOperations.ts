@@ -96,6 +96,10 @@ export const useBulkOperations = (): UseBulkOperationsReturn => {
     nuevaFechaEntrega: string
   ): Promise<{ success: boolean; updatedCount: number; error?: string }> => {
     try {
+      console.log('🔵 bulkUpdateDate - IDs a actualizar:', ids);
+      console.log('🔵 bulkUpdateDate - Nueva fecha:', nuevaFechaEntrega);
+      console.log('🔵 bulkUpdateDate - Total de IDs:', ids.length);
+      
       // Obtener usuario del localStorage para enviar en headers
       const userString = localStorage.getItem('pigmea_user');
       const user = userString ? JSON.parse(userString) : null;
@@ -108,7 +112,10 @@ export const useBulkOperations = (): UseBulkOperationsReturn => {
       if (user) {
         headers['x-user-id'] = user.id;
         headers['x-user-role'] = user.role;
+        console.log('🔵 bulkUpdateDate - Usuario:', user.id, user.role);
       }
+      
+      console.log('🔵 bulkUpdateDate - Enviando petición...');
       
       const response = await fetch(`${API_URL}/pedidos/bulk-update-date`, {
         method: 'PATCH',
@@ -131,6 +138,8 @@ export const useBulkOperations = (): UseBulkOperationsReturn => {
       }
 
       const data = await response.json();
+      
+      console.log('🔵 bulkUpdateDate - Respuesta del servidor:', data);
       
       // Limpiar selección después de actualizar
       clearSelection();

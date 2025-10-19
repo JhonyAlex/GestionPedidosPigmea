@@ -462,28 +462,42 @@ const AppContent: React.FC = () => {
     };
 
     const handleBulkUpdateDate = async (nuevaFecha: string) => {
+        console.log('🟢 handleBulkUpdateDate - selectedIds:', selectedIds);
+        console.log('🟢 handleBulkUpdateDate - nuevaFecha:', nuevaFecha);
+        console.log('🟢 handleBulkUpdateDate - Total seleccionados:', selectedIds.length);
+        
         const result = await bulkUpdateDate(selectedIds, nuevaFecha);
         
+        console.log('🟢 handleBulkUpdateDate - Resultado:', result);
+        
         if (result.success) {
+            console.log('🟢 handleBulkUpdateDate - Actualizando pedidos locales...');
+            
             // Actualizar la lista de pedidos
-            setPedidos(prev => prev.map(p => {
-                if (selectedIds.includes(p.id)) {
-                    return {
-                        ...p,
-                        nuevaFechaEntrega: nuevaFecha,
-                        historial: [
-                            ...(p.historial || []),
-                            {
-                                timestamp: new Date().toISOString(),
-                                usuario: user?.displayName || user?.username || currentUserRole,
-                                accion: 'Actualización masiva de Nueva Fecha Entrega',
-                                detalles: `Nueva fecha establecida: ${nuevaFecha}`
-                            }
-                        ]
-                    };
-                }
-                return p;
-            }));
+            setPedidos(prev => {
+                const updated = prev.map(p => {
+                    if (selectedIds.includes(p.id)) {
+                        console.log(`  ✅ Actualizando pedido ${p.id} (${p.numeroPedidoCliente})`);
+                        return {
+                            ...p,
+                            nuevaFechaEntrega: nuevaFecha,
+                            historial: [
+                                ...(p.historial || []),
+                                {
+                                    timestamp: new Date().toISOString(),
+                                    usuario: user?.displayName || user?.username || currentUserRole,
+                                    accion: 'Actualización masiva de Nueva Fecha Entrega',
+                                    detalles: `Nueva fecha establecida: ${nuevaFecha}`
+                                }
+                            ]
+                        };
+                    }
+                    return p;
+                });
+                
+                console.log('🟢 handleBulkUpdateDate - Pedidos actualizados en estado local');
+                return updated;
+            });
             
             // Log de auditoría
             logAction(`${result.updatedCount} pedidos actualizados con nueva fecha: ${nuevaFecha}`);

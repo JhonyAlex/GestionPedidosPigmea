@@ -1524,19 +1524,27 @@ app.patch('/api/pedidos/bulk-update-date', requirePermission('pedidos.edit'), as
             });
         }
 
-        console.log(`📅 Actualizando nueva fecha de entrega para ${ids.length} pedidos...`);
+        console.log(`📅 Actualizando nueva fecha de entrega para ${ids.length} pedidos: ${ids.join(', ')}`);
+        console.log(`📅 Nueva fecha: ${nuevaFechaEntrega}`);
 
         // Actualizar cada pedido
         let updatedCount = 0;
         const updatedPedidos = [];
+        const errors = [];
 
         for (const id of ids) {
             try {
+                console.log(`  🔄 Procesando pedido ${id}...`);
+                
                 const pedido = await dbClient.getPedidoById(id);
                 if (!pedido) {
-                    console.warn(`Pedido ${id} no encontrado, saltando...`);
+                    console.warn(`  ⚠️ Pedido ${id} no encontrado, saltando...`);
+                    errors.push({ id, error: 'Pedido no encontrado' });
                     continue;
                 }
+
+                console.log(`  📦 Pedido encontrado: ${pedido.numero_pedido_cliente}`);
+                console.log(`  📅 Fecha anterior: ${pedido.nueva_fecha_entrega || 'N/A'}`);
 
                 // Actualizar el pedido con la nueva fecha
                 const updatedPedido = {
@@ -1545,16 +1553,23 @@ app.patch('/api/pedidos/bulk-update-date', requirePermission('pedidos.edit'), as
                 };
 
                 const result = await dbClient.updatePedido(id, updatedPedido);
+                
                 if (result) {
                     updatedCount++;
+                    console.log(`  ✅ Pedido ${id} actualizado exitosamente`);
                     updatedPedidos.push({
                         id: result.id,
                         numero_pedido_cliente: result.numero_pedido_cliente,
                         nueva_fecha_entrega: result.nueva_fecha_entrega
                     });
+                } else {
+                    console.error(`  ❌ Error: updatePedido devolvió null para ${id}`);
+                    errors.push({ id, error: 'updatePedido devolvió null' });
                 }
             } catch (error) {
-                console.error(`Error actualizando pedido ${id}:`, error);
+                console.error(`  ❌ Error actualizando pedido ${id}:`, error.message);
+                console.error(error.stack);
+                errors.push({ id, error: error.message });
                 // Continuar con los demás pedidos
             }
         }
@@ -1569,15 +1584,20 @@ app.patch('/api/pedidos/bulk-update-date', requirePermission('pedidos.edit'), as
         });
 
         console.log(`✅ ${updatedCount} de ${ids.length} pedidos actualizados exitosamente`);
+        if (errors.length > 0) {
+            console.log(`⚠️ ${errors.length} errores:`, errors);
+        }
 
         res.status(200).json({ 
             success: true,
             updatedCount,
+            totalRequested: ids.length,
+            errors: errors.length > 0 ? errors : undefined,
             message: `${updatedCount} pedidos actualizados exitosamente.` 
         });
         
     } catch (error) {
-        console.error('Error en bulk-update-date:', error);
+        console.error('❌ Error en bulk-update-date:', error);
         res.status(500).json({ 
             error: 'Error interno del servidor al actualizar pedidos.',
             details: process.env.NODE_ENV === 'development' ? error.message : undefined
