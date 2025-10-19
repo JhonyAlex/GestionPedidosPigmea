@@ -10,9 +10,10 @@ interface PreparacionViewProps {
     currentUserRole: UserRole;
     onSendToPrint: (pedido: Pedido) => void;
     highlightedPedidoId?: string | null;
+    onUpdatePedido?: (updatedPedido: Pedido) => Promise<void>;
 }
 
-const PreparacionView: React.FC<PreparacionViewProps> = ({ pedidos, onSelectPedido, currentUserRole, onSendToPrint, highlightedPedidoId }) => {
+const PreparacionView: React.FC<PreparacionViewProps> = ({ pedidos, onSelectPedido, currentUserRole, onSendToPrint, highlightedPedidoId, onUpdatePedido }) => {
 
     const pedidosPorColumna = pedidos.reduce((acc, pedido) => {
         if (pedido.etapaActual === Etapa.PREPARACION && pedido.subEtapaActual) {
@@ -34,6 +35,7 @@ const PreparacionView: React.FC<PreparacionViewProps> = ({ pedidos, onSelectPedi
                         currentUserRole={currentUserRole}
                         onSendToPrint={onSendToPrint}
                         highlightedPedidoId={highlightedPedidoId}
+                        onUpdatePedido={onUpdatePedido}
                     />
                 ))}
              </div>

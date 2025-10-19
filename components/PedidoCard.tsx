@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Pedido, Etapa, UserRole, EstadoCliché, Prioridad } from '../types';
 import { PRIORIDAD_COLORS, KANBAN_FUNNELS } from '../constants';
 import { puedeAvanzarSecuencia, estaFueraDeSecuencia } from '../utils/etapaLogic';
@@ -21,13 +21,73 @@ interface PedidoCardProps {
     onAdvanceStage: (pedido: Pedido) => void;
     onSendToPrint?: (pedido: Pedido) => void; // Optional: for PreparacionView
     highlightedPedidoId?: string | null;
+    onUpdatePedido?: (updatedPedido: Pedido) => Promise<void>;
 }
 
-const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSelectPedido, currentUserRole, onAdvanceStage, onSendToPrint, highlightedPedidoId }) => {
+const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSelectPedido, currentUserRole, onAdvanceStage, onSendToPrint, highlightedPedidoId, onUpdatePedido }) => {
     const { canMovePedidos, canArchivePedidos } = usePermissions();
+    const [isEditingFecha, setIsEditingFecha] = useState(false);
+    const [tempFecha, setTempFecha] = useState(pedido.nuevaFechaEntrega || '');
+    const dateInputRef = useRef<HTMLInputElement>(null);
     
     // Usar valor por defecto si la prioridad no existe en PRIORIDAD_COLORS
     const priorityColor = PRIORIDAD_COLORS[pedido.prioridad] || PRIORIDAD_COLORS[Prioridad.NORMAL] || 'border-blue-500';
+
+    // Cerrar el date picker al hacer click fuera
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dateInputRef.current && !dateInputRef.current.contains(event.target as Node)) {
+                setIsEditingFecha(false);
+            }
+        };
+
+        if (isEditingFecha) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isEditingFecha]);
+
+    const handleFechaClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsEditingFecha(true);
+        setTempFecha(pedido.nuevaFechaEntrega || '');
+    };
+
+    const handleFechaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newFecha = e.target.value;
+        setTempFecha(newFecha);
+        
+        // Guardar cambios
+        if (onUpdatePedido && newFecha) {
+            const fechaAnterior = pedido.nuevaFechaEntrega || 'Sin fecha';
+            
+            // Actualizar el pedido con la nueva fecha
+            const updatedPedido = {
+                ...pedido,
+                nuevaFechaEntrega: newFecha,
+                historial: [
+                    ...(pedido.historial || []),
+                    {
+                        timestamp: new Date().toISOString(),
+                        usuario: currentUserRole,
+                        accion: 'Actualización de Nueva Fecha Entrega',
+                        detalles: `Cambiado de '${fechaAnterior}' a '${newFecha}'.`
+                    }
+                ]
+            };
+
+            try {
+                await onUpdatePedido(updatedPedido);
+                setIsEditingFecha(false);
+            } catch (error) {
+                console.error('Error al actualizar la fecha:', error);
+                alert('Error al actualizar la fecha. Por favor, intente de nuevo.');
+            }
+        }
+    };
 
     const handleArchiveClick = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -142,7 +202,26 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
             
             {pedido.nuevaFechaEntrega && (
                 <div className="flex items-center text-xs text-blue-600 dark:text-blue-400 mb-2">
-                    <CalendarIcon /> <span className="font-semibold">Nueva: {pedido.nuevaFechaEntrega}</span>
+                    <CalendarIcon />
+                    {isEditingFecha ? (
+                        <input
+                            ref={dateInputRef}
+                            type="date"
+                            value={tempFecha}
+                            onChange={handleFechaChange}
+                            onClick={(e) => e.stopPropagation()}
+                            className="font-semibold bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-600 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            autoFocus
+                        />
+                    ) : (
+                        <span 
+                            className="font-semibold cursor-pointer hover:underline"
+                            onClick={handleFechaClick}
+                            title="Click para editar la fecha"
+                        >
+                            Nueva: {pedido.nuevaFechaEntrega}
+                        </span>
+                    )}
                 </div>
             )}
             

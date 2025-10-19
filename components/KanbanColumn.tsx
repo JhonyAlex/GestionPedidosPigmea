@@ -11,9 +11,10 @@ interface KanbanColumnProps {
     currentUserRole: UserRole;
     onAdvanceStage: (pedido: Pedido) => void;
     highlightedPedidoId: string | null;
+    onUpdatePedido?: (updatedPedido: Pedido) => Promise<void>;
 }
 
-const KanbanColumn: React.FC<KanbanColumnProps> = ({ etapa, pedidos, onSelectPedido, onArchiveToggle, currentUserRole, onAdvanceStage, highlightedPedidoId }) => {
+const KanbanColumn: React.FC<KanbanColumnProps> = ({ etapa, pedidos, onSelectPedido, onArchiveToggle, currentUserRole, onAdvanceStage, highlightedPedidoId, onUpdatePedido }) => {
     // Eliminado delay artificial, renderiza directamente
     const isMounted = true;
 
@@ -51,6 +52,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ etapa, pedidos, onSelectPed
                                                 currentUserRole={currentUserRole} 
                                                 onAdvanceStage={onAdvanceStage}
                                                 highlightedPedidoId={highlightedPedidoId}
+                                                onUpdatePedido={onUpdatePedido}
                                             />
                                         </div>
                                     )}

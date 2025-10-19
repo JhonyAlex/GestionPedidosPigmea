@@ -478,6 +478,7 @@ const AppContent: React.FC = () => {
                         currentUserRole={currentUserRole}
                         onSendToPrint={setPedidoToSend}
                         highlightedPedidoId={highlightedPedidoId}
+                        onUpdatePedido={handleSavePedido}
                     />
                 );
             case 'clientes':
@@ -498,6 +499,7 @@ const AppContent: React.FC = () => {
                                         currentUserRole={currentUserRole}
                                         onAdvanceStage={handleAdvanceStage}
                                         highlightedPedidoId={highlightedPedidoId}
+                                        onUpdatePedido={handleSavePedido}
                                     />
                                 ))}
                             </div>
@@ -518,6 +520,7 @@ const AppContent: React.FC = () => {
                                         currentUserRole={currentUserRole}
                                         onAdvanceStage={handleAdvanceStage}
                                         highlightedPedidoId={highlightedPedidoId}
+                                        onUpdatePedido={handleSavePedido}
                                     />
                                 ))}
                             </div>
@@ -534,6 +537,7 @@ const AppContent: React.FC = () => {
                                         currentUserRole={currentUserRole}
                                         onAdvanceStage={handleAdvanceStage}
                                         highlightedPedidoId={highlightedPedidoId}
+                                        onUpdatePedido={handleSavePedido}
                                     />
                                 ))}
                             </div>
