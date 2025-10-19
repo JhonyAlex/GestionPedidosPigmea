@@ -12,9 +12,25 @@ interface KanbanColumnProps {
     onAdvanceStage: (pedido: Pedido) => void;
     highlightedPedidoId: string | null;
     onUpdatePedido?: (updatedPedido: Pedido) => Promise<void>;
+    // Bulk selection props
+    selectedIds?: string[];
+    isSelectionActive?: boolean;
+    onToggleSelection?: (id: string) => void;
 }
 
-const KanbanColumn: React.FC<KanbanColumnProps> = ({ etapa, pedidos, onSelectPedido, onArchiveToggle, currentUserRole, onAdvanceStage, highlightedPedidoId, onUpdatePedido }) => {
+const KanbanColumn: React.FC<KanbanColumnProps> = ({ 
+    etapa, 
+    pedidos, 
+    onSelectPedido, 
+    onArchiveToggle, 
+    currentUserRole, 
+    onAdvanceStage, 
+    highlightedPedidoId, 
+    onUpdatePedido,
+    selectedIds = [],
+    isSelectionActive = false,
+    onToggleSelection
+}) => {
     // Eliminado delay artificial, renderiza directamente
     const isMounted = true;
 
@@ -53,6 +69,9 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ etapa, pedidos, onSelectPed
                                                 onAdvanceStage={onAdvanceStage}
                                                 highlightedPedidoId={highlightedPedidoId}
                                                 onUpdatePedido={onUpdatePedido}
+                                                isSelected={selectedIds.includes(pedido.id)}
+                                                isSelectionActive={isSelectionActive}
+                                                onToggleSelection={onToggleSelection}
                                             />
                                         </div>
                                     )}

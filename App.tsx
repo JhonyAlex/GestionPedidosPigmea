@@ -23,6 +23,9 @@ import LoginModal from './components/LoginModal';
 import UserInfo from './components/UserInfo';
 import UserManagement from './components/UserManagement';
 import PermissionsDebug from './components/PermissionsDebug';
+import BulkActionsToolbar from './components/BulkActionsToolbar';
+import DeleteConfirmationModal from './components/DeleteConfirmationModal';
+import BulkDateUpdateModal from './components/BulkDateUpdateModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { calcularSiguienteEtapa, estaFueraDeSecuencia } from './utils/etapaLogic';
 import { procesarDragEnd } from './utils/dragLogic';
@@ -31,6 +34,7 @@ import { useWebSocket } from './hooks/useWebSocket';
 import { useFiltrosYOrden } from './hooks/useFiltrosYOrden';
 import { useClientesManager } from './hooks/useClientesManager';
 import { useNavigateToPedido } from './hooks/useNavigateToPedido';
+import { useBulkOperations } from './hooks/useBulkOperations';
 import { auditService } from './services/audit';
 
 
@@ -48,6 +52,10 @@ const AppContent: React.FC = () => {
     const [isDuplicating, setIsDuplicating] = useState(false);
     const [duplicatingMessage, setDuplicatingMessage] = useState('Duplicando pedido...');
     const [showUserManagement, setShowUserManagement] = useState(false);
+    
+    // Estados para operaciones masivas
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showDateUpdateModal, setShowDateUpdateModal] = useState(false);
 
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
         if (typeof window !== 'undefined' && localStorage.theme) {
@@ -137,6 +145,21 @@ const AppContent: React.FC = () => {
     });
 
     const { clientes } = useClientesManager();
+
+    // Hook para operaciones masivas
+    const {
+        selectedIds,
+        isSelectionActive,
+        toggleSelection,
+        clearSelection,
+        bulkDelete,
+        bulkUpdateDate,
+    } = useBulkOperations();
+
+    // Limpiar selección al cambiar de vista
+    useEffect(() => {
+        clearSelection();
+    }, [view, clearSelection]);
 
 
     useEffect(() => {
@@ -411,6 +434,76 @@ const AppContent: React.FC = () => {
         }
     };
 
+    // === MANEJADORES DE OPERACIONES MASIVAS ===
+    const handleBulkDelete = async () => {
+        const selectedPedidos = pedidos.filter(p => selectedIds.includes(p.id));
+        const result = await bulkDelete(selectedIds);
+        
+        if (result.success) {
+            // Actualizar la lista de pedidos
+            setPedidos(prev => prev.filter(p => !selectedIds.includes(p.id)));
+            
+            // Log de auditoría
+            logAction(`${result.deletedCount} pedidos eliminados en operación masiva.`);
+            
+            // Emitir actividad WebSocket
+            emitActivity('bulk-delete', { 
+                count: result.deletedCount,
+                pedidoIds: selectedIds
+            });
+            
+            // Mostrar toast de éxito
+            alert(`✅ ${result.deletedCount} ${result.deletedCount === 1 ? 'pedido eliminado' : 'pedidos eliminados'} exitosamente.`);
+            
+            setShowDeleteModal(false);
+        } else {
+            alert(`❌ Error al eliminar pedidos: ${result.error}`);
+        }
+    };
+
+    const handleBulkUpdateDate = async (nuevaFecha: string) => {
+        const result = await bulkUpdateDate(selectedIds, nuevaFecha);
+        
+        if (result.success) {
+            // Actualizar la lista de pedidos
+            setPedidos(prev => prev.map(p => {
+                if (selectedIds.includes(p.id)) {
+                    return {
+                        ...p,
+                        nuevaFechaEntrega: nuevaFecha,
+                        historial: [
+                            ...(p.historial || []),
+                            {
+                                timestamp: new Date().toISOString(),
+                                usuario: user?.displayName || user?.username || currentUserRole,
+                                accion: 'Actualización masiva de Nueva Fecha Entrega',
+                                detalles: `Nueva fecha establecida: ${nuevaFecha}`
+                            }
+                        ]
+                    };
+                }
+                return p;
+            }));
+            
+            // Log de auditoría
+            logAction(`${result.updatedCount} pedidos actualizados con nueva fecha: ${nuevaFecha}`);
+            
+            // Emitir actividad WebSocket
+            emitActivity('bulk-update-date', { 
+                count: result.updatedCount,
+                pedidoIds: selectedIds,
+                nuevaFecha
+            });
+            
+            // Mostrar toast de éxito
+            alert(`✅ ${result.updatedCount} ${result.updatedCount === 1 ? 'pedido actualizado' : 'pedidos actualizados'} exitosamente.`);
+            
+            setShowDateUpdateModal(false);
+        } else {
+            alert(`❌ Error al actualizar fechas: ${result.error}`);
+        }
+    };
+
     const handleViewChange = (newView: ViewType) => {
         if (newView === 'report' && currentUserRole !== 'Administrador') {
             alert('Permiso denegado.');
@@ -500,6 +593,9 @@ const AppContent: React.FC = () => {
                                         onAdvanceStage={handleAdvanceStage}
                                         highlightedPedidoId={highlightedPedidoId}
                                         onUpdatePedido={handleSavePedido}
+                                        selectedIds={selectedIds}
+                                        isSelectionActive={isSelectionActive}
+                                        onToggleSelection={toggleSelection}
                                     />
                                 ))}
                             </div>
@@ -521,6 +617,9 @@ const AppContent: React.FC = () => {
                                         onAdvanceStage={handleAdvanceStage}
                                         highlightedPedidoId={highlightedPedidoId}
                                         onUpdatePedido={handleSavePedido}
+                                        selectedIds={selectedIds}
+                                        isSelectionActive={isSelectionActive}
+                                        onToggleSelection={toggleSelection}
                                     />
                                 ))}
                             </div>
@@ -538,6 +637,9 @@ const AppContent: React.FC = () => {
                                         onAdvanceStage={handleAdvanceStage}
                                         highlightedPedidoId={highlightedPedidoId}
                                         onUpdatePedido={handleSavePedido}
+                                        selectedIds={selectedIds}
+                                        isSelectionActive={isSelectionActive}
+                                        onToggleSelection={toggleSelection}
                                     />
                                 ))}
                             </div>
@@ -698,6 +800,28 @@ const AppContent: React.FC = () => {
                 {showUserManagement && (
                     <UserManagement onClose={() => setShowUserManagement(false)} />
                 )}
+
+                {/* 📦 Bulk Operations Components */}
+                <BulkActionsToolbar
+                    selectedCount={selectedIds.length}
+                    onUpdateDate={() => setShowDateUpdateModal(true)}
+                    onDelete={() => setShowDeleteModal(true)}
+                    onCancel={clearSelection}
+                />
+                
+                <DeleteConfirmationModal
+                    isOpen={showDeleteModal}
+                    pedidos={pedidos.filter(p => selectedIds.includes(p.id))}
+                    onConfirm={handleBulkDelete}
+                    onCancel={() => setShowDeleteModal(false)}
+                />
+
+                <BulkDateUpdateModal
+                    isOpen={showDateUpdateModal}
+                    pedidos={pedidos.filter(p => selectedIds.includes(p.id))}
+                    onConfirm={handleBulkUpdateDate}
+                    onCancel={() => setShowDateUpdateModal(false)}
+                />
             </div>
         </DragDropContext>
     );

@@ -22,16 +22,36 @@ interface PedidoCardProps {
     onSendToPrint?: (pedido: Pedido) => void; // Optional: for PreparacionView
     highlightedPedidoId?: string | null;
     onUpdatePedido?: (updatedPedido: Pedido) => Promise<void>;
+    // Bulk selection props
+    isSelected?: boolean;
+    isSelectionActive?: boolean;
+    onToggleSelection?: (id: string) => void;
 }
 
-const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSelectPedido, currentUserRole, onAdvanceStage, onSendToPrint, highlightedPedidoId, onUpdatePedido }) => {
+const PedidoCard: React.FC<PedidoCardProps> = ({ 
+    pedido, 
+    onArchiveToggle, 
+    onSelectPedido, 
+    currentUserRole, 
+    onAdvanceStage, 
+    onSendToPrint, 
+    highlightedPedidoId, 
+    onUpdatePedido,
+    isSelected = false,
+    isSelectionActive = false,
+    onToggleSelection
+}) => {
     const { canMovePedidos, canArchivePedidos } = usePermissions();
     const [isEditingFecha, setIsEditingFecha] = useState(false);
     const [tempFecha, setTempFecha] = useState(pedido.nuevaFechaEntrega || '');
     const dateInputRef = useRef<HTMLInputElement>(null);
+    const [isHovered, setIsHovered] = useState(false);
     
     // Usar valor por defecto si la prioridad no existe en PRIORIDAD_COLORS
     const priorityColor = PRIORIDAD_COLORS[pedido.prioridad] || PRIORIDAD_COLORS[Prioridad.NORMAL] || 'border-blue-500';
+
+    // Detectar si es móvil
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
     // Cerrar el date picker al hacer click fuera
     useEffect(() => {
@@ -106,6 +126,23 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
         }
     }
 
+    const handleCheckboxClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (onToggleSelection) {
+            onToggleSelection(pedido.id);
+        }
+    };
+
+    const handleCardClick = () => {
+        // Si hay selección activa, togglear la selección
+        if (isSelectionActive && onToggleSelection) {
+            onToggleSelection(pedido.id);
+        } else {
+            // Si no hay selección activa, abrir el modal de detalle
+            onSelectPedido(pedido);
+        }
+    };
+
     const { canAdvance, advanceButtonTitle } = useMemo(() => {
         // Usar la nueva lógica centralizada
         const canAdvanceSequence = puedeAvanzarSecuencia(
@@ -158,8 +195,28 @@ const PedidoCard: React.FC<PedidoCardProps> = ({ pedido, onArchiveToggle, onSele
 
     return (
         <div 
-            onClick={() => onSelectPedido(pedido)}
-            className={`bg-white dark:bg-gray-900 rounded-lg p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 border-l-4 ${priorityColor} shadow-md ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''}`}>
+            onClick={handleCardClick}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className={`bg-white dark:bg-gray-900 rounded-lg p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 border-l-4 ${priorityColor} shadow-md ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''} ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-gray-800' : ''} relative`}>
+            
+            {/* Checkbox de selección */}
+            {onToggleSelection && (
+                <div 
+                    className={`absolute top-2 left-2 z-10 transition-opacity duration-200 ${
+                        isMobile || isHovered || isSelectionActive ? 'opacity-100' : 'opacity-0'
+                    }`}
+                >
+                    <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => {}}
+                        onClick={handleCheckboxClick}
+                        className="w-5 h-5 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
+                    />
+                </div>
+            )}
+
             <div className="flex justify-between items-start mb-2">
                 <h3 className="font-bold text-base text-gray-800 dark:text-gray-100">{pedido.numeroPedidoCliente}</h3>
                 <div className="flex items-center">

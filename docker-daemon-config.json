@@ -1,6 +1,3 @@
-# Configuración para aumentar timeout de Docker en Dokploy
-# Archivo: /etc/docker/daemon.json (en el servidor Dokploy)
-
 {
   "max-concurrent-downloads": 3,
   "max-concurrent-uploads": 5,
