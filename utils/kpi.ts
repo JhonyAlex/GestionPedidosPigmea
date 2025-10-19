@@ -153,15 +153,15 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
     // --- HEADER ---
     doc.setFontSize(18);
     doc.setFont(undefined, 'bold');
-    doc.text('PIGMEA S.L.', 40, 45);
+    doc.text('PIGMEA S.L.', 30, 40);
 
     // --- Document Title & Dynamic Subtitle ---
     doc.setFontSize(11);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(100);
     const mainSubtitle = 'Planificación semanal';
-    let tableStartY = 75; // Adjusted start Y for the table
-    doc.text(mainSubtitle, 40, 65);
+    let tableStartY = 70; // Adjusted start Y for the table
+    doc.text(mainSubtitle, 30, 60);
 
     // Dynamic subtitle part based on stages present in the exported list
     const printingMachines = new Set<string>();
@@ -187,10 +187,10 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
     if (dynamicSubtitle) {
         doc.setFontSize(8);
         doc.setTextColor(150);
-        doc.text(dynamicSubtitle, 40, 78, { 
-            maxWidth: 595 - 40 - 40, // Page width (portrait) - margins
+        doc.text(dynamicSubtitle, 30, 73, { 
+            maxWidth: 595 - 30 - 30, // Page width (portrait) - margins
         });
-        tableStartY = 90; 
+        tableStartY = 85; 
     }
     
     // Date
@@ -198,24 +198,23 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
     doc.setFontSize(9);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(0); 
-    doc.text(today.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric'}), 555, 45, { align: 'right' });
+    doc.text(today.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric'}), 565, 40, { align: 'right' });
 
     // Table
     const tableColumn = [
-        "Desarrollo",
+        "Des.",
         "Cliente / # Pedido",
-        "Nº Compra",
         "Metros",
         "Tipo",
         "Capa",
         "Camisa",
-        "Antivaho",
-        "Etapa Actual",
-        "Siguiente",
+        "Antiv.",
+        "Et. Actual",
+        "Sig. Etapa",
         "Observaciones",
-        "F. Creación",
+        "Creación",
         "F. Entrega",
-        "Nueva F. Entrega"
+        "N.F. Entrega"
     ];
     
     const tableRows = pedidos.map(p => {
@@ -230,7 +229,6 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
         return [
             p.desarrollo || '-',
             { content: `${p.cliente}\n${p.numeroPedidoCliente}`, styles: { fontStyle: 'bold' }},
-            p.numeroCompra || '-',
             p.metros,
             p.tipoImpresion.replace(' (SUP)', '').replace(' (TTE)', ''),
             p.capa,
@@ -250,40 +248,38 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
         head: [tableColumn],
         body: tableRows,
         theme: 'grid',
+        margin: { left: 15, right: 15, top: tableStartY, bottom: 15 }, // Reduced margins
         styles: {
-            fontSize: 6, // Reduced font size for compactness
-            cellPadding: 2, // Reduced padding
+            fontSize: 8.5, // Slightly reduced font size for better fit
+            cellPadding: 2.5, // Optimal padding
             valign: 'middle',
             textColor: [31, 41, 55],
             overflow: 'linebreak',
+            halign: 'center', // Default center alignment for all cells
         },
         headStyles: {
             fillColor: [45, 55, 72], 
             textColor: 255,
             fontStyle: 'bold',
             halign: 'center',
-            fontSize: 7, // Slightly larger for headers
+            fontSize: 8.5, // Consistent header size
         },
         columnStyles: {
-            0: { cellWidth: 45 }, // Desarrollo
-            1: { cellWidth: 55 }, // Cliente y # Pedido
+            0: { cellWidth: 40 }, // Des.
+            1: { cellWidth: 65, halign: 'left' }, // Cliente y # Pedido
             2: { cellWidth: 35 }, // Metros
-            3: { cellWidth: 35 }, // Tipo
-            4: { cellWidth: 30 }, // Capa
+            3: { cellWidth: 38 }, // Tipo
+            4: { cellWidth: 28 }, // Capa
             5: { cellWidth: 35 }, // Camisa
-            6: { cellWidth: 30 }, // Antivaho
-            7: { cellWidth: 50 }, // Etapa Actual
-            8: { cellWidth: 50 }, // Siguiente
-            9: { cellWidth: 70 }, // Observaciones
-            10: { cellWidth: 40 }, // F. Creación
-            11: { cellWidth: 40 }, // F. Entrega
+            6: { cellWidth: 30 }, // Antiv.
+            7: { cellWidth: 52 }, // Et. Actual
+            8: { cellWidth: 52 }, // Sig. Etapa
+            9: { cellWidth: 80, halign: 'left' }, // Observaciones
+            10: { cellWidth: 42 }, // Creación
+            11: { cellWidth: 45 }, // F. Entrega
+            12: { cellWidth: 50 }, // N.F. Entrega
         },
         didParseCell: (data) => {
-            // Center align all columns except specific ones
-            if (![1, 9].includes(data.column.index)) {
-                data.cell.styles.halign = 'center';
-            }
-
             const pedido = pedidos[data.row.index];
             if (pedido && data.section === 'body') {
                 // Color red text for "Cliente / # Pedido" column when priority is urgent
