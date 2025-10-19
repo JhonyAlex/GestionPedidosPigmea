@@ -35,8 +35,18 @@ const getDbClient = () => {
 const requirePermission = (permissionId) => {
     return async (req, res, next) => {
         try {
+            console.log('🔐 requirePermission middleware');
+            console.log('   - Ruta:', req.method, req.path);
+            console.log('   - Permiso requerido:', permissionId);
+            console.log('   - Usuario:', req.user ? `${req.user.id} (${req.user.role})` : 'No autenticado');
+            console.log('   - Headers:', {
+                userId: req.headers['x-user-id'],
+                userRole: req.headers['x-user-role']
+            });
+            
             // Verificar si el usuario está autenticado
             if (!req.user || !req.user.id) {
+                console.log('❌ Usuario no autenticado - rechazando con 401');
                 return res.status(401).json({ 
                     error: 'No autenticado',
                     message: 'Debe iniciar sesión para acceder a este recurso'
@@ -45,7 +55,10 @@ const requirePermission = (permissionId) => {
 
             // Verificar el permiso del usuario
             const dbClient = getDbClient();
+            console.log('   - Verificando permiso en BD...');
             const hasPermission = await dbClient.hasPermission(req.user.id, permissionId, req.user);
+            
+            console.log('   - Resultado:', hasPermission ? '✅ PERMITIDO' : '❌ DENEGADO');
             
             if (!hasPermission) {
                 // Registrar intento de acceso no autorizado
@@ -62,9 +75,10 @@ const requirePermission = (permissionId) => {
                         }
                     });
                 } catch (auditError) {
-                    console.warn('Error registrando evento de auditoría:', auditError);
+                    console.warn('⚠️ Error registrando evento de auditoría:', auditError.message);
                 }
                 
+                console.log('❌ Permiso denegado - rechazando con 403');
                 return res.status(403).json({ 
                     error: 'Acceso denegado',
                     message: 'No tiene los permisos necesarios para esta acción',
@@ -72,10 +86,12 @@ const requirePermission = (permissionId) => {
                 });
             }
             
+            console.log('✅ Permiso concedido - continuando con la request');
             // Si tiene permiso, continuar
             next();
         } catch (error) {
-            console.error('Error en middleware de permisos:', error);
+            console.error('💥 Error en middleware de permisos:', error);
+            console.error('   Stack:', error.stack);
             res.status(500).json({ 
                 error: 'Error interno',
                 message: 'Error al verificar permisos'

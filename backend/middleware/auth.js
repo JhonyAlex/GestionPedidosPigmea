@@ -35,27 +35,42 @@ const authenticateUser = async (req, res, next) => {
         const userRole = req.headers['x-user-role'];
         const userPermissions = req.headers['x-user-permissions'];
         
+        console.log('🔑 authenticateUser middleware');
+        console.log('   - Ruta:', req.method, req.path);
+        console.log('   - Headers recibidos:', {
+            userId: userId || 'NO PRESENTE',
+            userRole: userRole || 'NO PRESENTE',
+            hasPermissions: !!userPermissions
+        });
+        
         if (userId) {
             // Verificar que el usuario existe en la base de datos
             try {
                 const db = getDbClient();
                 if (db.isInitialized) {
+                    console.log('   - Buscando usuario en BD...');
                     const user = await db.getAdminUserById(userId);
                     if (user) {
+                        console.log('   - ✅ Usuario encontrado en BD:', user.username);
                         req.user = {
                             id: user.id,
                             username: user.username,
                             role: user.role,
                             email: user.email
                         };
+                    } else {
+                        console.log('   - ⚠️ Usuario no encontrado en BD');
                     }
+                } else {
+                    console.log('   - ⚠️ BD no inicializada');
                 }
             } catch (error) {
-                console.error('Error validando usuario:', error);
+                console.error('   - ❌ Error validando usuario:', error.message);
             }
             
             // Si no se pudo validar desde la BD, usar headers (modo desarrollo)
             if (!req.user && userId) {
+                console.log('   - ⚠️ Usando autenticación de headers (modo desarrollo)');
                 req.user = {
                     id: userId,
                     role: userRole || 'OPERATOR'
@@ -65,16 +80,24 @@ const authenticateUser = async (req, res, next) => {
                 if (userPermissions) {
                     try {
                         req.user.permissions = JSON.parse(userPermissions);
+                        console.log('   - ✅ Permisos incluidos desde header:', req.user.permissions?.length || 0);
                     } catch (error) {
-                        console.warn('Error parsing user permissions from header:', error);
+                        console.warn('   - ⚠️ Error parsing user permissions from header:', error.message);
                     }
                 }
             }
+            
+            if (req.user) {
+                console.log('   - ✅ Usuario autenticado:', req.user.id, `(${req.user.role})`);
+            }
+        } else {
+            console.log('   - ⚠️ No hay userId en headers - ruta pública o error de autenticación');
         }
         
         next();
     } catch (error) {
-        console.error('Error en middleware de autenticación:', error);
+        console.error('💥 Error en middleware de autenticación:', error);
+        console.error('   Stack:', error.stack);
         next(); // Continuar sin autenticación (algunas rutas no la requieren)
     }
 };
