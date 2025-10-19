@@ -55,10 +55,18 @@ class WebSocketService {
   // Callbacks para comentarios en tiempo real
   private commentAddedListeners: ((comment: any) => void)[] = [];
   private commentDeletedListeners: ((data: { commentId: string; pedidoId: string }) => void)[] = [];
+  
+  // Control de visibilidad de pestaña y sincronización
+  private isPageVisible = true;
+  private lastActivityTime = Date.now();
+  private inactivityTimeout: NodeJS.Timeout | null = null;
+  private pageRefreshCallbacks: (() => void)[] = [];
+  private readonly INACTIVITY_THRESHOLD = 5 * 60 * 1000; // 5 minutos
 
   constructor() {
     // Suprimir errores específicos de extensiones del navegador
     this.setupErrorHandling();
+    this.setupVisibilityDetection();
     this.connect();
   }
 
@@ -89,6 +97,100 @@ class WebSocketService {
         }
       });
     }
+  }
+
+  private setupVisibilityDetection() {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+    // Detectar cuando el usuario cambia de pestaña o minimiza la ventana
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // El usuario salió de la pestaña
+        this.isPageVisible = false;
+        this.lastActivityTime = Date.now();
+        console.log('👁️ Usuario salió de la pestaña');
+      } else {
+        // El usuario regresó a la pestaña
+        this.isPageVisible = true;
+        const timeAway = Date.now() - this.lastActivityTime;
+        console.log(`👁️ Usuario regresó a la pestaña después de ${Math.round(timeAway / 1000)}s`);
+
+        // Si estuvo inactivo más del umbral, actualizar la página
+        if (timeAway > this.INACTIVITY_THRESHOLD) {
+          console.log('🔄 Inactividad detectada, actualizando datos...');
+          this.handlePageReturn();
+        } else if (!this.isConnected) {
+          // Si está desconectado, intentar reconectar
+          console.log('🔄 Reconectando WebSocket...');
+          this.forceReconnection();
+        }
+      }
+    };
+
+    // Evento de visibilidad del documento
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Evento de focus/blur de la ventana (respaldo)
+    window.addEventListener('focus', () => {
+      if (!this.isPageVisible) {
+        handleVisibilityChange();
+      }
+    });
+
+    window.addEventListener('blur', () => {
+      if (this.isPageVisible) {
+        this.isPageVisible = false;
+        this.lastActivityTime = Date.now();
+      }
+    });
+
+    // Detectar cuando la pestaña vuelve a ser visible después de estar en segundo plano
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted || performance.navigation.type === 2) {
+        // La página fue cargada desde cache (back/forward)
+        console.log('🔄 Página restaurada desde cache, verificando estado...');
+        const timeAway = Date.now() - this.lastActivityTime;
+        if (timeAway > this.INACTIVITY_THRESHOLD) {
+          this.handlePageReturn();
+        }
+      }
+    });
+  }
+
+  private handlePageReturn() {
+    // Notificar a los componentes que deben refrescar sus datos
+    this.addNotification({
+      type: 'info',
+      title: 'Actualizando datos',
+      message: 'Sincronizando información reciente...',
+      autoClose: true,
+      duration: 3000
+    });
+
+    // Llamar a todos los callbacks registrados para refrescar
+    this.pageRefreshCallbacks.forEach(callback => {
+      try {
+        callback();
+      } catch (error) {
+        console.error('Error ejecutando callback de refresco:', error);
+      }
+    });
+
+    // Si está desconectado, intentar reconectar
+    if (!this.isConnected && this.isOnline) {
+      this.forceReconnection();
+    }
+  }
+
+  // Método público para suscribirse a eventos de retorno de página
+  public subscribeToPageReturn(callback: () => void): () => void {
+    this.pageRefreshCallbacks.push(callback);
+    return () => {
+      const index = this.pageRefreshCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.pageRefreshCallbacks.splice(index, 1);
+      }
+    };
   }
 
   private connect() {
@@ -587,6 +689,12 @@ class WebSocketService {
     this.commentDeletedListeners = [];
     this.notificationListeners = [];
     this.connectedUsersListeners = [];
+    this.pageRefreshCallbacks = [];
+    
+    if (this.inactivityTimeout) {
+      clearTimeout(this.inactivityTimeout);
+      this.inactivityTimeout = null;
+    }
   }
 }
 

@@ -12,6 +12,7 @@ export interface UseWebSocketReturn {
   subscribeToPedidoCreated: (callback: (pedido: Pedido) => void) => () => void;
   subscribeToPedidoUpdated: (callback: (pedido: Pedido) => void) => () => void;
   subscribeToPedidoDeleted: (callback: (pedidoId: string) => void) => () => void;
+  subscribeToPageReturn: (callback: () => void) => () => void;
 }
 
 export const useWebSocket = (userId: string, userRole: UserRole): UseWebSocketReturn => {
@@ -69,6 +70,10 @@ export const useWebSocket = (userId: string, userRole: UserRole): UseWebSocketRe
     webSocketService.emitActivity(activity, data);
   }, []);
 
+  const subscribeToPageReturn = useCallback((callback: () => void) => {
+    return webSocketService.subscribeToPageReturn(callback);
+  }, []);
+
   return {
     isConnected,
     notifications,
@@ -78,6 +83,7 @@ export const useWebSocket = (userId: string, userRole: UserRole): UseWebSocketRe
     // Callbacks para sincronización de datos
     subscribeToPedidoCreated: webSocketService.subscribeToPedidoCreated.bind(webSocketService),
     subscribeToPedidoUpdated: webSocketService.subscribeToPedidoUpdated.bind(webSocketService),
-    subscribeToPedidoDeleted: webSocketService.subscribeToPedidoDeleted.bind(webSocketService)
+    subscribeToPedidoDeleted: webSocketService.subscribeToPedidoDeleted.bind(webSocketService),
+    subscribeToPageReturn
   };
 };

@@ -80,7 +80,8 @@ const AppContent: React.FC = () => {
         emitActivity,
         subscribeToPedidoCreated,
         subscribeToPedidoUpdated,
-        subscribeToPedidoDeleted
+        subscribeToPedidoDeleted,
+        subscribeToPageReturn
     } = useWebSocket(currentUserId, currentUserRole);
 
     const generarEntradaHistorial = useCallback((usuarioRole: UserRole, accion: string, detalles: string): HistorialEntry => ({
@@ -160,6 +161,29 @@ const AppContent: React.FC = () => {
     useEffect(() => {
         clearSelection();
     }, [view, clearSelection]);
+
+    // Suscribirse al evento de retorno de página para refrescar datos
+    useEffect(() => {
+        const unsubscribe = subscribeToPageReturn(async () => {
+            console.log('🔄 Refrescando datos después de inactividad...');
+            setIsLoading(true);
+            try {
+                // Importar el store dinámicamente para evitar ciclos
+                const { store } = await import('./services/storage');
+                const currentPedidos = await store.getAll();
+                setPedidos(currentPedidos);
+                console.log('✅ Datos actualizados exitosamente');
+            } catch (error) {
+                console.error('❌ Error al refrescar datos:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        });
+
+        return () => {
+            unsubscribe();
+        };
+    }, [subscribeToPageReturn, setPedidos, setIsLoading]);
 
 
     useEffect(() => {
