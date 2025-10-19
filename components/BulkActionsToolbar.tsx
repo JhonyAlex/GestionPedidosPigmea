@@ -55,10 +55,11 @@ const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
             <button
               onClick={onUpdateDate}
               className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200 font-medium"
-              title="Cambiar Nueva Fecha Entrega"
+              title="Cambiar Nueva Fecha de Entrega"
             >
               <CalendarIcon />
-              <span className="hidden sm:inline">Cambiar Fecha</span>
+              <span className="hidden sm:inline">Cambiar Nueva Fecha de Entrega</span>
+              <span className="sm:hidden">Fecha</span>
             </button>
 
             <button

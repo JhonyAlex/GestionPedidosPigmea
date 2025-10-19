@@ -58,9 +58,11 @@ Sistema completo de selección múltiple para tarjetas Kanban con dos operacione
 ### Archivos Modificados
 1. **`components/PedidoCard.tsx`** - Agregado checkbox y lógica de selección
 2. **`components/KanbanColumn.tsx`** - Propagación de props de selección
-3. **`App.tsx`** - Integración de bulk operations
-4. **`src/index.css`** - Animación de slide-up
-5. **`backend/index.js`** - Endpoints de operaciones masivas
+3. **`components/PreparacionView.tsx`** - Soporte para selección múltiple en Preparación
+4. **`components/PreparacionColumn.tsx`** - Propagación de props en columnas de Preparación
+5. **`App.tsx`** - Integración de bulk operations en todas las vistas
+6. **`src/index.css`** - Animación de slide-up
+7. **`backend/index.js`** - Endpoints de operaciones masivas
 
 ---
 
@@ -110,7 +112,7 @@ Response (200):
 ## 🚀 Cómo Usar
 
 ### Seleccionar Tarjetas
-1. Ve a la vista **Kanban**
+1. Ve a la vista **Kanban** o **Preparación**
 2. **Desktop**: Pasa el mouse sobre una tarjeta y haz click en el checkbox
 3. **Móvil**: Haz click directamente en el checkbox visible
 4. Selecciona 2 o más tarjetas para ver el toolbar
@@ -123,9 +125,9 @@ Response (200):
 5. Click en **"Eliminar Pedidos"**
 6. ✅ Confirmación automática
 
-### Cambiar Fecha de Entrega
+### Cambiar Nueva Fecha de Entrega
 1. Selecciona 2+ tarjetas
-2. Click en **"Cambiar Fecha"** en el toolbar
+2. Click en **"Cambiar Nueva Fecha de Entrega"** en el toolbar
 3. Selecciona la nueva fecha en el date picker
 4. Revisa la tabla de preview
 5. Click en **"Actualizar Fechas"**
@@ -250,6 +252,9 @@ Cada operación masiva registra en el historial de cada pedido:
 4. **WebSocket**: Notifica cambios en tiempo real a otros usuarios
 5. **Responsive**: Funciona correctamente en desktop y móvil
 6. **Drag & Drop**: Compatible con el sistema de arrastrar y soltar existente
+7. **Vistas Compatibles**: Funciona en vista Kanban y Preparación
+8. **Autenticación**: Las peticiones incluyen cookies de sesión automáticamente
+9. **Manejo de Errores**: Mensajes claros para errores 401 (no autenticado) y 403 (sin permisos)
 
 ---
 

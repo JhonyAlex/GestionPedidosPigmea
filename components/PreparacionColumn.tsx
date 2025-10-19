@@ -11,9 +11,24 @@ interface PreparacionColumnProps {
     onSendToPrint: (pedido: Pedido) => void;
     highlightedPedidoId?: string | null;
     onUpdatePedido?: (updatedPedido: Pedido) => Promise<void>;
+    // Bulk selection props
+    selectedIds?: string[];
+    isSelectionActive?: boolean;
+    onToggleSelection?: (id: string) => void;
 }
 
-const PreparacionColumn: React.FC<PreparacionColumnProps> = ({ columna, pedidos, onSelectPedido, currentUserRole, onSendToPrint, highlightedPedidoId, onUpdatePedido }) => {
+const PreparacionColumn: React.FC<PreparacionColumnProps> = ({ 
+    columna, 
+    pedidos, 
+    onSelectPedido, 
+    currentUserRole, 
+    onSendToPrint, 
+    highlightedPedidoId, 
+    onUpdatePedido,
+    selectedIds = [],
+    isSelectionActive = false,
+    onToggleSelection
+}) => {
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
@@ -56,6 +71,9 @@ const PreparacionColumn: React.FC<PreparacionColumnProps> = ({ columna, pedidos,
                                                 onSendToPrint={onSendToPrint}
                                                 highlightedPedidoId={highlightedPedidoId}
                                                 onUpdatePedido={onUpdatePedido}
+                                                isSelected={selectedIds.includes(pedido.id)}
+                                                isSelectionActive={isSelectionActive}
+                                                onToggleSelection={onToggleSelection}
                                             />
                                         </div>
                                     )}

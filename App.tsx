@@ -572,6 +572,9 @@ const AppContent: React.FC = () => {
                         onSendToPrint={setPedidoToSend}
                         highlightedPedidoId={highlightedPedidoId}
                         onUpdatePedido={handleSavePedido}
+                        selectedIds={selectedIds}
+                        isSelectionActive={isSelectionActive}
+                        onToggleSelection={toggleSelection}
                     />
                 );
             case 'clientes':

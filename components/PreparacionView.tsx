@@ -11,9 +11,23 @@ interface PreparacionViewProps {
     onSendToPrint: (pedido: Pedido) => void;
     highlightedPedidoId?: string | null;
     onUpdatePedido?: (updatedPedido: Pedido) => Promise<void>;
+    // Bulk selection props
+    selectedIds?: string[];
+    isSelectionActive?: boolean;
+    onToggleSelection?: (id: string) => void;
 }
 
-const PreparacionView: React.FC<PreparacionViewProps> = ({ pedidos, onSelectPedido, currentUserRole, onSendToPrint, highlightedPedidoId, onUpdatePedido }) => {
+const PreparacionView: React.FC<PreparacionViewProps> = ({ 
+    pedidos, 
+    onSelectPedido, 
+    currentUserRole, 
+    onSendToPrint, 
+    highlightedPedidoId, 
+    onUpdatePedido,
+    selectedIds = [],
+    isSelectionActive = false,
+    onToggleSelection
+}) => {
 
     const pedidosPorColumna = pedidos.reduce((acc, pedido) => {
         if (pedido.etapaActual === Etapa.PREPARACION && pedido.subEtapaActual) {
@@ -36,6 +50,9 @@ const PreparacionView: React.FC<PreparacionViewProps> = ({ pedidos, onSelectPedi
                         onSendToPrint={onSendToPrint}
                         highlightedPedidoId={highlightedPedidoId}
                         onUpdatePedido={onUpdatePedido}
+                        selectedIds={selectedIds}
+                        isSelectionActive={isSelectionActive}
+                        onToggleSelection={onToggleSelection}
                     />
                 ))}
              </div>

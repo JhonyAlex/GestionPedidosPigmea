@@ -47,9 +47,17 @@ export const useBulkOperations = (): UseBulkOperationsReturn => {
         credentials: 'include',
       });
 
+      if (response.status === 401) {
+        throw new Error('No autenticado. Por favor, inicia sesión nuevamente.');
+      }
+
+      if (response.status === 403) {
+        throw new Error('No tienes permisos para realizar esta operación.');
+      }
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al eliminar pedidos');
+        const errorData = await response.json().catch(() => ({ error: 'Error del servidor' }));
+        throw new Error(errorData.error || `Error HTTP ${response.status}`);
       }
 
       const data = await response.json();
@@ -85,9 +93,17 @@ export const useBulkOperations = (): UseBulkOperationsReturn => {
         credentials: 'include',
       });
 
+      if (response.status === 401) {
+        throw new Error('No autenticado. Por favor, inicia sesión nuevamente.');
+      }
+
+      if (response.status === 403) {
+        throw new Error('No tienes permisos para realizar esta operación.');
+      }
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al actualizar fechas');
+        const errorData = await response.json().catch(() => ({ error: 'Error del servidor' }));
+        throw new Error(errorData.error || `Error HTTP ${response.status}`);
       }
 
       const data = await response.json();
