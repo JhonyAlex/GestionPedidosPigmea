@@ -1453,7 +1453,7 @@ app.delete('/api/pedidos/bulk-delete', requirePermission('pedidos.delete'), asyn
         // Obtener información de los pedidos antes de eliminarlos (para websocket)
         const pedidosToDelete = [];
         for (const id of ids) {
-            const pedido = await dbClient.getPedidoById(id);
+            const pedido = await dbClient.findById(id);
             if (pedido) {
                 pedidosToDelete.push(pedido);
             }
@@ -1463,7 +1463,7 @@ app.delete('/api/pedidos/bulk-delete', requirePermission('pedidos.delete'), asyn
         let deletedCount = 0;
         for (const id of ids) {
             try {
-                const deleted = await dbClient.deletePedido(id);
+                const deleted = await dbClient.delete(id);
                 if (deleted) {
                     deletedCount++;
                 }
@@ -1479,7 +1479,7 @@ app.delete('/api/pedidos/bulk-delete', requirePermission('pedidos.delete'), asyn
             count: deletedCount,
             pedidos: pedidosToDelete.map(p => ({
                 id: p.id,
-                numero_pedido_cliente: p.numero_pedido_cliente
+                numeroPedidoCliente: p.numeroPedidoCliente
             }))
         });
 
@@ -1536,35 +1536,37 @@ app.patch('/api/pedidos/bulk-update-date', requirePermission('pedidos.edit'), as
             try {
                 console.log(`  🔄 Procesando pedido ${id}...`);
                 
-                const pedido = await dbClient.getPedidoById(id);
+                // Usar findById en lugar de getPedidoById
+                const pedido = await dbClient.findById(id);
                 if (!pedido) {
                     console.warn(`  ⚠️ Pedido ${id} no encontrado, saltando...`);
                     errors.push({ id, error: 'Pedido no encontrado' });
                     continue;
                 }
 
-                console.log(`  📦 Pedido encontrado: ${pedido.numero_pedido_cliente}`);
-                console.log(`  📅 Fecha anterior: ${pedido.nueva_fecha_entrega || 'N/A'}`);
+                console.log(`  📦 Pedido encontrado: ${pedido.numeroPedidoCliente}`);
+                console.log(`  📅 Fecha anterior: ${pedido.nuevaFechaEntrega || 'N/A'}`);
 
                 // Actualizar el pedido con la nueva fecha
                 const updatedPedido = {
                     ...pedido,
-                    nueva_fecha_entrega: nuevaFechaEntrega
+                    nuevaFechaEntrega: nuevaFechaEntrega
                 };
 
-                const result = await dbClient.updatePedido(id, updatedPedido);
+                // Usar update en lugar de updatePedido
+                const result = await dbClient.update(updatedPedido);
                 
                 if (result) {
                     updatedCount++;
                     console.log(`  ✅ Pedido ${id} actualizado exitosamente`);
                     updatedPedidos.push({
                         id: result.id,
-                        numero_pedido_cliente: result.numero_pedido_cliente,
-                        nueva_fecha_entrega: result.nueva_fecha_entrega
+                        numeroPedidoCliente: result.numeroPedidoCliente,
+                        nuevaFechaEntrega: result.nuevaFechaEntrega
                     });
                 } else {
-                    console.error(`  ❌ Error: updatePedido devolvió null para ${id}`);
-                    errors.push({ id, error: 'updatePedido devolvió null' });
+                    console.error(`  ❌ Error: update devolvió null para ${id}`);
+                    errors.push({ id, error: 'update devolvió null' });
                 }
             } catch (error) {
                 console.error(`  ❌ Error actualizando pedido ${id}:`, error.message);
