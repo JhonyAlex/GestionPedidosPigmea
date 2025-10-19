@@ -830,62 +830,66 @@ class PostgreSQLClient {
             const hasNumeroCompra = existingColumns.includes('numero_compra');
 
             // Construir query dinámicamente basado en columnas existentes
-            let updateFields = [
-                'numero_pedido_cliente = $2',
-                'cliente = $3',
-                'fecha_pedido = $4',
-                'fecha_entrega = $5',
-                'etapa_actual = $6',
-                'prioridad = $7',
-                'secuencia_pedido = $8',
-                'cantidad_piezas = $9',
-                'observaciones = $10',
-                'datos_tecnicos = $11',
-                'antivaho = $12',
-                'camisa = $13',
-                'data = $14',
-                'cliente_id = $15',
-                'updated_at = CURRENT_TIMESTAMP'
-            ];
+            const updateFields = [];
+            const values = [pedido.id]; // $1
+            let paramIndex = 2;
 
-            let values = [
-                pedido.id,
-                pedido.numeroPedidoCliente,
-                pedido.cliente,
-                pedido.fechaPedido ? new Date(pedido.fechaPedido) : null,
-                pedido.fechaEntrega ? new Date(pedido.fechaEntrega) : null,
-                pedido.etapaActual,
-                pedido.prioridad,
-                pedido.secuenciaPedido,
-                pedido.cantidadPiezas,
-                pedido.observaciones,
-                JSON.stringify(pedido.datosTecnicos || {}),
-                pedido.antivaho || false,
-                pedido.camisa,
-                JSON.stringify(pedido),
-                pedido.clienteId || null
-            ];
+            // Campos base en orden
+            updateFields.push(`numero_pedido_cliente = $${paramIndex++}`);
+            values.push(pedido.numeroPedidoCliente);
+
+            updateFields.push(`cliente = $${paramIndex++}`);
+            values.push(pedido.cliente);
+
+            updateFields.push(`fecha_pedido = $${paramIndex++}`);
+            values.push(pedido.fechaPedido ? new Date(pedido.fechaPedido) : null);
+
+            updateFields.push(`fecha_entrega = $${paramIndex++}`);
+            values.push(pedido.fechaEntrega ? new Date(pedido.fechaEntrega) : null);
 
             // Agregar nueva_fecha_entrega solo si la columna existe
             if (hasNuevaFecha) {
-                updateFields.splice(5, 0, 'nueva_fecha_entrega = $6'); // Insertar después de fecha_entrega
-                values.splice(5, 0, pedido.nuevaFechaEntrega ? new Date(pedido.nuevaFechaEntrega) : null);
-                // Reajustar índices de parámetros
-                for (let i = 6; i < updateFields.length; i++) {
-                    updateFields[i] = updateFields[i].replace(/\$(\d+)/, (match, num) => `$${parseInt(num) + 1}`);
-                }
+                updateFields.push(`nueva_fecha_entrega = $${paramIndex++}`);
+                values.push(pedido.nuevaFechaEntrega ? new Date(pedido.nuevaFechaEntrega) : null);
             }
+
+            updateFields.push(`etapa_actual = $${paramIndex++}`);
+            values.push(pedido.etapaActual);
+
+            updateFields.push(`prioridad = $${paramIndex++}`);
+            values.push(pedido.prioridad);
+
+            updateFields.push(`secuencia_pedido = $${paramIndex++}`);
+            values.push(pedido.secuenciaPedido);
+
+            updateFields.push(`cantidad_piezas = $${paramIndex++}`);
+            values.push(pedido.cantidadPiezas);
+
+            updateFields.push(`observaciones = $${paramIndex++}`);
+            values.push(pedido.observaciones);
+
+            updateFields.push(`datos_tecnicos = $${paramIndex++}`);
+            values.push(JSON.stringify(pedido.datosTecnicos || {}));
+
+            updateFields.push(`antivaho = $${paramIndex++}`);
+            values.push(pedido.antivaho || false);
+
+            updateFields.push(`camisa = $${paramIndex++}`);
+            values.push(pedido.camisa);
 
             // Agregar numero_compra solo si la columna existe
             if (hasNumeroCompra) {
-                const insertIndex = hasNuevaFecha ? 14 : 13; // Ajustar según si nueva_fecha_entrega está presente
-                updateFields.splice(insertIndex, 0, `numero_compra = $${insertIndex + 1}`);
-                values.splice(insertIndex, 0, pedido.numeroCompra || null);
-                // Reajustar índices de parámetros posteriores
-                for (let i = insertIndex + 1; i < updateFields.length; i++) {
-                    updateFields[i] = updateFields[i].replace(/\$(\d+)/, (match, num) => `$${parseInt(num) + 1}`);
-                }
+                updateFields.push(`numero_compra = $${paramIndex++}`);
+                values.push(pedido.numeroCompra || null);
             }
+
+            updateFields.push(`data = $${paramIndex++}`);
+            values.push(JSON.stringify(pedido));
+
+            updateFields.push(`cliente_id = $${paramIndex++}`);
+            values.push(pedido.clienteId || null);
+
+            updateFields.push('updated_at = CURRENT_TIMESTAMP');
 
             const query = `
                 UPDATE pedidos SET 
