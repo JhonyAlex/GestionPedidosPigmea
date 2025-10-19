@@ -1241,6 +1241,254 @@ app.get('/api/pedidos', async (req, res) => {
     }
 });
 
+// === ENDPOINTS DE OPERACIONES MASIVAS (DEBEN IR ANTES DE RUTAS CON :id) ===
+
+// DELETE /api/pedidos/bulk-delete - Eliminar múltiples pedidos
+app.delete('/api/pedidos/bulk-delete', requirePermission('pedidos.delete'), async (req, res) => {
+    try {
+        const { ids } = req.body;
+        
+        console.log('🗑️ [BULK DELETE] Endpoint alcanzado');
+        console.log('🗑️ IDs recibidos:', ids);
+        
+        // Validación
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ 
+                error: 'Se requiere un array de IDs no vacío.' 
+            });
+        }
+
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({ 
+                error: 'Base de datos no disponible' 
+            });
+        }
+
+        console.log(`🗑️ Eliminando ${ids.length} pedidos en operación masiva...`);
+
+        // Obtener información de los pedidos antes de eliminarlos (para websocket)
+        const pedidosToDelete = [];
+        for (const id of ids) {
+            const pedido = await dbClient.findById(id);
+            if (pedido) {
+                pedidosToDelete.push(pedido);
+            }
+        }
+
+        // Eliminar cada pedido
+        let deletedCount = 0;
+        for (const id of ids) {
+            try {
+                const deleted = await dbClient.delete(id);
+                if (deleted) {
+                    deletedCount++;
+                }
+            } catch (error) {
+                console.error(`Error eliminando pedido ${id}:`, error);
+                // Continuar con los demás pedidos
+            }
+        }
+
+        // 🔥 EVENTO WEBSOCKET: Pedidos eliminados masivamente
+        broadcastToClients('pedidos-bulk-deleted', {
+            pedidoIds: ids,
+            count: deletedCount,
+            pedidos: pedidosToDelete.map(p => ({
+                id: p.id,
+                numeroPedidoCliente: p.numeroPedidoCliente
+            }))
+        });
+
+        console.log(`✅ ${deletedCount} de ${ids.length} pedidos eliminados exitosamente`);
+
+        res.status(200).json({ 
+            success: true,
+            deletedCount,
+            message: `${deletedCount} pedidos eliminados exitosamente.` 
+        });
+        
+    } catch (error) {
+        console.error('Error en bulk-delete:', error);
+        res.status(500).json({ 
+            error: 'Error interno del servidor al eliminar pedidos.',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
+// PATCH /api/pedidos/bulk-update-date - Actualizar nueva fecha de entrega para múltiples pedidos
+app.patch('/api/pedidos/bulk-update-date', requirePermission('pedidos.edit'), async (req, res) => {
+    try {
+        const { ids, nuevaFechaEntrega } = req.body;
+        
+        console.log('📅 [BULK UPDATE DATE] Endpoint alcanzado');
+        console.log('📅 IDs recibidos:', ids);
+        console.log('📅 Nueva fecha:', nuevaFechaEntrega);
+        
+        // Validación
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ 
+                error: 'Se requiere un array de IDs no vacío.' 
+            });
+        }
+
+        if (!nuevaFechaEntrega) {
+            return res.status(400).json({ 
+                error: 'Se requiere una fecha válida.' 
+            });
+        }
+
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({ 
+                error: 'Base de datos no disponible' 
+            });
+        }
+
+        console.log(`📅 Actualizando nueva fecha de entrega para ${ids.length} pedidos: ${ids.join(', ')}`);
+        console.log(`📅 Nueva fecha: ${nuevaFechaEntrega}`);
+
+        // Actualizar cada pedido
+        let updatedCount = 0;
+        const updatedPedidos = [];
+        const errors = [];
+
+        for (const id of ids) {
+            try {
+                console.log(`  🔄 Procesando pedido ${id}...`);
+                
+                const pedido = await dbClient.findById(id);
+                if (!pedido) {
+                    console.warn(`  ⚠️ Pedido ${id} no encontrado, saltando...`);
+                    errors.push({ id, error: 'Pedido no encontrado' });
+                    continue;
+                }
+
+                console.log(`  📦 Pedido encontrado: ${pedido.numeroPedidoCliente}`);
+                console.log(`  📅 Fecha anterior: ${pedido.nuevaFechaEntrega || 'N/A'}`);
+
+                // Actualizar el pedido con la nueva fecha
+                const updatedPedido = {
+                    ...pedido,
+                    nuevaFechaEntrega: nuevaFechaEntrega
+                };
+
+                const result = await dbClient.update(updatedPedido);
+                
+                if (result) {
+                    updatedCount++;
+                    console.log(`  ✅ Pedido ${id} actualizado exitosamente`);
+                    updatedPedidos.push({
+                        id: result.id,
+                        numeroPedidoCliente: result.numeroPedidoCliente,
+                        nuevaFechaEntrega: result.nuevaFechaEntrega
+                    });
+                } else {
+                    console.error(`  ❌ Error: update devolvió null para ${id}`);
+                    errors.push({ id, error: 'update devolvió null' });
+                }
+            } catch (error) {
+                console.error(`  ❌ Error actualizando pedido ${id}:`, error.message);
+                console.error(error.stack);
+                errors.push({ id, error: error.message });
+            }
+        }
+
+        // 🔥 EVENTO WEBSOCKET: Pedidos actualizados masivamente
+        broadcastToClients('pedidos-bulk-updated', {
+            pedidoIds: ids,
+            count: updatedCount,
+            field: 'nueva_fecha_entrega',
+            value: nuevaFechaEntrega,
+            pedidos: updatedPedidos
+        });
+
+        console.log(`✅ ${updatedCount} de ${ids.length} pedidos actualizados exitosamente`);
+        if (errors.length > 0) {
+            console.log(`⚠️ ${errors.length} errores:`, errors);
+        }
+
+        res.status(200).json({ 
+            success: true,
+            updatedCount,
+            totalRequested: ids.length,
+            errors: errors.length > 0 ? errors : undefined,
+            message: `${updatedCount} pedidos actualizados exitosamente.` 
+        });
+        
+    } catch (error) {
+        console.error('❌ Error en bulk-update-date:', error);
+        res.status(500).json({ 
+            error: 'Error interno del servidor al actualizar pedidos.',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
+// POST /api/pedidos/bulk - Bulk insert pedidos
+app.post('/api/pedidos/bulk', async (req, res) => {
+    try {
+        const items = req.body;
+        
+        if (!Array.isArray(items)) {
+            return res.status(400).json({ message: 'Se esperaba un array de pedidos.' });
+        }
+        
+        await dbClient.bulkInsert(items);
+        
+        res.status(201).json({ message: `${items.length} pedidos importados correctamente.` });
+        
+    } catch (error) {
+        console.error("Error on bulk insert:", error);
+        res.status(500).json({ message: "Error interno del servidor durante la importación masiva." });
+    }
+});
+
+// DELETE /api/pedidos/all - Clear the entire collection
+app.delete('/api/pedidos/all', async (req, res) => {
+    try {
+        await dbClient.clear();
+        
+        // 🔥 EVENTO WEBSOCKET: Todos los pedidos eliminados
+        broadcastToClients('pedidos-cleared', {
+            message: 'Todos los pedidos han sido eliminados'
+        });
+        
+        res.status(204).send();
+        
+    } catch (error) {
+        console.error("Error clearing all pedidos:", error);
+        res.status(500).json({ message: "Error interno del servidor al eliminar todos los pedidos." });
+    }
+});
+
+// GET /api/pedidos/search/:term - Search pedidos by various fields including numero_compra
+app.get('/api/pedidos/search/:term', async (req, res) => {
+    try {
+        const searchTerm = req.params.term;
+        
+        if (!searchTerm || searchTerm.trim().length === 0) {
+            return res.status(400).json({ message: 'Término de búsqueda requerido.' });
+        }
+        
+        if (!dbClient.isInitialized) {
+            console.log('⚠️ BD no disponible - devolviendo datos vacíos');
+            return res.status(200).json([]);
+        }
+        
+        const results = await dbClient.searchPedidos(searchTerm.trim());
+        res.status(200).json(results);
+        
+    } catch (error) {
+        console.error(`Error searching pedidos with term "${req.params.term}":`, error);
+        res.status(500).json({ 
+            message: "Error interno del servidor al buscar pedidos.",
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
+// === RUTAS CON PARÁMETROS DINÁMICOS (DEBEN IR DESPUÉS DE RUTAS ESPECÍFICAS) ===
+
 // GET /api/pedidos/:id - Get a single pedido by ID
 app.get('/api/pedidos/:id', async (req, res) => {
     try {
@@ -1424,185 +1672,6 @@ app.get('/api/pedidos/search/:term', async (req, res) => {
         res.status(500).json({ 
             message: "Error interno del servidor al buscar pedidos.",
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
-    }
-});
-
-// === ENDPOINTS DE OPERACIONES MASIVAS ===
-
-// DELETE /api/pedidos/bulk-delete - Eliminar múltiples pedidos
-app.delete('/api/pedidos/bulk-delete', requirePermission('pedidos.delete'), async (req, res) => {
-    try {
-        const { ids } = req.body;
-        
-        // Validación
-        if (!Array.isArray(ids) || ids.length === 0) {
-            return res.status(400).json({ 
-                error: 'Se requiere un array de IDs no vacío.' 
-            });
-        }
-
-        if (!dbClient.isInitialized) {
-            return res.status(503).json({ 
-                error: 'Base de datos no disponible' 
-            });
-        }
-
-        console.log(`🗑️ Eliminando ${ids.length} pedidos en operación masiva...`);
-
-        // Obtener información de los pedidos antes de eliminarlos (para websocket)
-        const pedidosToDelete = [];
-        for (const id of ids) {
-            const pedido = await dbClient.findById(id);
-            if (pedido) {
-                pedidosToDelete.push(pedido);
-            }
-        }
-
-        // Eliminar cada pedido
-        let deletedCount = 0;
-        for (const id of ids) {
-            try {
-                const deleted = await dbClient.delete(id);
-                if (deleted) {
-                    deletedCount++;
-                }
-            } catch (error) {
-                console.error(`Error eliminando pedido ${id}:`, error);
-                // Continuar con los demás pedidos
-            }
-        }
-
-        // 🔥 EVENTO WEBSOCKET: Pedidos eliminados masivamente
-        broadcastToClients('pedidos-bulk-deleted', {
-            pedidoIds: ids,
-            count: deletedCount,
-            pedidos: pedidosToDelete.map(p => ({
-                id: p.id,
-                numeroPedidoCliente: p.numeroPedidoCliente
-            }))
-        });
-
-        console.log(`✅ ${deletedCount} de ${ids.length} pedidos eliminados exitosamente`);
-
-        res.status(200).json({ 
-            success: true,
-            deletedCount,
-            message: `${deletedCount} pedidos eliminados exitosamente.` 
-        });
-        
-    } catch (error) {
-        console.error('Error en bulk-delete:', error);
-        res.status(500).json({ 
-            error: 'Error interno del servidor al eliminar pedidos.',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
-    }
-});
-
-// PATCH /api/pedidos/bulk-update-date - Actualizar nueva fecha de entrega para múltiples pedidos
-app.patch('/api/pedidos/bulk-update-date', requirePermission('pedidos.edit'), async (req, res) => {
-    try {
-        const { ids, nuevaFechaEntrega } = req.body;
-        
-        // Validación
-        if (!Array.isArray(ids) || ids.length === 0) {
-            return res.status(400).json({ 
-                error: 'Se requiere un array de IDs no vacío.' 
-            });
-        }
-
-        if (!nuevaFechaEntrega) {
-            return res.status(400).json({ 
-                error: 'Se requiere una fecha válida.' 
-            });
-        }
-
-        if (!dbClient.isInitialized) {
-            return res.status(503).json({ 
-                error: 'Base de datos no disponible' 
-            });
-        }
-
-        console.log(`📅 Actualizando nueva fecha de entrega para ${ids.length} pedidos: ${ids.join(', ')}`);
-        console.log(`📅 Nueva fecha: ${nuevaFechaEntrega}`);
-
-        // Actualizar cada pedido
-        let updatedCount = 0;
-        const updatedPedidos = [];
-        const errors = [];
-
-        for (const id of ids) {
-            try {
-                console.log(`  🔄 Procesando pedido ${id}...`);
-                
-                // Usar findById en lugar de getPedidoById
-                const pedido = await dbClient.findById(id);
-                if (!pedido) {
-                    console.warn(`  ⚠️ Pedido ${id} no encontrado, saltando...`);
-                    errors.push({ id, error: 'Pedido no encontrado' });
-                    continue;
-                }
-
-                console.log(`  📦 Pedido encontrado: ${pedido.numeroPedidoCliente}`);
-                console.log(`  📅 Fecha anterior: ${pedido.nuevaFechaEntrega || 'N/A'}`);
-
-                // Actualizar el pedido con la nueva fecha
-                const updatedPedido = {
-                    ...pedido,
-                    nuevaFechaEntrega: nuevaFechaEntrega
-                };
-
-                // Usar update en lugar de updatePedido
-                const result = await dbClient.update(updatedPedido);
-                
-                if (result) {
-                    updatedCount++;
-                    console.log(`  ✅ Pedido ${id} actualizado exitosamente`);
-                    updatedPedidos.push({
-                        id: result.id,
-                        numeroPedidoCliente: result.numeroPedidoCliente,
-                        nuevaFechaEntrega: result.nuevaFechaEntrega
-                    });
-                } else {
-                    console.error(`  ❌ Error: update devolvió null para ${id}`);
-                    errors.push({ id, error: 'update devolvió null' });
-                }
-            } catch (error) {
-                console.error(`  ❌ Error actualizando pedido ${id}:`, error.message);
-                console.error(error.stack);
-                errors.push({ id, error: error.message });
-                // Continuar con los demás pedidos
-            }
-        }
-
-        // 🔥 EVENTO WEBSOCKET: Pedidos actualizados masivamente
-        broadcastToClients('pedidos-bulk-updated', {
-            pedidoIds: ids,
-            count: updatedCount,
-            field: 'nueva_fecha_entrega',
-            value: nuevaFechaEntrega,
-            pedidos: updatedPedidos
-        });
-
-        console.log(`✅ ${updatedCount} de ${ids.length} pedidos actualizados exitosamente`);
-        if (errors.length > 0) {
-            console.log(`⚠️ ${errors.length} errores:`, errors);
-        }
-
-        res.status(200).json({ 
-            success: true,
-            updatedCount,
-            totalRequested: ids.length,
-            errors: errors.length > 0 ? errors : undefined,
-            message: `${updatedCount} pedidos actualizados exitosamente.` 
-        });
-        
-    } catch (error) {
-        console.error('❌ Error en bulk-update-date:', error);
-        res.status(500).json({ 
-            error: 'Error interno del servidor al actualizar pedidos.',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 });
