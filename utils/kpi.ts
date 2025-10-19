@@ -148,20 +148,20 @@ const getNextStageTitle = (pedido: Pedido): string => {
 
 export const generatePedidosPDF = (pedidos: Pedido[]) => {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'pt', 'a4'); // 'p' for portrait (vertical orientation)
+    const doc = new jsPDF('l', 'pt', 'a4'); // 'l' for landscape (horizontal orientation) - A4 landscape = 842x595 pt
 
     // --- HEADER ---
-    doc.setFontSize(18);
+    doc.setFontSize(16);
     doc.setFont(undefined, 'bold');
-    doc.text('PIGMEA S.L.', 30, 40);
+    doc.text('PIGMEA S.L.', 28, 35);
 
     // --- Document Title & Dynamic Subtitle ---
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(100);
     const mainSubtitle = 'Planificación semanal';
-    let tableStartY = 70; // Adjusted start Y for the table
-    doc.text(mainSubtitle, 30, 60);
+    let tableStartY = 60; // Adjusted start Y for the table
+    doc.text(mainSubtitle, 28, 52);
 
     // Dynamic subtitle part based on stages present in the exported list
     const printingMachines = new Set<string>();
@@ -185,20 +185,20 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
     const dynamicSubtitle = subtitleParts.join(' | ');
 
     if (dynamicSubtitle) {
-        doc.setFontSize(8);
+        doc.setFontSize(7);
         doc.setTextColor(150);
-        doc.text(dynamicSubtitle, 30, 73, { 
-            maxWidth: 595 - 30 - 30, // Page width (portrait) - margins
+        doc.text(dynamicSubtitle, 28, 62, { 
+            maxWidth: 842 - 28 - 28, // Page width (landscape: 842pt) - margins
         });
-        tableStartY = 85; 
+        tableStartY = 72; 
     }
     
     // Date
     const today = new Date();
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(0); 
-    doc.text(today.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric'}), 565, 40, { align: 'right' });
+    doc.text(today.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric'}), 814, 35, { align: 'right' });
 
     // Table
     const tableColumn = [
@@ -248,36 +248,37 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
         head: [tableColumn],
         body: tableRows,
         theme: 'grid',
-        margin: { left: 15, right: 15, top: tableStartY, bottom: 15 }, // Reduced margins
+        margin: { left: 28, right: 28 }, // 10mm margins (28.35pt ≈ 10mm)
         styles: {
-            fontSize: 8.5, // Slightly reduced font size for better fit
-            cellPadding: 2.5, // Optimal padding
+            fontSize: 6.5, // Reduced font size for content
+            cellPadding: { top: 2, right: 3, bottom: 2, left: 3 }, // Minimal padding
             valign: 'middle',
             textColor: [31, 41, 55],
             overflow: 'linebreak',
-            halign: 'center', // Default center alignment for all cells
+            halign: 'center', // Default center alignment
         },
         headStyles: {
             fillColor: [45, 55, 72], 
             textColor: 255,
             fontStyle: 'bold',
             halign: 'center',
-            fontSize: 8.5, // Consistent header size
+            fontSize: 7, // Reduced header font size
+            cellPadding: { top: 2, right: 3, bottom: 2, left: 3 },
         },
         columnStyles: {
-            0: { cellWidth: 40 }, // Des.
-            1: { cellWidth: 65, halign: 'left' }, // Cliente y # Pedido
-            2: { cellWidth: 35 }, // Metros
+            0: { cellWidth: 35 }, // Des.
+            1: { cellWidth: 70, halign: 'left' }, // Cliente y # Pedido
+            2: { cellWidth: 32 }, // Metros
             3: { cellWidth: 38 }, // Tipo
-            4: { cellWidth: 28 }, // Capa
-            5: { cellWidth: 35 }, // Camisa
-            6: { cellWidth: 30 }, // Antiv.
-            7: { cellWidth: 52 }, // Et. Actual
-            8: { cellWidth: 52 }, // Sig. Etapa
-            9: { cellWidth: 80, halign: 'left' }, // Observaciones
-            10: { cellWidth: 42 }, // Creación
-            11: { cellWidth: 45 }, // F. Entrega
-            12: { cellWidth: 50 }, // N.F. Entrega
+            4: { cellWidth: 25 }, // Capa
+            5: { cellWidth: 32 }, // Camisa
+            6: { cellWidth: 25 }, // Antiv.
+            7: { cellWidth: 58 }, // Et. Actual
+            8: { cellWidth: 58 }, // Sig. Etapa
+            9: { cellWidth: 100, halign: 'left' }, // Observaciones
+            10: { cellWidth: 38 }, // Creación
+            11: { cellWidth: 42 }, // F. Entrega
+            12: { cellWidth: 48 }, // N.F. Entrega
         },
         didParseCell: (data) => {
             const pedido = pedidos[data.row.index];
