@@ -7,6 +7,7 @@ import PreparacionColumn from './PreparacionColumn';
 interface PreparacionViewProps {
     pedidos: Pedido[];
     onSelectPedido: (pedido: Pedido) => void;
+    onArchiveToggle: (pedido: Pedido) => void;
     currentUserRole: UserRole;
     onSendToPrint: (pedido: Pedido) => void;
     highlightedPedidoId?: string | null;
@@ -20,6 +21,7 @@ interface PreparacionViewProps {
 const PreparacionView: React.FC<PreparacionViewProps> = ({ 
     pedidos, 
     onSelectPedido, 
+    onArchiveToggle,
     currentUserRole, 
     onSendToPrint, 
     highlightedPedidoId, 
@@ -46,6 +48,7 @@ const PreparacionView: React.FC<PreparacionViewProps> = ({
                         columna={columna}
                         pedidos={pedidosPorColumna[columna.id] || []}
                         onSelectPedido={onSelectPedido}
+                        onArchiveToggle={onArchiveToggle}
                         currentUserRole={currentUserRole}
                         onSendToPrint={onSendToPrint}
                         highlightedPedidoId={highlightedPedidoId}

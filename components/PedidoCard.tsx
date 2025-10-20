@@ -293,7 +293,7 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                             <ArrowRightCircleIcon />
                         </button>
                     )}
-                     {pedido.etapaActual === Etapa.COMPLETADO && canArchivePedidos() && (
+                     {(pedido.etapaActual === Etapa.COMPLETADO || pedido.etapaActual === Etapa.PREPARACION) && canArchivePedidos() && (
                         <button 
                             onClick={handleArchiveClick} 
                             className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white"

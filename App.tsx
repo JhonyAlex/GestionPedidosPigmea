@@ -606,6 +606,7 @@ const AppContent: React.FC = () => {
                     <PreparacionView
                         pedidos={preparacionPedidos}
                         onSelectPedido={setSelectedPedido}
+                        onArchiveToggle={handleArchiveToggle}
                         currentUserRole={currentUserRole}
                         onSendToPrint={setPedidoToSend}
                         highlightedPedidoId={highlightedPedidoId}

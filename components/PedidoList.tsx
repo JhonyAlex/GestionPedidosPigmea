@@ -187,7 +187,7 @@ const PedidoRow: React.FC<{
                                     <UnarchiveBoxIcon />
                                 </button>
                             ) : (
-                                pedido.etapaActual === Etapa.COMPLETADO && (
+                                (pedido.etapaActual === Etapa.COMPLETADO || pedido.etapaActual === Etapa.PREPARACION) && (
                                     <button onClick={() => onArchiveToggle(pedido)} className="text-yellow-500 hover:text-yellow-400 dark:text-yellow-400 dark:hover:text-yellow-300" title="Archivar">
                                         <ArchiveBoxIcon />
                                     </button>

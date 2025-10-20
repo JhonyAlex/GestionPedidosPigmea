@@ -7,6 +7,7 @@ interface PreparacionColumnProps {
     columna: { id: string; title: string; color: string; };
     pedidos: Pedido[];
     onSelectPedido: (pedido: Pedido) => void;
+    onArchiveToggle: (pedido: Pedido) => void;
     currentUserRole: UserRole;
     onSendToPrint: (pedido: Pedido) => void;
     highlightedPedidoId?: string | null;
@@ -21,6 +22,7 @@ const PreparacionColumn: React.FC<PreparacionColumnProps> = ({
     columna, 
     pedidos, 
     onSelectPedido, 
+    onArchiveToggle,
     currentUserRole, 
     onSendToPrint, 
     highlightedPedidoId, 
@@ -64,7 +66,7 @@ const PreparacionColumn: React.FC<PreparacionColumnProps> = ({
                                         >
                                             <PedidoCard 
                                                 pedido={pedido} 
-                                                onArchiveToggle={() => {}} // No archive in prep view
+                                                onArchiveToggle={onArchiveToggle}
                                                 onSelectPedido={onSelectPedido}
                                                 currentUserRole={currentUserRole} 
                                                 onAdvanceStage={() => {}} // Advance is handled by onSendToPrint
