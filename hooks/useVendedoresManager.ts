@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Vendedor, VendedorCreateRequest, VendedorUpdateRequest } from '../types/vendedor';
 import { useAuth } from '../contexts/AuthContext';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export function useVendedoresManager() {
     const [vendedores, setVendedores] = useState<Vendedor[]>([]);
@@ -33,7 +33,7 @@ export function useVendedoresManager() {
             setLoading(true);
             setError(null);
             
-            const response = await fetch(`${API_URL}/api/vendedores`, {
+            const response = await fetch(`${API_URL}/vendedores`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -61,7 +61,7 @@ export function useVendedoresManager() {
         try {
             setError(null);
             
-            const response = await fetch(`${API_URL}/api/vendedores`, {
+            const response = await fetch(`${API_URL}/vendedores`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -95,7 +95,7 @@ export function useVendedoresManager() {
         try {
             setError(null);
             
-            const response = await fetch(`${API_URL}/api/vendedores/${id}`, {
+            const response = await fetch(`${API_URL}/vendedores/${id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -129,7 +129,7 @@ export function useVendedoresManager() {
         try {
             setError(null);
             
-            const response = await fetch(`${API_URL}/api/vendedores/${id}`, {
+            const response = await fetch(`${API_URL}/vendedores/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
