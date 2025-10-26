@@ -56,14 +56,6 @@ DROP COLUMN IF EXISTS numero_compra;
 CREATE INDEX IF NOT EXISTS idx_pedidos_numeros_compra_gin 
 ON pedidos USING gin(numeros_compra);
 
--- Índice GIN para búsqueda de texto en elementos del array
-CREATE INDEX IF NOT EXISTS idx_pedidos_numeros_compra_text 
-ON pedidos USING gin(
-    (SELECT string_agg(elem::text, ' ') 
-     FROM jsonb_array_elements_text(numeros_compra) elem) 
-    gin_trgm_ops
-);
-
 -- ===========================
 -- 6. AGREGAR COMENTARIOS
 -- ===========================
@@ -140,7 +132,7 @@ BEGIN
     AND indexname LIKE '%numeros_compra%'
     INTO index_count;
     
-    IF column_exists AND NOT old_column_exists AND index_count >= 2 THEN
+    IF column_exists AND NOT old_column_exists AND index_count >= 1 THEN
         RAISE NOTICE '✅ Migración 008 completada exitosamente';
         RAISE NOTICE '   - Columna numeros_compra: CREADA';
         RAISE NOTICE '   - Columna numero_compra: ELIMINADA';
@@ -169,7 +161,6 @@ COMMIT;
 -- 
 -- -- Eliminar nueva columna e índices
 -- DROP INDEX IF EXISTS idx_pedidos_numeros_compra_gin;
--- DROP INDEX IF EXISTS idx_pedidos_numeros_compra_text;
 -- DROP FUNCTION IF EXISTS search_numeros_compra(TEXT);
 -- ALTER TABLE pedidos DROP CONSTRAINT IF EXISTS check_numeros_compra_is_array;
 -- ALTER TABLE pedidos DROP CONSTRAINT IF EXISTS check_numeros_compra_max_length;
@@ -177,8 +168,6 @@ COMMIT;
 -- 
 -- -- Recrear índices antiguos
 -- CREATE INDEX idx_pedidos_numero_compra ON pedidos(numero_compra);
--- CREATE INDEX idx_pedidos_numero_compra_text ON pedidos 
--- USING gin(numero_compra gin_trgm_ops);
 -- 
 -- COMMIT;
 --
