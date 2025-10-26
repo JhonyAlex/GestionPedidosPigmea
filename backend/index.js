@@ -41,6 +41,27 @@ const mapRole = (role, toDatabase = true) => {
 // Inicializar el cliente de PostgreSQL
 const dbClient = new PostgreSQLClient();
 
+// === ALMACENAMIENTO EN MEMORIA (modo desarrollo sin BD) ===
+const vendedoresMemory = new Map(); // id -> vendedor
+const { v4: uuidv4 } = require('uuid');
+
+// Función para generar vendedores mock en memoria
+const createVendedorMock = (vendedorData) => {
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    const vendedor = {
+        id,
+        nombre: vendedorData.nombre,
+        email: vendedorData.email || null,
+        telefono: vendedorData.telefono || null,
+        activo: vendedorData.activo !== undefined ? vendedorData.activo : true,
+        created_at: now,
+        updated_at: now
+    };
+    vendedoresMemory.set(id, vendedor);
+    return vendedor;
+};
+
 // --- EXPRESS APP SETUP ---
 const app = express();
 
@@ -1936,8 +1957,9 @@ app.delete('/api/clientes/:id', requirePermission('clientes.delete'), async (req
 app.get('/api/vendedores', async (req, res) => {
     try {
         if (!dbClient.isInitialized) {
-            console.log('⚠️ BD no disponible - devolviendo vendedores mock');
-            return res.status(200).json([]);
+            console.log('⚠️ BD no disponible - devolviendo vendedores en memoria');
+            const vendedores = Array.from(vendedoresMemory.values()).filter(v => v.activo);
+            return res.status(200).json(vendedores);
         }
         const vendedores = await dbClient.getAllVendedores();
         res.status(200).json(vendedores);
@@ -1951,8 +1973,12 @@ app.get('/api/vendedores', async (req, res) => {
 app.get('/api/vendedores/:id', async (req, res) => {
     try {
         if (!dbClient.isInitialized) {
-            console.log('⚠️ BD no disponible - vendedor no encontrado');
-            return res.status(404).json({ message: 'Vendedor no encontrado.' });
+            console.log('⚠️ BD no disponible - buscando vendedor en memoria');
+            const vendedor = vendedoresMemory.get(req.params.id);
+            if (!vendedor) {
+                return res.status(404).json({ message: 'Vendedor no encontrado.' });
+            }
+            return res.status(200).json(vendedor);
         }
         const vendedor = await dbClient.getVendedorById(req.params.id);
         if (!vendedor) {
@@ -1968,15 +1994,38 @@ app.get('/api/vendedores/:id', async (req, res) => {
 // POST /api/vendedores - Crear un nuevo vendedor
 app.post('/api/vendedores', requirePermission('pedidos.create'), async (req, res) => {
     try {
-        if (!dbClient.isInitialized) {
-            console.log('⚠️ BD no disponible - no se puede crear vendedor');
-            return res.status(503).json({ message: 'Base de datos no disponible en modo desarrollo.' });
-        }
-        
         const { nombre, email, telefono, activo } = req.body;
         
         if (!nombre || nombre.trim().length === 0) {
             return res.status(400).json({ message: 'El nombre del vendedor es requerido.' });
+        }
+
+        if (!dbClient.isInitialized) {
+            console.log('⚠️ BD no disponible - creando vendedor en memoria (modo desarrollo)');
+            
+            // Verificar si el nombre ya existe en memoria
+            const existe = Array.from(vendedoresMemory.values()).some(v => 
+                v.nombre.toLowerCase() === nombre.trim().toLowerCase()
+            );
+            
+            if (existe) {
+                return res.status(409).json({ message: 'Ya existe un vendedor con ese nombre.' });
+            }
+            
+            const nuevoVendedor = createVendedorMock({
+                nombre: nombre.trim(),
+                email: email || null,
+                telefono: telefono || null,
+                activo: activo !== undefined ? activo : true
+            });
+
+            // 🔥 EVENTO WEBSOCKET: Nuevo vendedor creado
+            broadcastToClients('vendedor-created', {
+                vendedor: nuevoVendedor,
+                message: `Nuevo vendedor creado: ${nuevoVendedor.nombre}`
+            });
+
+            return res.status(201).json(nuevoVendedor);
         }
 
         const nuevoVendedor = await dbClient.createVendedor({
@@ -2007,13 +2056,46 @@ app.post('/api/vendedores', requirePermission('pedidos.create'), async (req, res
 // PUT /api/vendedores/:id - Actualizar un vendedor
 app.put('/api/vendedores/:id', requirePermission('pedidos.edit'), async (req, res) => {
     try {
-        if (!dbClient.isInitialized) {
-            console.log('⚠️ BD no disponible - no se puede actualizar vendedor');
-            return res.status(503).json({ message: 'Base de datos no disponible en modo desarrollo.' });
-        }
-        
         const { nombre, email, telefono, activo } = req.body;
         const vendedorId = req.params.id;
+
+        if (!dbClient.isInitialized) {
+            console.log('⚠️ BD no disponible - actualizando vendedor en memoria');
+            const vendedor = vendedoresMemory.get(vendedorId);
+            
+            if (!vendedor) {
+                return res.status(404).json({ message: 'Vendedor no encontrado.' });
+            }
+            
+            // Verificar si el nuevo nombre ya existe
+            if (nombre && nombre.toLowerCase() !== vendedor.nombre.toLowerCase()) {
+                const existe = Array.from(vendedoresMemory.values()).some(v => 
+                    v.nombre.toLowerCase() === nombre.trim().toLowerCase() && v.id !== vendedorId
+                );
+                if (existe) {
+                    return res.status(409).json({ message: 'Ya existe un vendedor con ese nombre.' });
+                }
+            }
+            
+            const vendedorActualizado = {
+                ...vendedor,
+                ...(nombre && { nombre: nombre.trim() }),
+                ...(email !== undefined && { email }),
+                ...(telefono !== undefined && { telefono }),
+                ...(activo !== undefined && { activo }),
+                updated_at: new Date().toISOString()
+            };
+            
+            vendedoresMemory.set(vendedorId, vendedorActualizado);
+
+            // 🔥 EVENTO WEBSOCKET: Vendedor actualizado
+            broadcastToClients('vendedor-updated', {
+                vendedor: vendedorActualizado,
+                message: `Vendedor actualizado: ${vendedorActualizado.nombre}`
+            });
+
+            return res.status(200).json(vendedorActualizado);
+        }
 
         const vendedorActualizado = await dbClient.updateVendedor(vendedorId, {
             nombre: nombre?.trim(),
@@ -2047,12 +2129,34 @@ app.put('/api/vendedores/:id', requirePermission('pedidos.edit'), async (req, re
 // DELETE /api/vendedores/:id - Eliminar/desactivar un vendedor
 app.delete('/api/vendedores/:id', requirePermission('pedidos.delete'), async (req, res) => {
     try {
-        if (!dbClient.isInitialized) {
-            console.log('⚠️ BD no disponible - no se puede eliminar vendedor');
-            return res.status(503).json({ message: 'Base de datos no disponible en modo desarrollo.' });
-        }
-        
         const vendedorId = req.params.id;
+
+        if (!dbClient.isInitialized) {
+            console.log('⚠️ BD no disponible - eliminando vendedor en memoria');
+            
+            const vendedor = vendedoresMemory.get(vendedorId);
+            if (!vendedor) {
+                return res.status(404).json({ message: 'Vendedor no encontrado.' });
+            }
+
+            // Soft delete: marcar como inactivo
+            const vendedorActualizado = {
+                ...vendedor,
+                activo: false,
+                updated_at: new Date().toISOString()
+            };
+            
+            vendedoresMemory.set(vendedorId, vendedorActualizado);
+
+            // 🔥 EVENTO WEBSOCKET: Vendedor eliminado
+            broadcastToClients('vendedor-deleted', {
+                vendedorId,
+                vendedor: vendedorActualizado,
+                message: `Vendedor eliminado: ${vendedor.nombre}`
+            });
+
+            return res.status(204).send();
+        }
 
         // Obtener el vendedor antes de eliminarlo
         const vendedor = await dbClient.getVendedorById(vendedorId);
