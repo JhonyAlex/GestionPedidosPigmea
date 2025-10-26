@@ -84,14 +84,30 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 -- 8. VALIDACIONES
 -- ===========================
 -- Constraint para asegurar que es un array válido
-ALTER TABLE pedidos
-ADD CONSTRAINT check_numeros_compra_is_array
-CHECK (jsonb_typeof(numeros_compra) = 'array');
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'check_numeros_compra_is_array'
+    ) THEN
+        ALTER TABLE pedidos
+        ADD CONSTRAINT check_numeros_compra_is_array
+        CHECK (jsonb_typeof(numeros_compra) = 'array');
+    END IF;
+END $$;
 
 -- Constraint para limitar el tamaño del array (máximo 4 elementos)
-ALTER TABLE pedidos
-ADD CONSTRAINT check_numeros_compra_max_length
-CHECK (jsonb_array_length(numeros_compra) <= 4);
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'check_numeros_compra_max_length'
+    ) THEN
+        ALTER TABLE pedidos
+        ADD CONSTRAINT check_numeros_compra_max_length
+        CHECK (jsonb_array_length(numeros_compra) <= 4);
+    END IF;
+END $$;
 
 -- ===========================
 -- 9. GRANTS DE PERMISOS
