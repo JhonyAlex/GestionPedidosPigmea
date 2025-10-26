@@ -49,17 +49,11 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ f
         const numerosCompra = formData.numerosCompra ? [...formData.numerosCompra] : [];
         
         // Asegurarse de que el array tiene el tamaño correcto
-        const maxLength = formData.materialConsumoCantidad || 0;
-        while (numerosCompra.length < maxLength) {
+        while (numerosCompra.length <= index) {
             numerosCompra.push('');
         }
         
         numerosCompra[index] = value;
-        
-        // Filtrar elementos vacíos al final para mantener el array limpio
-        while (numerosCompra.length > 0 && numerosCompra[numerosCompra.length - 1] === '') {
-            numerosCompra.pop();
-        }
         
         onDataChange('numerosCompra', numerosCompra);
     };
