@@ -1732,16 +1732,9 @@ app.post('/api/admin/migrate', requirePermission('usuarios.admin'), async (req, 
                     END $$;
                 `);
                 
-                // Crear índice GIN para búsquedas de texto
-                try {
-                    await client.query('CREATE EXTENSION IF NOT EXISTS pg_trgm;');
-                    await client.query(`
-                        CREATE INDEX IF NOT EXISTS idx_pedidos_numero_compra_text 
-                        ON pedidos USING gin(numero_compra gin_trgm_ops);
-                    `);
-                } catch (ginError) {
-                    console.log('⚠️ No se pudo crear índice GIN:', ginError.message);
-                }
+                // Crear índice GIN para búsquedas de texto - DESHABILITADO temporalmente
+                // El índice GIN con pg_trgm no funciona bien con JSONB arrays
+                // Se usará el índice regular en su lugar
                 
                 results.push({ migration: 'numero_compra', status: 'success' });
             } catch (error) {

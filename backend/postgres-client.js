@@ -1465,6 +1465,103 @@ class PostgreSQLClient {
         return this.updateCliente(id, { estado: 'Archivado', fecha_baja: new Date() });
     }
 
+    // === MÉTODOS PARA VENDEDORES ===
+
+    async getAllVendedores() {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const query = 'SELECT * FROM vendedores ORDER BY nombre ASC';
+            const result = await client.query(query);
+            return result.rows;
+        } finally {
+            client.release();
+        }
+    }
+
+    async getVendedorById(id) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const query = 'SELECT * FROM vendedores WHERE id = $1';
+            const result = await client.query(query, [id]);
+            return result.rows[0] || null;
+        } finally {
+            client.release();
+        }
+    }
+
+    async createVendedor(vendedorData) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                INSERT INTO vendedores (nombre, email, telefono, activo)
+                VALUES ($1, $2, $3, $4)
+                RETURNING *;
+            `;
+            const values = [
+                vendedorData.nombre,
+                vendedorData.email || null,
+                vendedorData.telefono || null,
+                vendedorData.activo !== undefined ? vendedorData.activo : true
+            ];
+            
+            const result = await client.query(query, values);
+            return result.rows[0];
+        } finally {
+            client.release();
+        }
+    }
+
+    async updateVendedor(id, vendedorData) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const setParts = [];
+            const values = [];
+            let valueIndex = 1;
+
+            const validFields = ['nombre', 'email', 'telefono', 'activo'];
+            validFields.forEach(field => {
+                if (vendedorData[field] !== undefined) {
+                    setParts.push(`${field} = $${valueIndex++}`);
+                    values.push(vendedorData[field]);
+                }
+            });
+
+            if (setParts.length === 0) {
+                return this.getVendedorById(id);
+            }
+
+            values.push(id);
+            const query = `
+                UPDATE vendedores
+                SET ${setParts.join(', ')}, updated_at = CURRENT_TIMESTAMP
+                WHERE id = $${valueIndex}
+                RETURNING *;
+            `;
+
+            const result = await client.query(query, values);
+            if (result.rowCount === 0) throw new Error(`Vendedor con ID ${id} no encontrado.`);
+            
+            return result.rows[0];
+        } finally {
+            client.release();
+        }
+    }
+
+    async deleteVendedor(id) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const query = 'DELETE FROM vendedores WHERE id = $1';
+            await client.query(query, [id]);
+        } finally {
+            client.release();
+        }
+    }
+
     // === MÉTODOS DE AUDITORÍA (LEGACY) ===
 
     async getAuditLog(limit = 100) {
