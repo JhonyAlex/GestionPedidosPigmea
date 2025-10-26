@@ -1935,6 +1935,10 @@ app.delete('/api/clientes/:id', requirePermission('clientes.delete'), async (req
 // GET /api/vendedores - Obtener todos los vendedores activos
 app.get('/api/vendedores', async (req, res) => {
     try {
+        if (!dbClient.isInitialized) {
+            console.log('⚠️ BD no disponible - devolviendo vendedores mock');
+            return res.status(200).json([]);
+        }
         const vendedores = await dbClient.getAllVendedores();
         res.status(200).json(vendedores);
     } catch (error) {
@@ -1946,6 +1950,10 @@ app.get('/api/vendedores', async (req, res) => {
 // GET /api/vendedores/:id - Obtener un vendedor por ID
 app.get('/api/vendedores/:id', async (req, res) => {
     try {
+        if (!dbClient.isInitialized) {
+            console.log('⚠️ BD no disponible - vendedor no encontrado');
+            return res.status(404).json({ message: 'Vendedor no encontrado.' });
+        }
         const vendedor = await dbClient.getVendedorById(req.params.id);
         if (!vendedor) {
             return res.status(404).json({ message: 'Vendedor no encontrado.' });
@@ -1960,6 +1968,11 @@ app.get('/api/vendedores/:id', async (req, res) => {
 // POST /api/vendedores - Crear un nuevo vendedor
 app.post('/api/vendedores', requirePermission('pedidos.create'), async (req, res) => {
     try {
+        if (!dbClient.isInitialized) {
+            console.log('⚠️ BD no disponible - no se puede crear vendedor');
+            return res.status(503).json({ message: 'Base de datos no disponible en modo desarrollo.' });
+        }
+        
         const { nombre, email, telefono, activo } = req.body;
         
         if (!nombre || nombre.trim().length === 0) {
@@ -1994,6 +2007,11 @@ app.post('/api/vendedores', requirePermission('pedidos.create'), async (req, res
 // PUT /api/vendedores/:id - Actualizar un vendedor
 app.put('/api/vendedores/:id', requirePermission('pedidos.edit'), async (req, res) => {
     try {
+        if (!dbClient.isInitialized) {
+            console.log('⚠️ BD no disponible - no se puede actualizar vendedor');
+            return res.status(503).json({ message: 'Base de datos no disponible en modo desarrollo.' });
+        }
+        
         const { nombre, email, telefono, activo } = req.body;
         const vendedorId = req.params.id;
 
@@ -2029,6 +2047,11 @@ app.put('/api/vendedores/:id', requirePermission('pedidos.edit'), async (req, re
 // DELETE /api/vendedores/:id - Eliminar/desactivar un vendedor
 app.delete('/api/vendedores/:id', requirePermission('pedidos.delete'), async (req, res) => {
     try {
+        if (!dbClient.isInitialized) {
+            console.log('⚠️ BD no disponible - no se puede eliminar vendedor');
+            return res.status(503).json({ message: 'Base de datos no disponible en modo desarrollo.' });
+        }
+        
         const vendedorId = req.params.id;
 
         // Obtener el vendedor antes de eliminarlo
