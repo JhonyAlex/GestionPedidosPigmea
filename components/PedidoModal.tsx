@@ -408,14 +408,6 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                 <input type="text" name="numeroPedidoCliente" value={formData.numeroPedidoCliente} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"/>
                                             </div>
                                         </div>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Nº Compra</label>
-                                                <input type="text" name="numeroCompra" value={formData.numeroCompra || ''} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50" placeholder="Número de compra (opcional)" maxLength={50}/>
-                                            </div>
-                                            <div></div>
-                                        </div>
                                         
                                         <div className="grid grid-cols-2 gap-4 items-center">
                                             <div>

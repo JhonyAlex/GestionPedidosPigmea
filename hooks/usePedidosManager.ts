@@ -116,7 +116,7 @@ export const usePedidosManager = (
                 'secuenciaTrabajo', 'subEtapaActual', 'etapasSecuencia',
                 // Datos de preparación
                 'materialDisponible', 'clicheDisponible', 'estadoCliché', 'camisa', 'antivaho', 'antivahoRealizado',
-                // Datos técnicos de material (excluimos materialCapas y materialConsumo para manejarlos por separado)
+                // Datos técnicos de material (excluimos materialCapas, materialConsumo y numerosCompra para manejarlos por separado)
                 'producto', 'materialCapasCantidad', 'materialConsumoCantidad', 
                 'bobinaMadre', 'bobinaFinal', 'minAdap', 'colores', 'minColor'
             ];
@@ -124,6 +124,7 @@ export const usePedidosManager = (
             // Variables para controlar si se registraron cambios granulares
             let hasGranularMaterialCapasChanges = false;
             let hasGranularMaterialConsumoChanges = false;
+            let hasGranularNumerosCompraChanges = false;
 
             // Manejar campos virtuales para auditoría específica de arrays anidados PRIMERO
             const checkNestedFields = (arrayName: 'materialCapas' | 'materialConsumo') => {
@@ -173,6 +174,42 @@ export const usePedidosManager = (
             // Verificar cambios granulares en materialCapas y materialConsumo
             hasGranularMaterialCapasChanges = checkNestedFields('materialCapas');
             hasGranularMaterialConsumoChanges = checkNestedFields('materialConsumo');
+
+            // Verificar cambios granulares en numerosCompra (array de strings)
+            const checkNumerosCompraChanges = () => {
+                const originalArray = originalPedidoCopy.numerosCompra || [];
+                const modifiedArray = modifiedPedido.numerosCompra || [];
+                const maxLength = Math.max(originalArray.length, modifiedArray.length);
+                let hasChanges = false;
+
+                for (let i = 0; i < maxLength; i++) {
+                    const originalValue = originalArray[i] || '';
+                    const modifiedValue = modifiedArray[i] || '';
+                    
+                    if (originalValue !== modifiedValue) {
+                        const action = !originalValue ? 'agregado' 
+                            : !modifiedValue ? 'eliminado' 
+                            : 'modificado';
+                        
+                        const details = !originalValue 
+                            ? `Nº Compra #${i + 1} agregado: '${modifiedValue}'`
+                            : !modifiedValue 
+                            ? `Nº Compra #${i + 1} eliminado: '${originalValue}'`
+                            : `Nº Compra #${i + 1} cambiado de '${originalValue}' a '${modifiedValue}'`;
+                        
+                        newHistoryEntries.push(generarEntradaHistorial(
+                            currentUserRole, 
+                            `Nº Compra #${i + 1}`, 
+                            details
+                        ));
+                        hasChanges = true;
+                    }
+                }
+
+                return hasChanges;
+            };
+
+            hasGranularNumerosCompraChanges = checkNumerosCompraChanges();
 
             // Comparar campos principales
             fieldsToCompare.forEach(key => {
@@ -240,6 +277,23 @@ export const usePedidosManager = (
                     currentUserRole, 
                     'Campo Actualizado: materialConsumo', 
                     `Cambiado de '${formatValue(originalPedidoCopy.materialConsumo)}' a '${formatValue(modifiedPedido.materialConsumo)}'.`
+                ));
+            }
+
+            // Solo registrar cambios en numerosCompra si NO se registraron cambios granulares
+            if (!hasGranularNumerosCompraChanges && JSON.stringify(originalPedidoCopy.numerosCompra) !== JSON.stringify(modifiedPedido.numerosCompra)) {
+                const formatValue = (val: any) => {
+                    if (val === null || val === undefined) return 'N/A';
+                    if (Array.isArray(val)) {
+                        return val.filter(n => n).map((n, idx) => `#${idx + 1}: ${n}`).join(', ') || 'Vacío';
+                    }
+                    return val.toString();
+                };
+                
+                newHistoryEntries.push(generarEntradaHistorial(
+                    currentUserRole, 
+                    'Campo Actualizado: numerosCompra', 
+                    `Cambiado de '${formatValue(originalPedidoCopy.numerosCompra)}' a '${formatValue(modifiedPedido.numerosCompra)}'.`
                 ));
             }
             

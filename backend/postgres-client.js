@@ -657,7 +657,7 @@ class PostgreSQLClient {
                 CREATE INDEX IF NOT EXISTS idx_pedidos_cliente ON pedidos(cliente);
                 CREATE INDEX IF NOT EXISTS idx_pedidos_fecha_entrega ON pedidos(fecha_entrega);
                 CREATE INDEX IF NOT EXISTS idx_pedidos_secuencia ON pedidos(secuencia_pedido);
-                CREATE INDEX IF NOT EXISTS idx_pedidos_numero_compra ON pedidos(numero_compra);
+                CREATE INDEX IF NOT EXISTS idx_pedidos_numeros_compra_gin ON pedidos USING gin(numeros_compra);
                 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
                 CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp);
                 CREATE INDEX IF NOT EXISTS idx_audit_user_role ON audit_log(user_role);
@@ -745,7 +745,7 @@ class PostgreSQLClient {
             ];
             
             // Columnas opcionales que pueden no existir
-            const optionalColumns = ['nueva_fecha_entrega', 'numero_compra'];
+            const optionalColumns = ['nueva_fecha_entrega', 'numeros_compra'];
             
             // Construir lista de columnas a insertar
             const columnsToInsert = baseColumns.filter(col => existingColumns.includes(col));
@@ -780,8 +780,12 @@ class PostgreSQLClient {
             if (existingColumns.includes('nueva_fecha_entrega')) {
                 values.push(pedido.nuevaFechaEntrega ? new Date(pedido.nuevaFechaEntrega) : null);
             }
-            if (existingColumns.includes('numero_compra')) {
-                values.push(pedido.numeroCompra || null);
+            if (existingColumns.includes('numeros_compra')) {
+                // Convertir array de strings a JSONB
+                const numerosCompraJson = pedido.numerosCompra && Array.isArray(pedido.numerosCompra) 
+                    ? JSON.stringify(pedido.numerosCompra) 
+                    : '[]';
+                values.push(numerosCompraJson);
             }
             
             // Construir placeholders para los valores
@@ -822,12 +826,12 @@ class PostgreSQLClient {
                 SELECT column_name 
                 FROM information_schema.columns 
                 WHERE table_name = 'pedidos' 
-                AND column_name IN ('nueva_fecha_entrega', 'numero_compra')
+                AND column_name IN ('nueva_fecha_entrega', 'numeros_compra')
             `);
             
             const existingColumns = columnsResult.rows.map(row => row.column_name);
             const hasNuevaFecha = existingColumns.includes('nueva_fecha_entrega');
-            const hasNumeroCompra = existingColumns.includes('numero_compra');
+            const hasNumerosCompra = existingColumns.includes('numeros_compra');
 
             // Construir query dinámicamente basado en columnas existentes
             const updateFields = [];
@@ -878,9 +882,13 @@ class PostgreSQLClient {
             values.push(pedido.camisa);
 
             // Agregar numero_compra solo si la columna existe
-            if (hasNumeroCompra) {
-                updateFields.push(`numero_compra = $${paramIndex++}`);
-                values.push(pedido.numeroCompra || null);
+            if (hasNumerosCompra) {
+                updateFields.push(`numeros_compra = $${paramIndex++}`);
+                // Convertir array de strings a JSONB
+                const numerosCompraJson = pedido.numerosCompra && Array.isArray(pedido.numerosCompra) 
+                    ? JSON.stringify(pedido.numerosCompra) 
+                    : '[]';
+                values.push(numerosCompraJson);
             }
 
             updateFields.push(`data = $${paramIndex++}`);
@@ -899,7 +907,7 @@ class PostgreSQLClient {
             `;
 
             console.log(`🔄 Actualizando pedido ${pedido.id} con columnas disponibles:`, 
-                      `nueva_fecha_entrega=${hasNuevaFecha}, numero_compra=${hasNumeroCompra}`);
+                      `nueva_fecha_entrega=${hasNuevaFecha}, numeros_compra=${hasNumerosCompra}`);
 
             const result = await client.query(query, values);
             if (result.rowCount === 0) throw new Error(`Pedido ${pedido.id} no encontrado para actualizar`);
@@ -1019,7 +1027,11 @@ class PostgreSQLClient {
                 WHERE 
                     numero_pedido_cliente ILIKE $1 OR
                     cliente ILIKE $1 OR
-                    numero_compra ILIKE $1 OR
+                    EXISTS (
+                        SELECT 1
+                        FROM jsonb_array_elements_text(numeros_compra) AS numero
+                        WHERE numero ILIKE $1
+                    ) OR
                     etapa_actual ILIKE $1 OR
                     observaciones ILIKE $1
                 ORDER BY secuencia_pedido DESC

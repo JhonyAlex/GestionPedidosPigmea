@@ -153,7 +153,23 @@ const PedidoRow: React.FC<{
         >
             <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap w-32">{pedido.numeroPedidoCliente}</td>
             <td className="px-6 py-4 text-gray-900 dark:text-white w-36">{pedido.cliente}</td>
-            <td className="px-6 py-4 text-gray-900 dark:text-white w-28">{pedido.numeroCompra || '-'}</td>
+            <td className="px-6 py-4 text-gray-900 dark:text-white w-28">
+                {pedido.numerosCompra && pedido.numerosCompra.length > 0 ? (
+                    pedido.numerosCompra.length === 1 ? (
+                        pedido.numerosCompra[0]
+                    ) : (
+                        <div className="flex flex-col gap-0.5">
+                            {pedido.numerosCompra.map((numero, index) => (
+                                numero && (
+                                    <span key={index} className="text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded">
+                                        #{index + 1}: {numero}
+                                    </span>
+                                )
+                            ))}
+                        </div>
+                    )
+                ) : '-'}
+            </td>
             <td className="px-6 py-4 text-gray-900 dark:text-white w-32">{pedido.desarrollo}</td>
             <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-20">{pedido.capa || '-'}</td>
             <td className="px-6 py-4 text-gray-900 dark:text-white w-28">{pedido.camisa || '-'}</td>
@@ -217,7 +233,7 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
                             <tr>
                                 <SortableHeaderTh label="N° Pedido" sortKey="numeroPedidoCliente" onSort={onSort} sortConfig={sortConfig} width="w-32" />
                                 <SortableHeaderTh label="Cliente" sortKey="cliente" onSort={onSort} sortConfig={sortConfig} width="w-36" />
-                                <SortableHeaderTh label="Nº Compra" sortKey="numeroCompra" onSort={onSort} sortConfig={sortConfig} width="w-28" />
+                                <SortableHeaderTh label="Nº Compra" sortKey="numerosCompra" onSort={onSort} sortConfig={sortConfig} width="w-28" />
                                 <SortableHeaderTh label="Desarrollo" sortKey="desarrollo" onSort={onSort} sortConfig={sortConfig} width="w-32" />
                                 <SortableHeaderTh label="Capa" sortKey="capa" onSort={onSort} sortConfig={sortConfig} width="w-20" className="text-center" />
                                 <SortableHeaderTh label="Camisa" sortKey="camisa" onSort={onSort} sortConfig={sortConfig} width="w-28" />

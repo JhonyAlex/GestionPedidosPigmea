@@ -117,9 +117,6 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                             <label className="block mt-4 mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Número de Pedido Cliente</label>
                             <input type="text" name="numeroPedidoCliente" value={formData.numeroPedidoCliente} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" required />
 
-                            <label className="block mt-4 mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Nº Compra</label>
-                            <input type="text" name="numeroCompra" value={formData.numeroCompra || ''} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" placeholder="Número de compra (opcional)" maxLength={50} />
-
                              <label className="block mt-4 mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Estado del Cliché</label>
                              <select name="estadoCliché" value={formData.estadoCliché} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5">
                                 {Object.values(EstadoCliché).map(t => <option key={t} value={t}>{t}</option>)}

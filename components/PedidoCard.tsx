@@ -242,10 +242,23 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
             
             <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{pedido.cliente}</p>
             
-            {pedido.numeroCompra && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                    <span className="font-medium">Nº Compra:</span> {pedido.numeroCompra}
-                </p>
+            {pedido.numerosCompra && pedido.numerosCompra.length > 0 && (
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    <span className="font-medium">Nº Compra:</span>{' '}
+                    {pedido.numerosCompra.length === 1 ? (
+                        pedido.numerosCompra[0]
+                    ) : (
+                        <span className="inline-flex flex-wrap gap-1">
+                            {pedido.numerosCompra.map((numero, index) => (
+                                numero && (
+                                    <span key={index} className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded">
+                                        #{index + 1}: {numero}
+                                    </span>
+                                )
+                            ))}
+                        </span>
+                    )}
+                </div>
             )}
             
             <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">

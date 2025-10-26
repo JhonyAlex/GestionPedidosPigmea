@@ -103,7 +103,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
                 (p.capa && p.capa.toLowerCase().includes(searchTermLower)) ||
                 p.numeroRegistro.toLowerCase().includes(searchTermLower) ||
                 (p.camisa && p.camisa.toLowerCase().includes(searchTermLower)) ||
-                (p.numeroCompra && p.numeroCompra.toLowerCase().includes(searchTermLower))
+                (p.numerosCompra && p.numerosCompra.some(numero => numero.toLowerCase().includes(searchTermLower)))
             );
 
             const priorityMatch = filters.priority === 'all' || p.prioridad === filters.priority;

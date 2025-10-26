@@ -60,7 +60,7 @@ export interface Pedido {
     orden: number;
     numeroRegistro: string; // Internal, system-generated
     numeroPedidoCliente: string; // User-provided
-    numeroCompra?: string; // Número de compra (alfanumérico, máx 50 caracteres)
+    numerosCompra?: string[]; // Array de números de compra (uno por cada material de consumo)
     cliente: string;
     maquinaImpresion: string;
     metros: number | string;

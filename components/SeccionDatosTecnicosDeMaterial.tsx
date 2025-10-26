@@ -45,6 +45,25 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ f
         onDataChange(arrayName, array);
     };
 
+    const handleNumeroCompraChange = (index: number, value: string) => {
+        const numerosCompra = formData.numerosCompra ? [...formData.numerosCompra] : [];
+        
+        // Asegurarse de que el array tiene el tamaño correcto
+        const maxLength = formData.materialConsumoCantidad || 0;
+        while (numerosCompra.length < maxLength) {
+            numerosCompra.push('');
+        }
+        
+        numerosCompra[index] = value;
+        
+        // Filtrar elementos vacíos al final para mantener el array limpio
+        while (numerosCompra.length > 0 && numerosCompra[numerosCompra.length - 1] === '') {
+            numerosCompra.pop();
+        }
+        
+        onDataChange('numerosCompra', numerosCompra);
+    };
+
     const renderValidationMessage = (value: number | null | undefined) => {
         if (value !== null && value !== undefined && value < 0) {
             return <p className="text-xs text-red-500 mt-1">El valor no puede ser negativo.</p>;
@@ -169,6 +188,36 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ f
                                 </div>
                             </div>
                         </div>
+
+                        {/* Grupo C: Números de Compra (dinámicos según materialConsumoCantidad) */}
+                        {formData.materialConsumoCantidad && formData.materialConsumoCantidad > 0 && (
+                            <div className="border-t border-gray-200 dark:border-gray-600 pt-4">
+                                <div className="grid grid-cols-1 gap-3">
+                                    <label className="block text-sm font-medium text-indigo-600 dark:text-indigo-400">
+                                        Números de Compra
+                                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                                            (uno por cada material de suministro)
+                                        </span>
+                                    </label>
+                                    {Array.from({ length: formData.materialConsumoCantidad }).map((_, index) => (
+                                        <div key={index}>
+                                            <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">
+                                                Nº Compra #{index + 1}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder={`Número de compra ${index + 1} (opcional)`}
+                                                value={formData.numerosCompra?.[index] || ''}
+                                                onChange={(e) => handleNumeroCompraChange(index, e.target.value)}
+                                                disabled={isReadOnly}
+                                                maxLength={50}
+                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Columna Derecha */}
