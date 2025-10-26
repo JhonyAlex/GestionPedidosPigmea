@@ -8,6 +8,7 @@ import SeccionDatosTecnicosDeMaterial from './SeccionDatosTecnicosDeMaterial';
 import CommentSystem from './comments/CommentSystem';
 import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../contexts/AuthContext';
+import { useVendedoresManager } from '../hooks/useVendedoresManager';
 
 const DuplicateIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m9.75 0h-3.375c-.621 0-1.125.504-1.125 1.125v6.75c0 .621.504 1.125 1.125 1.125h3.375c.621 0 1.125-.504 1.125-1.125v-6.75a1.125 1.125 0 0 0-1.125-1.125Z" /></svg>;
 const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>;
@@ -48,7 +49,10 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     const [formData, setFormData] = useState<Pedido>(JSON.parse(JSON.stringify(pedido)));
     const [activeTab, setActiveTab] = useState<'detalles' | 'historial'>('detalles');
     const [showConfirmClose, setShowConfirmClose] = useState(false);
+    const [nuevoVendedor, setNuevoVendedor] = useState('');
+    const [showVendedorInput, setShowVendedorInput] = useState(false);
     const { user } = useAuth();
+    const { vendedores, addVendedor, fetchVendedores } = useVendedoresManager();
     const { 
         canEditPedidos, 
         canDeletePedidos, 
@@ -68,6 +72,11 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         // Hacer una copia profunda para evitar modificar el pedido original
         setFormData(JSON.parse(JSON.stringify(pedido)));
     }, [pedido]);
+
+    // Cargar vendedores al montar el componente
+    useEffect(() => {
+        fetchVendedores();
+    }, [fetchVendedores]);
 
     // Efecto para controlar el scroll del body
     useEffect(() => {
@@ -140,13 +149,38 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
         
-        if (type === 'checkbox') {
+        if (name === "vendedor" && value === "add_new_vendedor") {
+            setShowVendedorInput(true);
+            setFormData(prev => ({ ...prev, vendedor: '' }));
+        } else if (type === 'checkbox') {
             const { checked } = e.target as HTMLInputElement;
             setFormData(prev => ({ ...prev, [name]: checked }));
         } else {
             const valueToSet = type === 'number' ? parseInt(value, 10) || 0 : value;
             setFormData(prev => ({ ...prev, [name]: valueToSet }));
         }
+    };
+
+    const handleAddVendedor = async () => {
+        if (!nuevoVendedor.trim()) {
+            alert('Por favor, ingrese un nombre para el vendedor.');
+            return;
+        }
+        
+        try {
+            const vendedorCreado = await addVendedor({ nombre: nuevoVendedor.trim(), activo: true });
+            setFormData(prev => ({ ...prev, vendedor: vendedorCreado.nombre }));
+            setNuevoVendedor('');
+            setShowVendedorInput(false);
+        } catch (error) {
+            console.error("Error al crear vendedor:", error);
+            alert('Error al crear el vendedor. Por favor, intente de nuevo.');
+        }
+    };
+
+    const handleCancelVendedor = () => {
+        setNuevoVendedor('');
+        setShowVendedorInput(false);
     };
 
     const handleSequenceChange = (newSequence: Etapa[]) => {
@@ -494,7 +528,43 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                         <input type="date" name="nuevaFechaEntrega" value={formData.nuevaFechaEntrega || ''} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"/>
                                     </div>
                                     <div>
-                                        {/* Espacio vacío para mantener el diseño */}
+                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Vendedor</label>
+                                        {!showVendedorInput ? (
+                                            <select name="vendedor" value={formData.vendedor || ''} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50">
+                                                <option value="">Seleccione un vendedor</option>
+                                                {vendedores.filter(v => v.activo).map(vendedor => (
+                                                    <option key={vendedor.id} value={vendedor.nombre}>{vendedor.nombre}</option>
+                                                ))}
+                                                {!isReadOnly && <option value="add_new_vendedor">-- Crear nuevo vendedor --</option>}
+                                            </select>
+                                        ) : (
+                                            <div className="flex gap-2">
+                                                <input 
+                                                    type="text" 
+                                                    value={nuevoVendedor} 
+                                                    onChange={(e) => setNuevoVendedor(e.target.value)}
+                                                    placeholder="Nombre del vendedor"
+                                                    className="flex-1 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
+                                                    autoFocus
+                                                />
+                                                <button 
+                                                    type="button" 
+                                                    onClick={handleAddVendedor}
+                                                    className="bg-green-600 hover:bg-green-700 text-white px-3 rounded-lg"
+                                                    title="Guardar vendedor"
+                                                >
+                                                    ✓
+                                                </button>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={handleCancelVendedor}
+                                                    className="bg-gray-500 hover:bg-gray-600 text-white px-3 rounded-lg"
+                                                    title="Cancelar"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 

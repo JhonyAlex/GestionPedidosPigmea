@@ -651,6 +651,20 @@ class PostgreSQLClient {
             `);
             console.log('✅ Tabla pedido_comments creada');
 
+            // TABLA DE VENDEDORES
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS vendedores (
+                    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                    nombre VARCHAR(255) UNIQUE NOT NULL,
+                    email VARCHAR(255),
+                    telefono VARCHAR(50),
+                    activo BOOLEAN DEFAULT true,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                );
+            `);
+            console.log('✅ Tabla vendedores creada');
+
             // Índices para mejorar performance
             await client.query(`
                 CREATE INDEX IF NOT EXISTS idx_pedidos_etapa ON pedidos(etapa_actual);
@@ -669,6 +683,8 @@ class PostgreSQLClient {
                 CREATE INDEX IF NOT EXISTS idx_pedido_comments_pedido_id ON pedido_comments(pedido_id);
                 CREATE INDEX IF NOT EXISTS idx_pedido_comments_user_id ON pedido_comments(user_id);
                 CREATE INDEX IF NOT EXISTS idx_pedido_comments_created_at ON pedido_comments(created_at);
+                CREATE INDEX IF NOT EXISTS idx_vendedores_nombre ON vendedores(nombre);
+                CREATE INDEX IF NOT EXISTS idx_vendedores_activo ON vendedores(activo);
             `);
             console.log('✅ Índices verificados');
 
@@ -696,6 +712,14 @@ class PostgreSQLClient {
                 DROP TRIGGER IF EXISTS update_admin_users_updated_at ON admin_users;
                 CREATE TRIGGER update_admin_users_updated_at 
                     BEFORE UPDATE ON admin_users 
+                    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+            `);
+
+            // Trigger para actualizar updated_at en vendedores
+            await client.query(`
+                DROP TRIGGER IF EXISTS update_vendedores_updated_at ON vendedores;
+                CREATE TRIGGER update_vendedores_updated_at 
+                    BEFORE UPDATE ON vendedores 
                     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
             `);
             console.log('✅ Triggers configurados');
@@ -745,7 +769,7 @@ class PostgreSQLClient {
             ];
             
             // Columnas opcionales que pueden no existir
-            const optionalColumns = ['nueva_fecha_entrega', 'numeros_compra'];
+            const optionalColumns = ['nueva_fecha_entrega', 'numeros_compra', 'vendedor'];
             
             // Construir lista de columnas a insertar
             const columnsToInsert = baseColumns.filter(col => existingColumns.includes(col));
@@ -787,6 +811,9 @@ class PostgreSQLClient {
                     : '[]';
                 values.push(numerosCompraJson);
             }
+            if (existingColumns.includes('vendedor')) {
+                values.push(pedido.vendedor || null);
+            }
             
             // Construir placeholders para los valores
             const placeholders = columnsToInsert.map((_, index) => `$${index + 1}`).join(', ');
@@ -826,12 +853,13 @@ class PostgreSQLClient {
                 SELECT column_name 
                 FROM information_schema.columns 
                 WHERE table_name = 'pedidos' 
-                AND column_name IN ('nueva_fecha_entrega', 'numeros_compra')
+                AND column_name IN ('nueva_fecha_entrega', 'numeros_compra', 'vendedor')
             `);
             
             const existingColumns = columnsResult.rows.map(row => row.column_name);
             const hasNuevaFecha = existingColumns.includes('nueva_fecha_entrega');
             const hasNumerosCompra = existingColumns.includes('numeros_compra');
+            const hasVendedor = existingColumns.includes('vendedor');
 
             // Construir query dinámicamente basado en columnas existentes
             const updateFields = [];
@@ -891,6 +919,12 @@ class PostgreSQLClient {
                 values.push(numerosCompraJson);
             }
 
+            // Agregar vendedor solo si la columna existe
+            if (hasVendedor) {
+                updateFields.push(`vendedor = $${paramIndex++}`);
+                values.push(pedido.vendedor || null);
+            }
+
             updateFields.push(`data = $${paramIndex++}`);
             values.push(JSON.stringify(pedido));
 
@@ -907,7 +941,7 @@ class PostgreSQLClient {
             `;
 
             console.log(`🔄 Actualizando pedido ${pedido.id} con columnas disponibles:`, 
-                      `nueva_fecha_entrega=${hasNuevaFecha}, numeros_compra=${hasNumerosCompra}`);
+                      `nueva_fecha_entrega=${hasNuevaFecha}, numeros_compra=${hasNumerosCompra}, vendedor=${hasVendedor}`);
 
             const result = await client.query(query, values);
             if (result.rowCount === 0) throw new Error(`Pedido ${pedido.id} no encontrado para actualizar`);
@@ -1041,6 +1075,95 @@ class PostgreSQLClient {
             const result = await client.query(query, [searchPattern]);
             return result.rows.map(row => row.data);
             
+        } finally {
+            client.release();
+        }
+    }
+
+    // === MÉTODOS PARA VENDEDORES ===
+
+    async getAllVendedores() {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const query = 'SELECT * FROM vendedores ORDER BY nombre ASC;';
+            const result = await client.query(query);
+            return result.rows;
+        } finally {
+            client.release();
+        }
+    }
+
+    async getVendedorById(id) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const query = 'SELECT * FROM vendedores WHERE id = $1;';
+            const result = await client.query(query, [id]);
+            return result.rows[0] || null;
+        } finally {
+            client.release();
+        }
+    }
+
+    async createVendedor(vendedorData) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const { nombre, email, telefono, activo } = vendedorData;
+            const query = `
+                INSERT INTO vendedores (nombre, email, telefono, activo)
+                VALUES ($1, $2, $3, $4)
+                RETURNING *;
+            `;
+            const values = [nombre, email, telefono, activo !== undefined ? activo : true];
+            const result = await client.query(query, values);
+            return result.rows[0];
+        } finally {
+            client.release();
+        }
+    }
+
+    async updateVendedor(id, vendedorData) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const setParts = [];
+            const values = [];
+            let valueIndex = 1;
+
+            const validKeys = ['nombre', 'email', 'telefono', 'activo'];
+            for (const key of validKeys) {
+                if (vendedorData[key] !== undefined) {
+                    setParts.push(`${key} = $${valueIndex++}`);
+                    values.push(vendedorData[key]);
+                }
+            }
+
+            if (setParts.length === 0) {
+                return this.getVendedorById(id);
+            }
+
+            values.push(id);
+            const query = `
+                UPDATE vendedores
+                SET ${setParts.join(', ')}, updated_at = CURRENT_TIMESTAMP
+                WHERE id = $${valueIndex}
+                RETURNING *;
+            `;
+
+            const result = await client.query(query, values);
+            return result.rows[0];
+        } finally {
+            client.release();
+        }
+    }
+
+    async deleteVendedor(id) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            await client.query('DELETE FROM vendedores WHERE id = $1', [id]);
         } finally {
             client.release();
         }

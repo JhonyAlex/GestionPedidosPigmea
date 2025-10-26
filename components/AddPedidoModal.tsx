@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Pedido, Prioridad, TipoImpresion, Etapa, EstadoCliché, Cliente } from '../types';
+import { Pedido, Prioridad, TipoImpresion, Etapa, EstadoCliché } from '../types';
 import { KANBAN_FUNNELS, ETAPAS } from '../constants';
 import SequenceBuilder from './SequenceBuilder';
 import SeccionDatosTecnicosDeMaterial from './SeccionDatosTecnicosDeMaterial';
 import { useClientesManager, ClienteCreateRequest } from '../hooks/useClientesManager';
+import { useVendedoresManager } from '../hooks/useVendedoresManager';
 import ClienteModal from './ClienteModal';
 
 interface AddPedidoModalProps {
@@ -12,7 +13,6 @@ interface AddPedidoModalProps {
         pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'subEtapaActual' | 'maquinaImpresion' | 'secuenciaTrabajo' | 'orden' | 'historial'>;
         secuenciaTrabajo: Etapa[];
     }) => void;
-    clientes: Cliente[];
 }
 
 const initialFormData = {
@@ -21,6 +21,7 @@ const initialFormData = {
     metros: '',
     fechaEntrega: '',
     nuevaFechaEntrega: '',
+    vendedor: '',
     prioridad: Prioridad.NORMAL,
     tipoImpresion: TipoImpresion.SUPERFICIE,
     desarrollo: '',
@@ -45,14 +46,18 @@ const initialFormData = {
     minColor: null,
 };
 
-const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, clientes: initialClientes }) => {
+const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
     const [formData, setFormData] = useState<any>(initialFormData);
     const [secuenciaTrabajo, setSecuenciaTrabajo] = useState<Etapa[]>([]);
     const { clientes, addCliente, fetchClientes } = useClientesManager();
+    const { vendedores, addVendedor, fetchVendedores } = useVendedoresManager();
     const [isClienteModalOpen, setClienteModalOpen] = useState(false);
+    const [nuevoVendedor, setNuevoVendedor] = useState('');
+    const [showVendedorInput, setShowVendedorInput] = useState(false);
 
     useEffect(() => {
         fetchClientes();
+        fetchVendedores();
     }, []);
 
     const handleDataChange = (field: keyof Pedido, value: any) => {
@@ -64,6 +69,9 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
         
         if (name === "cliente" && value === "add_new_cliente") {
             setClienteModalOpen(true);
+        } else if (name === "vendedor" && value === "add_new_vendedor") {
+            setShowVendedorInput(true);
+            setFormData(prev => ({ ...prev, vendedor: '' }));
         } else if (type === 'checkbox') {
             const { checked } = e.target as HTMLInputElement;
             setFormData(prev => ({ ...prev, [name]: checked }));
@@ -81,6 +89,28 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
         } catch (error) {
             console.error("Error al crear cliente:", error);
         }
+    };
+
+    const handleAddVendedor = async () => {
+        if (!nuevoVendedor.trim()) {
+            alert('Por favor, ingrese un nombre para el vendedor.');
+            return;
+        }
+        
+        try {
+            const vendedorCreado = await addVendedor({ nombre: nuevoVendedor.trim(), activo: true });
+            setFormData(prev => ({ ...prev, vendedor: vendedorCreado.nombre }));
+            setNuevoVendedor('');
+            setShowVendedorInput(false);
+        } catch (error) {
+            console.error("Error al crear vendedor:", error);
+            alert('Error al crear el vendedor. Por favor, intente de nuevo.');
+        }
+    };
+
+    const handleCancelVendedor = () => {
+        setNuevoVendedor('');
+        setShowVendedorInput(false);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -170,8 +200,52 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                     <input type="date" name="fechaEntrega" value={formData.fechaEntrega} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" required/>
                                 </div>
                                 <div>
+                                    <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Vendedor</label>
+                                    {!showVendedorInput ? (
+                                        <select name="vendedor" value={formData.vendedor} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500">
+                                            <option value="">Seleccione un vendedor</option>
+                                            {vendedores.filter(v => v.activo).map(vendedor => (
+                                                <option key={vendedor.id} value={vendedor.nombre}>{vendedor.nombre}</option>
+                                            ))}
+                                            <option value="add_new_vendedor">-- Crear nuevo vendedor --</option>
+                                        </select>
+                                    ) : (
+                                        <div className="flex gap-2">
+                                            <input 
+                                                type="text" 
+                                                value={nuevoVendedor} 
+                                                onChange={(e) => setNuevoVendedor(e.target.value)}
+                                                placeholder="Nombre del vendedor"
+                                                className="flex-1 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
+                                                autoFocus
+                                            />
+                                            <button 
+                                                type="button" 
+                                                onClick={handleAddVendedor}
+                                                className="bg-green-600 hover:bg-green-700 text-white px-3 rounded-lg"
+                                                title="Guardar vendedor"
+                                            >
+                                                ✓
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                onClick={handleCancelVendedor}
+                                                className="bg-gray-500 hover:bg-gray-600 text-white px-3 rounded-lg"
+                                                title="Cancelar"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                             </div>
+                             <div className="grid grid-cols-2 gap-4 mt-4 items-center">
+                                <div>
                                     <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Nueva Fecha Entrega</label>
                                     <input type="date" name="nuevaFechaEntrega" value={formData.nuevaFechaEntrega} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"/>
+                                </div>
+                                <div>
+                                    {/* Espacio vacío para mantener el diseño */}
                                 </div>
                              </div>
                              <div className="grid grid-cols-2 gap-4 mt-4">

@@ -1749,12 +1749,35 @@ app.post('/api/admin/migrate', requirePermission('usuarios.admin'), async (req, 
                 results.push({ migration: 'numero_compra', status: 'error', error: error.message });
             }
 
+            // Migración 3: vendedor
+            try {
+                await client.query(`
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'pedidos' AND column_name = 'vendedor'
+                        ) THEN
+                            ALTER TABLE pedidos ADD COLUMN vendedor VARCHAR(255);
+                            CREATE INDEX IF NOT EXISTS idx_pedidos_vendedor ON pedidos(vendedor);
+                            RAISE NOTICE 'Columna vendedor agregada';
+                        ELSE
+                            RAISE NOTICE 'Columna vendedor ya existe';
+                        END IF;
+                    END $$;
+                `);
+                results.push({ migration: 'vendedor', status: 'success' });
+            } catch (error) {
+                console.error('Error en migración vendedor:', error);
+                results.push({ migration: 'vendedor', status: 'error', error: error.message });
+            }
+
             // Verificar estado final
             const checkResult = await client.query(`
                 SELECT column_name 
                 FROM information_schema.columns 
                 WHERE table_name = 'pedidos' 
-                AND column_name IN ('nueva_fecha_entrega', 'numero_compra')
+                AND column_name IN ('nueva_fecha_entrega', 'numero_compra', 'vendedor')
                 ORDER BY column_name;
             `);
             
@@ -1909,6 +1932,132 @@ app.delete('/api/clientes/:id', requirePermission('clientes.delete'), async (req
     } catch (error) {
         console.error(`Error in DELETE /api/clientes/${req.params.id}:`, error);
         res.status(500).json({ message: "Error interno del servidor al archivar el cliente." });
+    }
+});
+
+// =================================================================
+// RUTAS DE VENDEDORES
+// =================================================================
+
+// GET /api/vendedores - Obtener todos los vendedores activos
+app.get('/api/vendedores', async (req, res) => {
+    try {
+        const vendedores = await dbClient.getAllVendedores();
+        res.status(200).json(vendedores);
+    } catch (error) {
+        console.error('Error in GET /api/vendedores:', error);
+        res.status(500).json({ message: "Error interno del servidor al obtener vendedores." });
+    }
+});
+
+// GET /api/vendedores/:id - Obtener un vendedor por ID
+app.get('/api/vendedores/:id', async (req, res) => {
+    try {
+        const vendedor = await dbClient.getVendedorById(req.params.id);
+        if (!vendedor) {
+            return res.status(404).json({ message: 'Vendedor no encontrado.' });
+        }
+        res.status(200).json(vendedor);
+    } catch (error) {
+        console.error(`Error in GET /api/vendedores/${req.params.id}:`, error);
+        res.status(500).json({ message: "Error interno del servidor al obtener el vendedor." });
+    }
+});
+
+// POST /api/vendedores - Crear un nuevo vendedor
+app.post('/api/vendedores', requirePermission('pedidos.create'), async (req, res) => {
+    try {
+        const { nombre, email, telefono, activo } = req.body;
+        
+        if (!nombre || nombre.trim().length === 0) {
+            return res.status(400).json({ message: 'El nombre del vendedor es requerido.' });
+        }
+
+        const nuevoVendedor = await dbClient.createVendedor({
+            nombre: nombre.trim(),
+            email: email || null,
+            telefono: telefono || null,
+            activo: activo !== undefined ? activo : true
+        });
+
+        // 🔥 EVENTO WEBSOCKET: Nuevo vendedor creado
+        broadcastToClients('vendedor-created', {
+            vendedor: nuevoVendedor,
+            message: `Nuevo vendedor creado: ${nuevoVendedor.nombre}`
+        });
+
+        res.status(201).json(nuevoVendedor);
+    } catch (error) {
+        console.error('Error in POST /api/vendedores:', error);
+        
+        if (error.message && error.message.includes('duplicate key')) {
+            return res.status(409).json({ message: 'Ya existe un vendedor con ese nombre.' });
+        }
+        
+        res.status(500).json({ message: "Error interno del servidor al crear el vendedor." });
+    }
+});
+
+// PUT /api/vendedores/:id - Actualizar un vendedor
+app.put('/api/vendedores/:id', requirePermission('pedidos.edit'), async (req, res) => {
+    try {
+        const { nombre, email, telefono, activo } = req.body;
+        const vendedorId = req.params.id;
+
+        const vendedorActualizado = await dbClient.updateVendedor(vendedorId, {
+            nombre: nombre?.trim(),
+            email,
+            telefono,
+            activo
+        });
+
+        if (!vendedorActualizado) {
+            return res.status(404).json({ message: 'Vendedor no encontrado.' });
+        }
+
+        // 🔥 EVENTO WEBSOCKET: Vendedor actualizado
+        broadcastToClients('vendedor-updated', {
+            vendedor: vendedorActualizado,
+            message: `Vendedor actualizado: ${vendedorActualizado.nombre}`
+        });
+
+        res.status(200).json(vendedorActualizado);
+    } catch (error) {
+        console.error(`Error in PUT /api/vendedores/${req.params.id}:`, error);
+        
+        if (error.message && error.message.includes('duplicate key')) {
+            return res.status(409).json({ message: 'Ya existe un vendedor con ese nombre.' });
+        }
+        
+        res.status(500).json({ message: "Error interno del servidor al actualizar el vendedor." });
+    }
+});
+
+// DELETE /api/vendedores/:id - Eliminar/desactivar un vendedor
+app.delete('/api/vendedores/:id', requirePermission('pedidos.delete'), async (req, res) => {
+    try {
+        const vendedorId = req.params.id;
+
+        // Obtener el vendedor antes de eliminarlo
+        const vendedor = await dbClient.getVendedorById(vendedorId);
+        
+        if (!vendedor) {
+            return res.status(404).json({ message: 'Vendedor no encontrado.' });
+        }
+
+        await dbClient.deleteVendedor(vendedorId);
+
+        // 🔥 EVENTO WEBSOCKET: Vendedor eliminado
+        broadcastToClients('vendedor-deleted', {
+            vendedorId,
+            vendedor,
+            message: `Vendedor eliminado: ${vendedor.nombre}`
+        });
+
+        res.status(204).send();
+    } catch (error) {
+        console.error(`Error in DELETE /api/vendedores/${req.params.id}:`, error);
+        res.status(500).json({ message: "Error interno del servidor al eliminar el vendedor." });
     }
 });
 

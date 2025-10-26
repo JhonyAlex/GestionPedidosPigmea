@@ -68,6 +68,7 @@ export interface Pedido {
     fechaEntrega: string; // YYYY-MM-DD
     nuevaFechaEntrega?: string; // YYYY-MM-DD
     fechaFinalizacion?: string; // ISO 8601 date string
+    vendedor?: string; // Nombre del vendedor asignado
     etapaActual: Etapa;
     subEtapaActual?: string;
     etapasSecuencia: EtapaInfo[];
