@@ -746,10 +746,9 @@ class PostgreSQLClient {
                 }
             }
 
-            // Asegurarse que el cliente_id está en el objeto `data`
-            if (pedido.clienteId && !pedido.data.clienteId) {
-                pedido.data.clienteId = pedido.clienteId;
-            }
+            // ✅ Ya no necesitamos modificar pedido.data aquí
+            // El clienteId se guardará directamente en la columna cliente_id
+            // Y también estará en el JSON cuando se haga JSON.stringify(pedido) más adelante
 
             // Verificar qué columnas existen en la tabla
             const columnsResult = await client.query(`
@@ -846,10 +845,9 @@ class PostgreSQLClient {
                 }
             }
 
-            // Asegurarse que el cliente_id está en el objeto `data`
-            if (pedido.clienteId && !pedido.data.clienteId) {
-                pedido.data.clienteId = pedido.clienteId;
-            }
+            // ✅ Ya no necesitamos modificar pedido.data aquí
+            // El clienteId se guardará directamente en la columna cliente_id
+            // Y también estará en el JSON cuando se haga JSON.stringify(pedido) más adelante
 
             // Verificar qué columnas existen dinámicamente para evitar errores
             const columnsResult = await client.query(`
