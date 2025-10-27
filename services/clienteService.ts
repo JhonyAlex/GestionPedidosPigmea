@@ -126,6 +126,18 @@ class ClienteService {
   async obtenerEstadisticasGlobales(): Promise<ClienteEstadisticas> {
     return apiRetryFetch<ClienteEstadisticas>(`/clientes/stats`);
   }
+
+  // ✅ Métodos adicionales para estadísticas y pedidos de un cliente específico
+  async obtenerEstadisticasCliente(clienteId: string): Promise<any> {
+    if (!clienteId) throw new Error("El ID del cliente es requerido.");
+    return apiRetryFetch<any>(`/clientes/${clienteId}/estadisticas`);
+  }
+
+  async obtenerPedidosCliente(clienteId: string, estado?: string): Promise<any[]> {
+    if (!clienteId) throw new Error("El ID del cliente es requerido.");
+    const queryString = estado ? `?estado=${estado}` : '';
+    return apiRetryFetch<any[]>(`/clientes/${clienteId}/pedidos${queryString}`);
+  }
 }
 
 export const clienteService = new ClienteService();

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Cliente } from '../hooks/useClientesManager';
 import { Icons } from './Icons';
+import { clienteService } from '../services/clienteService';
 
 interface ClienteCardProps {
   cliente: Cliente;
@@ -15,9 +16,6 @@ interface ClienteStats {
   total_pedidos: number;
 }
 
-let missingTokenWarningLogged = false;
-let unauthorizedStatsWarningLogged = false;
-
 const ClienteCard: React.FC<ClienteCardProps> = ({ cliente, onEdit, onDelete, onClick }) => {
   const [stats, setStats] = useState<ClienteStats | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
@@ -29,39 +27,16 @@ const ClienteCard: React.FC<ClienteCardProps> = ({ cliente, onEdit, onDelete, on
   const fetchClienteStats = async () => {
     setIsLoadingStats(true);
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        if (!missingTokenWarningLogged) {
-          console.warn('ClienteCard: no hay token de autenticación, omitiendo carga de estadísticas.');
-          missingTokenWarningLogged = true;
-        }
-        setStats(null);
-        return;
-      }
-      const response = await fetch(`/api/clientes/${cliente.id}/estadisticas`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+      // ✅ Usar el servicio en lugar de fetch directo
+      const data = await clienteService.obtenerEstadisticasCliente(cliente.id);
+      setStats({
+        pedidos_en_produccion: parseInt(data.pedidos_en_produccion || 0),
+        pedidos_completados: parseInt(data.pedidos_completados || 0),
+        total_pedidos: parseInt(data.total_pedidos || 0)
       });
-      if (response.status === 401) {
-        if (!unauthorizedStatsWarningLogged) {
-          console.warn('ClienteCard: acceso no autorizado a /estadisticas. Verifica la sesión del usuario.');
-          unauthorizedStatsWarningLogged = true;
-        }
-        setStats(null);
-        return;
-      }
-      if (response.ok) {
-        const data = await response.json();
-        setStats({
-          pedidos_en_produccion: parseInt(data.pedidos_en_produccion || 0),
-          pedidos_completados: parseInt(data.pedidos_completados || 0),
-          total_pedidos: parseInt(data.total_pedidos || 0)
-        });
-      }
     } catch (error) {
       console.error('Error al cargar estadísticas del cliente:', error);
+      setStats(null);
     } finally {
       setIsLoadingStats(false);
     }
