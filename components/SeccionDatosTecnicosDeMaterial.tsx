@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Pedido } from '../types';
-import { ChevronDownIcon, ChevronUpIcon } from './Icons.tsx'; // Suponiendo que tienes iconos de flecha
 
 interface SeccionDatosTecnicosProps {
     formData: Partial<Pedido>;
@@ -9,7 +8,6 @@ interface SeccionDatosTecnicosProps {
 }
 
 const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ formData, onDataChange, isReadOnly = false }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -66,186 +64,291 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ f
     };
 
     return (
-        <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
-            <button
-                type="button"
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full flex justify-between items-center text-lg font-semibold mb-2 text-left"
-            >
-                Datos Técnicos de Material
-                {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
-            </button>
-            {isExpanded && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                    {/* Columna Izquierda */}
-                    <div className="flex flex-col gap-4">
-                        <div>
-                            <label htmlFor="producto" className="block text-sm font-medium mb-1">Producto</label>
-                            <input type="text" id="producto" name="producto" value={formData.producto || ''} onChange={handleInputChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" disabled={isReadOnly} />
-                        </div>
+        <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
+            {/* Título de la sección - siempre visible */}
+            <h3 className="text-xl font-semibold mb-6 text-gray-800 dark:text-gray-200">
+                📦 Datos Técnicos de Material
+            </h3>
 
-                        {/* Grupo A: Material Capas */}
-                        <div className="border-t border-gray-200 dark:border-gray-600 pt-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
-                                <div className="sm:col-span-1">
-                                    <label className="block text-sm font-medium mb-1">Material (Láminas)</label>
-                                    <select
-                                        name="materialCapasCantidad"
-                                        value={formData.materialCapasCantidad || ''}
-                                        onChange={handleInputChange}
-                                        disabled={isReadOnly}
-                                        className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
-                                    >
-                                        <option value="">0</option>
-                                        {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}</option>)}
-                                    </select>
-                                </div>
-                                <div className="sm:col-span-2 grid grid-cols-1 gap-3">
-                                    {formData.materialCapasCantidad && Array.from({ length: formData.materialCapasCantidad }).map((_, index) => (
-                                        <div key={index}>
-                                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Lámina {index + 1}</label>
-                                            <div className="grid grid-cols-2 gap-2 mt-1">
-                                                <div>
-                                                    <input
-                                                        type="number"
-                                                        placeholder="Micras"
-                                                        value={formData.materialCapas?.[index]?.micras || ''}
-                                                        onChange={(e) => handleNestedArrayChange('materialCapas', index, 'micras', e.target.value)}
-                                                        disabled={isReadOnly}
-                                                        className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2"
-                                                    />
-                                                    {renderValidationMessage(formData.materialCapas?.[index]?.micras)}
-                                                </div>
-                                                <div>
-                                                    <input
-                                                        type="number"
-                                                        step="0.1"
-                                                        placeholder="Densidad"
-                                                        value={formData.materialCapas?.[index]?.densidad || ''}
-                                                        onChange={(e) => handleNestedArrayChange('materialCapas', index, 'densidad', e.target.value)}
-                                                        disabled={isReadOnly}
-                                                        className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
+            <div className="space-y-8">{/* Contenedor principal con espaciado consistente */}
+                
+                {/* SECCIÓN 1: Producto */}
+                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
+                    <label htmlFor="producto" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        🏷️ Producto
+                    </label>
+                    <input 
+                        type="text" 
+                        id="producto" 
+                        name="producto" 
+                        value={formData.producto || ''} 
+                        onChange={handleInputChange} 
+                        placeholder="Ingrese el nombre del producto"
+                        className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                        disabled={isReadOnly} 
+                    />
+                </div>
 
-                        {/* Grupo B: Material Consumo */}
-                        <div className="border-t border-gray-200 dark:border-gray-600 pt-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
-                                <div className="sm:col-span-1">
-                                    <label className="block text-sm font-medium mb-1">Material (Suministro)</label>
-                                    <select
-                                        name="materialConsumoCantidad"
-                                        value={formData.materialConsumoCantidad || ''}
-                                        onChange={handleInputChange}
-                                        disabled={isReadOnly}
-                                        className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
-                                    >
-                                        <option value="">0</option>
-                                        {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}</option>)}
-                                    </select>
-                                </div>
-                                <div className="sm:col-span-2 grid grid-cols-1 gap-3">
-                                    {formData.materialConsumoCantidad && Array.from({ length: formData.materialConsumoCantidad }).map((_, index) => (
-                                        <div key={index}>
-                                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Material {index + 1}</label>
-                                            <div className="grid grid-cols-2 gap-2 mt-1">
-                                                <div>
-                                                    <input
-                                                        type="number"
-                                                        placeholder="Necesario"
-                                                        value={formData.materialConsumo?.[index]?.necesario || ''}
-                                                        onChange={(e) => handleNestedArrayChange('materialConsumo', index, 'necesario', e.target.value)}
-                                                        disabled={isReadOnly}
-                                                        className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2"
-                                                    />
-                                                    {renderValidationMessage(formData.materialConsumo?.[index]?.necesario)}
-                                                </div>
-                                                <div>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Recibido"
-                                                        value={formData.materialConsumo?.[index]?.recibido || ''}
-                                                        onChange={(e) => handleNestedArrayChange('materialConsumo', index, 'recibido', e.target.value)}
-                                                        disabled={isReadOnly}
-                                                        className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                {/* SECCIÓN 2: Material (Suministro) + Números de Compra FUSIONADOS */}
+                <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-5 border-2 border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-lg font-semibold text-blue-800 dark:text-blue-300">
+                            🛒 Material de Suministro y Compras
+                        </h4>
+                        <div className="flex items-center gap-3">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Cantidad de materiales:
+                            </label>
+                            <select
+                                name="materialConsumoCantidad"
+                                value={formData.materialConsumoCantidad || ''}
+                                onChange={handleInputChange}
+                                disabled={isReadOnly}
+                                className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">0</option>
+                                {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}</option>)}
+                            </select>
                         </div>
-
-                        {/* Grupo C: Números de Compra (dinámicos según materialConsumoCantidad) */}
-                        {formData.materialConsumoCantidad && formData.materialConsumoCantidad > 0 && (
-                            <div className="border-t border-gray-200 dark:border-gray-600 pt-4">
-                                <div className="grid grid-cols-1 gap-3">
-                                    <label className="block text-sm font-medium text-indigo-600 dark:text-indigo-400">
-                                        Números de Compra
-                                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                                            (uno por cada material de suministro)
+                    </div>
+                    
+                    {formData.materialConsumoCantidad && formData.materialConsumoCantidad > 0 ? (
+                        <div className="space-y-4">
+                            {Array.from({ length: formData.materialConsumoCantidad }).map((_, index) => (
+                                <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700 shadow-sm">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded">
+                                            Material {index + 1}
                                         </span>
-                                    </label>
-                                    {Array.from({ length: formData.materialConsumoCantidad }).map((_, index) => (
-                                        <div key={index}>
-                                            <label className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 block">
-                                                Nº Compra #{index + 1}
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        {/* Número de Compra */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                                📋 N° de Compra
                                             </label>
                                             <input
                                                 type="text"
-                                                placeholder={`Número de compra ${index + 1} (opcional)`}
+                                                placeholder={`Ej: OC-2025-${(index + 1).toString().padStart(3, '0')}`}
                                                 value={formData.numerosCompra?.[index] || ''}
                                                 onChange={(e) => handleNumeroCompraChange(index, e.target.value)}
                                                 disabled={isReadOnly}
                                                 maxLength={50}
-                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
                                             />
                                         </div>
-                                    ))}
+                                        
+                                        {/* Cantidad Necesaria */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                                📊 Cantidad Necesaria
+                                            </label>
+                                            <input
+                                                type="number"
+                                                placeholder="Ej: 1000"
+                                                value={formData.materialConsumo?.[index]?.necesario || ''}
+                                                onChange={(e) => handleNestedArrayChange('materialConsumo', index, 'necesario', e.target.value)}
+                                                disabled={isReadOnly}
+                                                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                            />
+                                            {renderValidationMessage(formData.materialConsumo?.[index]?.necesario)}
+                                        </div>
+                                        
+                                        {/* Cantidad Recibida */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                                ✅ Cantidad Recibida
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="Ej: 850 o Parcial"
+                                                value={formData.materialConsumo?.[index]?.recibido || ''}
+                                                onChange={(e) => handleNestedArrayChange('materialConsumo', index, 'recibido', e.target.value)}
+                                                disabled={isReadOnly}
+                                                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                    </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-6 text-gray-500 dark:text-gray-400 text-sm">
+                            Seleccione la cantidad de materiales para comenzar
+                        </div>
+                    )}
+                </div>
 
-                    {/* Columna Derecha */}
-                    <div className="flex flex-col gap-4">
-                        {/* Bobinas, Minutos, Colores */}
-                        <div className="border-t border-gray-200 dark:border-gray-600 pt-4 grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Bobina Madre</label>
-                                <input type="number" name="bobinaMadre" value={formData.bobinaMadre || ''} onChange={handleInputChange} disabled={isReadOnly} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" />
-                                {renderValidationMessage(formData.bobinaMadre)}
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Bobina Final</label>
-                                <input type="number" name="bobinaFinal" value={formData.bobinaFinal || ''} onChange={handleInputChange} disabled={isReadOnly} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" />
-                                {renderValidationMessage(formData.bobinaFinal)}
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Min. Adap</label>
-                                <input type="number" name="minAdap" value={formData.minAdap || ''} onChange={handleInputChange} disabled={isReadOnly} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" />
-                                {renderValidationMessage(formData.minAdap)}
-                            </div>
-                            <div>
-                                <label htmlFor="minColor" className="block text-sm font-medium mb-1">Min. Color</label>
-                                <input type="number" name="minColor" value={formData.minColor || ''} onChange={handleInputChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" disabled={isReadOnly} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Colores</label>
-                                <input type="number" name="colores" value={formData.colores || ''} onChange={handleInputChange} disabled={isReadOnly} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" />
-                                {renderValidationMessage(formData.colores)}
-                            </div>
+                {/* SECCIÓN 3: Material (Láminas) */}
+                <div className="bg-purple-50 dark:bg-purple-900/10 rounded-lg p-5 border-2 border-purple-200 dark:border-purple-800">
+                    <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-lg font-semibold text-purple-800 dark:text-purple-300">
+                            📄 Material en Láminas
+                        </h4>
+                        <div className="flex items-center gap-3">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Cantidad de láminas:
+                            </label>
+                            <select
+                                name="materialCapasCantidad"
+                                value={formData.materialCapasCantidad || ''}
+                                onChange={handleInputChange}
+                                disabled={isReadOnly}
+                                className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-purple-500"
+                            >
+                                <option value="">0</option>
+                                {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}</option>)}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    {formData.materialCapasCantidad && formData.materialCapasCantidad > 0 ? (
+                        <div className="space-y-4">
+                            {Array.from({ length: formData.materialCapasCantidad }).map((_, index) => (
+                                <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-purple-200 dark:border-purple-700 shadow-sm">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className="bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded">
+                                            Lámina {index + 1}
+                                        </span>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {/* Micras */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                                📏 Micras (µm)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                placeholder="Ej: 12"
+                                                value={formData.materialCapas?.[index]?.micras || ''}
+                                                onChange={(e) => handleNestedArrayChange('materialCapas', index, 'micras', e.target.value)}
+                                                disabled={isReadOnly}
+                                                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:opacity-50"
+                                            />
+                                            {renderValidationMessage(formData.materialCapas?.[index]?.micras)}
+                                        </div>
+                                        
+                                        {/* Densidad */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                                ⚖️ Densidad (g/cm³)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                step="0.1"
+                                                placeholder="Ej: 0.92"
+                                                value={formData.materialCapas?.[index]?.densidad || ''}
+                                                onChange={(e) => handleNestedArrayChange('materialCapas', index, 'densidad', e.target.value)}
+                                                disabled={isReadOnly}
+                                                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:opacity-50"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-6 text-gray-500 dark:text-gray-400 text-sm">
+                            Seleccione la cantidad de láminas para comenzar
+                        </div>
+                    )}
+                </div>
+
+                {/* SECCIÓN 4: Datos Técnicos (Bobinas, Minutos, Colores) */}
+                <div className="bg-green-50 dark:bg-green-900/10 rounded-lg p-5 border-2 border-green-200 dark:border-green-800">
+                    <h4 className="text-lg font-semibold text-green-800 dark:text-green-300 mb-4">
+                        ⚙️ Especificaciones Técnicas de Producción
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {/* Bobina Madre */}
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-green-200 dark:border-green-700">
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                🎯 Bobina Madre (mm)
+                            </label>
+                            <input 
+                                type="number" 
+                                name="bobinaMadre" 
+                                placeholder="Ej: 1350"
+                                value={formData.bobinaMadre || ''} 
+                                onChange={handleInputChange} 
+                                disabled={isReadOnly} 
+                                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
+                            />
+                            {renderValidationMessage(formData.bobinaMadre)}
+                        </div>
+                        
+                        {/* Bobina Final */}
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-green-200 dark:border-green-700">
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                🎯 Bobina Final (mm)
+                            </label>
+                            <input 
+                                type="number" 
+                                name="bobinaFinal" 
+                                placeholder="Ej: 450"
+                                value={formData.bobinaFinal || ''} 
+                                onChange={handleInputChange} 
+                                disabled={isReadOnly} 
+                                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
+                            />
+                            {renderValidationMessage(formData.bobinaFinal)}
+                        </div>
+                        
+                        {/* Minutos Adaptación */}
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-green-200 dark:border-green-700">
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                ⏱️ Min. Adaptación
+                            </label>
+                            <input 
+                                type="number" 
+                                name="minAdap" 
+                                placeholder="Ej: 15"
+                                value={formData.minAdap || ''} 
+                                onChange={handleInputChange} 
+                                disabled={isReadOnly} 
+                                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
+                            />
+                            {renderValidationMessage(formData.minAdap)}
+                        </div>
+                        
+                        {/* Minutos Color */}
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-green-200 dark:border-green-700">
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                🎨 Min. por Color
+                            </label>
+                            <input 
+                                type="number" 
+                                name="minColor" 
+                                placeholder="Ej: 5"
+                                value={formData.minColor || ''} 
+                                onChange={handleInputChange} 
+                                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
+                                disabled={isReadOnly} 
+                            />
+                        </div>
+                        
+                        {/* Número de Colores */}
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-green-200 dark:border-green-700">
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                🌈 Cantidad de Colores
+                            </label>
+                            <input 
+                                type="number" 
+                                name="colores" 
+                                placeholder="Ej: 4"
+                                value={formData.colores || ''} 
+                                onChange={handleInputChange} 
+                                disabled={isReadOnly} 
+                                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
+                            />
+                            {renderValidationMessage(formData.colores)}
                         </div>
                     </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 };
