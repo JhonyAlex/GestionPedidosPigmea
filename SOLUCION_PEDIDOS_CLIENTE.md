@@ -156,5 +156,6 @@ Para evitar este tipo de problemas en el futuro:
 
 Esta solución trabaja en conjunto con:
 - **`SOLUCION_ERROR_AUTENTICACION_CLIENTES.md`**: Soluciona el problema de autenticación al visualizar los pedidos de un cliente
+- **`SOLUCION_ERROR_SQL_UUID_TEXT.md`**: Soluciona el error SQL de comparación UUID vs TEXT en las consultas
 
-Ambas soluciones son necesarias para que el flujo completo funcione correctamente.
+Las tres soluciones son necesarias para que el flujo completo funcione correctamente.

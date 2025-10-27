@@ -139,15 +139,16 @@ Ahora la autenticación funciona correctamente porque:
      - ❌ `ClienteCard: no hay token de autenticación`
      - ❌ `ClienteDetailModal: no hay token de autenticación`
 
-## 📊 Relación con la Solución Anterior
+## 📊 Relación con Otras Soluciones
 
-Esta solución complementa el trabajo anterior de `SOLUCION_PEDIDOS_CLIENTE.md`:
-- **Solución anterior:** Guardaba el `clienteId` al crear pedidos
-- **Esta solución:** Permite **visualizar** esos pedidos correctamente en el detalle del cliente
+Esta solución complementa el trabajo de otras correcciones:
+- **`SOLUCION_PEDIDOS_CLIENTE.md`**: Guardaba el `clienteId` al crear pedidos
+- **`SOLUCION_ERROR_SQL_UUID_TEXT.md`**: Corrige el error SQL al consultar pedidos por cliente
 
-Ambas son necesarias para que el flujo completo funcione:
+Las tres soluciones son necesarias para que el flujo completo funcione:
 1. Crear pedido → guarda `clienteId` ✅
-2. Ver cliente → muestra los pedidos del cliente ✅
+2. Ver cliente → autentica correctamente ✅
+3. Consultar pedidos → usa cast SQL correcto ✅
 
 ## 🔧 Archivos Modificados
 
