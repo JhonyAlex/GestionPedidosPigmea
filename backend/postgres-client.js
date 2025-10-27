@@ -1434,14 +1434,14 @@ class PostgreSQLClient {
         try {
             const offset = (page - 1) * limit;
 
-            const countQuery = 'SELECT COUNT(*) as total FROM pedidos WHERE cliente_id = $1';
+            const countQuery = "SELECT COUNT(*) as total FROM pedidos WHERE cliente_id = $1 OR data->>'clienteId' = $1";
             const totalResult = await client.query(countQuery, [id]);
             const total = parseInt(totalResult.rows[0].total, 10);
 
             const dataQuery = `
                 SELECT id, data->>'numeroPedidoCliente' as numero_pedido_cliente, etapa_actual, fecha_pedido, fecha_entrega, (data->>'cantidadPiezas')::int as cantidad_piezas
                 FROM pedidos
-                WHERE cliente_id = $1
+                WHERE cliente_id = $1 OR data->>'clienteId' = $1
                 ORDER BY fecha_pedido DESC
                 LIMIT $2 OFFSET $3
             `;
@@ -1463,7 +1463,7 @@ class PostgreSQLClient {
         if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
         try {
-            let whereClause = 'WHERE cliente_id = $1';
+            let whereClause = "WHERE (cliente_id = $1 OR data->>'clienteId' = $1)";
             const queryParams = [clienteId];
 
             // Filtrar por estado de pedido
@@ -1540,7 +1540,7 @@ class PostgreSQLClient {
                     SUM((data->>'metros')::numeric) FILTER (WHERE etapa_actual = 'COMPLETADO') as metros_producidos,
                     MAX(COALESCE(fecha_pedido, created_at)) as ultimo_pedido_fecha
                 FROM pedidos
-                WHERE cliente_id = $1
+                WHERE cliente_id = $1 OR data->>'clienteId' = $1
             `;
 
             const result = await client.query(query, [clienteId]);
