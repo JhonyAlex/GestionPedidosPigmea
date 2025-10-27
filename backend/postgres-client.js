@@ -1580,6 +1580,8 @@ class PostgreSQLClient {
         try {
             await client.query('BEGIN');
             
+            let pedidosEliminadosIds = [];
+            
             // Si se solicita eliminar los pedidos también
             if (deletePedidos) {
                 // Primero eliminamos los comentarios de los pedidos del cliente
@@ -1590,13 +1592,14 @@ class PostgreSQLClient {
                     )
                 `, [id]);
                 
-                // Luego eliminamos los pedidos del cliente
+                // Luego eliminamos los pedidos del cliente y guardamos sus IDs
                 const deletePedidosResult = await client.query(
                     'DELETE FROM pedidos WHERE cliente_id = $1 RETURNING id',
                     [id]
                 );
                 
-                console.log(`Eliminados ${deletePedidosResult.rowCount} pedidos del cliente ${id}`);
+                pedidosEliminadosIds = deletePedidosResult.rows.map(row => row.id);
+                console.log(`Eliminados ${deletePedidosResult.rowCount} pedidos del cliente ${id}`, pedidosEliminadosIds);
             } else {
                 // Verificamos si tiene pedidos activos
                 const pedidosCheck = await client.query(
@@ -1630,7 +1633,8 @@ class PostgreSQLClient {
             
             return {
                 cliente: deleteResult.rows[0],
-                pedidosEliminados: deletePedidos
+                pedidosEliminados: deletePedidos,
+                pedidosEliminadosIds: pedidosEliminadosIds
             };
         } catch (error) {
             await client.query('ROLLBACK');

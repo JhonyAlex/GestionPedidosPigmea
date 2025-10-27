@@ -1986,17 +1986,31 @@ app.delete('/api/clientes/:id/permanent', requirePermission('clientes.delete'), 
         
         const result = await dbClient.deleteClientePermanently(req.params.id, shouldDeletePedidos);
         
+        // Broadcast para eliminar cliente
         broadcastToClients('cliente-deleted-permanent', { 
             clienteId: req.params.id, 
             cliente: result.cliente,
             pedidosEliminados: result.pedidosEliminados 
         });
         
+        // Si se eliminaron pedidos, hacer broadcast para cada uno
+        if (result.pedidosEliminadosIds && result.pedidosEliminadosIds.length > 0) {
+            result.pedidosEliminadosIds.forEach(pedidoId => {
+                broadcastToClients('pedido-deleted', { 
+                    pedidoId: pedidoId,
+                    deletedByClienteDeletion: true,
+                    clienteId: req.params.id
+                });
+            });
+            console.log(`📢 Broadcast enviado para ${result.pedidosEliminadosIds.length} pedidos eliminados`);
+        }
+        
         res.status(200).json({ 
             message: shouldDeletePedidos 
                 ? 'Cliente y sus pedidos eliminados permanentemente.' 
                 : 'Cliente eliminado permanentemente.',
-            cliente: result.cliente 
+            cliente: result.cliente,
+            pedidosEliminados: result.pedidosEliminadosIds?.length || 0
         });
     } catch (error) {
         console.error(`Error in DELETE permanent /api/clientes/${req.params.id}:`, error);

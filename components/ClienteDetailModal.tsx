@@ -262,9 +262,9 @@ const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose
                         }`}
                     >
                         En Producción
-                        {estadisticas && estadisticas.pedidos_en_produccion > 0 && (
+                        {pedidosProduccion.length > 0 && (
                             <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">
-                                {estadisticas.pedidos_en_produccion}
+                                {pedidosProduccion.length}
                             </span>
                         )}
                     </button>
@@ -277,9 +277,9 @@ const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose
                         }`}
                     >
                         Completados
-                        {estadisticas && estadisticas.pedidos_completados > 0 && (
+                        {pedidosCompletados.length > 0 && (
                             <span className="ml-2 px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full">
-                                {estadisticas.pedidos_completados}
+                                {pedidosCompletados.length}
                             </span>
                         )}
                     </button>
@@ -292,6 +292,11 @@ const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose
                         }`}
                     >
                         Archivados
+                        {pedidosArchivados.length > 0 && (
+                            <span className="ml-2 px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 rounded-full">
+                                {pedidosArchivados.length}
+                            </span>
+                        )}
                     </button>
                 </div>
 
