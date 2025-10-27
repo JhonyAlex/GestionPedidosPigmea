@@ -703,9 +703,6 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                         <div>
                                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
                                                 Información Adicional Cliché
-                                                {!formData.clicheDisponible && (
-                                                    <span className="text-xs text-gray-500 ml-1">(Se habilitará al marcar "Cliché Disponible")</span>
-                                                )}
                                             </label>
                                             <input 
                                                 type="text" 
@@ -714,9 +711,8 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                 onChange={handleChange} 
                                                 placeholder="Ej: Recibido 27/10, ID: CLH-123, Aprobado por cliente"
                                                 maxLength={200}
-                                                disabled={isReadOnly || !formData.clicheDisponible}
-                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                title={!formData.clicheDisponible ? "Marque 'Cliché Disponible' para habilitar este campo" : ""}
+                                                disabled={isReadOnly}
+                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
                                             />
                                             {formData.clicheInfoAdicional && (
                                                 <p className="text-xs text-gray-500 mt-1">
