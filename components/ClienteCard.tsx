@@ -27,12 +27,22 @@ const ClienteCard: React.FC<ClienteCardProps> = ({ cliente, onEdit, onDelete, on
     setIsLoadingStats(true);
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        console.warn('ClienteCard: no hay token de autenticación, omitiendo carga de estadísticas.');
+        setStats(null);
+        return;
+      }
       const response = await fetch(`/api/clientes/${cliente.id}/estadisticas`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
+      if (response.status === 401) {
+        console.warn('ClienteCard: acceso no autorizado a /estadisticas. Verifica la sesión del usuario.');
+        setStats(null);
+        return;
+      }
       if (response.ok) {
         const data = await response.json();
         setStats({

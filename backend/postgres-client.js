@@ -1491,11 +1491,13 @@ class PostgreSQLClient {
                     id,
                     data,
                     etapa_actual,
-                    fecha_creacion,
-                    fecha_actualizacion
+                    fecha_pedido,
+                    fecha_entrega,
+                    created_at,
+                    updated_at
                 FROM pedidos
                 ${whereClause}
-                ORDER BY fecha_creacion DESC
+                ORDER BY created_at DESC
             `;
 
             const result = await client.query(query, queryParams);
@@ -1507,8 +1509,9 @@ class PostgreSQLClient {
                     id: row.id,
                     ...pedidoData,
                     etapaActual: row.etapa_actual,
-                    fechaCreacion: row.fecha_creacion,
-                    fechaActualizacion: row.fecha_actualizacion
+                    fechaCreacion: pedidoData.fechaCreacion || row.fecha_pedido || row.created_at,
+                    fechaEntrega: pedidoData.fechaEntrega || row.fecha_entrega || null,
+                    fechaActualizacion: row.updated_at,
                 };
             });
 
@@ -1535,7 +1538,7 @@ class PostgreSQLClient {
                     COUNT(*) FILTER (WHERE etapa_actual = 'ARCHIVADO') as pedidos_archivados,
                     COUNT(*) as total_pedidos,
                     SUM((data->>'metros')::numeric) FILTER (WHERE etapa_actual = 'COMPLETADO') as metros_producidos,
-                    MAX(fecha_creacion) as ultimo_pedido_fecha
+                    MAX(COALESCE(fecha_pedido, created_at)) as ultimo_pedido_fecha
                 FROM pedidos
                 WHERE cliente_id = $1
             `;
