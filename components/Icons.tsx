@@ -73,6 +73,24 @@ const Close: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     </svg>
 );
 
+const Calendar: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...props}>
+        <path d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+    </svg>
+);
+
+const Ruler: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...props}>
+        <path d="M21 7.5l-2.25-1.313M21 7.5v2.25m0-2.25l-2.25 1.313M3 7.5l2.25-1.313M3 7.5l2.25 1.313M3 7.5v2.25m9 3l2.25-1.313M12 12.75l-2.25-1.313M12 12.75V15m0 6.75l2.25-1.313M12 21.75V19.5m0 2.25l-2.25-1.313m0-16.875L12 2.25l2.25 1.313M21 14.25v2.25l-2.25 1.313m-13.5 0L3 16.5v-2.25" />
+    </svg>
+);
+
+const ChevronRight: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...props}>
+        <path d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+    </svg>
+);
+
 export const Icons = {
     ChevronDown: ChevronDownIcon,
     ChevronUp: ChevronUpIcon,
@@ -86,4 +104,7 @@ export const Icons = {
     NoData,
     Plus,
     Close,
+    Calendar,
+    Ruler,
+    ChevronRight,
 };

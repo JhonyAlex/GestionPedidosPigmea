@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useClientesManager, Cliente, ClienteCreateRequest, ClienteUpdateRequest } from '../hooks/useClientesManager';
 import ClienteCard from './ClienteCard';
-import ClienteModal from './ClienteModal';
+import ClienteModalMejorado from './ClienteModalMejorado';
+import ClienteDetailModal from './ClienteDetailModal';
 import { Icons } from './Icons';
 
 const ClientesList: React.FC = () => {
@@ -16,6 +17,8 @@ const ClientesList: React.FC = () => {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
+    const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
     const handleOpenModal = (cliente: Cliente | null = null) => {
         setEditingCliente(cliente);
@@ -25,6 +28,23 @@ const ClientesList: React.FC = () => {
     const handleCloseModal = () => {
         setIsModalOpen(false);
         setEditingCliente(null);
+    };
+
+    const handleClienteClick = (cliente: Cliente) => {
+        setSelectedCliente(cliente);
+        setIsDetailModalOpen(true);
+    };
+
+    const handleCloseDetailModal = () => {
+        setIsDetailModalOpen(false);
+        setSelectedCliente(null);
+    };
+
+    const handlePedidoClick = (pedidoId: string) => {
+        // Aquí puedes implementar la navegación al pedido
+        // Por ahora solo mostramos un log
+        console.log('Navegar al pedido:', pedidoId);
+        // Si tienes navegación, puedes usar: window.location.href = `/pedidos/${pedidoId}`;
     };
 
     const handleSave = async (data: ClienteCreateRequest | ClienteUpdateRequest, id?: string) => {
@@ -91,6 +111,7 @@ const ClientesList: React.FC = () => {
                         cliente={cliente}
                         onEdit={handleOpenModal}
                         onDelete={handleDelete}
+                        onClick={handleClienteClick}
                     />
                 ))}
             </div>
@@ -115,11 +136,20 @@ const ClientesList: React.FC = () => {
             {renderContent()}
 
             {isModalOpen && (
-                <ClienteModal
+                <ClienteModalMejorado
                     isOpen={isModalOpen}
                     onClose={handleCloseModal}
                     onSave={handleSave}
                     cliente={editingCliente}
+                />
+            )}
+
+            {isDetailModalOpen && selectedCliente && (
+                <ClienteDetailModal
+                    isOpen={isDetailModalOpen}
+                    onClose={handleCloseDetailModal}
+                    cliente={selectedCliente}
+                    onPedidoClick={handlePedidoClick}
                 />
             )}
         </div>

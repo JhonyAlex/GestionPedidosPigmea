@@ -1894,6 +1894,29 @@ app.get('/api/clientes/:id/historial', requirePermission('clientes.view'), async
     }
 });
 
+// GET /api/clientes/:id/pedidos - Get all orders for a client with optional filtering
+app.get('/api/clientes/:id/pedidos', requirePermission('clientes.view'), async (req, res) => {
+    try {
+        const { estado } = req.query; // activo, completado, archivado, produccion
+        const pedidos = await dbClient.getClientePedidos(req.params.id, estado);
+        res.status(200).json(pedidos);
+    } catch (error) {
+        console.error(`Error in GET /api/clientes/${req.params.id}/pedidos:`, error);
+        res.status(500).json({ message: "Error interno del servidor al obtener los pedidos del cliente." });
+    }
+});
+
+// GET /api/clientes/:id/estadisticas - Get statistics for a client
+app.get('/api/clientes/:id/estadisticas', requirePermission('clientes.view'), async (req, res) => {
+    try {
+        const estadisticas = await dbClient.getClienteEstadisticas(req.params.id);
+        res.status(200).json(estadisticas);
+    } catch (error) {
+        console.error(`Error in GET /api/clientes/${req.params.id}/estadisticas:`, error);
+        res.status(500).json({ message: "Error interno del servidor al obtener las estadísticas del cliente." });
+    }
+});
+
 // POST /api/clientes - Create a new cliente
 app.post('/api/clientes', requirePermission('clientes.create'), async (req, res) => {
     try {

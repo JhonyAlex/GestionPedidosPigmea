@@ -1459,6 +1459,98 @@ class PostgreSQLClient {
         }
     }
 
+    async getClientePedidos(clienteId, estado = null) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            let whereClause = 'WHERE cliente_id = $1';
+            const queryParams = [clienteId];
+
+            // Filtrar por estado de pedido
+            if (estado === 'activo') {
+                whereClause += ` AND etapa_actual NOT IN ('COMPLETADO', 'ARCHIVADO')`;
+            } else if (estado === 'completado') {
+                whereClause += ` AND etapa_actual = 'COMPLETADO'`;
+            } else if (estado === 'archivado') {
+                whereClause += ` AND etapa_actual = 'ARCHIVADO'`;
+            } else if (estado === 'produccion') {
+                whereClause += ` AND etapa_actual IN (
+                    'PREPARACION', 'PENDIENTE',
+                    'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
+                    'POST_LAMINACION_SL2', 'POST_LAMINACION_NEXUS',
+                    'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',
+                    'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_REBOBINADO_TEMAC'
+                )`;
+            }
+
+            const query = `
+                SELECT 
+                    id,
+                    data,
+                    etapa_actual,
+                    fecha_creacion,
+                    fecha_actualizacion
+                FROM pedidos
+                ${whereClause}
+                ORDER BY fecha_creacion DESC
+            `;
+
+            const result = await client.query(query, queryParams);
+            
+            // Transformar los pedidos para que tengan el formato esperado
+            const pedidos = result.rows.map(row => {
+                const pedidoData = row.data || {};
+                return {
+                    id: row.id,
+                    ...pedidoData,
+                    etapaActual: row.etapa_actual,
+                    fechaCreacion: row.fecha_creacion,
+                    fechaActualizacion: row.fecha_actualizacion
+                };
+            });
+
+            return pedidos;
+        } finally {
+            client.release();
+        }
+    }
+
+    async getClienteEstadisticas(clienteId) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                SELECT 
+                    COUNT(*) FILTER (WHERE etapa_actual IN (
+                        'PREPARACION', 'PENDIENTE',
+                        'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
+                        'POST_LAMINACION_SL2', 'POST_LAMINACION_NEXUS',
+                        'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',
+                        'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_REBOBINADO_TEMAC'
+                    )) as pedidos_en_produccion,
+                    COUNT(*) FILTER (WHERE etapa_actual = 'COMPLETADO') as pedidos_completados,
+                    COUNT(*) FILTER (WHERE etapa_actual = 'ARCHIVADO') as pedidos_archivados,
+                    COUNT(*) as total_pedidos,
+                    SUM((data->>'metros')::numeric) FILTER (WHERE etapa_actual = 'COMPLETADO') as metros_producidos,
+                    MAX(fecha_creacion) as ultimo_pedido_fecha
+                FROM pedidos
+                WHERE cliente_id = $1
+            `;
+
+            const result = await client.query(query, [clienteId]);
+            return result.rows[0] || {
+                pedidos_en_produccion: 0,
+                pedidos_completados: 0,
+                pedidos_archivados: 0,
+                total_pedidos: 0,
+                metros_producidos: 0,
+                ultimo_pedido_fecha: null
+            };
+        } finally {
+            client.release();
+        }
+    }
+
     async getClienteStats() {
         if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Cliente } from '../hooks/useClientesManager';
 import { Icons } from './Icons';
 
@@ -6,11 +6,50 @@ interface ClienteCardProps {
   cliente: Cliente;
   onEdit: (cliente: Cliente) => void;
   onDelete: (cliente: Cliente) => void;
+  onClick?: (cliente: Cliente) => void;
 }
 
-const ClienteCard: React.FC<ClienteCardProps> = ({ cliente, onEdit, onDelete }) => {
+interface ClienteStats {
+  pedidos_en_produccion: number;
+  pedidos_completados: number;
+  total_pedidos: number;
+}
+
+const ClienteCard: React.FC<ClienteCardProps> = ({ cliente, onEdit, onDelete, onClick }) => {
+  const [stats, setStats] = useState<ClienteStats | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+
+  useEffect(() => {
+    fetchClienteStats();
+  }, [cliente.id]);
+
+  const fetchClienteStats = async () => {
+    setIsLoadingStats(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/clientes/${cliente.id}/estadisticas`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setStats({
+          pedidos_en_produccion: parseInt(data.pedidos_en_produccion || 0),
+          pedidos_completados: parseInt(data.pedidos_completados || 0),
+          total_pedidos: parseInt(data.total_pedidos || 0)
+        });
+      }
+    } catch (error) {
+      console.error('Error al cargar estadísticas del cliente:', error);
+    } finally {
+      setIsLoadingStats(false);
+    }
+  };
+
   const getStatusChipColor = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'activo':
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
       case 'inactivo':
@@ -22,8 +61,31 @@ const ClienteCard: React.FC<ClienteCardProps> = ({ cliente, onEdit, onDelete }) 
     }
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // No ejecutar onClick si se clickeó en un botón de acción
+    if ((e.target as HTMLElement).closest('button')) {
+      return;
+    }
+    if (onClick) {
+      onClick(cliente);
+    }
+  };
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEdit(cliente);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete(cliente);
+  };
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+    <div 
+      className={`bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden ${onClick ? 'cursor-pointer hover:scale-[1.02]' : ''}`}
+      onClick={handleCardClick}
+    >
       <div className="p-5">
         <div className="flex justify-between items-start">
           <div className="flex-grow">
@@ -34,14 +96,14 @@ const ClienteCard: React.FC<ClienteCardProps> = ({ cliente, onEdit, onDelete }) 
           </div>
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => onEdit(cliente)}
+              onClick={handleEditClick}
               className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               aria-label="Editar cliente"
             >
               <Icons.Edit className="h-5 w-5" />
             </button>
             <button
-              onClick={() => onDelete(cliente)}
+              onClick={handleDeleteClick}
               className="p-2 rounded-full text-gray-500 hover:bg-red-100 dark:hover:bg-red-900 hover:text-red-600 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               aria-label="Eliminar cliente"
             >
@@ -49,6 +111,34 @@ const ClienteCard: React.FC<ClienteCardProps> = ({ cliente, onEdit, onDelete }) 
             </button>
           </div>
         </div>
+
+        {/* Indicadores de pedidos */}
+        {stats && !isLoadingStats && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {stats.pedidos_en_produccion > 0 && (
+              <div className="flex items-center gap-1 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 rounded-full">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                  {stats.pedidos_en_produccion} en producción
+                </span>
+              </div>
+            )}
+            {stats.pedidos_completados > 0 && (
+              <div className="flex items-center gap-1 px-3 py-1 bg-green-50 dark:bg-green-900/30 rounded-full">
+                <span className="text-xs font-medium text-green-700 dark:text-green-300">
+                  {stats.pedidos_completados} completados
+                </span>
+              </div>
+            )}
+            {stats.total_pedidos === 0 && (
+              <div className="flex items-center gap-1 px-3 py-1 bg-gray-50 dark:bg-gray-700/30 rounded-full">
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  Sin pedidos
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="mt-4 space-y-3">
           <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
@@ -61,7 +151,12 @@ const ClienteCard: React.FC<ClienteCardProps> = ({ cliente, onEdit, onDelete }) 
           </div>
           <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
             <Icons.Email className="h-4 w-4 mr-2 text-gray-400" />
-            <a href={`mailto:${cliente.email}`} className="hover:underline truncate" title={cliente.email}>
+            <a 
+              href={`mailto:${cliente.email}`} 
+              className="hover:underline truncate" 
+              title={cliente.email}
+              onClick={(e) => e.stopPropagation()}
+            >
               {cliente.email}
             </a>
           </div>
@@ -71,14 +166,21 @@ const ClienteCard: React.FC<ClienteCardProps> = ({ cliente, onEdit, onDelete }) 
           </div>
         </div>
       </div>
-      <div className="bg-gray-50 dark:bg-gray-700/50 px-5 py-2">
+      <div className="bg-gray-50 dark:bg-gray-700/50 px-5 py-3">
         <div className="flex justify-between items-center">
             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusChipColor(cliente.estado)}`}>
                 {cliente.estado.charAt(0).toUpperCase() + cliente.estado.slice(1)}
             </span>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-                ID: {cliente.id.slice(0, 8)}...
-            </p>
+            <div className="flex items-center gap-2">
+              {onClick && (
+                <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                  Ver detalles →
+                </span>
+              )}
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                  ID: {cliente.id.slice(0, 8)}...
+              </p>
+            </div>
         </div>
       </div>
     </div>
