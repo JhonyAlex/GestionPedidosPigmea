@@ -42,9 +42,9 @@ const PreparacionView: React.FC<PreparacionViewProps> = ({
         <main className="flex-grow p-4 md:p-8">
              <h2 className="text-3xl font-extrabold text-gray-800 dark:text-white mb-6 border-l-4 border-yellow-500 pl-4">Preparación de Pedidos</h2>
              
-             {/* FILA 1: Problemas de disponibilidad */}
+             {/* FILA 1: Gestión Suministros - 2 columnas */}
              <div className="mb-6">
-                 <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3 uppercase tracking-wide">Bloqueos de Disponibilidad</h3>
+                 <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3 uppercase tracking-wide">Gestión Suministros</h3>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {PREPARACION_COLUMNS.slice(0, 2).map(columna => (
                         <PreparacionColumn
@@ -65,11 +65,11 @@ const PreparacionView: React.FC<PreparacionViewProps> = ({
                  </div>
              </div>
 
-             {/* FILA 2: Estados del cliché - Repeticiones */}
+             {/* FILA 2: Estado Cliché - 3 columnas */}
              <div className="mb-6">
-                 <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3 uppercase tracking-wide">Estado de Clichés - Repeticiones</h3>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {PREPARACION_COLUMNS.slice(2, 4).map(columna => (
+                 <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3 uppercase tracking-wide">Estado Cliché</h3>
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {PREPARACION_COLUMNS.slice(2, 5).map(columna => (
                         <PreparacionColumn
                             key={columna.id}
                             columna={columna}
@@ -88,11 +88,11 @@ const PreparacionView: React.FC<PreparacionViewProps> = ({
                  </div>
              </div>
 
-             {/* FILA 3: Cliché Nuevo + Listo para Producción */}
+             {/* FILA 3: Listos para Fabricación - 1 columna */}
              <div className="mb-6">
-                 <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3 uppercase tracking-wide">Cliché Nuevo y Producción</h3>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {PREPARACION_COLUMNS.slice(4, 6).map(columna => (
+                 <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3 uppercase tracking-wide">Listos para Fabricación</h3>
+                 <div className="grid grid-cols-1 gap-6">
+                    {PREPARACION_COLUMNS.slice(5, 6).map(columna => (
                         <PreparacionColumn
                             key={columna.id}
                             columna={columna}

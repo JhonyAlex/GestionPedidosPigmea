@@ -35,16 +35,16 @@ export const PREPARACION_SUB_ETAPAS_IDS = {
 
 
 export const PREPARACION_COLUMNS = [
-    // FILA 1: Problemas de disponibilidad
+    // FILA 1: Gestión Suministros (2 columnas)
     { id: PREPARACION_SUB_ETAPAS_IDS.MATERIAL_NO_DISPONIBLE, title: 'Material No Disponible', color: 'bg-red-500' },
     { id: PREPARACION_SUB_ETAPAS_IDS.CLICHE_NO_DISPONIBLE, title: 'Cliché no disponible', color: 'bg-yellow-600' },
     
-    // FILA 2: Estados del cliché - Repeticiones
+    // FILA 2: Estado Cliché (3 columnas)
     { id: PREPARACION_SUB_ETAPAS_IDS.CLICHE_PENDIENTE, title: 'Cliché: REPETICIÓN', color: 'bg-blue-500' },
     { id: PREPARACION_SUB_ETAPAS_IDS.CLICHE_REPETICION, title: 'Cliché: REPETICIÓN CON CAMBIO', color: 'bg-indigo-500' },
-    
-    // FILA 3: Estados del cliché - Nuevo + Producción
     { id: PREPARACION_SUB_ETAPAS_IDS.CLICHE_NUEVO, title: 'Cliché: NUEVO', color: 'bg-purple-500' },
+    
+    // FILA 3: Listos para Fabricación (1 columna)
     { id: PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION, title: 'Listo para Producción', color: 'bg-green-500' },
 ];
 
