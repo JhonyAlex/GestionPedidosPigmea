@@ -151,3 +151,10 @@ Para evitar este tipo de problemas en el futuro:
 - Siempre que se agregue un campo de selección relacionado a otra tabla, asegurarse de capturar tanto el **nombre** (para display) como el **ID** (para referencias).
 - Agregar tests que verifiquen la integridad referencial entre pedidos y clientes.
 - Considerar agregar una migración de datos para actualizar pedidos antiguos que no tengan `cliente_id`.
+
+## 🔗 Soluciones Relacionadas
+
+Esta solución trabaja en conjunto con:
+- **`SOLUCION_ERROR_AUTENTICACION_CLIENTES.md`**: Soluciona el problema de autenticación al visualizar los pedidos de un cliente
+
+Ambas soluciones son necesarias para que el flujo completo funcione correctamente.

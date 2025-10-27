@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Cliente } from '../hooks/useClientesManager';
 import { Pedido } from '../types';
 import { Icons } from './Icons';
+import { clienteService } from '../services/clienteService';
 
 interface ClienteDetailModalProps {
     isOpen: boolean;
@@ -19,9 +20,6 @@ interface ClienteEstadisticas {
     metros_producidos: number;
     ultimo_pedido_fecha: string | null;
 }
-
-let missingTokenWarningLoggedDetail = false;
-const unauthorizedDetailWarnings = new Set<string>();
 
 const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose, cliente, onPedidoClick, onCrearPedido }) => {
     const [activeTab, setActiveTab] = useState<'info' | 'preparacion' | 'produccion' | 'completados' | 'archivados'>('info');
@@ -41,82 +39,50 @@ const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose
     const fetchClienteData = async () => {
         setIsLoading(true);
         try {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                if (!missingTokenWarningLoggedDetail) {
-                    console.warn('ClienteDetailModal: no hay token de autenticación, omitiendo carga de datos del cliente.');
-                    missingTokenWarningLoggedDetail = true;
-                }
-                setPedidosPreparacion([]);
-                setPedidosProduccion([]);
-                setPedidosCompletados([]);
-                setPedidosArchivados([]);
-                setEstadisticas(null);
-                return;
-            }
-            const headers = {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            };
-
+            // ✅ Usar el servicio en lugar de fetch directo
+            
             // Fetch estadísticas
-            const statsResponse = await fetch(`/api/clientes/${cliente.id}/estadisticas`, { headers });
-            if (statsResponse.status === 401) {
-                if (!unauthorizedDetailWarnings.has('estadisticas')) {
-                    console.warn('ClienteDetailModal: acceso no autorizado a /estadisticas. Verifica la sesión del usuario.');
-                    unauthorizedDetailWarnings.add('estadisticas');
-                }
-            } else if (statsResponse.ok) {
-                const stats = await statsResponse.json();
+            try {
+                const stats = await clienteService.obtenerEstadisticasCliente(cliente.id);
                 setEstadisticas(stats);
+            } catch (error) {
+                console.error('Error al cargar estadísticas:', error);
             }
 
             // Fetch pedidos en preparación (PREPARACION y PENDIENTE)
-            const preparacionResponse = await fetch(`/api/clientes/${cliente.id}/pedidos?estado=preparacion`, { headers });
-            if (preparacionResponse.status === 401) {
-                if (!unauthorizedDetailWarnings.has('preparacion')) {
-                    console.warn('ClienteDetailModal: acceso no autorizado a /pedidos?estado=preparacion.');
-                    unauthorizedDetailWarnings.add('preparacion');
-                }
-            } else if (preparacionResponse.ok) {
-                const preparacion = await preparacionResponse.json();
+            try {
+                const preparacion = await clienteService.obtenerPedidosCliente(cliente.id, 'preparacion');
                 setPedidosPreparacion(preparacion);
+            } catch (error) {
+                console.error('Error al cargar pedidos en preparación:', error);
+                setPedidosPreparacion([]);
             }
 
             // Fetch pedidos en producción (IMPRESION_* y POST_*)
-            const produccionResponse = await fetch(`/api/clientes/${cliente.id}/pedidos?estado=produccion`, { headers });
-            if (produccionResponse.status === 401) {
-                if (!unauthorizedDetailWarnings.has('produccion')) {
-                    console.warn('ClienteDetailModal: acceso no autorizado a /pedidos?estado=produccion.');
-                    unauthorizedDetailWarnings.add('produccion');
-                }
-            } else if (produccionResponse.ok) {
-                const produccion = await produccionResponse.json();
+            try {
+                const produccion = await clienteService.obtenerPedidosCliente(cliente.id, 'produccion');
                 setPedidosProduccion(produccion);
+            } catch (error) {
+                console.error('Error al cargar pedidos en producción:', error);
+                setPedidosProduccion([]);
             }
 
             // Fetch pedidos completados
-            const completadosResponse = await fetch(`/api/clientes/${cliente.id}/pedidos?estado=completado`, { headers });
-            if (completadosResponse.status === 401) {
-                if (!unauthorizedDetailWarnings.has('completado')) {
-                    console.warn('ClienteDetailModal: acceso no autorizado a /pedidos?estado=completado.');
-                    unauthorizedDetailWarnings.add('completado');
-                }
-            } else if (completadosResponse.ok) {
-                const completados = await completadosResponse.json();
+            try {
+                const completados = await clienteService.obtenerPedidosCliente(cliente.id, 'completado');
                 setPedidosCompletados(completados.slice(0, 10)); // Solo los últimos 10
+            } catch (error) {
+                console.error('Error al cargar pedidos completados:', error);
+                setPedidosCompletados([]);
             }
 
             // Fetch pedidos archivados
-            const archivadosResponse = await fetch(`/api/clientes/${cliente.id}/pedidos?estado=archivado`, { headers });
-            if (archivadosResponse.status === 401) {
-                if (!unauthorizedDetailWarnings.has('archivado')) {
-                    console.warn('ClienteDetailModal: acceso no autorizado a /pedidos?estado=archivado.');
-                    unauthorizedDetailWarnings.add('archivado');
-                }
-            } else if (archivadosResponse.ok) {
-                const archivados = await archivadosResponse.json();
+            try {
+                const archivados = await clienteService.obtenerPedidosCliente(cliente.id, 'archivado');
                 setPedidosArchivados(archivados.slice(0, 10)); // Solo los últimos 10
+            } catch (error) {
+                console.error('Error al cargar pedidos archivados:', error);
+                setPedidosArchivados([]);
             }
         } catch (error) {
             console.error('Error al cargar datos del cliente:', error);
