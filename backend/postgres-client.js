@@ -1532,13 +1532,7 @@ class PostgreSQLClient {
                         'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',
                         'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_REBOBINADO_TEMAC'
                     )) as pedidos_en_produccion,
-                    COUNT(*) FILTER (WHERE etapa_actual IN (
-                        'PREPARACION', 'PENDIENTE',
-                        'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
-                        'POST_LAMINACION_SL2', 'POST_LAMINACION_NEXUS',
-                        'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',
-                        'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_REBOBINADO_TEMAC'
-                    ) AND estado NOT IN ('cancelado', 'archivado')) as pedidos_activos,
+                    COUNT(*) FILTER (WHERE etapa_actual NOT IN ('COMPLETADO', 'ARCHIVADO', 'CANCELADO')) as pedidos_activos,
                     COUNT(*) FILTER (WHERE etapa_actual = 'COMPLETADO') as pedidos_completados,
                     COUNT(*) FILTER (WHERE etapa_actual = 'ARCHIVADO') as pedidos_archivados,
                     COUNT(*) as total_pedidos,
