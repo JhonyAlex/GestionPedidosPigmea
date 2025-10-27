@@ -11,9 +11,9 @@ export enum TipoImpresion {
 }
 
 export enum EstadoCliché {
-    PENDIENTE_CLIENTE = 'Pendiente cliente',
-    REPETICION_CAMBIO = 'Repetición/Cambio',
-    NUEVO = 'Nuevo',
+    PENDIENTE_CLIENTE = 'REPETICIÓN',
+    REPETICION_CAMBIO = 'REPETICIÓN CON CAMBIO',
+    NUEVO = 'NUEVO',
 }
 
 
