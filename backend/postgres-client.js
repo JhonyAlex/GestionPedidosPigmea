@@ -1584,7 +1584,7 @@ class PostgreSQLClient {
             if (deletePedidos) {
                 // Primero eliminamos los comentarios de los pedidos del cliente
                 await client.query(`
-                    DELETE FROM comentarios_pedidos
+                    DELETE FROM pedido_comments
                     WHERE pedido_id IN (
                         SELECT id FROM pedidos WHERE cliente_id = $1
                     )
@@ -1601,7 +1601,7 @@ class PostgreSQLClient {
                 // Verificamos si tiene pedidos activos
                 const pedidosCheck = await client.query(
                     `SELECT COUNT(*) as count FROM pedidos 
-                     WHERE cliente_id = $1 AND estado NOT IN ('entregado', 'archivado', 'cancelado')`,
+                     WHERE cliente_id = $1 AND etapa_actual NOT IN ('COMPLETADO', 'ARCHIVADO', 'CANCELADO')`,
                     [id]
                 );
                 
