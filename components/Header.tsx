@@ -1,10 +1,11 @@
 
 
 import React, { useState, useEffect } from 'react';
-import { ViewType, Prioridad, Etapa, UserRole, Pedido } from '../types';
+import { ViewType, Prioridad, Etapa, UserRole, Pedido, DateField, WeekFilter as WeekFilterType } from '../types';
 import { ETAPAS_KANBAN, ETAPAS, STAGE_GROUPS } from '../constants';
 import { DateFilterOption } from '../utils/date';
 import UserInfo from './UserInfo';
+import WeekFilter from './WeekFilter';
 import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
 
@@ -21,6 +22,10 @@ interface HeaderProps {
     onAntivahoFilterChange: (value: 'all' | 'con' | 'sin' | 'hecho') => void;
     preparacionFilter?: 'all' | 'sin-material' | 'sin-cliche' | 'listo';
     onPreparacionFilterChange?: (value: 'all' | 'sin-material' | 'sin-cliche' | 'listo') => void;
+    weekFilter: WeekFilterType;
+    onWeekFilterToggle: () => void;
+    onWeekChange: (year: number, week: number) => void;
+    onWeekDateFieldChange: (dateField: DateField) => void;
     onDateFilterChange: (value: DateFilterOption) => void;
     activeDateFilter: DateFilterOption;
     customDateRange: { start: string; end: string };
@@ -69,6 +74,10 @@ const Header: React.FC<HeaderProps> = ({
     onAntivahoFilterChange,
     preparacionFilter = 'all',
     onPreparacionFilterChange,
+    weekFilter,
+    onWeekFilterToggle,
+    onWeekChange,
+    onWeekDateFieldChange,
     onDateFilterChange,
     activeDateFilter,
     customDateRange,
@@ -256,6 +265,14 @@ const Header: React.FC<HeaderProps> = ({
                                 />
                             </div>
                         )}
+
+                        {/* Filtro de Semana */}
+                        <WeekFilter
+                            weekFilter={weekFilter}
+                            onToggle={onWeekFilterToggle}
+                            onWeekChange={onWeekChange}
+                            onDateFieldChange={onWeekDateFieldChange}
+                        />
 
                         <select
                             name="priority"

@@ -130,6 +130,10 @@ const AppContent: React.FC = () => {
       handleAntivahoFilterChange,
       preparacionFilter,
       handlePreparacionFilterChange,
+      weekFilter,
+      handleWeekFilterToggle,
+      handleWeekChange,
+      handleWeekDateFieldChange,
       dateFilter,
       handleDateFilterChange,
       customDateRange,
@@ -755,6 +759,10 @@ const AppContent: React.FC = () => {
                     onAntivahoFilterChange={handleAntivahoFilterChange}
                     preparacionFilter={preparacionFilter}
                     onPreparacionFilterChange={handlePreparacionFilterChange}
+                    weekFilter={weekFilter}
+                    onWeekFilterToggle={handleWeekFilterToggle}
+                    onWeekChange={handleWeekChange}
+                    onWeekDateFieldChange={handleWeekDateFieldChange}
                     onDateFilterChange={handleDateFilterChange}
                     activeDateFilter={dateFilter}
                     customDateRange={customDateRange}

@@ -133,6 +133,14 @@ export interface AuditEntry {
 
 export type DateField = 'fechaCreacion' | 'fechaEntrega' | 'nuevaFechaEntrega' | 'fechaFinalizacion';
 
+// Tipos para filtro de semana
+export interface WeekFilter {
+    enabled: boolean;
+    year: number;
+    week: number;
+    dateField: DateField;
+}
+
 // === TIPOS DE AUTENTICACIÓN ===
 
 export interface User {

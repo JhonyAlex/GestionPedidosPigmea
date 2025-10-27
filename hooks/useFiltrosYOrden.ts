@@ -1,7 +1,8 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Pedido, Prioridad, Etapa, DateField } from '../types';
+import { Pedido, Prioridad, Etapa, DateField, WeekFilter } from '../types';
 import { ETAPAS, PRIORIDAD_ORDEN } from '../constants';
 import { getDateRange, DateFilterOption } from '../utils/date';
+import { getCurrentWeek, isDateInWeek } from '../utils/weekUtils';
 
 
 export const useFiltrosYOrden = (pedidos: Pedido[]) => {
@@ -13,6 +14,15 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
     const [dateFilter, setDateFilter] = useState<DateFilterOption>('all');
     const [customDateRange, setCustomDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
     const [sortConfig, setSortConfig] = useState<{ key: keyof Pedido, direction: 'ascending' | 'descending' }>({ key: 'prioridad', direction: 'ascending' });
+    
+    // Estado para filtro de semana
+    const currentWeek = getCurrentWeek();
+    const [weekFilter, setWeekFilter] = useState<WeekFilter>({
+        enabled: false,
+        year: currentWeek.year,
+        week: currentWeek.week,
+        dateField: 'fechaEntrega'
+    });
 
     const handleFilterChange = (name: string, value: string) => setFilters(prev => ({ ...prev, [name]: value }));
     const handleDateFilterChange = (value: string) => setDateFilter(value as DateFilterOption);
@@ -22,6 +32,20 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         const { name, value } = e.target;
         setCustomDateRange(prev => ({ ...prev, [name]: value }));
     };
+    
+    // Handlers para filtro de semana
+    const handleWeekFilterToggle = useCallback(() => {
+        setWeekFilter(prev => ({ ...prev, enabled: !prev.enabled }));
+    }, []);
+    
+    const handleWeekChange = useCallback((year: number, week: number) => {
+        setWeekFilter(prev => ({ ...prev, year, week, enabled: true }));
+    }, []);
+    
+    const handleWeekDateFieldChange = useCallback((dateField: DateField) => {
+        setWeekFilter(prev => ({ ...prev, dateField }));
+    }, []);
+    
     const handleSort = useCallback((key: keyof Pedido) => {
         setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'ascending' ? 'descending' : 'ascending' }));
     }, []);
@@ -119,6 +143,17 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
                 (antivahoFilter === 'sin' && p.antivaho !== true) ||
                 (antivahoFilter === 'hecho' && p.antivaho === true && p.antivahoRealizado === true);
 
+            // Filtro de semana (tiene prioridad sobre filtro de fecha normal)
+            let weekMatch = true;
+            if (weekFilter.enabled) {
+                const dateToCheck = p[weekFilter.dateField];
+                if (dateToCheck) {
+                    weekMatch = isDateInWeek(dateToCheck, weekFilter.year, weekFilter.week);
+                } else {
+                    weekMatch = false;
+                }
+            }
+
             // Filtro de estado de preparación (solo aplica cuando está en etapa PREPARACION)
             let preparacionMatch = true;
             if (p.etapaActual === Etapa.PREPARACION && preparacionFilter !== 'all') {
@@ -135,7 +170,10 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
                 }
             }
 
-            return searchTermMatch && priorityMatch && stageMatch && dateMatch && antivahoMatch && preparacionMatch;
+            // Si el filtro de semana está activo, usar weekMatch en lugar de dateMatch
+            const finalDateMatch = weekFilter.enabled ? weekMatch : dateMatch;
+
+            return searchTermMatch && priorityMatch && stageMatch && finalDateMatch && antivahoMatch && preparacionMatch;
         });
 
         if (sortConfig.key) {
@@ -184,7 +222,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         
         return filtered;
 
-    }, [pedidos, searchTerm, filters, selectedStages, antivahoFilter, preparacionFilter, dateFilter, sortConfig, customDateRange]);
+    }, [pedidos, searchTerm, filters, selectedStages, antivahoFilter, preparacionFilter, dateFilter, sortConfig, customDateRange, weekFilter]);
 
     return {
         processedPedidos,
@@ -204,6 +242,10 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         handleDateFilterChange,
         customDateRange,
         handleCustomDateChange,
+        weekFilter,
+        handleWeekFilterToggle,
+        handleWeekChange,
+        handleWeekDateFieldChange,
         sortConfig,
         handleSort,
         updateSortConfig,
