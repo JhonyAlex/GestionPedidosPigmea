@@ -108,14 +108,14 @@ export const usePedidosManager = (
             const fieldsToCompare: Array<keyof Pedido> = [
                 // Información básica
                 'numeroPedidoCliente', 'cliente', 'metros', 'fechaEntrega', 'nuevaFechaEntrega', 'fechaFinalizacion', 'prioridad', 
-                'maquinaImpresion', 'orden',
+                'maquinaImpresion', 'orden', 'vendedor',
                 // Información de producción
                 'tipoImpresion', 'desarrollo', 'capa', 'tiempoProduccionPlanificado', 'tiempoTotalProduccion',
                 'observaciones', 
                 // Secuencia y etapas
                 'secuenciaTrabajo', 'subEtapaActual', 'etapasSecuencia',
                 // Datos de preparación
-                'materialDisponible', 'clicheDisponible', 'estadoCliché', 'camisa', 'antivaho', 'antivahoRealizado',
+                'materialDisponible', 'clicheDisponible', 'estadoCliché', 'clicheInfoAdicional', 'camisa', 'antivaho', 'antivahoRealizado',
                 // Datos técnicos de material (excluimos materialCapas, materialConsumo y numerosCompra para manejarlos por separado)
                 'producto', 'materialCapasCantidad', 'materialConsumoCantidad', 
                 'bobinaMadre', 'bobinaFinal', 'minAdap', 'colores', 'minColor'

@@ -769,7 +769,7 @@ class PostgreSQLClient {
             ];
             
             // Columnas opcionales que pueden no existir
-            const optionalColumns = ['nueva_fecha_entrega', 'numeros_compra', 'vendedor'];
+            const optionalColumns = ['nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'cliche_info_adicional'];
             
             // Construir lista de columnas a insertar
             const columnsToInsert = baseColumns.filter(col => existingColumns.includes(col));
@@ -814,6 +814,9 @@ class PostgreSQLClient {
             if (existingColumns.includes('vendedor')) {
                 values.push(pedido.vendedor || null);
             }
+            if (existingColumns.includes('cliche_info_adicional')) {
+                values.push(pedido.clicheInfoAdicional || null);
+            }
             
             // Construir placeholders para los valores
             const placeholders = columnsToInsert.map((_, index) => `$${index + 1}`).join(', ');
@@ -853,13 +856,14 @@ class PostgreSQLClient {
                 SELECT column_name 
                 FROM information_schema.columns 
                 WHERE table_name = 'pedidos' 
-                AND column_name IN ('nueva_fecha_entrega', 'numeros_compra', 'vendedor')
+                AND column_name IN ('nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'cliche_info_adicional')
             `);
             
             const existingColumns = columnsResult.rows.map(row => row.column_name);
             const hasNuevaFecha = existingColumns.includes('nueva_fecha_entrega');
             const hasNumerosCompra = existingColumns.includes('numeros_compra');
             const hasVendedor = existingColumns.includes('vendedor');
+            const hasClicheInfo = existingColumns.includes('cliche_info_adicional');
 
             // Construir query dinámicamente basado en columnas existentes
             const updateFields = [];
@@ -925,6 +929,12 @@ class PostgreSQLClient {
                 values.push(pedido.vendedor || null);
             }
 
+            // Agregar cliche_info_adicional solo si la columna existe
+            if (hasClicheInfo) {
+                updateFields.push(`cliche_info_adicional = $${paramIndex++}`);
+                values.push(pedido.clicheInfoAdicional || null);
+            }
+
             updateFields.push(`data = $${paramIndex++}`);
             values.push(JSON.stringify(pedido));
 
@@ -941,7 +951,7 @@ class PostgreSQLClient {
             `;
 
             console.log(`🔄 Actualizando pedido ${pedido.id} con columnas disponibles:`, 
-                      `nueva_fecha_entrega=${hasNuevaFecha}, numeros_compra=${hasNumerosCompra}, vendedor=${hasVendedor}`);
+                      `nueva_fecha_entrega=${hasNuevaFecha}, numeros_compra=${hasNumerosCompra}, vendedor=${hasVendedor}, cliche_info=${hasClicheInfo}`);
 
             const result = await client.query(query, values);
             if (result.rowCount === 0) throw new Error(`Pedido ${pedido.id} no encontrado para actualizar`);

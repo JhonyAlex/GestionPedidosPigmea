@@ -219,9 +219,44 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
 
             <div className="flex justify-between items-start mb-2">
                 <h3 className="font-bold text-base text-gray-800 dark:text-gray-100">{pedido.numeroPedidoCliente}</h3>
-                <div className="flex items-center">
+                <div className="flex items-center gap-2">
+                    {/* Indicador de preparación */}
+                    {pedido.etapaActual === Etapa.PREPARACION && (
+                        <div className="flex items-center gap-1">
+                            {!pedido.materialDisponible && (
+                                <span 
+                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 cursor-help" 
+                                    title="❌ Material no disponible - Se requiere material para continuar"
+                                >
+                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                    </svg>
+                                </span>
+                            )}
+                            {!pedido.clicheDisponible && (
+                                <span 
+                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 cursor-help" 
+                                    title={`⚠️ Cliché no disponible${pedido.estadoCliché ? ` - Estado: ${pedido.estadoCliché}` : ''}${pedido.clicheInfoAdicional ? `\nInfo: ${pedido.clicheInfoAdicional}` : ''}`}
+                                >
+                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                </span>
+                            )}
+                            {pedido.materialDisponible && pedido.clicheDisponible && (
+                                <span 
+                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 cursor-help" 
+                                    title={`✅ Pedido listo para producción - Material y cliché disponibles${pedido.clicheInfoAdicional ? `\nCliché: ${pedido.clicheInfoAdicional}` : ''}`}
+                                >
+                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                </span>
+                            )}
+                        </div>
+                    )}
                     {pedido.antivaho && (
-                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ml-2 ${
+                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
                             pedido.antivahoRealizado 
                                 ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200' 
                                 : 'bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-200'

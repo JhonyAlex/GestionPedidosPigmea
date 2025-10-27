@@ -47,7 +47,7 @@ interface PedidoModalProps {
 
 const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onArchiveToggle, currentUserRole, onAdvanceStage, onSendToPrint, onDuplicate, onDelete, onSetReadyForProduction, onUpdateEtapa, isConnected = false }) => {
     const [formData, setFormData] = useState<Pedido>(JSON.parse(JSON.stringify(pedido)));
-    const [activeTab, setActiveTab] = useState<'detalles' | 'historial'>('detalles');
+    const [activeTab, setActiveTab] = useState<'detalles' | 'gestion' | 'historial'>('detalles');
     const [showConfirmClose, setShowConfirmClose] = useState(false);
     const [nuevoVendedor, setNuevoVendedor] = useState('');
     const [showVendedorInput, setShowVendedorInput] = useState(false);
@@ -112,10 +112,25 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     };
 
     const handleReadyForProductionClick = () => {
-        if (!formData.materialDisponible || !formData.clicheDisponible) {
-            alert('Advertencia: No se puede mover el pedido a "Listo para Producción".\n\nCondiciones requeridas:\n- Material Disponible: Activo\n- Cliché Disponible: Activo');
+        const errors: string[] = [];
+        
+        if (!formData.materialDisponible) {
+            errors.push('❌ Material NO está disponible');
+        }
+        if (!formData.clicheDisponible) {
+            errors.push(`⚠️ Cliché NO está disponible${formData.estadoCliché ? ` (Estado: ${formData.estadoCliché})` : ''}`);
+        }
+        
+        if (errors.length > 0) {
+            alert(
+                '🚫 No se puede marcar como "Listo para Producción"\n\n' +
+                'Problemas encontrados:\n' +
+                errors.join('\n') +
+                '\n\nPor favor, asegúrese de que tanto el material como el cliché estén disponibles antes de continuar.'
+            );
             return;
         }
+        
         onSetReadyForProduction(formData);
         onClose();
     };
@@ -207,6 +222,17 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     };
 
     const handleSendToPrintClick = () => {
+        // Validaciones
+        if (!formData.materialDisponible) {
+            alert('⚠️ No se puede enviar a impresión\n\nEl material NO está disponible. Por favor, marque el material como disponible antes de continuar.');
+            return;
+        }
+        
+        if (formData.antivaho && (!formData.secuenciaTrabajo || formData.secuenciaTrabajo.length === 0)) {
+            alert('⚠️ Secuencia de trabajo requerida\n\nEste pedido tiene Antivaho marcado. Debe definir la secuencia de trabajo de post-impresión antes de continuar.');
+            return;
+        }
+        
         // Asegurar que se guarden los cambios antes de enviar a impresión
         const updatedPedido = { ...pedido, ...formData };
         onSendToPrint(updatedPedido);
@@ -365,6 +391,12 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                 Detalles del Pedido
                             </button>
                             <button 
+                                onClick={() => setActiveTab('gestion')} 
+                                className={`py-2 px-4 text-sm font-medium transition-colors duration-200 ${activeTab === 'gestion' ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                            >
+                                Gestión de pedido
+                            </button>
+                            <button 
                                 onClick={() => setActiveTab('historial')} 
                                 className={`py-2 px-4 text-sm font-medium transition-colors duration-200 ${activeTab === 'historial' ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
                             >
@@ -406,29 +438,6 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                         )}
                         <form onSubmit={handleSubmit}>
                             <fieldset disabled={isReadOnly}>
-                                {pedido.etapaActual === Etapa.PREPARACION && (
-                                    <div className="bg-yellow-100 dark:bg-yellow-900/50 border border-yellow-300 dark:border-yellow-700 rounded-lg p-4 mb-6">
-                                        <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-3">Configuración de Preparación</h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Estado del Cliché</label>
-                                                <select name="estadoCliché" value={formData.estadoCliché} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5">
-                                                    {Object.values(EstadoCliché).map(t => <option key={t} value={t}>{t}</option>)}
-                                                </select>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-y-4 pt-6">
-                                                <div className="flex items-center">
-                                                    <input type="checkbox" id="materialDisponible" name="materialDisponible" checked={!!formData.materialDisponible} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                                                    <label htmlFor="materialDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Material Disponible</label>
-                                                </div>
-                                                <div className="flex items-center">
-                                                    <input type="checkbox" id="clicheDisponible" name="clicheDisponible" checked={!!formData.clicheDisponible} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                                                    <label htmlFor="clicheDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Cliché Disponible</label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {/* Columna Izquierda */}
                                     <div>
@@ -572,17 +581,6 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                     <h3 className="text-xl font-semibold mb-4">Secuencia de Trabajo Post-Impresión</h3>
                                     <SequenceBuilder sequence={formData.secuenciaTrabajo || []} onChange={handleSequenceChange} isReadOnly={isReadOnly} />
                                 </div>
-
-                                <SeccionDatosTecnicosDeMaterial
-                                    formData={formData}
-                                    onDataChange={handleDataChange}
-                                    isReadOnly={isReadOnly}
-                                />
-
-                                <div className="md:col-span-2 mt-6">
-                                    <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Observaciones</label>
-                                    <textarea name="observaciones" value={formData.observaciones} onChange={handleChange} rows={3} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"></textarea>
-                                </div>
                             </fieldset>
 
                             <div className="mt-8 flex justify-between items-center">
@@ -645,6 +643,179 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                             </div>
                         </form>
                         </>
+                    )}
+                    {activeTab === 'gestion' && (
+                        <form onSubmit={handleSubmit}>
+                            <fieldset disabled={isReadOnly}>
+                                {/* Resumen del estado */}
+                                <div className={`rounded-lg p-4 mb-6 border-2 ${
+                                    formData.materialDisponible && formData.clicheDisponible 
+                                        ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700' 
+                                        : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
+                                }`}>
+                                    <h3 className={`text-lg font-semibold mb-2 ${
+                                        formData.materialDisponible && formData.clicheDisponible 
+                                            ? 'text-green-800 dark:text-green-200' 
+                                            : 'text-yellow-800 dark:text-yellow-200'
+                                    }`}>
+                                        📋 Resumen del Estado
+                                    </h3>
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`font-medium ${formData.materialDisponible ? 'text-green-700 dark:text-green-300' : 'text-gray-600 dark:text-gray-400'}`}>
+                                                {formData.materialDisponible ? '✓' : '○'} Material:
+                                            </span>
+                                            <span className={formData.materialDisponible ? 'text-green-600 dark:text-green-400 font-semibold' : 'text-gray-500 dark:text-gray-500'}>
+                                                {formData.materialDisponible ? 'Disponible' : 'Pendiente'}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`font-medium ${formData.clicheDisponible ? 'text-green-700 dark:text-green-300' : 'text-gray-600 dark:text-gray-400'}`}>
+                                                {formData.clicheDisponible ? '✓' : '○'} Cliché:
+                                            </span>
+                                            <span className={formData.clicheDisponible ? 'text-green-600 dark:text-green-400 font-semibold' : 'text-gray-500 dark:text-gray-500'}>
+                                                {formData.clicheDisponible ? 'Disponible' : formData.estadoCliché || 'Pendiente'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Configuración de Preparación */}
+                                <div className={`rounded-lg p-4 mb-6 border ${
+                                    formData.materialDisponible && formData.clicheDisponible 
+                                        ? 'bg-green-50 dark:bg-green-900/10 border-green-300 dark:border-green-700' 
+                                        : 'bg-yellow-100 dark:bg-yellow-900/50 border-yellow-300 dark:border-yellow-700'
+                                }`}>
+                                    <h3 className={`text-lg font-semibold mb-3 ${
+                                        formData.materialDisponible && formData.clicheDisponible 
+                                            ? 'text-green-800 dark:text-green-200' 
+                                            : 'text-yellow-800 dark:text-yellow-200'
+                                    }`}>
+                                        ⚙️ Configuración de Preparación
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Estado del Cliché</label>
+                                            <select name="estadoCliché" value={formData.estadoCliché} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5">
+                                                {Object.values(EstadoCliché).map(t => <option key={t} value={t}>{t}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                Información Adicional Cliché
+                                                {!formData.clicheDisponible && (
+                                                    <span className="text-xs text-gray-500 ml-1">(Se habilitará al marcar "Cliché Disponible")</span>
+                                                )}
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                name="clicheInfoAdicional" 
+                                                value={formData.clicheInfoAdicional || ''} 
+                                                onChange={handleChange} 
+                                                placeholder="Ej: Recibido 27/10, ID: CLH-123, Aprobado por cliente"
+                                                maxLength={200}
+                                                disabled={isReadOnly || !formData.clicheDisponible}
+                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                title={!formData.clicheDisponible ? "Marque 'Cliché Disponible' para habilitar este campo" : ""}
+                                            />
+                                            {formData.clicheInfoAdicional && (
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    {formData.clicheInfoAdicional.length}/200 caracteres
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center pt-2">
+                                            <input type="checkbox" id="materialDisponible" name="materialDisponible" checked={!!formData.materialDisponible} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                            <label htmlFor="materialDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Material Disponible</label>
+                                        </div>
+                                        <div className="flex items-center pt-2">
+                                            <input type="checkbox" id="clicheDisponible" name="clicheDisponible" checked={!!formData.clicheDisponible} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                            <label htmlFor="clicheDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Cliché Disponible</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Sección de Materiales */}
+                                <SeccionDatosTecnicosDeMaterial
+                                    formData={formData}
+                                    onDataChange={handleDataChange}
+                                    isReadOnly={isReadOnly}
+                                />
+
+                                {/* Observaciones */}
+                                <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
+                                    <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">📝 Observaciones del Pedido</label>
+                                    <textarea 
+                                        name="observaciones" 
+                                        value={formData.observaciones} 
+                                        onChange={handleChange} 
+                                        rows={4} 
+                                        placeholder="Notas importantes sobre el pedido, instrucciones especiales, etc."
+                                        className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"
+                                    ></textarea>
+                                </div>
+
+                                {/* Botones de acción */}
+                                <div className="mt-8 flex justify-between items-center">
+                                    {isReadOnly ? (
+                                        <span className="text-sm text-gray-500">Modo de solo lectura - No tiene permisos de edición.</span>
+                                    ) : (
+                                        <div className="flex gap-2">
+                                            {canArchivePedidos() && (
+                                                <button type="button" onClick={handleArchiveClick} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled={pedido.etapaActual !== Etapa.COMPLETADO && pedido.etapaActual !== Etapa.ARCHIVADO && pedido.etapaActual !== Etapa.PREPARACION}>
+                                                    {pedido.etapaActual === Etapa.ARCHIVADO ? 'Desarchivar' : 'Archivar'}
+                                                </button>
+                                            )}
+                                            {canMovePedidos() && pedido.etapaActual === Etapa.PREPARACION && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleSendToPrintClick}
+                                                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    disabled={!formData.materialDisponible || (!!formData.antivaho && (!formData.secuenciaTrabajo || formData.secuenciaTrabajo.length === 0))}
+                                                    title={
+                                                        !formData.materialDisponible
+                                                            ? "El material debe estar disponible para enviar a impresión"
+                                                            : (!!formData.antivaho && (!formData.secuenciaTrabajo || formData.secuenciaTrabajo.length === 0))
+                                                            ? "Debe definir la secuencia de trabajo para pedidos con Antivaho"
+                                                            : !!formData.antivaho
+                                                            ? "Enviar a Post-Impresión (Antivaho)"
+                                                            : "Enviar a Impresión"
+                                                    }
+                                                >
+                                                    {!!formData.antivaho ? "Enviar a Post-Impresión" : "Enviar a Impresión"}
+                                                </button>
+                                            )}
+                                            {canMovePedidos() && pedido.etapaActual !== Etapa.PREPARACION && !printingStages.includes(pedido.etapaActual) && (
+                                                <select onChange={(e) => handleRevertToPrinting(e.target.value as Etapa)} className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded transition-colors duration-200" value="">
+                                                    <option value="" disabled>Volver a Impresión...</option>
+                                                    {printingStages.map(stage => <option key={stage} value={stage}>{ETAPAS[stage].title}</option>)}
+                                                </select>
+                                            )}
+                                        </div>
+                                    )}
+                                
+                                    <div className="flex gap-4">
+                                        <button type="button" onClick={handleClose} className="bg-gray-500 hover:bg-gray-400 text-white dark:bg-gray-600 dark:hover:bg-gray-500 font-bold py-2 px-4 rounded transition-colors duration-200">Cancelar</button>
+                                        {!isReadOnly && (
+                                            <>
+                                                {canMovePedidos() && canAdvance && (
+                                                    <button type="button" onClick={handleAdvanceClick} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200">
+                                                        {advanceButtonTitle}
+                                                    </button>
+                                                )}
+                                                <button type="submit" className={`font-bold py-2 px-4 rounded transition-colors duration-200 ${
+                                                    hasUnsavedChanges 
+                                                        ? 'bg-orange-600 hover:bg-orange-700 text-white' 
+                                                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                                }`}>
+                                                    {hasUnsavedChanges ? '● Guardar Cambios' : 'Guardar Cambios'}
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </fieldset>
+                        </form>
                     )}
                     {activeTab === 'historial' && (
                         <div className="flow-root">

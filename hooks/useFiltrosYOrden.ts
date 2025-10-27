@@ -9,6 +9,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
     const [filters, setFilters] = useState<{ priority: string, stage: string, dateField: DateField }>({ priority: 'all', stage: 'all', dateField: 'fechaCreacion' });
     const [selectedStages, setSelectedStages] = useState<string[]>([]);
     const [antivahoFilter, setAntivahoFilter] = useState<'all' | 'con' | 'sin' | 'hecho'>('all');
+    const [preparacionFilter, setPreparacionFilter] = useState<'all' | 'sin-material' | 'sin-cliche' | 'listo'>('all');
     const [dateFilter, setDateFilter] = useState<DateFilterOption>('all');
     const [customDateRange, setCustomDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
     const [sortConfig, setSortConfig] = useState<{ key: keyof Pedido, direction: 'ascending' | 'descending' }>({ key: 'prioridad', direction: 'ascending' });
@@ -16,6 +17,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
     const handleFilterChange = (name: string, value: string) => setFilters(prev => ({ ...prev, [name]: value }));
     const handleDateFilterChange = (value: string) => setDateFilter(value as DateFilterOption);
     const handleAntivahoFilterChange = (value: 'all' | 'con' | 'sin' | 'hecho') => setAntivahoFilter(value);
+    const handlePreparacionFilterChange = (value: 'all' | 'sin-material' | 'sin-cliche' | 'listo') => setPreparacionFilter(value);
     const handleCustomDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setCustomDateRange(prev => ({ ...prev, [name]: value }));
@@ -117,7 +119,23 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
                 (antivahoFilter === 'sin' && p.antivaho !== true) ||
                 (antivahoFilter === 'hecho' && p.antivaho === true && p.antivahoRealizado === true);
 
-            return searchTermMatch && priorityMatch && stageMatch && dateMatch && antivahoMatch;
+            // Filtro de estado de preparación (solo aplica cuando está en etapa PREPARACION)
+            let preparacionMatch = true;
+            if (p.etapaActual === Etapa.PREPARACION && preparacionFilter !== 'all') {
+                const isSinMaterial = !p.materialDisponible;
+                const isSinCliche = !!p.materialDisponible && !p.clicheDisponible;
+                const isListo = !!p.materialDisponible && !!p.clicheDisponible;
+                
+                if (preparacionFilter === 'sin-material') {
+                    preparacionMatch = isSinMaterial;
+                } else if (preparacionFilter === 'sin-cliche') {
+                    preparacionMatch = isSinCliche;
+                } else if (preparacionFilter === 'listo') {
+                    preparacionMatch = isListo;
+                }
+            }
+
+            return searchTermMatch && priorityMatch && stageMatch && dateMatch && antivahoMatch && preparacionMatch;
         });
 
         if (sortConfig.key) {
@@ -166,7 +184,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         
         return filtered;
 
-    }, [pedidos, searchTerm, filters, antivahoFilter, dateFilter, sortConfig, customDateRange]);
+    }, [pedidos, searchTerm, filters, selectedStages, antivahoFilter, preparacionFilter, dateFilter, sortConfig, customDateRange]);
 
     return {
         processedPedidos,
@@ -180,6 +198,8 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         resetTraditionalStageFilter,
         antivahoFilter,
         handleAntivahoFilterChange,
+        preparacionFilter,
+        handlePreparacionFilterChange,
         dateFilter,
         handleDateFilterChange,
         customDateRange,

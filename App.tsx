@@ -32,7 +32,6 @@ import { procesarDragEnd } from './utils/dragLogic';
 import { usePedidosManager } from './hooks/usePedidosManager';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useFiltrosYOrden } from './hooks/useFiltrosYOrden';
-import { useClientesManager } from './hooks/useClientesManager';
 import { useNavigateToPedido } from './hooks/useNavigateToPedido';
 import { useBulkOperations } from './hooks/useBulkOperations';
 import { auditService } from './services/audit';
@@ -129,6 +128,8 @@ const AppContent: React.FC = () => {
       resetTraditionalStageFilter,
       antivahoFilter,
       handleAntivahoFilterChange,
+      preparacionFilter,
+      handlePreparacionFilterChange,
       dateFilter,
       handleDateFilterChange,
       customDateRange,
@@ -144,8 +145,6 @@ const AppContent: React.FC = () => {
         setSelectedPedido,
         setHighlightedPedidoId
     });
-
-    const { clientes } = useClientesManager();
 
     // Hook para operaciones masivas
     const {
@@ -754,6 +753,8 @@ const AppContent: React.FC = () => {
                     onStageToggle={handleStageToggle}
                     antivahoFilter={antivahoFilter}
                     onAntivahoFilterChange={handleAntivahoFilterChange}
+                    preparacionFilter={preparacionFilter}
+                    onPreparacionFilterChange={handlePreparacionFilterChange}
                     onDateFilterChange={handleDateFilterChange}
                     activeDateFilter={dateFilter}
                     customDateRange={customDateRange}
@@ -785,7 +786,6 @@ const AppContent: React.FC = () => {
                     <AddPedidoModal
                         onClose={() => setIsAddModalOpen(false)}
                         onAdd={handleAddPedido}
-                        clientes={clientes}
                     />
                 )}
                 {pedidoToSend && (

@@ -85,6 +85,7 @@ export interface Pedido {
     materialDisponible?: boolean;
     clicheDisponible?: boolean;
     estadoCliché?: EstadoCliché;
+    clicheInfoAdicional?: string; // Campo adicional para información de cliché (fecha, texto, etc.)
     camisa?: string;
     antivaho?: boolean;
     antivahoRealizado?: boolean;

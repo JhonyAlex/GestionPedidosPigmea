@@ -19,6 +19,8 @@ interface HeaderProps {
     onStageToggle: (stageId: string) => void;
     antivahoFilter: 'all' | 'con' | 'sin' | 'hecho';
     onAntivahoFilterChange: (value: 'all' | 'con' | 'sin' | 'hecho') => void;
+    preparacionFilter?: 'all' | 'sin-material' | 'sin-cliche' | 'listo';
+    onPreparacionFilterChange?: (value: 'all' | 'sin-material' | 'sin-cliche' | 'listo') => void;
     onDateFilterChange: (value: DateFilterOption) => void;
     activeDateFilter: DateFilterOption;
     customDateRange: { start: string; end: string };
@@ -65,6 +67,8 @@ const Header: React.FC<HeaderProps> = ({
     onStageToggle,
     antivahoFilter,
     onAntivahoFilterChange,
+    preparacionFilter = 'all',
+    onPreparacionFilterChange,
     onDateFilterChange,
     activeDateFilter,
     customDateRange,
@@ -274,6 +278,21 @@ const Header: React.FC<HeaderProps> = ({
                             <option value="sin">Sin Antivaho</option>
                             <option value="hecho">Antivaho Hecho</option>
                         </select>
+
+                        {/* Filtro de estado de preparación (visible solo en vista preparacion) */}
+                        {currentView === 'preparacion' && onPreparacionFilterChange && (
+                            <select
+                                name="preparacion"
+                                value={preparacionFilter}
+                                onChange={(e) => onPreparacionFilterChange(e.target.value as 'all' | 'sin-material' | 'sin-cliche' | 'listo')}
+                                className="px-3 py-2 bg-yellow-100 dark:bg-yellow-900/30 text-gray-900 dark:text-yellow-200 border border-yellow-400 dark:border-yellow-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 font-medium"
+                            >
+                                <option value="all">Estado Preparación (Todos)</option>
+                                <option value="sin-material">❌ Sin Material</option>
+                                <option value="sin-cliche">⚠️ Sin Cliché (Mat. OK)</option>
+                                <option value="listo">✅ Listo para Producción</option>
+                            </select>
+                        )}
                         
                         {/* Filtro de etapas como select para vistas que no son lista */}
                         {currentView === 'kanban' && (
