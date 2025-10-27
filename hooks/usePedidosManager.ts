@@ -334,6 +334,11 @@ export const usePedidosManager = (
         const initialStage = Etapa.PREPARACION;
         const maxOrder = Math.max(...pedidos.map(p => p.orden), 0);
 
+        // 🐛 DEBUG: Log para verificar clienteId
+        console.log('📦 Preparando nuevo pedido en frontend:');
+        console.log('  - Cliente:', pedidoData.cliente);
+        console.log('  - ClienteId:', pedidoData.clienteId);
+
         const tempPedido: Pedido = {
             ...pedidoData,
             id: newId,
@@ -350,12 +355,16 @@ export const usePedidosManager = (
             antivahoRealizado: false,
         };
 
+        console.log('  - ClienteId en tempPedido:', tempPedido.clienteId);
+
         const initialSubEtapa = determinarEtapaPreparacion(tempPedido);
 
         const newPedido: Pedido = {
             ...tempPedido,
             subEtapaActual: initialSubEtapa,
         };
+
+        console.log('  - ClienteId en newPedido final:', newPedido.clienteId);
 
         const createdPedido = await store.create(newPedido);
         setPedidos(prev => [createdPedido, ...prev]);

@@ -17,6 +17,7 @@ interface AddPedidoModalProps {
 
 const initialFormData = {
     cliente: '',
+    clienteId: '',  // ✅ Agregar clienteId
     numeroPedidoCliente: '',
     metros: '',
     fechaEntrega: '',
@@ -69,6 +70,14 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
         
         if (name === "cliente" && value === "add_new_cliente") {
             setClienteModalOpen(true);
+        } else if (name === "cliente" && value !== "add_new_cliente") {
+            // ✅ Cuando se selecciona un cliente, guardar tanto el nombre como el ID
+            const clienteSeleccionado = clientes.find(c => c.nombre === value);
+            setFormData(prev => ({ 
+                ...prev, 
+                cliente: value,
+                clienteId: clienteSeleccionado?.id || '' 
+            }));
         } else if (name === "vendedor" && value === "add_new_vendedor") {
             setShowVendedorInput(true);
             setFormData(prev => ({ ...prev, vendedor: '' }));
@@ -84,7 +93,12 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
     const handleSaveCliente = async (clienteData: ClienteCreateRequest) => {
         try {
             const nuevoCliente = await addCliente(clienteData);
-            setFormData(prev => ({ ...prev, cliente: nuevoCliente.nombre }));
+            // ✅ Guardar tanto el nombre como el ID del nuevo cliente
+            setFormData(prev => ({ 
+                ...prev, 
+                cliente: nuevoCliente.nombre,
+                clienteId: nuevoCliente.id 
+            }));
             setClienteModalOpen(false);
         } catch (error) {
             console.error("Error al crear cliente:", error);

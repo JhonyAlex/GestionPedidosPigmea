@@ -62,6 +62,7 @@ export interface Pedido {
     numeroPedidoCliente: string; // User-provided
     numerosCompra?: string[]; // Array de números de compra (uno por cada material de consumo)
     cliente: string;
+    clienteId?: string; // ✅ ID del cliente en la tabla de clientes
     maquinaImpresion: string;
     metros: number | string;
     fechaCreacion: string; // ISO 8601 date string
