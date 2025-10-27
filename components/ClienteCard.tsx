@@ -15,6 +15,9 @@ interface ClienteStats {
   total_pedidos: number;
 }
 
+let missingTokenWarningLogged = false;
+let unauthorizedStatsWarningLogged = false;
+
 const ClienteCard: React.FC<ClienteCardProps> = ({ cliente, onEdit, onDelete, onClick }) => {
   const [stats, setStats] = useState<ClienteStats | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
@@ -28,7 +31,10 @@ const ClienteCard: React.FC<ClienteCardProps> = ({ cliente, onEdit, onDelete, on
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        console.warn('ClienteCard: no hay token de autenticación, omitiendo carga de estadísticas.');
+        if (!missingTokenWarningLogged) {
+          console.warn('ClienteCard: no hay token de autenticación, omitiendo carga de estadísticas.');
+          missingTokenWarningLogged = true;
+        }
         setStats(null);
         return;
       }
@@ -39,7 +45,10 @@ const ClienteCard: React.FC<ClienteCardProps> = ({ cliente, onEdit, onDelete, on
         }
       });
       if (response.status === 401) {
-        console.warn('ClienteCard: acceso no autorizado a /estadisticas. Verifica la sesión del usuario.');
+        if (!unauthorizedStatsWarningLogged) {
+          console.warn('ClienteCard: acceso no autorizado a /estadisticas. Verifica la sesión del usuario.');
+          unauthorizedStatsWarningLogged = true;
+        }
         setStats(null);
         return;
       }

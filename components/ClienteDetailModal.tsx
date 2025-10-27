@@ -20,6 +20,9 @@ interface ClienteEstadisticas {
     ultimo_pedido_fecha: string | null;
 }
 
+let missingTokenWarningLoggedDetail = false;
+const unauthorizedDetailWarnings = new Set<string>();
+
 const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose, cliente, onPedidoClick, onCrearPedido }) => {
     const [activeTab, setActiveTab] = useState<'info' | 'preparacion' | 'produccion' | 'completados' | 'archivados'>('info');
     const [pedidosPreparacion, setPedidosPreparacion] = useState<Pedido[]>([]);
@@ -40,7 +43,10 @@ const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose
         try {
             const token = localStorage.getItem('token');
             if (!token) {
-                console.warn('ClienteDetailModal: no hay token de autenticación, omitiendo carga de datos del cliente.');
+                if (!missingTokenWarningLoggedDetail) {
+                    console.warn('ClienteDetailModal: no hay token de autenticación, omitiendo carga de datos del cliente.');
+                    missingTokenWarningLoggedDetail = true;
+                }
                 setPedidosPreparacion([]);
                 setPedidosProduccion([]);
                 setPedidosCompletados([]);
@@ -56,7 +62,10 @@ const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose
             // Fetch estadísticas
             const statsResponse = await fetch(`/api/clientes/${cliente.id}/estadisticas`, { headers });
             if (statsResponse.status === 401) {
-                console.warn('ClienteDetailModal: acceso no autorizado a /estadisticas. Verifica la sesión del usuario.');
+                if (!unauthorizedDetailWarnings.has('estadisticas')) {
+                    console.warn('ClienteDetailModal: acceso no autorizado a /estadisticas. Verifica la sesión del usuario.');
+                    unauthorizedDetailWarnings.add('estadisticas');
+                }
             } else if (statsResponse.ok) {
                 const stats = await statsResponse.json();
                 setEstadisticas(stats);
@@ -65,7 +74,10 @@ const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose
             // Fetch pedidos en preparación (PREPARACION y PENDIENTE)
             const preparacionResponse = await fetch(`/api/clientes/${cliente.id}/pedidos?estado=preparacion`, { headers });
             if (preparacionResponse.status === 401) {
-                console.warn('ClienteDetailModal: acceso no autorizado a /pedidos?estado=preparacion.');
+                if (!unauthorizedDetailWarnings.has('preparacion')) {
+                    console.warn('ClienteDetailModal: acceso no autorizado a /pedidos?estado=preparacion.');
+                    unauthorizedDetailWarnings.add('preparacion');
+                }
             } else if (preparacionResponse.ok) {
                 const preparacion = await preparacionResponse.json();
                 setPedidosPreparacion(preparacion);
@@ -74,7 +86,10 @@ const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose
             // Fetch pedidos en producción (IMPRESION_* y POST_*)
             const produccionResponse = await fetch(`/api/clientes/${cliente.id}/pedidos?estado=produccion`, { headers });
             if (produccionResponse.status === 401) {
-                console.warn('ClienteDetailModal: acceso no autorizado a /pedidos?estado=produccion.');
+                if (!unauthorizedDetailWarnings.has('produccion')) {
+                    console.warn('ClienteDetailModal: acceso no autorizado a /pedidos?estado=produccion.');
+                    unauthorizedDetailWarnings.add('produccion');
+                }
             } else if (produccionResponse.ok) {
                 const produccion = await produccionResponse.json();
                 setPedidosProduccion(produccion);
@@ -83,7 +98,10 @@ const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose
             // Fetch pedidos completados
             const completadosResponse = await fetch(`/api/clientes/${cliente.id}/pedidos?estado=completado`, { headers });
             if (completadosResponse.status === 401) {
-                console.warn('ClienteDetailModal: acceso no autorizado a /pedidos?estado=completado.');
+                if (!unauthorizedDetailWarnings.has('completado')) {
+                    console.warn('ClienteDetailModal: acceso no autorizado a /pedidos?estado=completado.');
+                    unauthorizedDetailWarnings.add('completado');
+                }
             } else if (completadosResponse.ok) {
                 const completados = await completadosResponse.json();
                 setPedidosCompletados(completados.slice(0, 10)); // Solo los últimos 10
@@ -92,7 +110,10 @@ const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose
             // Fetch pedidos archivados
             const archivadosResponse = await fetch(`/api/clientes/${cliente.id}/pedidos?estado=archivado`, { headers });
             if (archivadosResponse.status === 401) {
-                console.warn('ClienteDetailModal: acceso no autorizado a /pedidos?estado=archivado.');
+                if (!unauthorizedDetailWarnings.has('archivado')) {
+                    console.warn('ClienteDetailModal: acceso no autorizado a /pedidos?estado=archivado.');
+                    unauthorizedDetailWarnings.add('archivado');
+                }
             } else if (archivadosResponse.ok) {
                 const archivados = await archivadosResponse.json();
                 setPedidosArchivados(archivados.slice(0, 10)); // Solo los últimos 10
