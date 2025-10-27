@@ -13,6 +13,7 @@ interface AddPedidoModalProps {
         pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'subEtapaActual' | 'maquinaImpresion' | 'secuenciaTrabajo' | 'orden' | 'historial'>;
         secuenciaTrabajo: Etapa[];
     }) => void;
+    clientePreseleccionado?: { id: string; nombre: string } | null; // ✅ Permitir cliente preseleccionado
 }
 
 const initialFormData = {
@@ -47,7 +48,7 @@ const initialFormData = {
     minColor: null,
 };
 
-const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
+const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, clientePreseleccionado }) => {
     const [formData, setFormData] = useState<any>(initialFormData);
     const [secuenciaTrabajo, setSecuenciaTrabajo] = useState<Etapa[]>([]);
     const { clientes, addCliente, fetchClientes } = useClientesManager();
@@ -60,6 +61,17 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
         fetchClientes();
         fetchVendedores();
     }, []);
+
+    // ✅ Efecto para preseleccionar cliente cuando se proporciona
+    useEffect(() => {
+        if (clientePreseleccionado) {
+            setFormData(prev => ({
+                ...prev,
+                cliente: clientePreseleccionado.nombre,
+                clienteId: clientePreseleccionado.id
+            }));
+        }
+    }, [clientePreseleccionado]);
 
     const handleDataChange = (field: keyof Pedido, value: any) => {
         setFormData((prev: any) => ({ ...prev, [field]: value }));
@@ -149,8 +161,21 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd }) => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Columna Izquierda */}
                         <div>
-                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Cliente</label>
-                            <select name="cliente" value={formData.cliente} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500" required>
+                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                Cliente {clientePreseleccionado && <span className="text-green-600 dark:text-green-400">(Preseleccionado)</span>}
+                            </label>
+                            <select 
+                                name="cliente" 
+                                value={formData.cliente} 
+                                onChange={handleChange} 
+                                disabled={!!clientePreseleccionado} // ✅ Deshabilitar si está preseleccionado
+                                className={`w-full border rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 ${
+                                    clientePreseleccionado 
+                                        ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700 text-gray-700 dark:text-gray-300 cursor-not-allowed' 
+                                        : 'bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600'
+                                }`}
+                                required
+                            >
                                 <option value="">Seleccione un cliente</option>
                                 {clientes.map(cliente => (
                                     <option key={cliente.id} value={cliente.nombre}>{cliente.nombre}</option>

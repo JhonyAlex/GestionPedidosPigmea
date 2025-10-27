@@ -5,7 +5,11 @@ import ClienteModalMejorado from './ClienteModalMejorado';
 import ClienteDetailModal from './ClienteDetailModal';
 import { Icons } from './Icons';
 
-const ClientesList: React.FC = () => {
+interface ClientesListProps {
+    onCrearPedido?: (cliente: { id: string; nombre: string }) => void; // ✅ Prop opcional para crear pedido
+}
+
+const ClientesList: React.FC<ClientesListProps> = ({ onCrearPedido }) => {
     const {
         clientes,
         isLoading,
@@ -48,18 +52,18 @@ const ClientesList: React.FC = () => {
     };
 
     const handleCrearPedido = (cliente: Cliente) => {
-        // Guardar el cliente seleccionado en localStorage para preseleccionar en el modal
-        localStorage.setItem('clientePreseleccionado', JSON.stringify({
-            id: cliente.id,
-            nombre: cliente.nombre
-        }));
-        
-        // Redirigir a la sección de pedidos o abrir modal de crear pedido
-        console.log('Crear pedido para cliente:', cliente.nombre);
-        // window.location.href = '/#pedidos'; // o la ruta que uses para pedidos
-        
-        // Mostrar mensaje temporal
-        alert(`Funcionalidad en desarrollo: Crear pedido para ${cliente.nombre}\n\nPor ahora, ve a la sección de Pedidos y el cliente estará preseleccionado.`);
+        // ✅ Si se proporciona la función desde el padre, usarla
+        if (onCrearPedido) {
+            onCrearPedido({
+                id: cliente.id,
+                nombre: cliente.nombre
+            });
+            // Cerrar el modal de detalle
+            setIsDetailModalOpen(false);
+        } else {
+            // Fallback: mostrar mensaje si no se proporciona la función
+            alert(`Funcionalidad en desarrollo: Crear pedido para ${cliente.nombre}`);
+        }
     };
 
     const handleSave = async (data: ClienteCreateRequest | ClienteUpdateRequest, id?: string) => {

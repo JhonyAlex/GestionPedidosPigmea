@@ -43,6 +43,7 @@ const AppContent: React.FC = () => {
     // Estados locales - siempre llamar antes de returns condicionales
     const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [clientePreseleccionado, setClientePreseleccionado] = useState<{ id: string; nombre: string } | null>(null); // ✅ Estado para cliente preseleccionado
     const [view, setView] = useState<ViewType>('preparacion');
     const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
     const [pedidoToSend, setPedidoToSend] = useState<Pedido | null>(null);
@@ -316,12 +317,20 @@ const AppContent: React.FC = () => {
         if (newPedido) {
             logAction(`Nuevo pedido ${newPedido.numeroPedidoCliente} creado.`, newPedido.id);
             setIsAddModalOpen(false);
+            setClientePreseleccionado(null); // ✅ Limpiar cliente preseleccionado
             // 🚀 Emitir actividad WebSocket
             emitActivity('pedido-created', { 
                 pedidoId: newPedido.id, 
                 numeroCliente: newPedido.numeroPedidoCliente 
             });
         }
+    };
+
+    // ✅ Función para abrir modal de crear pedido con cliente preseleccionado
+    const handleCrearPedidoDesdeCliente = (cliente: { id: string; nombre: string }) => {
+        setClientePreseleccionado(cliente);
+        setIsAddModalOpen(true);
+        setView('preparacion'); // Cambiar a vista de pedidos
     };
     
     const handleConfirmSendToPrint = (pedidoToUpdate: Pedido, impresionEtapa: Etapa, postImpresionSequence: Etapa[]) => {
@@ -620,7 +629,7 @@ const AppContent: React.FC = () => {
                     />
                 );
             case 'clientes':
-                return <ClientesList />;
+                return <ClientesList onCrearPedido={handleCrearPedidoDesdeCliente} />;
             case 'kanban':
                 return (
                     <main className="flex-grow p-4 md:p-8 flex flex-col gap-10">
@@ -792,8 +801,12 @@ const AppContent: React.FC = () => {
                 )}
                 {isAddModalOpen && (
                     <AddPedidoModal
-                        onClose={() => setIsAddModalOpen(false)}
+                        onClose={() => {
+                            setIsAddModalOpen(false);
+                            setClientePreseleccionado(null); // ✅ Limpiar al cerrar
+                        }}
                         onAdd={handleAddPedido}
+                        clientePreseleccionado={clientePreseleccionado} // ✅ Pasar cliente preseleccionado
                     />
                 )}
                 {pedidoToSend && (
