@@ -95,6 +95,17 @@ export const useClientesManager = () => {
     }
   };
 
+  const deleteClientePermanently = async (id: string, deletePedidos: boolean = false) => {
+    try {
+      await clienteService.eliminarClientePermanentemente(id, deletePedidos);
+      setClientes(prev => prev.filter(c => c.id !== id));
+      setTotalClientes(prev => prev - 1);
+    } catch (err) {
+      console.error("Error permanently deleting client:", err);
+      throw err;
+    }
+  };
+
   return {
     clientes,
     isLoading,
@@ -104,5 +115,6 @@ export const useClientesManager = () => {
     addCliente,
     updateCliente,
     deleteCliente,
+    deleteClientePermanently,
   };
 };

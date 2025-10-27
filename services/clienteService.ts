@@ -111,6 +111,21 @@ class ClienteService {
     }
   }
 
+  async eliminarClientePermanentemente(id: string, deletePedidos: boolean = false): Promise<void> {
+    try {
+      const queryString = deletePedidos ? '?deletePedidos=true' : '';
+      await apiRetryFetch<void>(`/clientes/${id}/permanent${queryString}`, { method: 'DELETE' });
+    } catch (error: any) {
+      if (error.status === 409) { 
+        throw new Error(error.message || 'No se puede eliminar el cliente porque tiene pedidos activos.'); 
+      }
+      if (error.status === 404) { 
+        throw new Error('Cliente no encontrado.'); 
+      }
+      throw error;
+    }
+  }
+
   async obtenerHistorialPedidos(clienteId: string, filtros: { pagina?: number; limite?: number } = {}): Promise<ClienteHistorialResponse> {
     const queryString = this.construirFiltrosURL(filtros);
     return apiRetryFetch<ClienteHistorialResponse>(`/clientes/${clienteId}/historial${queryString}`);

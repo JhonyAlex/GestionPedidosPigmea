@@ -1966,7 +1966,7 @@ app.put('/api/clientes/:id', requirePermission('clientes.edit'), async (req, res
     }
 });
 
-// DELETE /api/clientes/:id - Soft-delete a cliente
+// DELETE /api/clientes/:id - Soft-delete a cliente (archiva)
 app.delete('/api/clientes/:id', requirePermission('clientes.delete'), async (req, res) => {
     try {
         const deletedCliente = await dbClient.deleteCliente(req.params.id);
@@ -1975,6 +1975,40 @@ app.delete('/api/clientes/:id', requirePermission('clientes.delete'), async (req
     } catch (error) {
         console.error(`Error in DELETE /api/clientes/${req.params.id}:`, error);
         res.status(500).json({ message: "Error interno del servidor al archivar el cliente." });
+    }
+});
+
+// DELETE /api/clientes/:id/permanent - Eliminación permanente de cliente
+app.delete('/api/clientes/:id/permanent', requirePermission('clientes.delete'), async (req, res) => {
+    try {
+        const { deletePedidos } = req.query; // Query param para indicar si eliminar pedidos también
+        const shouldDeletePedidos = deletePedidos === 'true';
+        
+        const result = await dbClient.deleteClientePermanently(req.params.id, shouldDeletePedidos);
+        
+        broadcastToClients('cliente-deleted-permanent', { 
+            clienteId: req.params.id, 
+            cliente: result.cliente,
+            pedidosEliminados: result.pedidosEliminados 
+        });
+        
+        res.status(200).json({ 
+            message: shouldDeletePedidos 
+                ? 'Cliente y sus pedidos eliminados permanentemente.' 
+                : 'Cliente eliminado permanentemente.',
+            cliente: result.cliente 
+        });
+    } catch (error) {
+        console.error(`Error in DELETE permanent /api/clientes/${req.params.id}:`, error);
+        
+        // Manejar errores específicos
+        if (error.message.includes('pedidos activos')) {
+            res.status(409).json({ message: error.message });
+        } else if (error.message.includes('no encontrado')) {
+            res.status(404).json({ message: error.message });
+        } else {
+            res.status(500).json({ message: "Error interno del servidor al eliminar el cliente permanentemente." });
+        }
     }
 });
 

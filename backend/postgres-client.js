@@ -1532,6 +1532,13 @@ class PostgreSQLClient {
                         'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',
                         'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_REBOBINADO_TEMAC'
                     )) as pedidos_en_produccion,
+                    COUNT(*) FILTER (WHERE etapa_actual IN (
+                        'PREPARACION', 'PENDIENTE',
+                        'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
+                        'POST_LAMINACION_SL2', 'POST_LAMINACION_NEXUS',
+                        'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',
+                        'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_REBOBINADO_TEMAC'
+                    ) AND estado NOT IN ('cancelado', 'archivado')) as pedidos_activos,
                     COUNT(*) FILTER (WHERE etapa_actual = 'COMPLETADO') as pedidos_completados,
                     COUNT(*) FILTER (WHERE etapa_actual = 'ARCHIVADO') as pedidos_archivados,
                     COUNT(*) as total_pedidos,
@@ -1544,6 +1551,7 @@ class PostgreSQLClient {
             const result = await client.query(query, [clienteId]);
             return result.rows[0] || {
                 pedidos_en_produccion: 0,
+                pedidos_activos: 0,
                 pedidos_completados: 0,
                 pedidos_archivados: 0,
                 total_pedidos: 0,
@@ -1569,6 +1577,74 @@ class PostgreSQLClient {
     async deleteCliente(id) {
         if (!this.isInitialized) throw new Error('Database not initialized');
         return this.updateCliente(id, { estado: 'Archivado', fecha_baja: new Date() });
+    }
+
+    async deleteClientePermanently(id, deletePedidos = false) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        
+        try {
+            await client.query('BEGIN');
+            
+            // Si se solicita eliminar los pedidos también
+            if (deletePedidos) {
+                // Primero eliminamos los comentarios de los pedidos del cliente
+                await client.query(`
+                    DELETE FROM comentarios_pedidos
+                    WHERE pedido_id IN (
+                        SELECT id FROM pedidos WHERE cliente_id = $1
+                    )
+                `, [id]);
+                
+                // Luego eliminamos los pedidos del cliente
+                const deletePedidosResult = await client.query(
+                    'DELETE FROM pedidos WHERE cliente_id = $1 RETURNING id',
+                    [id]
+                );
+                
+                console.log(`Eliminados ${deletePedidosResult.rowCount} pedidos del cliente ${id}`);
+            } else {
+                // Verificamos si tiene pedidos activos
+                const pedidosCheck = await client.query(
+                    `SELECT COUNT(*) as count FROM pedidos 
+                     WHERE cliente_id = $1 AND estado NOT IN ('entregado', 'archivado', 'cancelado')`,
+                    [id]
+                );
+                
+                if (parseInt(pedidosCheck.rows[0].count) > 0) {
+                    throw new Error('No se puede eliminar el cliente porque tiene pedidos activos. Elimínelo con sus pedidos o archívelo.');
+                }
+                
+                // Desvinculamos los pedidos históricos del cliente
+                await client.query(
+                    'UPDATE pedidos SET cliente_id = NULL WHERE cliente_id = $1',
+                    [id]
+                );
+            }
+            
+            // Finalmente, eliminamos el cliente
+            const deleteResult = await client.query(
+                'DELETE FROM clientes WHERE id = $1 RETURNING *',
+                [id]
+            );
+            
+            if (deleteResult.rows.length === 0) {
+                throw new Error('Cliente no encontrado');
+            }
+            
+            await client.query('COMMIT');
+            
+            return {
+                cliente: deleteResult.rows[0],
+                pedidosEliminados: deletePedidos
+            };
+        } catch (error) {
+            await client.query('ROLLBACK');
+            console.error('Error al eliminar cliente permanentemente:', error);
+            throw error;
+        } finally {
+            client.release();
+        }
     }
 
     // === MÉTODOS PARA VENDEDORES ===

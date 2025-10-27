@@ -3,6 +3,7 @@ import { useClientesManager, Cliente, ClienteCreateRequest, ClienteUpdateRequest
 import ClienteCard from './ClienteCard';
 import ClienteModalMejorado from './ClienteModalMejorado';
 import ClienteDetailModal from './ClienteDetailModal';
+import DeleteClienteModal from './DeleteClienteModal';
 import { Icons } from './Icons';
 
 interface ClientesListProps {
@@ -17,12 +18,15 @@ const ClientesList: React.FC<ClientesListProps> = ({ onCrearPedido }) => {
         addCliente,
         updateCliente,
         deleteCliente,
+        deleteClientePermanently,
     } = useClientesManager();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
     const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [clienteToDelete, setClienteToDelete] = useState<Cliente | null>(null);
 
     const handleOpenModal = (cliente: Cliente | null = null) => {
         setEditingCliente(cliente);
@@ -75,13 +79,27 @@ const ClientesList: React.FC<ClientesListProps> = ({ onCrearPedido }) => {
     };
 
     const handleDelete = async (cliente: Cliente) => {
-        if (window.confirm(`¿Estás seguro de que quieres archivar el cliente "${cliente.nombre}"?`)) {
-            try {
-                await deleteCliente(cliente.id);
-            } catch (error) {
-                alert((error as Error).message);
+        setClienteToDelete(cliente);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = async (clienteId: string, deleteWithPedidos: boolean) => {
+        try {
+            if (deleteWithPedidos) {
+                await deleteClientePermanently(clienteId, true);
+            } else {
+                // Si no se quiere eliminar con pedidos, puede ser archivado o eliminado sin pedidos
+                await deleteCliente(clienteId);
             }
+        } catch (error) {
+            console.error('Error al eliminar cliente:', error);
+            throw error;
         }
+    };
+
+    const handleCloseDeleteModal = () => {
+        setIsDeleteModalOpen(false);
+        setClienteToDelete(null);
     };
 
     const renderContent = () => {
@@ -170,6 +188,15 @@ const ClientesList: React.FC<ClientesListProps> = ({ onCrearPedido }) => {
                     cliente={selectedCliente}
                     onPedidoClick={handlePedidoClick}
                     onCrearPedido={handleCrearPedido}
+                />
+            )}
+
+            {isDeleteModalOpen && clienteToDelete && (
+                <DeleteClienteModal
+                    isOpen={isDeleteModalOpen}
+                    cliente={clienteToDelete}
+                    onClose={handleCloseDeleteModal}
+                    onConfirm={handleConfirmDelete}
                 />
             )}
         </div>
