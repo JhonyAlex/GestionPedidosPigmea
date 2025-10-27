@@ -8,6 +8,7 @@ interface ClienteDetailModalProps {
     onClose: () => void;
     cliente: Cliente;
     onPedidoClick?: (pedidoId: string) => void;
+    onCrearPedido?: (cliente: Cliente) => void;
 }
 
 interface ClienteEstadisticas {
@@ -19,9 +20,10 @@ interface ClienteEstadisticas {
     ultimo_pedido_fecha: string | null;
 }
 
-const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose, cliente, onPedidoClick }) => {
-    const [activeTab, setActiveTab] = useState<'info' | 'activos' | 'completados' | 'archivados'>('info');
-    const [pedidosActivos, setPedidosActivos] = useState<Pedido[]>([]);
+const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose, cliente, onPedidoClick, onCrearPedido }) => {
+    const [activeTab, setActiveTab] = useState<'info' | 'preparacion' | 'produccion' | 'completados' | 'archivados'>('info');
+    const [pedidosPreparacion, setPedidosPreparacion] = useState<Pedido[]>([]);
+    const [pedidosProduccion, setPedidosProduccion] = useState<Pedido[]>([]);
     const [pedidosCompletados, setPedidosCompletados] = useState<Pedido[]>([]);
     const [pedidosArchivados, setPedidosArchivados] = useState<Pedido[]>([]);
     const [estadisticas, setEstadisticas] = useState<ClienteEstadisticas | null>(null);
@@ -49,11 +51,18 @@ const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose
                 setEstadisticas(stats);
             }
 
-            // Fetch pedidos activos (en producción)
-            const activosResponse = await fetch(`/api/clientes/${cliente.id}/pedidos?estado=produccion`, { headers });
-            if (activosResponse.ok) {
-                const activos = await activosResponse.json();
-                setPedidosActivos(activos);
+            // Fetch pedidos en preparación (PREPARACION y PENDIENTE)
+            const preparacionResponse = await fetch(`/api/clientes/${cliente.id}/pedidos?estado=preparacion`, { headers });
+            if (preparacionResponse.ok) {
+                const preparacion = await preparacionResponse.json();
+                setPedidosPreparacion(preparacion);
+            }
+
+            // Fetch pedidos en producción (IMPRESION_* y POST_*)
+            const produccionResponse = await fetch(`/api/clientes/${cliente.id}/pedidos?estado=produccion`, { headers });
+            if (produccionResponse.ok) {
+                const produccion = await produccionResponse.json();
+                setPedidosProduccion(produccion);
             }
 
             // Fetch pedidos completados
@@ -86,14 +95,36 @@ const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose
     const getEtapaColor = (etapa: string) => {
         if (etapa === 'COMPLETADO') return 'text-green-600 bg-green-100 dark:bg-green-900 dark:text-green-300';
         if (etapa === 'ARCHIVADO') return 'text-gray-600 bg-gray-100 dark:bg-gray-700 dark:text-gray-300';
+        if (etapa === 'PREPARACION') return 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900 dark:text-yellow-300';
+        if (etapa === 'PENDIENTE') return 'text-orange-600 bg-orange-100 dark:bg-orange-900 dark:text-orange-300';
         if (etapa.startsWith('IMPRESION_')) return 'text-blue-600 bg-blue-100 dark:bg-blue-900 dark:text-blue-300';
         if (etapa.startsWith('POST_')) return 'text-purple-600 bg-purple-100 dark:bg-purple-900 dark:text-purple-300';
-        if (etapa === 'PREPARACION') return 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900 dark:text-yellow-300';
         return 'text-gray-600 bg-gray-100 dark:bg-gray-700 dark:text-gray-300';
     };
 
     const formatEtapa = (etapa: string) => {
-        return etapa.replace(/_/g, ' ').replace(/POST /g, '').replace(/IMPRESION /g, 'IMP. ');
+        // Diccionario de etapas formateadas
+        const etapasFormato: { [key: string]: string } = {
+            'PREPARACION': 'Preparación',
+            'PENDIENTE': 'Pendiente',
+            // Impresión
+            'IMPRESION_WM1': 'Impresión WM1',
+            'IMPRESION_GIAVE': 'Impresión GIAVE',
+            'IMPRESION_WM3': 'Impresión WM3',
+            'IMPRESION_ANON': 'Impresión ANON',
+            // Post-procesamiento
+            'POST_LAMINACION_SL2': 'Laminación SL2',
+            'POST_LAMINACION_NEXUS': 'Laminación NEXUS',
+            'POST_REBOBINADO_S2DT': 'Rebobinado S2DT',
+            'POST_REBOBINADO_PROSLIT': 'Rebobinado PROSLIT',
+            'POST_PERFORACION_MIC': 'Perforación MIC',
+            'POST_PERFORACION_MAC': 'Perforación MAC',
+            'POST_REBOBINADO_TEMAC': 'Rebobinado TEMAC',
+            'COMPLETADO': 'Completado',
+            'ARCHIVADO': 'Archivado'
+        };
+        
+        return etapasFormato[etapa] || etapa.replace(/_/g, ' ');
     };
 
     const formatFecha = (fecha: string) => {
@@ -167,19 +198,33 @@ const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose
                             {cliente.razon_social || cliente.cif}
                         </p>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    >
-                        <Icons.Close className="h-6 w-6 text-gray-600 dark:text-gray-300" />
-                    </button>
+                    <div className="flex items-center gap-3">
+                        {onCrearPedido && (
+                            <button
+                                onClick={() => {
+                                    onCrearPedido(cliente);
+                                    onClose();
+                                }}
+                                className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm transition-colors text-sm font-medium"
+                            >
+                                <Icons.Plus className="h-4 w-4 mr-2" />
+                                Crear Pedido
+                            </button>
+                        )}
+                        <button
+                            onClick={onClose}
+                            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                        >
+                            <Icons.Close className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Tabs */}
-                <div className="flex border-b dark:border-gray-700 px-6">
+                <div className="flex border-b dark:border-gray-700 px-6 overflow-x-auto">
                     <button
                         onClick={() => setActiveTab('info')}
-                        className={`px-4 py-3 font-medium transition-colors border-b-2 ${
+                        className={`px-4 py-3 font-medium transition-colors border-b-2 whitespace-nowrap ${
                             activeTab === 'info'
                                 ? 'border-blue-600 text-blue-600 dark:text-blue-400'
                                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
@@ -188,14 +233,29 @@ const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose
                         Información
                     </button>
                     <button
-                        onClick={() => setActiveTab('activos')}
-                        className={`px-4 py-3 font-medium transition-colors border-b-2 ${
-                            activeTab === 'activos'
+                        onClick={() => setActiveTab('preparacion')}
+                        className={`px-4 py-3 font-medium transition-colors border-b-2 whitespace-nowrap ${
+                            activeTab === 'preparacion'
                                 ? 'border-blue-600 text-blue-600 dark:text-blue-400'
                                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
                         }`}
                     >
-                        Pedidos Activos
+                        En Preparación
+                        {pedidosPreparacion.length > 0 && (
+                            <span className="ml-2 px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded-full">
+                                {pedidosPreparacion.length}
+                            </span>
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('produccion')}
+                        className={`px-4 py-3 font-medium transition-colors border-b-2 whitespace-nowrap ${
+                            activeTab === 'produccion'
+                                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                        }`}
+                    >
+                        En Producción
                         {estadisticas && estadisticas.pedidos_en_produccion > 0 && (
                             <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">
                                 {estadisticas.pedidos_en_produccion}
@@ -204,7 +264,7 @@ const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose
                     </button>
                     <button
                         onClick={() => setActiveTab('completados')}
-                        className={`px-4 py-3 font-medium transition-colors border-b-2 ${
+                        className={`px-4 py-3 font-medium transition-colors border-b-2 whitespace-nowrap ${
                             activeTab === 'completados'
                                 ? 'border-blue-600 text-blue-600 dark:text-blue-400'
                                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
@@ -219,7 +279,7 @@ const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose
                     </button>
                     <button
                         onClick={() => setActiveTab('archivados')}
-                        className={`px-4 py-3 font-medium transition-colors border-b-2 ${
+                        className={`px-4 py-3 font-medium transition-colors border-b-2 whitespace-nowrap ${
                             activeTab === 'archivados'
                                 ? 'border-blue-600 text-blue-600 dark:text-blue-400'
                                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
@@ -312,7 +372,8 @@ const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose
                                 </div>
                             )}
 
-                            {activeTab === 'activos' && renderPedidosList(pedidosActivos, 'No hay pedidos en producción')}
+                            {activeTab === 'preparacion' && renderPedidosList(pedidosPreparacion, 'No hay pedidos en preparación')}
+                            {activeTab === 'produccion' && renderPedidosList(pedidosProduccion, 'No hay pedidos en producción')}
                             {activeTab === 'completados' && renderPedidosList(pedidosCompletados, 'No hay pedidos completados')}
                             {activeTab === 'archivados' && renderPedidosList(pedidosArchivados, 'No hay pedidos archivados')}
                         </>

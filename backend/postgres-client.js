@@ -1473,9 +1473,12 @@ class PostgreSQLClient {
                 whereClause += ` AND etapa_actual = 'COMPLETADO'`;
             } else if (estado === 'archivado') {
                 whereClause += ` AND etapa_actual = 'ARCHIVADO'`;
+            } else if (estado === 'preparacion') {
+                // Solo pedidos en PREPARACION y PENDIENTE
+                whereClause += ` AND etapa_actual IN ('PREPARACION', 'PENDIENTE')`;
             } else if (estado === 'produccion') {
+                // Solo pedidos en IMPRESION_* y POST_* (excluyendo PREPARACION y PENDIENTE)
                 whereClause += ` AND etapa_actual IN (
-                    'PREPARACION', 'PENDIENTE',
                     'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
                     'POST_LAMINACION_SL2', 'POST_LAMINACION_NEXUS',
                     'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',

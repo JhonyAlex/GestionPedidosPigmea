@@ -1895,7 +1895,7 @@ app.get('/api/clientes/:id/historial', requirePermission('clientes.view'), async
 });
 
 // GET /api/clientes/:id/pedidos - Get all orders for a client with optional filtering
-app.get('/api/clientes/:id/pedidos', requirePermission('clientes.view'), async (req, res) => {
+app.get('/api/clientes/:id/pedidos', authenticateUser, async (req, res) => {
     try {
         const { estado } = req.query; // activo, completado, archivado, produccion
         const pedidos = await dbClient.getClientePedidos(req.params.id, estado);
@@ -1907,7 +1907,7 @@ app.get('/api/clientes/:id/pedidos', requirePermission('clientes.view'), async (
 });
 
 // GET /api/clientes/:id/estadisticas - Get statistics for a client
-app.get('/api/clientes/:id/estadisticas', requirePermission('clientes.view'), async (req, res) => {
+app.get('/api/clientes/:id/estadisticas', authenticateUser, async (req, res) => {
     try {
         const estadisticas = await dbClient.getClienteEstadisticas(req.params.id);
         res.status(200).json(estadisticas);

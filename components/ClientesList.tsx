@@ -47,6 +47,21 @@ const ClientesList: React.FC = () => {
         // Si tienes navegación, puedes usar: window.location.href = `/pedidos/${pedidoId}`;
     };
 
+    const handleCrearPedido = (cliente: Cliente) => {
+        // Guardar el cliente seleccionado en localStorage para preseleccionar en el modal
+        localStorage.setItem('clientePreseleccionado', JSON.stringify({
+            id: cliente.id,
+            nombre: cliente.nombre
+        }));
+        
+        // Redirigir a la sección de pedidos o abrir modal de crear pedido
+        console.log('Crear pedido para cliente:', cliente.nombre);
+        // window.location.href = '/#pedidos'; // o la ruta que uses para pedidos
+        
+        // Mostrar mensaje temporal
+        alert(`Funcionalidad en desarrollo: Crear pedido para ${cliente.nombre}\n\nPor ahora, ve a la sección de Pedidos y el cliente estará preseleccionado.`);
+    };
+
     const handleSave = async (data: ClienteCreateRequest | ClienteUpdateRequest, id?: string) => {
         if (id) {
             await updateCliente(id, data as ClienteUpdateRequest);
@@ -150,6 +165,7 @@ const ClientesList: React.FC = () => {
                     onClose={handleCloseDetailModal}
                     cliente={selectedCliente}
                     onPedidoClick={handlePedidoClick}
+                    onCrearPedido={handleCrearPedido}
                 />
             )}
         </div>
