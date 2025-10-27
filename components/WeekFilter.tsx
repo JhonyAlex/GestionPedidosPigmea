@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { DateField, WeekFilter as WeekFilterType } from '../types';
 import { getWeeksOfYear, getCurrentWeek, getWeekDateRange } from '../utils/weekUtils';
 
@@ -17,6 +17,25 @@ const WeekFilter: React.FC<WeekFilterProps> = ({
 }) => {
     const currentWeek = getCurrentWeek();
     const [selectedYear, setSelectedYear] = useState(weekFilter.year);
+    const [isPanelOpen, setIsPanelOpen] = useState(false);
+    const panelRef = useRef<HTMLDivElement>(null);
+    
+    // Cerrar panel al hacer clic fuera
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
+                setIsPanelOpen(false);
+            }
+        };
+
+        if (isPanelOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isPanelOpen]);
     
     // Generar años (año actual y 1 anterior/posterior)
     const years = useMemo(() => {
@@ -50,6 +69,8 @@ const WeekFilter: React.FC<WeekFilterProps> = ({
 
     const handleWeekSelect = (week: number) => {
         onWeekChange(selectedYear, week);
+        // Cerrar el panel después de seleccionar
+        setTimeout(() => setIsPanelOpen(false), 300);
     };
 
     const handleQuickSelect = (type: 'current' | 'next' | 'previous') => {
@@ -58,6 +79,7 @@ const WeekFilter: React.FC<WeekFilterProps> = ({
             case 'current':
                 onWeekChange(current.year, current.week);
                 setSelectedYear(current.year);
+                setTimeout(() => setIsPanelOpen(false), 300);
                 break;
             case 'next':
                 const nextWeek = current.week + 1;
@@ -65,6 +87,7 @@ const WeekFilter: React.FC<WeekFilterProps> = ({
                 const finalNextWeek = nextWeek > 52 ? 1 : nextWeek;
                 onWeekChange(nextYear, finalNextWeek);
                 setSelectedYear(nextYear);
+                setTimeout(() => setIsPanelOpen(false), 300);
                 break;
             case 'previous':
                 const prevWeek = current.week - 1;
@@ -72,7 +95,20 @@ const WeekFilter: React.FC<WeekFilterProps> = ({
                 const finalPrevWeek = prevWeek < 1 ? 52 : prevWeek;
                 onWeekChange(prevYear, finalPrevWeek);
                 setSelectedYear(prevYear);
+                setTimeout(() => setIsPanelOpen(false), 300);
                 break;
+        }
+    };
+
+    const handleToggleClick = () => {
+        if (weekFilter.enabled) {
+            // Si ya está activo, desactivar
+            onToggle();
+            setIsPanelOpen(false);
+        } else {
+            // Si está inactivo, activar y abrir panel
+            onToggle();
+            setIsPanelOpen(true);
         }
     };
 
@@ -84,10 +120,10 @@ const WeekFilter: React.FC<WeekFilterProps> = ({
     };
 
     return (
-        <div className="relative">
+        <div className="relative" ref={panelRef}>
             {/* Botón principal de activación */}
             <button
-                onClick={onToggle}
+                onClick={handleToggleClick}
                 className={`px-4 py-2 rounded-md font-medium transition-all flex items-center gap-2 ${
                     weekFilter.enabled
                         ? 'bg-blue-600 text-white shadow-lg hover:bg-blue-700'
@@ -98,17 +134,23 @@ const WeekFilter: React.FC<WeekFilterProps> = ({
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
                 </svg>
                 {weekFilter.enabled ? (
-                    <span>
+                    <span className="flex items-center gap-2">
                         📅 Semana {weekFilter.week}/{weekFilter.year}
-                        <span className="ml-2 text-xs opacity-80">({dateFieldLabels[weekFilter.dateField]})</span>
+                        <span className="text-xs opacity-80">({dateFieldLabels[weekFilter.dateField]})</span>
+                        {currentWeek.week === weekFilter.week && currentWeek.year === weekFilter.year && (
+                            <span className="text-xs bg-white/20 px-2 py-0.5 rounded">Actual</span>
+                        )}
                     </span>
                 ) : (
-                    'Filtrar por Semana'
+                    <span className="flex items-center gap-2">
+                        Filtrar por Semana
+                        <span className="text-xs opacity-60">(Actual: Semana {currentWeek.week})</span>
+                    </span>
                 )}
             </button>
 
             {/* Panel desplegable cuando está activo */}
-            {weekFilter.enabled && (
+            {weekFilter.enabled && isPanelOpen && (
                 <div className="absolute top-full mt-2 left-0 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-2xl z-50 p-4 min-w-[400px]">
                     {/* Información de la semana actual */}
                     <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
@@ -214,7 +256,10 @@ const WeekFilter: React.FC<WeekFilterProps> = ({
                     {/* Botón para desactivar filtro */}
                     <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
                         <button
-                            onClick={onToggle}
+                            onClick={() => {
+                                onToggle();
+                                setIsPanelOpen(false);
+                            }}
                             className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors font-medium"
                         >
                             Desactivar Filtro de Semana
