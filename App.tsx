@@ -154,6 +154,16 @@ const AppContent: React.FC = () => {
         setHighlightedPedidoId
     });
 
+    // Función para navegar a un pedido por ID
+    const handleNavigateToPedidoById = useCallback((pedidoId: string) => {
+        const pedido = pedidos.find(p => p.id === pedidoId);
+        if (pedido) {
+            navigateToPedido(pedido);
+        } else {
+            console.warn('Pedido no encontrado:', pedidoId);
+        }
+    }, [pedidos, navigateToPedido]);
+
     // Hook para operaciones masivas
     const {
         selectedIds,
@@ -639,9 +649,9 @@ const AppContent: React.FC = () => {
                     />
                 );
             case 'clientes':
-                return <ClientesList onCrearPedido={handleCrearPedidoDesdeCliente} />;
+                return <ClientesList onCrearPedido={handleCrearPedidoDesdeCliente} onNavigateToPedido={handleNavigateToPedidoById} />;
             case 'vendedores':
-                return <VendedoresList onCrearPedido={handleCrearPedidoDesdeVendedor} />;
+                return <VendedoresList onCrearPedido={handleCrearPedidoDesdeVendedor} onNavigateToPedido={handleNavigateToPedidoById} />;
             case 'kanban':
                 return (
                     <main className="flex-grow p-4 md:p-8 flex flex-col gap-10">

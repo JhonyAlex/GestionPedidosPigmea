@@ -8,9 +8,10 @@ import { Icons } from './Icons';
 
 interface ClientesListProps {
     onCrearPedido?: (cliente: { id: string; nombre: string }) => void; // ✅ Prop opcional para crear pedido
+    onNavigateToPedido?: (pedidoId: string) => void; // ✅ Prop opcional para navegar a un pedido
 }
 
-const ClientesList: React.FC<ClientesListProps> = ({ onCrearPedido }) => {
+const ClientesList: React.FC<ClientesListProps> = ({ onCrearPedido, onNavigateToPedido }) => {
     const {
         clientes,
         isLoading,
@@ -49,10 +50,11 @@ const ClientesList: React.FC<ClientesListProps> = ({ onCrearPedido }) => {
     };
 
     const handlePedidoClick = (pedidoId: string) => {
-        // Aquí puedes implementar la navegación al pedido
-        // Por ahora solo mostramos un log
-        console.log('Navegar al pedido:', pedidoId);
-        // Si tienes navegación, puedes usar: window.location.href = `/pedidos/${pedidoId}`;
+        if (onNavigateToPedido) {
+            onNavigateToPedido(pedidoId);
+        } else {
+            console.log('Navegar al pedido:', pedidoId);
+        }
     };
 
     const handleCrearPedido = (cliente: Cliente) => {

@@ -8,9 +8,10 @@ import { Icons } from './Icons';
 
 interface VendedoresListProps {
     onCrearPedido?: (vendedor: { id: string; nombre: string }) => void;
+    onNavigateToPedido?: (pedidoId: string) => void; // ✅ Prop opcional para navegar a un pedido
 }
 
-const VendedoresList: React.FC<VendedoresListProps> = ({ onCrearPedido }) => {
+const VendedoresList: React.FC<VendedoresListProps> = ({ onCrearPedido, onNavigateToPedido }) => {
     const {
         vendedores,
         loading,
@@ -46,7 +47,11 @@ const VendedoresList: React.FC<VendedoresListProps> = ({ onCrearPedido }) => {
     };
 
     const handlePedidoClick = (pedidoId: string) => {
-        console.log('Navegar al pedido:', pedidoId);
+        if (onNavigateToPedido) {
+            onNavigateToPedido(pedidoId);
+        } else {
+            console.log('Navegar al pedido:', pedidoId);
+        }
     };
 
     const handleCrearPedido = (vendedor: Vendedor) => {
