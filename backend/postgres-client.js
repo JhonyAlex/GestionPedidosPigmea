@@ -727,11 +727,15 @@ class PostgreSQLClient {
             // ✅ Añadir columna vendedor_id a pedidos si no existe
             await client.query(`
                 DO $$ 
+                DECLARE
+                    vendedor_column_exists BOOLEAN;
                 BEGIN
+                    -- Verificar si la columna vendedor_id ya existe
                     IF NOT EXISTS (
                         SELECT 1 FROM information_schema.columns 
                         WHERE table_name = 'pedidos' AND column_name = 'vendedor_id'
                     ) THEN
+                        -- Crear columna vendedor_id
                         ALTER TABLE pedidos ADD COLUMN vendedor_id UUID;
                         CREATE INDEX IF NOT EXISTS idx_pedidos_vendedor_id ON pedidos(vendedor_id);
                         
@@ -742,29 +746,43 @@ class PostgreSQLClient {
                         REFERENCES vendedores(id)
                         ON DELETE SET NULL;
                         
-                        -- Migrar datos existentes del campo vendedor (string) a vendedor_id
-                        -- Crear vendedores para cada nombre único
-                        INSERT INTO vendedores (nombre, activo)
-                        SELECT DISTINCT TRIM(vendedor) as nombre, true
-                        FROM pedidos
-                        WHERE vendedor IS NOT NULL 
-                          AND TRIM(vendedor) != ''
-                          AND NOT EXISTS (
-                            SELECT 1 FROM vendedores v 
-                            WHERE LOWER(v.nombre) = LOWER(TRIM(pedidos.vendedor))
-                          )
-                        ON CONFLICT (nombre) DO NOTHING;
+                        RAISE NOTICE '✅ Columna vendedor_id creada';
                         
-                        -- Actualizar pedidos con el vendedor_id correspondiente
-                        UPDATE pedidos p
-                        SET vendedor_id = v.id
-                        FROM vendedores v
-                        WHERE LOWER(TRIM(p.vendedor)) = LOWER(v.nombre)
-                          AND p.vendedor IS NOT NULL
-                          AND p.vendedor != ''
-                          AND p.vendedor_id IS NULL;
+                        -- Verificar si existe la columna legacy "vendedor" (string)
+                        SELECT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'pedidos' AND column_name = 'vendedor'
+                        ) INTO vendedor_column_exists;
                         
-                        RAISE NOTICE '✅ Columna vendedor_id añadida y datos migrados';
+                        -- Solo migrar datos si existe la columna legacy
+                        IF vendedor_column_exists THEN
+                            -- Crear vendedores para cada nombre único
+                            INSERT INTO vendedores (nombre, activo)
+                            SELECT DISTINCT TRIM(vendedor) as nombre, true
+                            FROM pedidos
+                            WHERE vendedor IS NOT NULL 
+                              AND TRIM(vendedor) != ''
+                              AND NOT EXISTS (
+                                SELECT 1 FROM vendedores v 
+                                WHERE LOWER(v.nombre) = LOWER(TRIM(pedidos.vendedor))
+                              )
+                            ON CONFLICT DO NOTHING;
+                            
+                            -- Actualizar pedidos con el vendedor_id correspondiente
+                            UPDATE pedidos p
+                            SET vendedor_id = v.id
+                            FROM vendedores v
+                            WHERE LOWER(TRIM(p.vendedor)) = LOWER(v.nombre)
+                              AND p.vendedor IS NOT NULL
+                              AND p.vendedor != ''
+                              AND p.vendedor_id IS NULL;
+                            
+                            RAISE NOTICE '✅ Datos migrados desde columna legacy "vendedor"';
+                        ELSE
+                            RAISE NOTICE '⚠️ Columna legacy "vendedor" no existe - migración de datos omitida';
+                        END IF;
+                    ELSE
+                        RAISE NOTICE '✅ Columna vendedor_id ya existe';
                     END IF;
                 END $$;
             `);
