@@ -33,8 +33,10 @@ const initialFormData = {
     materialDisponible: false,
     clicheDisponible: false,
     estadoCliché: EstadoCliché.PENDIENTE_CLIENTE,
+    clicheInfoAdicional: '',
     camisa: '',
     antivaho: false,
+    anonimo: false,
     // Nuevos campos
     producto: null,
     materialCapasCantidad: null,
@@ -191,6 +193,24 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                 {Object.values(EstadoCliché).map(t => <option key={t} value={t}>{t}</option>)}
                             </select>
 
+                            <label className="block mt-4 mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                Información Adicional Cliché
+                            </label>
+                            <input 
+                                type="text" 
+                                name="clicheInfoAdicional" 
+                                value={formData.clicheInfoAdicional || ''} 
+                                onChange={handleChange} 
+                                placeholder="Ej: Recibido 27/10, ID: CLH-123, Aprobado por cliente"
+                                maxLength={200}
+                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            {formData.clicheInfoAdicional && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                    {formData.clicheInfoAdicional.length}/200 caracteres
+                                </p>
+                            )}
+
                             <label className="block mt-4 mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Tipo de Impresión</label>
                             <select name="tipoImpresion" value={formData.tipoImpresion} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5">
                                 {Object.values(TipoImpresion).map(t => <option key={t} value={t}>{t}</option>)}
@@ -199,6 +219,11 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                             <div className="flex items-center justify-start pt-6">
                                 <input type="checkbox" id="antivaho" name="antivaho" checked={formData.antivaho} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                 <label htmlFor="antivaho" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Antivaho</label>
+                            </div>
+
+                            <div className="flex items-center justify-start pt-6">
+                                <input type="checkbox" id="anonimo" name="anonimo" checked={formData.anonimo} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                <label htmlFor="anonimo" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Anónimo</label>
                             </div>
                             
                         </div>
