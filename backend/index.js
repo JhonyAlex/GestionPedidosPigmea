@@ -2318,6 +2318,29 @@ app.delete('/api/vendedores/:id', requirePermission('pedidos.delete'), async (re
     }
 });
 
+// GET /api/vendedores/:id/pedidos - Obtener pedidos de un vendedor con filtros opcionales
+app.get('/api/vendedores/:id/pedidos', authenticateUser, async (req, res) => {
+    try {
+        const { estado } = req.query; // activo, completado, archivado, produccion
+        const pedidos = await dbClient.getVendedorPedidos(req.params.id, estado);
+        res.status(200).json(pedidos);
+    } catch (error) {
+        console.error(`Error in GET /api/vendedores/${req.params.id}/pedidos:`, error);
+        res.status(500).json({ message: "Error interno del servidor al obtener los pedidos del vendedor." });
+    }
+});
+
+// GET /api/vendedores/:id/estadisticas - Obtener estadísticas de un vendedor
+app.get('/api/vendedores/:id/estadisticas', authenticateUser, async (req, res) => {
+    try {
+        const estadisticas = await dbClient.getVendedorEstadisticas(req.params.id);
+        res.status(200).json(estadisticas);
+    } catch (error) {
+        console.error(`Error in GET /api/vendedores/${req.params.id}/estadisticas:`, error);
+        res.status(500).json({ message: "Error interno del servidor al obtener las estadísticas del vendedor." });
+    }
+});
+
 
 // =================================================================
 // RUTAS ADMINISTRATIVAS

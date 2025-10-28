@@ -12,6 +12,7 @@ import Header from './components/Header';
 import PedidoList from './components/PedidoList';
 import ReportView from './components/ReportView';
 import ClientesList from './components/ClientesList';
+import VendedoresList from './components/VendedoresList';
 import ThemeSwitcher from './components/ThemeSwitcher';
 import CompletedPedidosList from './components/CompletedPedidosList';
 import PreparacionView from './components/PreparacionView';
@@ -335,6 +336,13 @@ const AppContent: React.FC = () => {
         setView('preparacion'); // Cambiar a vista de pedidos
     };
     
+    const handleCrearPedidoDesdeVendedor = (vendedor: { id: string; nombre: string }) => {
+        // Similar a clientes, pero con vendedor preseleccionado
+        // Nota: Necesitarías añadir estado vendedorPreseleccionado similar a clientePreseleccionado
+        setIsAddModalOpen(true);
+        setView('preparacion'); // Cambiar a vista de pedidos
+    };
+    
     const handleConfirmSendToPrint = (pedidoToUpdate: Pedido, impresionEtapa: Etapa, postImpresionSequence: Etapa[]) => {
         // 1. Close modal and highlight in original position
         setPedidoToSend(null);
@@ -632,6 +640,8 @@ const AppContent: React.FC = () => {
                 );
             case 'clientes':
                 return <ClientesList onCrearPedido={handleCrearPedidoDesdeCliente} />;
+            case 'vendedores':
+                return <VendedoresList onCrearPedido={handleCrearPedidoDesdeVendedor} />;
             case 'kanban':
                 return (
                     <main className="flex-grow p-4 md:p-8 flex flex-col gap-10">

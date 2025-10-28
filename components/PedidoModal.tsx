@@ -165,9 +165,17 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
         
-        if (name === "vendedor" && value === "add_new_vendedor") {
+        if (name === "vendedorId" && value === "add_new_vendedor") {
             setShowVendedorInput(true);
-            setFormData(prev => ({ ...prev, vendedor: '' }));
+            setFormData(prev => ({ ...prev, vendedorId: '', vendedorNombre: '' }));
+        } else if (name === "vendedorId" && value !== "add_new_vendedor") {
+            // Cuando se selecciona un vendedor, guardar tanto el ID como el nombre
+            const vendedorSeleccionado = vendedores.find(v => v.id === value);
+            setFormData(prev => ({ 
+                ...prev, 
+                vendedorId: value,
+                vendedorNombre: vendedorSeleccionado?.nombre || '' 
+            }));
         } else if (type === 'checkbox') {
             const { checked } = e.target as HTMLInputElement;
             setFormData(prev => ({ ...prev, [name]: checked }));
@@ -185,7 +193,11 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         
         try {
             const vendedorCreado = await addVendedor({ nombre: nuevoVendedor.trim(), activo: true });
-            setFormData(prev => ({ ...prev, vendedor: vendedorCreado.nombre }));
+            setFormData(prev => ({ 
+                ...prev, 
+                vendedorId: vendedorCreado.id,
+                vendedorNombre: vendedorCreado.nombre 
+            }));
             setNuevoVendedor('');
             setShowVendedorInput(false);
         } catch (error) {
@@ -544,10 +556,10 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                     <div>
                                         <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Vendedor</label>
                                         {!showVendedorInput ? (
-                                            <select name="vendedor" value={formData.vendedor || ''} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50">
+                                            <select name="vendedorId" value={formData.vendedorId || ''} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50">
                                                 <option value="">Seleccione un vendedor</option>
                                                 {vendedores.filter(v => v.activo).map(vendedor => (
-                                                    <option key={vendedor.id} value={vendedor.nombre}>{vendedor.nombre}</option>
+                                                    <option key={vendedor.id} value={vendedor.id}>{vendedor.nombre}</option>
                                                 ))}
                                                 {!isReadOnly && <option value="add_new_vendedor">-- Crear nuevo vendedor --</option>}
                                             </select>

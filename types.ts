@@ -69,7 +69,8 @@ export interface Pedido {
     fechaEntrega: string; // YYYY-MM-DD
     nuevaFechaEntrega?: string; // YYYY-MM-DD
     fechaFinalizacion?: string; // ISO 8601 date string
-    vendedor?: string; // Nombre del vendedor asignado
+    vendedorId?: string; // UUID del vendedor asignado
+    vendedorNombre?: string; // Nombre del vendedor (para mostrar sin cargar todo el objeto)
     etapaActual: Etapa;
     subEtapaActual?: string;
     etapasSecuencia: EtapaInfo[];
@@ -122,7 +123,7 @@ export interface KanbanEtapa {
     color: string;
 }
 
-export type ViewType = 'preparacion' | 'clientes' | 'kanban' | 'list' | 'archived' | 'report' | 'permissions-debug';
+export type ViewType = 'preparacion' | 'clientes' | 'vendedores' | 'kanban' | 'list' | 'archived' | 'report' | 'permissions-debug';
 
 export type UserRole = 'Administrador' | 'Supervisor' | 'Operador' | 'Visualizador';
 

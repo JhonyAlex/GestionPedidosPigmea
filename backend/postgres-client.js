@@ -746,6 +746,14 @@ class PostgreSQLClient {
                 }
             }
 
+            // Si se proporciona vendedorId, obtener el nombre del vendedor
+            if (pedido.vendedorId) {
+                const vendedorResult = await client.query('SELECT nombre FROM vendedores WHERE id = $1', [pedido.vendedorId]);
+                if (vendedorResult.rowCount > 0) {
+                    pedido.vendedorNombre = vendedorResult.rows[0].nombre;
+                }
+            }
+
             // ✅ Ya no necesitamos modificar pedido.data aquí
             // El clienteId se guardará directamente en la columna cliente_id
             // Y también estará en el JSON cuando se haga JSON.stringify(pedido) más adelante
@@ -768,7 +776,7 @@ class PostgreSQLClient {
             ];
             
             // Columnas opcionales que pueden no existir
-            const optionalColumns = ['nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'cliche_info_adicional', 'anonimo', 'dto_compra', 'recepcion_cliche'];
+            const optionalColumns = ['nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'vendedor_id', 'cliche_info_adicional', 'anonimo', 'dto_compra', 'recepcion_cliche'];
             
             // Construir lista de columnas a insertar
             const columnsToInsert = baseColumns.filter(col => existingColumns.includes(col));
@@ -813,6 +821,9 @@ class PostgreSQLClient {
             if (existingColumns.includes('vendedor')) {
                 values.push(pedido.vendedor || null);
             }
+            if (existingColumns.includes('vendedor_id')) {
+                values.push(pedido.vendedorId || null);
+            }
             if (existingColumns.includes('cliche_info_adicional')) {
                 values.push(pedido.clicheInfoAdicional || null);
             }
@@ -854,6 +865,14 @@ class PostgreSQLClient {
                 }
             }
 
+            // Si se proporciona vendedorId, obtener el nombre del vendedor
+            if (pedido.vendedorId) {
+                const vendedorResult = await client.query('SELECT nombre FROM vendedores WHERE id = $1', [pedido.vendedorId]);
+                if (vendedorResult.rowCount > 0) {
+                    pedido.vendedorNombre = vendedorResult.rows[0].nombre;
+                }
+            }
+
             // ✅ Ya no necesitamos modificar pedido.data aquí
             // El clienteId se guardará directamente en la columna cliente_id
             // Y también estará en el JSON cuando se haga JSON.stringify(pedido) más adelante
@@ -863,13 +882,14 @@ class PostgreSQLClient {
                 SELECT column_name 
                 FROM information_schema.columns 
                 WHERE table_name = 'pedidos' 
-                AND column_name IN ('nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'cliche_info_adicional', 'anonimo', 'dto_compra', 'recepcion_cliche')
+                AND column_name IN ('nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'vendedor_id', 'cliche_info_adicional', 'anonimo', 'dto_compra', 'recepcion_cliche')
             `);
             
             const existingColumns = columnsResult.rows.map(row => row.column_name);
             const hasNuevaFecha = existingColumns.includes('nueva_fecha_entrega');
             const hasNumerosCompra = existingColumns.includes('numeros_compra');
             const hasVendedor = existingColumns.includes('vendedor');
+            const hasVendedorId = existingColumns.includes('vendedor_id');
             const hasClicheInfo = existingColumns.includes('cliche_info_adicional');
             const hasAnonimo = existingColumns.includes('anonimo');
             const hasDtoCompra = existingColumns.includes('dto_compra');
@@ -937,6 +957,12 @@ class PostgreSQLClient {
             if (hasVendedor) {
                 updateFields.push(`vendedor = $${paramIndex++}`);
                 values.push(pedido.vendedor || null);
+            }
+
+            // Agregar vendedor_id solo si la columna existe
+            if (hasVendedorId) {
+                updateFields.push(`vendedor_id = $${paramIndex++}`);
+                values.push(pedido.vendedorId || null);
             }
 
             // Agregar cliche_info_adicional solo si la columna existe
@@ -1767,6 +1793,106 @@ class PostgreSQLClient {
         try {
             const query = 'DELETE FROM vendedores WHERE id = $1';
             await client.query(query, [id]);
+        } finally {
+            client.release();
+        }
+    }
+
+    async getVendedorPedidos(vendedorId, estado = null) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            let whereClause = "WHERE (vendedor_id = $1 OR data->>'vendedorId' = $1::text)";
+            const queryParams = [vendedorId];
+
+            // Filtrar por estado de pedido
+            if (estado === 'activo') {
+                whereClause += ` AND etapa_actual NOT IN ('COMPLETADO', 'ARCHIVADO')`;
+            } else if (estado === 'completado') {
+                whereClause += ` AND etapa_actual = 'COMPLETADO'`;
+            } else if (estado === 'archivado') {
+                whereClause += ` AND etapa_actual = 'ARCHIVADO'`;
+            } else if (estado === 'preparacion') {
+                // Solo pedidos en PREPARACION y PENDIENTE
+                whereClause += ` AND etapa_actual IN ('PREPARACION', 'PENDIENTE')`;
+            } else if (estado === 'produccion') {
+                // Solo pedidos en IMPRESION_* y POST_* (excluyendo PREPARACION y PENDIENTE)
+                whereClause += ` AND etapa_actual IN (
+                    'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
+                    'POST_LAMINACION_SL2', 'POST_LAMINACION_NEXUS',
+                    'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',
+                    'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_REBOBINADO_TEMAC'
+                )`;
+            }
+
+            const query = `
+                SELECT 
+                    id,
+                    data,
+                    etapa_actual,
+                    fecha_pedido,
+                    fecha_entrega,
+                    created_at,
+                    updated_at
+                FROM pedidos
+                ${whereClause}
+                ORDER BY created_at DESC
+            `;
+
+            const result = await client.query(query, queryParams);
+            
+            // Transformar los pedidos para que tengan el formato esperado
+            const pedidos = result.rows.map(row => {
+                const pedidoData = row.data || {};
+                return {
+                    id: row.id,
+                    ...pedidoData,
+                    etapaActual: row.etapa_actual,
+                    fechaCreacion: pedidoData.fechaCreacion || row.fecha_pedido || row.created_at,
+                    fechaEntrega: pedidoData.fechaEntrega || row.fecha_entrega || null,
+                    fechaActualizacion: row.updated_at,
+                };
+            });
+
+            return pedidos;
+        } finally {
+            client.release();
+        }
+    }
+
+    async getVendedorEstadisticas(vendedorId) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                SELECT 
+                    COUNT(*) FILTER (WHERE etapa_actual IN (
+                        'PREPARACION', 'PENDIENTE',
+                        'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
+                        'POST_LAMINACION_SL2', 'POST_LAMINACION_NEXUS',
+                        'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',
+                        'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_REBOBINADO_TEMAC'
+                    )) as pedidos_en_produccion,
+                    COUNT(*) FILTER (WHERE etapa_actual NOT IN ('COMPLETADO', 'ARCHIVADO', 'CANCELADO')) as pedidos_activos,
+                    COUNT(*) FILTER (WHERE etapa_actual = 'COMPLETADO') as pedidos_completados,
+                    COUNT(*) FILTER (WHERE etapa_actual = 'ARCHIVADO') as pedidos_archivados,
+                    COUNT(*) as total_pedidos,
+                    SUM((data->>'metros')::numeric) FILTER (WHERE etapa_actual = 'COMPLETADO') as metros_producidos,
+                    MAX(COALESCE(fecha_pedido, created_at)) as ultimo_pedido_fecha
+                FROM pedidos
+                WHERE vendedor_id = $1 OR data->>'vendedorId' = $1::text
+            `;
+
+            const result = await client.query(query, [vendedorId]);
+            return result.rows[0] || {
+                pedidos_en_produccion: 0,
+                pedidos_activos: 0,
+                pedidos_completados: 0,
+                pedidos_archivados: 0,
+                total_pedidos: 0,
+                metros_producidos: 0,
+                ultimo_pedido_fecha: null
+            };
         } finally {
             client.release();
         }
