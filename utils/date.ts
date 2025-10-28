@@ -78,3 +78,43 @@ export const formatDistanceToNow = (date: Date, options?: { addSuffix?: boolean 
     
     return options?.addSuffix ? 'hace unos segundos' : 'unos segundos';
 };
+
+/**
+ * Formatea una fecha en formato DD/MM/YYYY
+ * @param date Fecha a formatear (Date, string ISO, o timestamp)
+ * @returns String con formato DD/MM/YYYY
+ */
+export const formatDateDDMMYYYY = (date: Date | string | number): string => {
+    const d = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
+    
+    if (isNaN(d.getTime())) {
+        return 'N/A';
+    }
+    
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const year = d.getFullYear();
+    
+    return `${day}/${month}/${year}`;
+};
+
+/**
+ * Formatea una fecha y hora en formato DD/MM/YYYY HH:mm
+ * @param date Fecha a formatear (Date, string ISO, o timestamp)
+ * @returns String con formato DD/MM/YYYY HH:mm
+ */
+export const formatDateTimeDDMMYYYY = (date: Date | string | number): string => {
+    const d = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
+    
+    if (isNaN(d.getTime())) {
+        return 'N/A';
+    }
+    
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const year = d.getFullYear();
+    const hours = d.getHours().toString().padStart(2, '0');
+    const minutes = d.getMinutes().toString().padStart(2, '0');
+    
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+};

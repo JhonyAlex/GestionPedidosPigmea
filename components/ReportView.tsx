@@ -3,6 +3,7 @@ import { Pedido, Prioridad, Etapa, AuditEntry } from '../types';
 import { parseTimeToMinutes, calcularTiempoRealProduccion } from '../utils/kpi';
 import BarChart from './BarChart';
 import LineChart from './LineChart';
+import { formatDateTimeDDMMYYYY } from '../utils/date';
 
 interface ReportViewProps {
     pedidos: Pedido[];
@@ -52,9 +53,10 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, auditLog, onNavigateTo
         const sortedWeeks = Object.keys(weeklyData).sort();
         const labels = sortedWeeks.map(weekKey => {
             const date = new Date(weekKey);
-            const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+            const day = date.getDate();
+            const month = date.toLocaleDateString('es-ES', { month: 'short' });
             const weekData = weeklyData[weekKey];
-            return `Sem ${date.toLocaleDateString('es-ES', options)} (${weekData.count} pedidos)`;
+            return `Sem ${day} ${month} (${weekData.count} pedidos)`;
         });
 
         const plannedAvgs = sortedWeeks.map(weekKey => {
@@ -394,7 +396,7 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, auditLog, onNavigateTo
                                         <p className="font-mono text-gray-700 dark:text-gray-300">
                                             <span className="font-semibold text-teal-600 dark:text-teal-400">{log.userRole}</span>: {log.action}
                                         </p>
-                                        <p className="text-xs text-gray-500 mt-1">{new Date(log.timestamp).toLocaleString()}</p>
+                                        <p className="text-xs text-gray-500 mt-1">{formatDateTimeDDMMYYYY(log.timestamp)}</p>
                                     </li>
                                 ))}
                             </ul>

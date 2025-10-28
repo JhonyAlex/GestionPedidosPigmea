@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Pedido, Prioridad, Etapa, UserRole, TipoImpresion, EstadoCliché } from '../types';
 import { calcularTiempoRealProduccion, parseTimeToMinutes, formatMinutesToHHMM } from '../utils/kpi';
+import { formatDateTimeDDMMYYYY } from '../utils/date';
 import { puedeAvanzarSecuencia, estaFueraDeSecuencia } from '../utils/etapaLogic';
 import { ETAPAS, KANBAN_FUNNELS } from '../constants';
 import SequenceBuilder from './SequenceBuilder';
@@ -430,7 +431,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                         </div>
                                         <div>
                                         <div className="text-xs text-gray-600 dark:text-gray-400">Fecha Finalización</div>
-                                        <div className="text-base font-semibold">{pedido.fechaFinalizacion ? new Date(pedido.fechaFinalizacion).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : 'N/A'}</div>
+                                        <div className="text-base font-semibold">{pedido.fechaFinalizacion ? formatDateTimeDDMMYYYY(pedido.fechaFinalizacion) : 'N/A'}</div>
                                     </div>
                                     </div>
                                 </div>
@@ -522,7 +523,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                     <div>
                                         <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Fecha de Creación</label>
                                         <p className="w-full bg-gray-100 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm">
-                                            {new Date(formData.fechaCreacion).toLocaleString('es-ES', { dateStyle: 'long', timeStyle: 'short' })}
+                                            {formatDateTimeDDMMYYYY(formData.fechaCreacion)}
                                         </p>
                                     </div>
                                     <div>
@@ -837,7 +838,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                     </div>
                                                     <div className="whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">
                                                         <time dateTime={item.timestamp}>
-                                                            {new Date(item.timestamp).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
+                                                            {formatDateTimeDDMMYYYY(item.timestamp)}
                                                         </time>
                                                     </div>
                                                 </div>

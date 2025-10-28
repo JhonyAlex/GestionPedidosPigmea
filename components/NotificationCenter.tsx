@@ -1,5 +1,6 @@
 import React from 'react';
 import { NotificationData } from '../services/websocket';
+import { formatDateTimeDDMMYYYY } from '../utils/date';
 
 interface NotificationProps {
   notification: NotificationData;
@@ -36,7 +37,7 @@ const NotificationItem: React.FC<NotificationProps> = ({ notification, onRemove 
             <p className="text-sm font-medium">{notification.title}</p>
             <p className="text-xs mt-1 opacity-90">{notification.message}</p>
             <p className="text-xs mt-1 opacity-60">
-              {new Date(notification.timestamp).toLocaleTimeString('es-ES')}
+              {formatDateTimeDDMMYYYY(notification.timestamp)}
             </p>
           </div>
         </div>

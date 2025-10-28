@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Pedido } from '../types';
+import { formatDateDDMMYYYY } from '../utils/date';
 
 interface BulkDateUpdateModalProps {
   isOpen: boolean;
@@ -113,12 +114,12 @@ const BulkDateUpdateModal: React.FC<BulkDateUpdateModalProps> = ({
                           {pedido.cliente}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                          {pedido.nuevaFechaEntrega || pedido.fechaEntrega}
+                          {pedido.nuevaFechaEntrega ? formatDateDDMMYYYY(pedido.nuevaFechaEntrega) : formatDateDDMMYYYY(pedido.fechaEntrega)}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm">
                           {nuevaFecha ? (
                             <span className="text-blue-600 dark:text-blue-400 font-semibold">
-                              {nuevaFecha}
+                              {formatDateDDMMYYYY(nuevaFecha)}
                             </span>
                           ) : (
                             <span className="text-gray-400 dark:text-gray-600 italic">

@@ -3,6 +3,7 @@ import { User, UserRole, Permission } from '../types';
 import { DEFAULT_ROLE_PERMISSIONS, getPermissionsByRole, getAllPermissionCategories, PERMISSION_CONFIG } from '../constants/permissions';
 import PermissionsManager from './PermissionsManager';
 import UserPermissionsModal from './UserPermissionsModal';
+import { formatDateTimeDDMMYYYY } from '../utils/date';
 
 interface UserFormData {
     username: string;
@@ -267,13 +268,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
 
     const formatDate = (dateString: string) => {
         if (!dateString) return 'Nunca';
-        return new Date(dateString).toLocaleDateString('es-ES', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+        return formatDateTimeDDMMYYYY(dateString);
     };
 
     return (

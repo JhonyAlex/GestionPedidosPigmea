@@ -1,6 +1,7 @@
 import React from 'react';
 import { Comment } from '../../types/comments';
 import CommentItem from './CommentItem';
+import { formatDateDDMMYYYY } from '../../utils/date';
 
 interface CommentListProps {
   comments: Comment[];
@@ -65,7 +66,12 @@ const CommentList: React.FC<CommentListProps> = ({
     
     if (dateString === today) return 'Hoy';
     if (dateString === yesterday) return 'Ayer';
-    return date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+    
+    const weekdays = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+    const weekday = weekdays[date.getDay()];
+    const formattedDate = formatDateDDMMYYYY(date);
+    
+    return `${weekday}, ${formattedDate}`;
   };
 
   return (

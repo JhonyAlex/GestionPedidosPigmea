@@ -2,6 +2,7 @@
 
 import { Pedido, EtapaInfo, Etapa } from '../types';
 import { ETAPAS, KANBAN_FUNNELS } from '../constants';
+import { formatDateDDMMYYYY } from './date';
 
 // To satisfy TypeScript since jspdf and jspdf-autotable are loaded from script tags
 declare global {
@@ -198,7 +199,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
     doc.setFontSize(8);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(0); 
-    doc.text(today.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric'}), 814, 35, { align: 'right' });
+    doc.text(formatDateDDMMYYYY(today), 814, 35, { align: 'right' });
 
     // Table
     const tableColumn = [
@@ -237,7 +238,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             ETAPAS[p.etapaActual].title,
             getNextStageTitle(p),
             p.observaciones,
-            new Date(p.fechaCreacion).toLocaleDateString('es-ES'),
+            formatDateDDMMYYYY(p.fechaCreacion),
             formattedFechaEntrega,
             formattedNuevaFechaEntrega,
         ];

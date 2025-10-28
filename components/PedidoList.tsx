@@ -7,6 +7,7 @@ import { ETAPAS, PRIORIDAD_COLORS, KANBAN_FUNNELS } from '../constants';
 import { puedeAvanzarSecuencia, estaFueraDeSecuencia } from '../utils/etapaLogic';
 import { SparklesIcon } from './Icons';
 import { usePermissions } from '../hooks/usePermissions';
+import { formatDateDDMMYYYY } from '../utils/date';
 
 interface PedidoListProps {
     pedidos: Pedido[];
@@ -184,8 +185,8 @@ const PedidoRow: React.FC<{
             <td className="px-6 py-4 text-gray-900 dark:text-white w-36">{ETAPAS[pedido.etapaActual].title}</td>
             <td className="px-6 py-4 text-right text-gray-900 dark:text-white w-24">{pedido.metros} m</td>
             <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-28">{pedido.tiempoProduccionPlanificado}</td>
-            <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-28">{pedido.fechaEntrega}</td>
-            <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-32">{pedido.nuevaFechaEntrega || '-'}</td>
+            <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-28">{formatDateDDMMYYYY(pedido.fechaEntrega)}</td>
+            <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-32">{pedido.nuevaFechaEntrega ? formatDateDDMMYYYY(pedido.nuevaFechaEntrega) : '-'}</td>
             <td className="px-6 py-4 text-center w-28">
                 <div className="flex justify-center items-center space-x-3">
                     <button onClick={() => onSelectPedido(pedido)} className="text-blue-500 hover:text-blue-400 dark:text-blue-400 dark:hover:text-blue-300" title="Ver/Editar">

@@ -3,6 +3,7 @@ import { Cliente } from '../hooks/useClientesManager';
 import { Pedido } from '../types';
 import { Icons } from './Icons';
 import { clienteService } from '../services/clienteService';
+import { formatDateDDMMYYYY } from '../utils/date';
 
 interface ClienteDetailModalProps {
     isOpen: boolean;
@@ -135,11 +136,7 @@ const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose
 
     const formatFecha = (fecha: string) => {
         if (!fecha) return 'N/A';
-        return new Date(fecha).toLocaleDateString('es-ES', { 
-            day: '2-digit', 
-            month: '2-digit', 
-            year: 'numeric' 
-        });
+        return formatDateDDMMYYYY(fecha);
     };
 
     if (!isOpen) return null;
