@@ -263,7 +263,7 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ f
                     </h4>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {/* Bobina Madre */}
+                        {/* Columna 1: Bobina Madre */}
                         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-green-200 dark:border-green-700">
                             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                 🎯 Bobina Madre (mm)
@@ -280,7 +280,39 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ f
                             {renderValidationMessage(formData.bobinaMadre)}
                         </div>
                         
-                        {/* Bobina Final */}
+                        {/* Columna 2: Desarrollo */}
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-green-200 dark:border-green-700">
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                🔰 Desarrollo
+                            </label>
+                            <input 
+                                type="text" 
+                                name="desarrollo" 
+                                placeholder="Ej: 300x200"
+                                value={formData.desarrollo || ''} 
+                                onChange={handleInputChange} 
+                                disabled={isReadOnly} 
+                                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
+                            />
+                        </div>
+                        
+                        {/* Columna 3: Min. por Color */}
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-green-200 dark:border-green-700">
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                🎨 Min. por Color
+                            </label>
+                            <input 
+                                type="number" 
+                                name="minColor" 
+                                placeholder="Ej: 5"
+                                value={formData.minColor || ''} 
+                                onChange={handleInputChange} 
+                                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
+                                disabled={isReadOnly} 
+                            />
+                        </div>
+                        
+                        {/* Columna 1: Bobina Final */}
                         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-green-200 dark:border-green-700">
                             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                 🎯 Bobina Final (mm)
@@ -297,7 +329,7 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ f
                             {renderValidationMessage(formData.bobinaFinal)}
                         </div>
                         
-                        {/* Minutos Adaptación */}
+                        {/* Columna 2: Min. Adaptación */}
                         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-green-200 dark:border-green-700">
                             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                 ⏱️ Min. Adaptación
@@ -314,23 +346,7 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ f
                             {renderValidationMessage(formData.minAdap)}
                         </div>
                         
-                        {/* Minutos Color */}
-                        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-green-200 dark:border-green-700">
-                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                🎨 Min. por Color
-                            </label>
-                            <input 
-                                type="number" 
-                                name="minColor" 
-                                placeholder="Ej: 5"
-                                value={formData.minColor || ''} 
-                                onChange={handleInputChange} 
-                                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
-                                disabled={isReadOnly} 
-                            />
-                        </div>
-                        
-                        {/* Número de Colores */}
+                        {/* Columna 3: Cantidad de Colores */}
                         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-green-200 dark:border-green-700">
                             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                 🌈 Cantidad de Colores
