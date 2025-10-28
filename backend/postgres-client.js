@@ -768,7 +768,7 @@ class PostgreSQLClient {
             ];
             
             // Columnas opcionales que pueden no existir
-            const optionalColumns = ['nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'cliche_info_adicional'];
+            const optionalColumns = ['nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'cliche_info_adicional', 'anonimo'];
             
             // Construir lista de columnas a insertar
             const columnsToInsert = baseColumns.filter(col => existingColumns.includes(col));
@@ -816,6 +816,9 @@ class PostgreSQLClient {
             if (existingColumns.includes('cliche_info_adicional')) {
                 values.push(pedido.clicheInfoAdicional || null);
             }
+            if (existingColumns.includes('anonimo')) {
+                values.push(pedido.anonimo || false);
+            }
             
             // Construir placeholders para los valores
             const placeholders = columnsToInsert.map((_, index) => `$${index + 1}`).join(', ');
@@ -854,7 +857,7 @@ class PostgreSQLClient {
                 SELECT column_name 
                 FROM information_schema.columns 
                 WHERE table_name = 'pedidos' 
-                AND column_name IN ('nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'cliche_info_adicional')
+                AND column_name IN ('nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'cliche_info_adicional', 'anonimo')
             `);
             
             const existingColumns = columnsResult.rows.map(row => row.column_name);
@@ -862,6 +865,7 @@ class PostgreSQLClient {
             const hasNumerosCompra = existingColumns.includes('numeros_compra');
             const hasVendedor = existingColumns.includes('vendedor');
             const hasClicheInfo = existingColumns.includes('cliche_info_adicional');
+            const hasAnonimo = existingColumns.includes('anonimo');
 
             // Construir query dinámicamente basado en columnas existentes
             const updateFields = [];
@@ -933,6 +937,12 @@ class PostgreSQLClient {
                 values.push(pedido.clicheInfoAdicional || null);
             }
 
+            // Agregar anonimo solo si la columna existe
+            if (hasAnonimo) {
+                updateFields.push(`anonimo = $${paramIndex++}`);
+                values.push(pedido.anonimo || false);
+            }
+
             updateFields.push(`data = $${paramIndex++}`);
             values.push(JSON.stringify(pedido));
 
@@ -949,7 +959,7 @@ class PostgreSQLClient {
             `;
 
             console.log(`🔄 Actualizando pedido ${pedido.id} con columnas disponibles:`, 
-                      `nueva_fecha_entrega=${hasNuevaFecha}, numeros_compra=${hasNumerosCompra}, vendedor=${hasVendedor}, cliche_info=${hasClicheInfo}`);
+                      `nueva_fecha_entrega=${hasNuevaFecha}, numeros_compra=${hasNumerosCompra}, vendedor=${hasVendedor}, cliche_info=${hasClicheInfo}, anonimo=${hasAnonimo}`);
 
             const result = await client.query(query, values);
             if (result.rowCount === 0) throw new Error(`Pedido ${pedido.id} no encontrado para actualizar`);

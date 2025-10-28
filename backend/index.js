@@ -1792,12 +1792,36 @@ app.post('/api/admin/migrate', requirePermission('usuarios.admin'), async (req, 
                 results.push({ migration: 'vendedor', status: 'error', error: error.message });
             }
 
+            // Migración 4: anonimo
+            try {
+                await client.query(`
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'pedidos' AND column_name = 'anonimo'
+                        ) THEN
+                            ALTER TABLE pedidos ADD COLUMN anonimo BOOLEAN DEFAULT false;
+                            CREATE INDEX IF NOT EXISTS idx_pedidos_anonimo ON pedidos(anonimo);
+                            COMMENT ON COLUMN pedidos.anonimo IS 'Indica si el pedido es anónimo';
+                            RAISE NOTICE 'Columna anonimo agregada';
+                        ELSE
+                            RAISE NOTICE 'Columna anonimo ya existe';
+                        END IF;
+                    END $$;
+                `);
+                results.push({ migration: 'anonimo', status: 'success' });
+            } catch (error) {
+                console.error('Error en migración anonimo:', error);
+                results.push({ migration: 'anonimo', status: 'error', error: error.message });
+            }
+
             // Verificar estado final
             const checkResult = await client.query(`
                 SELECT column_name 
                 FROM information_schema.columns 
                 WHERE table_name = 'pedidos' 
-                AND column_name IN ('nueva_fecha_entrega', 'numero_compra', 'vendedor')
+                AND column_name IN ('nueva_fecha_entrega', 'numero_compra', 'vendedor', 'anonimo')
                 ORDER BY column_name;
             `);
             

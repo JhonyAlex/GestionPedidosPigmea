@@ -13,6 +13,7 @@ class Pedido extends Model
         // ...existing code...
         'camisa',
         'antivaho',
+        'anonimo',
     ];
 
     // ...existing code...

@@ -90,6 +90,7 @@ export interface Pedido {
     camisa?: string;
     antivaho?: boolean;
     antivahoRealizado?: boolean;
+    anonimo?: boolean;
 
     /** El nombre o código del producto final. */
     producto?: string | null;
