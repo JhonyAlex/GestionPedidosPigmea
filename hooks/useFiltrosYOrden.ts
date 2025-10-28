@@ -118,18 +118,61 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         const filtered = pedidos.filter(p => {
             const searchTermLower = searchTerm.toLowerCase();
             const searchTermMatch = !searchTermLower || (
+                // Campos de identificación y cliente
                 p.numeroPedidoCliente.toLowerCase().includes(searchTermLower) ||
+                p.numeroRegistro.toLowerCase().includes(searchTermLower) ||
                 p.cliente.toLowerCase().includes(searchTermLower) ||
+                (p.clienteId && p.clienteId.toLowerCase().includes(searchTermLower)) ||
+                (p.numerosCompra && p.numerosCompra.some(numero => numero.toLowerCase().includes(searchTermLower))) ||
+                
+                // Campos de producción
                 p.desarrollo.toLowerCase().includes(searchTermLower) ||
                 p.maquinaImpresion.toLowerCase().includes(searchTermLower) ||
-                ETAPAS[p.etapaActual].title.toLowerCase().includes(searchTermLower) ||
-                p.prioridad.toLowerCase().includes(searchTermLower) ||
-                p.tipoImpresion.toLowerCase().includes(searchTermLower) ||
                 String(p.metros).includes(searchTermLower) ||
                 (p.capa && p.capa.toLowerCase().includes(searchTermLower)) ||
-                p.numeroRegistro.toLowerCase().includes(searchTermLower) ||
                 (p.camisa && p.camisa.toLowerCase().includes(searchTermLower)) ||
-                (p.numerosCompra && p.numerosCompra.some(numero => numero.toLowerCase().includes(searchTermLower)))
+                p.tipoImpresion.toLowerCase().includes(searchTermLower) ||
+                (p.tiempoProduccionPlanificado && p.tiempoProduccionPlanificado.toLowerCase().includes(searchTermLower)) ||
+                (p.tiempoTotalProduccion && p.tiempoTotalProduccion.toLowerCase().includes(searchTermLower)) ||
+                
+                // Campos de etapas y prioridad
+                ETAPAS[p.etapaActual].title.toLowerCase().includes(searchTermLower) ||
+                (p.subEtapaActual && p.subEtapaActual.toLowerCase().includes(searchTermLower)) ||
+                p.prioridad.toLowerCase().includes(searchTermLower) ||
+                
+                // Campos de fechas (búsqueda parcial)
+                p.fechaCreacion.toLowerCase().includes(searchTermLower) ||
+                p.fechaEntrega.toLowerCase().includes(searchTermLower) ||
+                (p.nuevaFechaEntrega && p.nuevaFechaEntrega.toLowerCase().includes(searchTermLower)) ||
+                (p.fechaFinalizacion && p.fechaFinalizacion.toLowerCase().includes(searchTermLower)) ||
+                
+                // Campos de preparación y cliché
+                (p.estadoCliché && p.estadoCliché.toLowerCase().includes(searchTermLower)) ||
+                (p.clicheInfoAdicional && p.clicheInfoAdicional.toLowerCase().includes(searchTermLower)) ||
+                
+                // Observaciones y vendedor
+                p.observaciones.toLowerCase().includes(searchTermLower) ||
+                (p.vendedor && p.vendedor.toLowerCase().includes(searchTermLower)) ||
+                
+                // Producto y especificaciones técnicas
+                (p.producto && p.producto.toLowerCase().includes(searchTermLower)) ||
+                (p.bobinaMadre && String(p.bobinaMadre).includes(searchTermLower)) ||
+                (p.bobinaFinal && String(p.bobinaFinal).includes(searchTermLower)) ||
+                (p.minAdap && String(p.minAdap).includes(searchTermLower)) ||
+                (p.colores && String(p.colores).includes(searchTermLower)) ||
+                (p.minColor && String(p.minColor).includes(searchTermLower)) ||
+                (p.materialCapasCantidad && String(p.materialCapasCantidad).includes(searchTermLower)) ||
+                (p.materialConsumoCantidad && String(p.materialConsumoCantidad).includes(searchTermLower)) ||
+                
+                // Búsqueda en arrays de material (capas y consumo)
+                (p.materialCapas && p.materialCapas.some(capa => 
+                    (capa.micras && String(capa.micras).includes(searchTermLower)) ||
+                    (capa.densidad && String(capa.densidad).includes(searchTermLower))
+                )) ||
+                (p.materialConsumo && p.materialConsumo.some(consumo =>
+                    (consumo.necesario && String(consumo.necesario).includes(searchTermLower)) ||
+                    (consumo.recibido && consumo.recibido.toLowerCase().includes(searchTermLower))
+                ))
             );
 
             const priorityMatch = filters.priority === 'all' || p.prioridad === filters.priority;
