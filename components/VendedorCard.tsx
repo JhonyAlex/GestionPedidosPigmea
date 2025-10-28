@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Vendedor } from '../types/vendedor';
 import { Icons } from './Icons';
+import { formatDateDDMMYYYY } from '../utils/date';
 
 interface VendedorCardProps {
   vendedor: Vendedor;
@@ -159,7 +160,7 @@ const VendedorCard: React.FC<VendedorCardProps> = ({ vendedor, onEdit, onDelete,
       </div>
 
       <div className="bg-gray-50 dark:bg-gray-700 px-5 py-3 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-600">
-        Creado: {new Date(vendedor.createdAt).toLocaleDateString('es-ES')}
+        Creado: {formatDateDDMMYYYY(vendedor.createdAt)}
       </div>
     </div>
   );
