@@ -724,6 +724,52 @@ class PostgreSQLClient {
             `);
             console.log('✅ Triggers configurados');
 
+            // ✅ Añadir columna vendedor_id a pedidos si no existe
+            await client.query(`
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name = 'pedidos' AND column_name = 'vendedor_id'
+                    ) THEN
+                        ALTER TABLE pedidos ADD COLUMN vendedor_id UUID;
+                        CREATE INDEX IF NOT EXISTS idx_pedidos_vendedor_id ON pedidos(vendedor_id);
+                        
+                        -- Añadir foreign key
+                        ALTER TABLE pedidos
+                        ADD CONSTRAINT fk_pedidos_vendedor
+                        FOREIGN KEY (vendedor_id)
+                        REFERENCES vendedores(id)
+                        ON DELETE SET NULL;
+                        
+                        -- Migrar datos existentes del campo vendedor (string) a vendedor_id
+                        -- Crear vendedores para cada nombre único
+                        INSERT INTO vendedores (nombre, activo)
+                        SELECT DISTINCT TRIM(vendedor) as nombre, true
+                        FROM pedidos
+                        WHERE vendedor IS NOT NULL 
+                          AND TRIM(vendedor) != ''
+                          AND NOT EXISTS (
+                            SELECT 1 FROM vendedores v 
+                            WHERE LOWER(v.nombre) = LOWER(TRIM(pedidos.vendedor))
+                          )
+                        ON CONFLICT (nombre) DO NOTHING;
+                        
+                        -- Actualizar pedidos con el vendedor_id correspondiente
+                        UPDATE pedidos p
+                        SET vendedor_id = v.id
+                        FROM vendedores v
+                        WHERE LOWER(TRIM(p.vendedor)) = LOWER(v.nombre)
+                          AND p.vendedor IS NOT NULL
+                          AND p.vendedor != ''
+                          AND p.vendedor_id IS NULL;
+                        
+                        RAISE NOTICE '✅ Columna vendedor_id añadida y datos migrados';
+                    END IF;
+                END $$;
+            `);
+            console.log('✅ Columna vendedor_id verificada/creada');
+
             console.log('🎉 Todas las tablas han sido verificadas/creadas exitosamente');
 
             
