@@ -1,7 +1,7 @@
 
 
 import React, { useState, useEffect } from 'react';
-import { ViewType, Prioridad, Etapa, UserRole, Pedido, DateField, WeekFilter as WeekFilterType } from '../types';
+import { ViewType, Prioridad, Etapa, UserRole, Pedido, DateField, WeekFilter as WeekFilterType, EstadoCliché } from '../types';
 import { ETAPAS_KANBAN, ETAPAS, STAGE_GROUPS } from '../constants';
 import { DateFilterOption } from '../utils/date';
 import UserInfo from './UserInfo';
@@ -22,6 +22,8 @@ interface HeaderProps {
     onAntivahoFilterChange: (value: 'all' | 'con' | 'sin' | 'hecho') => void;
     preparacionFilter?: 'all' | 'sin-material' | 'sin-cliche' | 'listo';
     onPreparacionFilterChange?: (value: 'all' | 'sin-material' | 'sin-cliche' | 'listo') => void;
+    estadoClicheFilter?: EstadoCliché | 'all';
+    onEstadoClicheFilterChange?: (value: EstadoCliché | 'all') => void;
     weekFilter: WeekFilterType;
     onWeekFilterToggle: () => void;
     onWeekChange: (year: number, week: number) => void;
@@ -74,6 +76,8 @@ const Header: React.FC<HeaderProps> = ({
     onAntivahoFilterChange,
     preparacionFilter = 'all',
     onPreparacionFilterChange,
+    estadoClicheFilter = 'all',
+    onEstadoClicheFilterChange,
     weekFilter,
     onWeekFilterToggle,
     onWeekChange,
@@ -122,6 +126,8 @@ const Header: React.FC<HeaderProps> = ({
         { value: 'fechaEntrega', label: 'F. Entrega' },
         { value: 'nuevaFechaEntrega', label: 'Nueva F. Entrega' },
         { value: 'fechaFinalizacion', label: 'F. Finalización' },
+        { value: 'dtoCompra', label: 'Dto Compra' },
+        { value: 'recepcionCliche', label: 'Recepción Cliché' },
     ];
 
     const dateFilterOptions: { value: DateFilterOption, label: string }[] = [
@@ -295,6 +301,21 @@ const Header: React.FC<HeaderProps> = ({
                             <option value="sin">Sin Antivaho</option>
                             <option value="hecho">Antivaho Hecho</option>
                         </select>
+
+                        {/* Filtro de Estado de Cliché */}
+                        {onEstadoClicheFilterChange && (
+                            <select
+                                name="estadoCliche"
+                                value={estadoClicheFilter}
+                                onChange={(e) => onEstadoClicheFilterChange(e.target.value as EstadoCliché | 'all')}
+                                className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            >
+                                <option value="all">Estado Cliché (Todos)</option>
+                                {Object.values(EstadoCliché).map(estado => (
+                                    <option key={estado} value={estado}>{estado}</option>
+                                ))}
+                            </select>
+                        )}
 
                         {/* Filtro de estado de preparación (visible solo en vista preparacion) */}
                         {currentView === 'preparacion' && onPreparacionFilterChange && (

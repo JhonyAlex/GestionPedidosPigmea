@@ -1816,12 +1816,48 @@ app.post('/api/admin/migrate', requirePermission('usuarios.admin'), async (req, 
                 results.push({ migration: 'anonimo', status: 'error', error: error.message });
             }
 
+            // ===== MIGRACIÓN 13: Campos de fecha Cliché (dto_compra, recepcion_cliche) =====
+            try {
+                await client.query(`
+                    DO $$ 
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'pedidos' AND column_name = 'dto_compra'
+                        ) THEN
+                            ALTER TABLE pedidos ADD COLUMN dto_compra DATE;
+                            CREATE INDEX IF NOT EXISTS idx_pedidos_dto_compra ON pedidos(dto_compra);
+                            COMMENT ON COLUMN pedidos.dto_compra IS 'Fecha de Dto Compra del cliché';
+                            RAISE NOTICE 'Columna dto_compra agregada';
+                        ELSE
+                            RAISE NOTICE 'Columna dto_compra ya existe';
+                        END IF;
+
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'pedidos' AND column_name = 'recepcion_cliche'
+                        ) THEN
+                            ALTER TABLE pedidos ADD COLUMN recepcion_cliche DATE;
+                            CREATE INDEX IF NOT EXISTS idx_pedidos_recepcion_cliche ON pedidos(recepcion_cliche);
+                            COMMENT ON COLUMN pedidos.recepcion_cliche IS 'Fecha de Recepción del Cliché';
+                            RAISE NOTICE 'Columna recepcion_cliche agregada';
+                        ELSE
+                            RAISE NOTICE 'Columna recepcion_cliche ya existe';
+                        END IF;
+                    END $$;
+                `);
+                results.push({ migration: 'cliche_dates', status: 'success' });
+            } catch (error) {
+                console.error('Error en migración cliche_dates:', error);
+                results.push({ migration: 'cliche_dates', status: 'error', error: error.message });
+            }
+
             // Verificar estado final
             const checkResult = await client.query(`
                 SELECT column_name 
                 FROM information_schema.columns 
                 WHERE table_name = 'pedidos' 
-                AND column_name IN ('nueva_fecha_entrega', 'numero_compra', 'vendedor', 'anonimo')
+                AND column_name IN ('nueva_fecha_entrega', 'numero_compra', 'vendedor', 'anonimo', 'dto_compra', 'recepcion_cliche')
                 ORDER BY column_name;
             `);
             

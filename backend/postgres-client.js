@@ -768,7 +768,7 @@ class PostgreSQLClient {
             ];
             
             // Columnas opcionales que pueden no existir
-            const optionalColumns = ['nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'cliche_info_adicional', 'anonimo'];
+            const optionalColumns = ['nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'cliche_info_adicional', 'anonimo', 'dto_compra', 'recepcion_cliche'];
             
             // Construir lista de columnas a insertar
             const columnsToInsert = baseColumns.filter(col => existingColumns.includes(col));
@@ -819,6 +819,12 @@ class PostgreSQLClient {
             if (existingColumns.includes('anonimo')) {
                 values.push(pedido.anonimo || false);
             }
+            if (existingColumns.includes('dto_compra')) {
+                values.push(pedido.dtoCompra ? new Date(pedido.dtoCompra) : null);
+            }
+            if (existingColumns.includes('recepcion_cliche')) {
+                values.push(pedido.recepcionCliche ? new Date(pedido.recepcionCliche) : null);
+            }
             
             // Construir placeholders para los valores
             const placeholders = columnsToInsert.map((_, index) => `$${index + 1}`).join(', ');
@@ -857,7 +863,7 @@ class PostgreSQLClient {
                 SELECT column_name 
                 FROM information_schema.columns 
                 WHERE table_name = 'pedidos' 
-                AND column_name IN ('nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'cliche_info_adicional', 'anonimo')
+                AND column_name IN ('nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'cliche_info_adicional', 'anonimo', 'dto_compra', 'recepcion_cliche')
             `);
             
             const existingColumns = columnsResult.rows.map(row => row.column_name);
@@ -866,6 +872,8 @@ class PostgreSQLClient {
             const hasVendedor = existingColumns.includes('vendedor');
             const hasClicheInfo = existingColumns.includes('cliche_info_adicional');
             const hasAnonimo = existingColumns.includes('anonimo');
+            const hasDtoCompra = existingColumns.includes('dto_compra');
+            const hasRecepcionCliche = existingColumns.includes('recepcion_cliche');
 
             // Construir query dinámicamente basado en columnas existentes
             const updateFields = [];
@@ -941,6 +949,18 @@ class PostgreSQLClient {
             if (hasAnonimo) {
                 updateFields.push(`anonimo = $${paramIndex++}`);
                 values.push(pedido.anonimo || false);
+            }
+
+            // Agregar dto_compra solo si la columna existe
+            if (hasDtoCompra) {
+                updateFields.push(`dto_compra = $${paramIndex++}`);
+                values.push(pedido.dtoCompra ? new Date(pedido.dtoCompra) : null);
+            }
+
+            // Agregar recepcion_cliche solo si la columna existe
+            if (hasRecepcionCliche) {
+                updateFields.push(`recepcion_cliche = $${paramIndex++}`);
+                values.push(pedido.recepcionCliche ? new Date(pedido.recepcionCliche) : null);
             }
 
             updateFields.push(`data = $${paramIndex++}`);

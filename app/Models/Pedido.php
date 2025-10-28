@@ -14,6 +14,8 @@ class Pedido extends Model
         'camisa',
         'antivaho',
         'anonimo',
+        'dto_compra',
+        'recepcion_cliche',
     ];
 
     // ...existing code...

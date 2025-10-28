@@ -87,6 +87,8 @@ export interface Pedido {
     clicheDisponible?: boolean;
     estadoCliché?: EstadoCliché;
     clicheInfoAdicional?: string; // Campo adicional para información de cliché (fecha, texto, etc.)
+    dtoCompra?: string; // Fecha de Dto Compra (YYYY-MM-DD)
+    recepcionCliche?: string; // Fecha de Recepción Cliché (YYYY-MM-DD)
     camisa?: string;
     antivaho?: boolean;
     antivahoRealizado?: boolean;
@@ -133,7 +135,7 @@ export interface AuditEntry {
     details?: any;
 }
 
-export type DateField = 'fechaCreacion' | 'fechaEntrega' | 'nuevaFechaEntrega' | 'fechaFinalizacion';
+export type DateField = 'fechaCreacion' | 'fechaEntrega' | 'nuevaFechaEntrega' | 'fechaFinalizacion' | 'dtoCompra' | 'recepcionCliche';
 
 // Tipos para filtro de semana
 export interface WeekFilter {

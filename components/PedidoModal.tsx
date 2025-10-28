@@ -725,6 +725,28 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                 </p>
                                             )}
                                         </div>
+                                        <div>
+                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Dto Compra</label>
+                                            <input 
+                                                type="date" 
+                                                name="dtoCompra" 
+                                                value={formData.dtoCompra || ''} 
+                                                onChange={handleChange} 
+                                                disabled={isReadOnly}
+                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Recepción Cliché</label>
+                                            <input 
+                                                type="date" 
+                                                name="recepcionCliche" 
+                                                value={formData.recepcionCliche || ''} 
+                                                onChange={handleChange} 
+                                                disabled={isReadOnly}
+                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                            />
+                                        </div>
                                         <div className="flex items-center pt-2">
                                             <input type="checkbox" id="materialDisponible" name="materialDisponible" checked={!!formData.materialDisponible} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                             <label htmlFor="materialDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Material Disponible</label>

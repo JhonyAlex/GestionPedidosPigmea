@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Pedido, Prioridad, Etapa, DateField, WeekFilter } from '../types';
+import { Pedido, Prioridad, Etapa, DateField, WeekFilter, EstadoCliché } from '../types';
 import { ETAPAS, PRIORIDAD_ORDEN } from '../constants';
 import { getDateRange, DateFilterOption } from '../utils/date';
 import { getCurrentWeek, isDateInWeek } from '../utils/weekUtils';
@@ -11,6 +11,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
     const [selectedStages, setSelectedStages] = useState<string[]>([]);
     const [antivahoFilter, setAntivahoFilter] = useState<'all' | 'con' | 'sin' | 'hecho'>('all');
     const [preparacionFilter, setPreparacionFilter] = useState<'all' | 'sin-material' | 'sin-cliche' | 'listo'>('all');
+    const [estadoClicheFilter, setEstadoClicheFilter] = useState<EstadoCliché | 'all'>('all');
     const [dateFilter, setDateFilter] = useState<DateFilterOption>('all');
     const [customDateRange, setCustomDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
     const [sortConfig, setSortConfig] = useState<{ key: keyof Pedido, direction: 'ascending' | 'descending' }>({ key: 'prioridad', direction: 'ascending' });
@@ -28,6 +29,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
     const handleDateFilterChange = (value: string) => setDateFilter(value as DateFilterOption);
     const handleAntivahoFilterChange = (value: 'all' | 'con' | 'sin' | 'hecho') => setAntivahoFilter(value);
     const handlePreparacionFilterChange = (value: 'all' | 'sin-material' | 'sin-cliche' | 'listo') => setPreparacionFilter(value);
+    const handleEstadoClicheFilterChange = (value: EstadoCliché | 'all') => setEstadoClicheFilter(value);
     const handleCustomDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setCustomDateRange(prev => ({ ...prev, [name]: value }));
@@ -186,6 +188,9 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
                 (antivahoFilter === 'sin' && p.antivaho !== true) ||
                 (antivahoFilter === 'hecho' && p.antivaho === true && p.antivahoRealizado === true);
 
+            // Filtro de Estado de Cliché
+            const estadoClicheMatch = estadoClicheFilter === 'all' || p.estadoCliché === estadoClicheFilter;
+
             // Filtro de semana (tiene prioridad sobre filtro de fecha normal)
             let weekMatch = true;
             if (weekFilter.enabled) {
@@ -216,7 +221,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
             // Si el filtro de semana está activo, usar weekMatch en lugar de dateMatch
             const finalDateMatch = weekFilter.enabled ? weekMatch : dateMatch;
 
-            return searchTermMatch && priorityMatch && stageMatch && finalDateMatch && antivahoMatch && preparacionMatch;
+            return searchTermMatch && priorityMatch && stageMatch && finalDateMatch && antivahoMatch && preparacionMatch && estadoClicheMatch;
         });
 
         if (sortConfig.key) {
@@ -265,7 +270,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         
         return filtered;
 
-    }, [pedidos, searchTerm, filters, selectedStages, antivahoFilter, preparacionFilter, dateFilter, sortConfig, customDateRange, weekFilter]);
+    }, [pedidos, searchTerm, filters, selectedStages, antivahoFilter, preparacionFilter, estadoClicheFilter, dateFilter, sortConfig, customDateRange, weekFilter]);
 
     return {
         processedPedidos,
@@ -281,6 +286,8 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         handleAntivahoFilterChange,
         preparacionFilter,
         handlePreparacionFilterChange,
+        estadoClicheFilter,
+        handleEstadoClicheFilterChange,
         dateFilter,
         handleDateFilterChange,
         customDateRange,
