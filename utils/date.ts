@@ -85,9 +85,13 @@ export const formatDistanceToNow = (date: Date, options?: { addSuffix?: boolean 
  * @returns String con formato DD/MM/YYYY
  */
 export const formatDateDDMMYYYY = (date: Date | string | number): string => {
+    if (!date) {
+        return 'N/A';
+    }
+    
     const d = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
     
-    if (isNaN(d.getTime())) {
+    if (!d || isNaN(d.getTime())) {
         return 'N/A';
     }
     

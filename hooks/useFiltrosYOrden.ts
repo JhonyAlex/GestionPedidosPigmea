@@ -152,9 +152,9 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
                 (p.estadoCliché && p.estadoCliché.toLowerCase().includes(searchTermLower)) ||
                 (p.clicheInfoAdicional && p.clicheInfoAdicional.toLowerCase().includes(searchTermLower)) ||
                 
-                // Observaciones y vendedor
+                // Observaciones (vendedor se busca por vendedorNombre ahora)
                 p.observaciones.toLowerCase().includes(searchTermLower) ||
-                (p.vendedor && p.vendedor.toLowerCase().includes(searchTermLower)) ||
+                (p.vendedorNombre && p.vendedorNombre.toLowerCase().includes(searchTermLower)) ||
                 
                 // Producto y especificaciones técnicas
                 (p.producto && p.producto.toLowerCase().includes(searchTermLower)) ||
@@ -238,7 +238,9 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
                     case 'prioridad':
                         comparison = PRIORIDAD_ORDEN[aValue as Prioridad] - PRIORIDAD_ORDEN[bValue as Prioridad];
                         if (comparison === 0) {
-                            comparison = new Date(a.fechaCreacion).getTime() - new Date(b.fechaCreacion).getTime();
+                            const dateA = a.fechaCreacion ? new Date(a.fechaCreacion).getTime() : 0;
+                            const dateB = b.fechaCreacion ? new Date(b.fechaCreacion).getTime() : 0;
+                            comparison = dateA - dateB;
                         }
                         break;
                     
