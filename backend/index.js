@@ -55,8 +55,8 @@ const createVendedorMock = (vendedorData) => {
         email: vendedorData.email || null,
         telefono: vendedorData.telefono || null,
         activo: vendedorData.activo !== undefined ? vendedorData.activo : true,
-        created_at: now,
-        updated_at: now
+        createdAt: now,
+        updatedAt: now
     };
     vendedoresMemory.set(id, vendedor);
     return vendedor;

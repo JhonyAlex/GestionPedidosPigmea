@@ -1216,7 +1216,16 @@ class PostgreSQLClient {
         try {
             const query = 'SELECT * FROM vendedores ORDER BY nombre ASC;';
             const result = await client.query(query);
-            return result.rows;
+            // Transformar snake_case a camelCase
+            return result.rows.map(row => ({
+                id: row.id,
+                nombre: row.nombre,
+                email: row.email,
+                telefono: row.telefono,
+                activo: row.activo,
+                createdAt: row.created_at,
+                updatedAt: row.updated_at
+            }));
         } finally {
             client.release();
         }
@@ -1228,7 +1237,18 @@ class PostgreSQLClient {
         try {
             const query = 'SELECT * FROM vendedores WHERE id = $1;';
             const result = await client.query(query, [id]);
-            return result.rows[0] || null;
+            if (!result.rows[0]) return null;
+            // Transformar snake_case a camelCase
+            const row = result.rows[0];
+            return {
+                id: row.id,
+                nombre: row.nombre,
+                email: row.email,
+                telefono: row.telefono,
+                activo: row.activo,
+                createdAt: row.created_at,
+                updatedAt: row.updated_at
+            };
         } finally {
             client.release();
         }
@@ -1246,7 +1266,17 @@ class PostgreSQLClient {
             `;
             const values = [nombre, email, telefono, activo !== undefined ? activo : true];
             const result = await client.query(query, values);
-            return result.rows[0];
+            // Transformar snake_case a camelCase
+            const row = result.rows[0];
+            return {
+                id: row.id,
+                nombre: row.nombre,
+                email: row.email,
+                telefono: row.telefono,
+                activo: row.activo,
+                createdAt: row.created_at,
+                updatedAt: row.updated_at
+            };
         } finally {
             client.release();
         }
@@ -1281,7 +1311,17 @@ class PostgreSQLClient {
             `;
 
             const result = await client.query(query, values);
-            return result.rows[0];
+            // Transformar snake_case a camelCase
+            const row = result.rows[0];
+            return {
+                id: row.id,
+                nombre: row.nombre,
+                email: row.email,
+                telefono: row.telefono,
+                activo: row.activo,
+                createdAt: row.created_at,
+                updatedAt: row.updated_at
+            };
         } finally {
             client.release();
         }
