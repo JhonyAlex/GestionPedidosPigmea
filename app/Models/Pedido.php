@@ -16,6 +16,7 @@ class Pedido extends Model
         'anonimo',
         'dto_compra',
         'recepcion_cliche',
+        'observaciones_material',
     ];
 
     // ...existing code...

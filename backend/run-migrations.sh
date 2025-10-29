@@ -37,6 +37,7 @@ NUEVA_FECHA_MIGRATION="$MIGRATIONS_DIR/006-add-nueva-fecha-entrega.sql"
 NUMERO_COMPRA_MIGRATION="$MIGRATIONS_DIR/007-add-numero-compra.sql"
 NUMEROS_COMPRA_ARRAY_MIGRATION="$MIGRATIONS_DIR/008-convert-numero-compra-to-array.sql"
 CLICHE_INFO_MIGRATION="$MIGRATIONS_DIR/009-add-cliche-info.sql"
+OBSERVACIONES_MATERIAL_MIGRATION="$MIGRATIONS_DIR/016-add-observaciones-material.sql"
 # Añade aquí futuras migraciones
 
 # Función para aplicar una migración
@@ -72,6 +73,7 @@ apply_migration "Agregar Nueva Fecha Entrega" "$NUEVA_FECHA_MIGRATION"
 apply_migration "Agregar Número de Compra" "$NUMERO_COMPRA_MIGRATION"
 apply_migration "Convertir Número Compra a Array" "$NUMEROS_COMPRA_ARRAY_MIGRATION"
 apply_migration "Agregar Info Adicional Cliché" "$CLICHE_INFO_MIGRATION"
+apply_migration "Agregar Observaciones de Material" "$OBSERVACIONES_MATERIAL_MIGRATION"
 
 # Añade llamadas a futuras migraciones aquí
 # apply_migration "Nombre de tu nueva migración" "$MIGRATIONS_DIR/tu_nuevo_archivo.sql"

@@ -5,9 +5,15 @@ interface SeccionDatosTecnicosProps {
     formData: Partial<Pedido>;
     onDataChange: (field: keyof Pedido, value: any) => void;
     isReadOnly?: boolean;
+    handleChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
 }
 
-const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ formData, onDataChange, isReadOnly = false }) => {
+const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ 
+    formData, 
+    onDataChange, 
+    isReadOnly = false,
+    handleChange 
+}) => {
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -178,6 +184,93 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ f
                             Seleccione la cantidad de materiales para comenzar
                         </div>
                     )}
+
+                    {/* Estado de Material - Sección de Control */}
+                    <div className="mt-6 pt-6 border-t border-blue-200 dark:border-blue-700">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-4">
+                                <h5 className="text-base font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                                    <span className="text-2xl">📦</span>
+                                    Estado del Material
+                                </h5>
+                                <div className="flex items-center gap-3">
+                                    {handleChange && (
+                                        <input 
+                                            type="checkbox" 
+                                            id="materialDisponible" 
+                                            name="materialDisponible" 
+                                            checked={!!formData.materialDisponible} 
+                                            onChange={handleChange}
+                                            disabled={isReadOnly}
+                                            className="h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50 cursor-pointer" 
+                                        />
+                                    )}
+                                    <label 
+                                        htmlFor="materialDisponible" 
+                                        className={`text-sm font-semibold cursor-pointer transition-colors ${
+                                            formData.materialDisponible 
+                                                ? 'text-green-600 dark:text-green-400' 
+                                                : 'text-gray-500 dark:text-gray-400'
+                                        }`}
+                                    >
+                                        {formData.materialDisponible ? '✓ Material Disponible' : 'Material Pendiente'}
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Indicador visual del estado */}
+                            <div className={`p-3 rounded-lg border-2 transition-all ${
+                                formData.materialDisponible
+                                    ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
+                                    : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
+                            }`}>
+                                <div className="flex items-start gap-3">
+                                    <span className="text-2xl">
+                                        {formData.materialDisponible ? '✅' : '⏳'}
+                                    </span>
+                                    <div className="flex-1">
+                                        <p className={`text-sm font-medium ${
+                                            formData.materialDisponible
+                                                ? 'text-green-800 dark:text-green-300'
+                                                : 'text-yellow-800 dark:text-yellow-300'
+                                        }`}>
+                                            {formData.materialDisponible 
+                                                ? 'Material listo para producción' 
+                                                : 'Esperando disponibilidad de material'
+                                            }
+                                        </p>
+                                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                            {formData.materialDisponible
+                                                ? 'El pedido puede avanzar a producción cuando el cliché también esté disponible.'
+                                                : 'Marque esta opción cuando todo el material necesario haya sido recibido y esté disponible.'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Observaciones del Material */}
+                            <div className="mt-4">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    📝 Observaciones de Material
+                                </label>
+                                <textarea
+                                    name="observacionesMaterial"
+                                    value={formData.observacionesMaterial || ''}
+                                    onChange={(e) => onDataChange('observacionesMaterial', e.target.value)}
+                                    placeholder="Notas sobre el material: proveedor, fecha de recepción esperada, problemas, etc."
+                                    rows={3}
+                                    disabled={isReadOnly}
+                                    maxLength={500}
+                                    className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 resize-none"
+                                />
+                                {formData.observacionesMaterial && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        {formData.observacionesMaterial.length}/500 caracteres
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* SECCIÓN 3: Material (Láminas) */}
