@@ -2,16 +2,29 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# Run and deploy your AI Studio app
+# Gestión Pedidos Pigmea
 
-This contains everything you need to run your app locally.
+Sistema de gestión de pedidos con React (Frontend) y Node.js/Express (Backend).
 
-View your app in AI Studio: https://ai.studio/apps/drive/17PZay3xftKJiL2pDKB347uwHkPTZ5OHe
+## 📚 Documentación
+
+Toda la documentación del proyecto ha sido organizada en la carpeta `docs/`:
+
+- **[docs/README.md](docs/README.md)** - Índice general de la documentación
+- **[docs/INDICE.md](docs/INDICE.md)** - Índice detallado de todos los documentos
+
+### Categorías de Documentación
+
+- 🔧 **[Implementaciones](docs/implementaciones/)** - Guías de implementación de características
+- 🛠️ **[Soluciones](docs/soluciones/)** - Resolución de errores y problemas
+- 📖 **[Guías](docs/guias/)** - Guías de uso y procedimientos
+- ⚡ **[Funcionalidades](docs/funcionalidades/)** - Documentación de funcionalidades
+- 📊 **[Proceso](docs/proceso/)** - Historial de desarrollo y cambios
+- 🐛 **[Debug](docs/debug/)** - Documentación de debugging y verificación
 
 ## Run Locally
 
 **Prerequisites:**  Node.js
-
 
 1. Install dependencies:
    `npm install`
