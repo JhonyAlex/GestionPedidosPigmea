@@ -14,7 +14,9 @@ interface EnviarAImpresionModalProps {
 }
 
 const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, onClose, onConfirm }) => {
-    const [impresionEtapa, setImpresionEtapa] = useState<Etapa>(KANBAN_FUNNELS.IMPRESION.stages[0]);
+    // Si el pedido es anónimo, pre-seleccionar IMPRESION_ANON, de lo contrario usar la primera etapa
+    const etapaInicialDefault = pedido.anonimo ? 'IMPRESION_ANON' as Etapa : KANBAN_FUNNELS.IMPRESION.stages[0];
+    const [impresionEtapa, setImpresionEtapa] = useState<Etapa>(etapaInicialDefault);
     const [postImpresionSequence, setPostImpresionSequence] = useState<Etapa[]>(pedido.secuenciaTrabajo || []);
     
     // Determinar si es una reconfirmación de antivaho
@@ -46,6 +48,8 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
                         ? `El pedido ${pedido.numeroPedidoCliente} tiene antivaho activado. Seleccione la nueva etapa de destino y configure la secuencia.`
                         : pedido.antivaho && pedido.etapaActual === 'PREPARACION'
                         ? `Este pedido tiene antivaho activado y será enviado directamente a post-impresión. Configure la secuencia para el pedido ${pedido.numeroPedidoCliente}.`
+                        : pedido.anonimo
+                        ? `Este pedido está marcado como anónimo. Se ha pre-seleccionado la máquina de impresión anónima (ANON) para el pedido ${pedido.numeroPedidoCliente}.`
                         : `Configura la etapa inicial de impresión y la secuencia de post-impresión para el pedido ${pedido.numeroPedidoCliente}.`
                     }
                 </p>
