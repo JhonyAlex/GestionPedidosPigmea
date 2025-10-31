@@ -399,21 +399,21 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                         <div className="flex border-b border-gray-200 dark:border-gray-700 px-8">
                             <button 
                                 onClick={() => setActiveTab('detalles')} 
-                                className={`py-2 px-4 text-sm font-medium transition-colors duration-200 ${activeTab === 'detalles' ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                                className={`py-3 px-6 text-sm font-medium transition-colors duration-200 ${activeTab === 'detalles' ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
                             >
-                                Detalles del Pedido
+                                📋 Detalles del Pedido
                             </button>
                             <button 
                                 onClick={() => setActiveTab('gestion')} 
-                                className={`py-2 px-4 text-sm font-medium transition-colors duration-200 ${activeTab === 'gestion' ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                                className={`py-3 px-6 text-sm font-medium transition-colors duration-200 ${activeTab === 'gestion' ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
                             >
-                                Gestión de pedido
+                                ⚙️ Gestión y Preparación
                             </button>
                             <button 
                                 onClick={() => setActiveTab('historial')} 
-                                className={`py-2 px-4 text-sm font-medium transition-colors duration-200 ${activeTab === 'historial' ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                                className={`py-3 px-6 text-sm font-medium transition-colors duration-200 ${activeTab === 'historial' ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
                             >
-                                Historial de Actividad
+                                📜 Historial de Actividad
                             </button>
                         </div>
 
