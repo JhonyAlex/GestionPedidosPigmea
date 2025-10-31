@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pedido } from '../types';
 
 interface SeccionDatosTecnicosProps {
@@ -14,6 +14,8 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
     isReadOnly = false,
     handleChange 
 }) => {
+    // Estado local para mantener el texto de densidad mientras se edita
+    const [densidadTexts, setDensidadTexts] = useState<{ [key: number]: string }>({});
 
     // Verificar si todos los materiales están recibidos
     const checkAllMaterialsReceived = () => {
@@ -70,14 +72,37 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
             parsedValue = value;
         } else if (field === 'recibido') {
             parsedValue = value === 'true' || value === true;
+        } else if (field === 'densidad') {
+            // Para densidad, permitir entrada libre con decimales
+            const stringValue = value as string;
+            
+            // Si está vacío, guardar null
+            if (stringValue === '') {
+                parsedValue = null;
+            } else {
+                // Permitir números con punto o coma como separador decimal
+                // Validar formato: permite números como: 0, 0., 0.9, 0,03, 123.456, etc.
+                const isValidFormat = /^-?\d*[.,]?\d*$/.test(stringValue);
+                
+                if (isValidFormat) {
+                    // Reemplazar coma por punto para el almacenamiento
+                    const normalizedValue = stringValue.replace(',', '.');
+                    
+                    // Si termina en punto o es solo un guión, guardar como está (estado intermedio)
+                    if (normalizedValue.endsWith('.') || normalizedValue === '-' || normalizedValue === '') {
+                        parsedValue = null; // Temporalmente null hasta que complete el número
+                    } else {
+                        const parsed = parseFloat(normalizedValue);
+                        parsedValue = isNaN(parsed) ? null : parsed;
+                    }
+                } else {
+                    // Si el formato no es válido, no actualizar
+                    return;
+                }
+            }
         } else if (field === 'micras' || field === 'necesario') {
             // Para micras y necesario, parsear como número
             parsedValue = value === '' ? null : parseFloat(value as string);
-        } else if (field === 'densidad') {
-            // Para densidad, parsear como número con decimales
-            // Reemplazar coma por punto para compatibilidad con parseFloat
-            const normalizedValue = (value as string).replace(',', '.');
-            parsedValue = value === '' ? null : parseFloat(normalizedValue);
         } else {
             parsedValue = value === '' ? null : parseFloat(value as string);
         }
@@ -100,6 +125,64 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
         numerosCompra[index] = value;
         
         onDataChange('numerosCompra', numerosCompra);
+    };
+
+    // Handler especial para densidad que mantiene el texto durante la edición
+    const handleDensidadChange = (index: number, value: string) => {
+        // Validar que solo contenga números, punto o coma
+        const isValidInput = /^-?\d*[.,]?\d*$/.test(value) || value === '';
+        
+        if (!isValidInput) {
+            return; // No permitir caracteres inválidos
+        }
+        
+        // Actualizar el estado local con el texto exacto
+        setDensidadTexts(prev => ({
+            ...prev,
+            [index]: value
+        }));
+    };
+
+    // Handler para cuando se pierde el foco del campo densidad
+    const handleDensidadBlur = (index: number) => {
+        const textValue = densidadTexts[index];
+        
+        if (!textValue || textValue === '') {
+            // Si está vacío, actualizar como null
+            handleNestedArrayChange('materialConsumo', index, 'densidad', '');
+            return;
+        }
+        
+        // Normalizar el valor (reemplazar coma por punto)
+        const normalizedValue = textValue.replace(',', '.');
+        const parsed = parseFloat(normalizedValue);
+        
+        if (!isNaN(parsed)) {
+            // Actualizar el formData con el valor parseado
+            const array = formData.materialConsumo ? [...formData.materialConsumo] : [];
+            if (!array[index]) array[index] = {};
+            array[index].densidad = parsed;
+            onDataChange('materialConsumo', array);
+            
+            // Limpiar el estado local para este índice
+            setDensidadTexts(prev => {
+                const newState = { ...prev };
+                delete newState[index];
+                return newState;
+            });
+        }
+    };
+
+    // Obtener el valor a mostrar en el input de densidad
+    const getDensidadDisplayValue = (index: number): string => {
+        // Si hay un valor en edición, mostrarlo
+        if (densidadTexts[index] !== undefined) {
+            return densidadTexts[index];
+        }
+        
+        // Si no, mostrar el valor del formData
+        const densidadValue = formData.materialConsumo?.[index]?.densidad;
+        return densidadValue !== null && densidadValue !== undefined ? String(densidadValue) : '';
     };
 
     // Handler para Material Disponible que marca/desmarca todos los checkboxes
@@ -251,8 +334,9 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                                 type="text"
                                                 inputMode="decimal"
                                                 placeholder="Ej: 0.92 o 0,03"
-                                                value={formData.materialConsumo?.[index]?.densidad || ''}
-                                                onChange={(e) => handleNestedArrayChange('materialConsumo', index, 'densidad', e.target.value)}
+                                                value={getDensidadDisplayValue(index)}
+                                                onChange={(e) => handleDensidadChange(index, e.target.value)}
+                                                onBlur={() => handleDensidadBlur(index)}
                                                 disabled={isReadOnly}
                                                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
                                             />
