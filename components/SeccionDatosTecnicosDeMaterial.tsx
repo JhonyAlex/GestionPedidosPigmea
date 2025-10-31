@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Pedido } from '../types';
 
 interface SeccionDatosTecnicosProps {
@@ -15,6 +15,37 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
     handleChange 
 }) => {
 
+    // Verificar si todos los materiales están recibidos
+    const checkAllMaterialsReceived = () => {
+        if (!formData.materialConsumoCantidad) {
+            return false;
+        }
+        
+        const materialConsumo = formData.materialConsumo || [];
+        
+        // Verificar que todos los materiales tengan recibido === true
+        for (let i = 0; i < formData.materialConsumoCantidad; i++) {
+            if (!materialConsumo[i]?.recibido) {
+                return false;
+            }
+        }
+        
+        return true;
+    };
+
+    // Efecto para sincronizar materialDisponible cuando todos los checkboxes están marcados
+    useEffect(() => {
+        const allReceived = checkAllMaterialsReceived();
+        
+        // Solo actualizar si hay cambio
+        if (allReceived && !formData.materialDisponible) {
+            onDataChange('materialDisponible', true);
+        } else if (!allReceived && formData.materialDisponible && formData.materialConsumoCantidad && formData.materialConsumoCantidad > 0) {
+            // Solo desmarcar si hay materiales definidos y no todos están recibidos
+            onDataChange('materialDisponible', false);
+        }
+    }, [formData.materialConsumo, formData.materialConsumoCantidad]);
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         let parsedValue: string | number | null = value;
@@ -30,22 +61,23 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
         arrayName: 'materialCapas' | 'materialConsumo',
         index: number,
         field: string,
-        value: string
+        value: string | boolean
     ) => {
         const array = formData[arrayName] ? [...(formData[arrayName] as any[])] : [];
-        let parsedValue: string | number | null;
+        let parsedValue: string | number | boolean | null;
 
-        if (field === 'recibido') {
+        if (field === 'recibido' && typeof value === 'boolean') {
             parsedValue = value;
+        } else if (field === 'recibido') {
+            parsedValue = value === 'true' || value === true;
         } else {
-            parsedValue = value === '' ? null : parseFloat(value);
+            parsedValue = value === '' ? null : parseFloat(value as string);
         }
 
         if (!array[index]) array[index] = {};
         array[index][field] = parsedValue;
 
-        // Solo notificar el cambio del array completo
-        // El sistema de auditoría se encargará de detectar los cambios granulares
+        // Notificar el cambio del array completo
         onDataChange(arrayName, array);
     };
 
@@ -60,6 +92,31 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
         numerosCompra[index] = value;
         
         onDataChange('numerosCompra', numerosCompra);
+    };
+
+    // Handler para Material Disponible que marca/desmarca todos los checkboxes
+    const handleMaterialDisponibleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const isChecked = e.target.checked;
+        
+        // Actualizar materialDisponible
+        onDataChange('materialDisponible', isChecked);
+        
+        // Si se marca, marcar todos los checkboxes de material recibido
+        if (isChecked && formData.materialConsumoCantidad && formData.materialConsumoCantidad > 0) {
+            const updatedMaterialConsumo = formData.materialConsumo ? [...formData.materialConsumo] : [];
+            
+            for (let i = 0; i < formData.materialConsumoCantidad; i++) {
+                if (!updatedMaterialConsumo[i]) {
+                    updatedMaterialConsumo[i] = { necesario: null, recibido: true };
+                } else {
+                    updatedMaterialConsumo[i] = { ...updatedMaterialConsumo[i], recibido: true };
+                }
+            }
+            
+            onDataChange('materialConsumo', updatedMaterialConsumo);
+        }
+        // Si se desmarca, NO desmarcar automáticamente los checkboxes individuales
+        // El usuario debe desmarcarlos manualmente si lo desea
     };
 
     const renderValidationMessage = (value: number | null | undefined) => {
@@ -128,7 +185,7 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                         </span>
                                     </div>
                                     
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {/* Número de Compra */}
                                         <div>
                                             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -160,20 +217,31 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                             />
                                             {renderValidationMessage(formData.materialConsumo?.[index]?.necesario)}
                                         </div>
+                                    </div>
+                                    
+                                    {/* Material Recibido - Checkbox separado con mejor visibilidad */}
+                                    <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-900/30 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
                                         
-                                        {/* Cantidad Recibida */}
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                                ✅ Cantidad Recibida
-                                            </label>
+                                        {/* Cantidad Recibida - Ahora es un checkbox */}
+                                        <div className="flex items-center">
                                             <input
-                                                type="text"
-                                                placeholder="Ej: 850 o Parcial"
-                                                value={formData.materialConsumo?.[index]?.recibido || ''}
-                                                onChange={(e) => handleNestedArrayChange('materialConsumo', index, 'recibido', e.target.value)}
+                                                type="checkbox"
+                                                id={`material-recibido-${index}`}
+                                                checked={!!formData.materialConsumo?.[index]?.recibido}
+                                                onChange={(e) => handleNestedArrayChange('materialConsumo', index, 'recibido', e.target.checked)}
                                                 disabled={isReadOnly}
-                                                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                                className="h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50 cursor-pointer"
                                             />
+                                            <label 
+                                                htmlFor={`material-recibido-${index}`}
+                                                className={`ml-3 text-sm font-semibold cursor-pointer transition-colors ${
+                                                    formData.materialConsumo?.[index]?.recibido
+                                                        ? 'text-green-600 dark:text-green-400'
+                                                        : 'text-gray-600 dark:text-gray-400'
+                                                }`}
+                                            >
+                                                {formData.materialConsumo?.[index]?.recibido ? '✅ Material Recibido' : '⏳ Pendiente de Recibir'}
+                                            </label>
                                         </div>
                                     </div>
                                 </div>
@@ -194,17 +262,15 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                     Estado del Material
                                 </h5>
                                 <div className="flex items-center gap-3">
-                                    {handleChange && (
-                                        <input 
-                                            type="checkbox" 
-                                            id="materialDisponible" 
-                                            name="materialDisponible" 
-                                            checked={!!formData.materialDisponible} 
-                                            onChange={handleChange}
-                                            disabled={isReadOnly}
-                                            className="h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50 cursor-pointer" 
-                                        />
-                                    )}
+                                    <input 
+                                        type="checkbox" 
+                                        id="materialDisponible" 
+                                        name="materialDisponible" 
+                                        checked={!!formData.materialDisponible} 
+                                        onChange={handleMaterialDisponibleChange}
+                                        disabled={isReadOnly}
+                                        className="h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50 cursor-pointer" 
+                                    />
                                     <label 
                                         htmlFor="materialDisponible" 
                                         className={`text-sm font-semibold cursor-pointer transition-colors ${

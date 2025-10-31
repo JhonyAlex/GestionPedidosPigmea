@@ -104,7 +104,7 @@ export interface Pedido {
     /** El número de consumibles o materiales adicionales necesarios. */
     materialConsumoCantidad?: 1 | 2 | 3 | 4 | null;
     /** Un array que detalla el consumo de materiales. */
-    materialConsumo?: Array<{ necesario?: number | null; recibido?: string | null }> | null;
+    materialConsumo?: Array<{ necesario?: number | null; recibido?: boolean | null }> | null;
     /** Observaciones específicas sobre el material de suministro */
     observacionesMaterial?: string;
     /** El diámetro o medida de la bobina madre. */
