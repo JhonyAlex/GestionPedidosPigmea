@@ -1,29 +1,113 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Pedido, Prioridad, Etapa, DateField, WeekFilter, EstadoCliché } from '../types';
 import { ETAPAS, PRIORIDAD_ORDEN } from '../constants';
 import { getDateRange, DateFilterOption } from '../utils/date';
 import { getCurrentWeek, isDateInWeek } from '../utils/weekUtils';
 
+// Clave para localStorage
+const FILTERS_STORAGE_KEY = 'gestionPedidos_userFilters';
+
+// Interfaz para los filtros persistidos
+interface PersistedFilters {
+    searchTerm: string;
+    filters: { priority: string; stage: string; dateField: DateField };
+    selectedStages: string[];
+    antivahoFilter: 'all' | 'con' | 'sin' | 'hecho';
+    preparacionFilter: 'all' | 'sin-material' | 'sin-cliche' | 'listo';
+    estadoClicheFilter: EstadoCliché | 'all';
+    dateFilter: DateFilterOption;
+    customDateRange: { start: string; end: string };
+    weekFilter: WeekFilter;
+    sortConfig: { key: keyof Pedido; direction: 'ascending' | 'descending' };
+}
+
+// Función para cargar filtros desde localStorage
+const loadFiltersFromStorage = (): Partial<PersistedFilters> => {
+    try {
+        const stored = localStorage.getItem(FILTERS_STORAGE_KEY);
+        if (stored) {
+            return JSON.parse(stored);
+        }
+    } catch (error) {
+        console.error('Error al cargar filtros desde localStorage:', error);
+    }
+    return {};
+};
+
+// Función para guardar filtros en localStorage
+const saveFiltersToStorage = (filters: PersistedFilters) => {
+    try {
+        localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(filters));
+    } catch (error) {
+        console.error('Error al guardar filtros en localStorage:', error);
+    }
+};
+
 
 export const useFiltrosYOrden = (pedidos: Pedido[]) => {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filters, setFilters] = useState<{ priority: string, stage: string, dateField: DateField }>({ priority: 'all', stage: 'all', dateField: 'fechaCreacion' });
-    const [selectedStages, setSelectedStages] = useState<string[]>([]);
-    const [antivahoFilter, setAntivahoFilter] = useState<'all' | 'con' | 'sin' | 'hecho'>('all');
-    const [preparacionFilter, setPreparacionFilter] = useState<'all' | 'sin-material' | 'sin-cliche' | 'listo'>('all');
-    const [estadoClicheFilter, setEstadoClicheFilter] = useState<EstadoCliché | 'all'>('all');
-    const [dateFilter, setDateFilter] = useState<DateFilterOption>('all');
-    const [customDateRange, setCustomDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
-    const [sortConfig, setSortConfig] = useState<{ key: keyof Pedido, direction: 'ascending' | 'descending' }>({ key: 'prioridad', direction: 'ascending' });
+    // Cargar filtros guardados
+    const savedFilters = loadFiltersFromStorage();
+    const currentWeek = getCurrentWeek();
+    
+    const [searchTerm, setSearchTerm] = useState(savedFilters.searchTerm || '');
+    const [filters, setFilters] = useState<{ priority: string, stage: string, dateField: DateField }>(
+        savedFilters.filters || { priority: 'all', stage: 'all', dateField: 'fechaCreacion' }
+    );
+    const [selectedStages, setSelectedStages] = useState<string[]>(savedFilters.selectedStages || []);
+    const [antivahoFilter, setAntivahoFilter] = useState<'all' | 'con' | 'sin' | 'hecho'>(
+        savedFilters.antivahoFilter || 'all'
+    );
+    const [preparacionFilter, setPreparacionFilter] = useState<'all' | 'sin-material' | 'sin-cliche' | 'listo'>(
+        savedFilters.preparacionFilter || 'all'
+    );
+    const [estadoClicheFilter, setEstadoClicheFilter] = useState<EstadoCliché | 'all'>(
+        savedFilters.estadoClicheFilter || 'all'
+    );
+    const [dateFilter, setDateFilter] = useState<DateFilterOption>(savedFilters.dateFilter || 'all');
+    const [customDateRange, setCustomDateRange] = useState<{ start: string, end: string }>(
+        savedFilters.customDateRange || { start: '', end: '' }
+    );
+    const [sortConfig, setSortConfig] = useState<{ key: keyof Pedido, direction: 'ascending' | 'descending' }>(
+        savedFilters.sortConfig || { key: 'prioridad', direction: 'ascending' }
+    );
     
     // Estado para filtro de semana
-    const currentWeek = getCurrentWeek();
-    const [weekFilter, setWeekFilter] = useState<WeekFilter>({
-        enabled: false,
-        year: currentWeek.year,
-        week: currentWeek.week,
-        dateField: 'fechaEntrega'
-    });
+    const [weekFilter, setWeekFilter] = useState<WeekFilter>(
+        savedFilters.weekFilter || {
+            enabled: false,
+            year: currentWeek.year,
+            week: currentWeek.week,
+            dateField: 'fechaEntrega'
+        }
+    );
+
+    // Efecto para guardar filtros en localStorage cada vez que cambien
+    useEffect(() => {
+        const filtersToSave: PersistedFilters = {
+            searchTerm,
+            filters,
+            selectedStages,
+            antivahoFilter,
+            preparacionFilter,
+            estadoClicheFilter,
+            dateFilter,
+            customDateRange,
+            weekFilter,
+            sortConfig
+        };
+        saveFiltersToStorage(filtersToSave);
+    }, [
+        searchTerm,
+        filters,
+        selectedStages,
+        antivahoFilter,
+        preparacionFilter,
+        estadoClicheFilter,
+        dateFilter,
+        customDateRange,
+        weekFilter,
+        sortConfig
+    ]);
 
     const handleFilterChange = (name: string, value: string) => setFilters(prev => ({ ...prev, [name]: value }));
     const handleDateFilterChange = (value: string) => setDateFilter(value as DateFilterOption);
@@ -89,6 +173,33 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
 
     const resetTraditionalStageFilter = useCallback(() => {
         setFilters(prev => ({ ...prev, stage: 'all' }));
+    }, []);
+
+    // Función para resetear todos los filtros a valores por defecto
+    const resetAllFilters = useCallback(() => {
+        const currentWeek = getCurrentWeek();
+        setSearchTerm('');
+        setFilters({ priority: 'all', stage: 'all', dateField: 'fechaCreacion' });
+        setSelectedStages([]);
+        setAntivahoFilter('all');
+        setPreparacionFilter('all');
+        setEstadoClicheFilter('all');
+        setDateFilter('all');
+        setCustomDateRange({ start: '', end: '' });
+        setWeekFilter({
+            enabled: false,
+            year: currentWeek.year,
+            week: currentWeek.week,
+            dateField: 'fechaEntrega'
+        });
+        setSortConfig({ key: 'prioridad', direction: 'ascending' });
+        
+        // Limpiar localStorage
+        try {
+            localStorage.removeItem(FILTERS_STORAGE_KEY);
+        } catch (error) {
+            console.error('Error al limpiar filtros de localStorage:', error);
+        }
     }, []);
 
     const processedPedidos = useMemo(() => {
@@ -173,7 +284,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
                 )) ||
                 (p.materialConsumo && p.materialConsumo.some(consumo =>
                     (consumo.necesario && String(consumo.necesario).includes(searchTermLower)) ||
-                    (consumo.recibido && consumo.recibido.toLowerCase().includes(searchTermLower))
+                    (consumo.recibido && String(consumo.recibido).toLowerCase().includes(searchTermLower))
                 ))
             );
 
@@ -301,5 +412,6 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         sortConfig,
         handleSort,
         updateSortConfig,
+        resetAllFilters,
     };
 };

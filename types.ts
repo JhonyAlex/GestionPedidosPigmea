@@ -93,7 +93,10 @@ export interface Pedido {
     camisa?: string;
     antivaho?: boolean;
     antivahoRealizado?: boolean;
+    microperforado?: boolean;
+    macroperforado?: boolean;
     anonimo?: boolean;
+    anonimoPostImpresion?: string; // Opción de post-impresión para pedidos anónimos
 
     /** El nombre o código del producto final. */
     producto?: string | null;

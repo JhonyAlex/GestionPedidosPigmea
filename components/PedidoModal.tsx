@@ -486,10 +486,43 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                 <input type="checkbox" id="antivaho" name="antivaho" checked={!!formData.antivaho} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                                 <label htmlFor="antivaho" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Antivaho</label>
                                             </div>
+                                            <div className="flex items-center justify-start pt-2">
+                                                <input type="checkbox" id="microperforado" name="microperforado" checked={!!formData.microperforado} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
+                                                <label htmlFor="microperforado" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Microperforado</label>
+                                            </div>
+                                            <div className="flex items-center justify-start pt-2">
+                                                <input type="checkbox" id="macroperforado" name="macroperforado" checked={!!formData.macroperforado} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500" />
+                                                <label htmlFor="macroperforado" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Macroperforado</label>
+                                            </div>
                                             <div className="flex items-center justify-start pt-6">
                                                 <input type="checkbox" id="anonimo" name="anonimo" checked={!!formData.anonimo} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                                 <label htmlFor="anonimo" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Anónimo</label>
                                             </div>
+
+                                            {/* Select de Post-Impresión para Anónimos */}
+                                            {formData.anonimo && (
+                                                <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-400 dark:border-yellow-600 rounded-lg">
+                                                    <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                                        📦 Post-Impresión (Anónimo)
+                                                    </label>
+                                                    <select 
+                                                        name="anonimoPostImpresion" 
+                                                        value={formData.anonimoPostImpresion || ''} 
+                                                        onChange={handleChange} 
+                                                        className="w-full bg-white dark:bg-gray-700 border border-yellow-400 dark:border-yellow-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-yellow-500"
+                                                        required
+                                                    >
+                                                        <option value="">Seleccione una opción</option>
+                                                        <option value="Rebobinado">Rebobinado</option>
+                                                        <option value="Laminación y rebobinado">Laminación y rebobinado</option>
+                                                        <option value="MacroPerforado y Rebobinado">MacroPerforado y Rebobinado</option>
+                                                        <option value="MicroPerforado y Rebobinado">MicroPerforado y Rebobinado</option>
+                                                    </select>
+                                                    <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
+                                                        ⚠️ Requerido para pedidos anónimos
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
 
                                         <label className="block mt-4 mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Tipo de Impresión</label>
@@ -528,8 +561,18 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                 <input type="text" inputMode="numeric" pattern="[0-9]*" name="metros" value={formData.metros} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"/>
                                             </div>
                                             <div>
-                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Tiempo Prod. (HH:mm)</label>
-                                                <input type="text" name="tiempoProduccionPlanificado" value={formData.tiempoProduccionPlanificado} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"/>
+                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                    Tiempo Prod. (HH:mm)
+                                                    {formData.anonimo && <span className="ml-2 text-xs text-yellow-600 dark:text-yellow-400">(Deshabilitado por Anónimo)</span>}
+                                                </label>
+                                                <input 
+                                                    type="text" 
+                                                    name="tiempoProduccionPlanificado" 
+                                                    value={formData.tiempoProduccionPlanificado} 
+                                                    onChange={handleChange} 
+                                                    disabled={formData.anonimo}
+                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                />
                                             </div>
                                         </div>
                                     </div>

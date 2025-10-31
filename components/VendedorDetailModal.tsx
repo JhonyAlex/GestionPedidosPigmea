@@ -195,6 +195,12 @@ const VendedorDetailModal: React.FC<VendedorDetailModalProps> = ({ isOpen, onClo
                                         <Icons.Calendar className="h-4 w-4" />
                                         <span>Entrega: {formatFecha(pedido.fechaEntrega)}</span>
                                     </div>
+                                    {pedido.nuevaFechaEntrega && (
+                                        <div className="flex items-center gap-2">
+                                            <Icons.Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                            <span className="text-blue-600 dark:text-blue-400 font-medium">Nueva: {formatFecha(pedido.nuevaFechaEntrega)}</span>
+                                        </div>
+                                    )}
                                     <div className="flex items-center gap-2">
                                         <Icons.Ruler className="h-4 w-4" />
                                         <span>{pedido.metros} metros</span>

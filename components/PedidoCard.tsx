@@ -313,7 +313,17 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                 </div>
             </div>
             
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{pedido.cliente}</p>
+            <div className="mb-3 space-y-1">
+                <p className="text-sm text-gray-600 dark:text-gray-300">{pedido.cliente}</p>
+                {pedido.producto && (
+                    <p 
+                        className="text-xs text-gray-500 dark:text-gray-400 truncate" 
+                        title={pedido.producto}
+                    >
+                        🏷️ {pedido.producto}
+                    </p>
+                )}
+            </div>
             
             {pedido.numerosCompra && pedido.numerosCompra.length > 0 && (
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
@@ -338,9 +348,16 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                 <span className="flex items-center" title="Fecha Entrega">
                     <CalendarIcon /> {formatDateDDMMYYYY(pedido.fechaEntrega)}
                 </span>
-                <span className="flex items-center" title="Metros">
-                    <RulerIcon /> {pedido.metros} m
-                </span>
+                <div className="flex flex-col items-end gap-0.5">
+                    {pedido.tiempoProduccionPlanificado && (
+                        <span className="flex items-center text-xs" title="Tiempo de Producción Planificado">
+                            <ClockIcon /> {pedido.tiempoProduccionPlanificado}
+                        </span>
+                    )}
+                    <span className="flex items-center" title="Metros">
+                        <RulerIcon /> {pedido.metros} m
+                    </span>
+                </div>
             </div>
             
             {pedido.nuevaFechaEntrega && (

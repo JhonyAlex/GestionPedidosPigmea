@@ -54,6 +54,48 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
                     }
                 </p>
 
+                {/* Indicaciones llamativas para características especiales */}
+                <div className="mb-6 space-y-2">
+                    {pedido.antivaho && (
+                        <div className="flex items-center gap-2 p-3 bg-blue-100 dark:bg-blue-900/30 border-2 border-blue-500 rounded-lg">
+                            <span className="text-2xl">✨</span>
+                            <div className="flex-1">
+                                <p className="text-sm font-bold text-blue-800 dark:text-blue-300">ANTIVAHO ACTIVADO</p>
+                                <p className="text-xs text-blue-700 dark:text-blue-400">Este pedido requiere tratamiento antivaho</p>
+                            </div>
+                        </div>
+                    )}
+                    {pedido.anonimo && pedido.anonimoPostImpresion && (
+                        <div className="flex items-center gap-2 p-3 bg-yellow-100 dark:bg-yellow-900/30 border-2 border-yellow-500 rounded-lg">
+                            <span className="text-2xl">🎭</span>
+                            <div className="flex-1">
+                                <p className="text-sm font-bold text-yellow-800 dark:text-yellow-300">PEDIDO ANÓNIMO</p>
+                                <p className="text-xs text-yellow-700 dark:text-yellow-400">
+                                    Post-Impresión: <span className="font-semibold">{pedido.anonimoPostImpresion}</span>
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                    {pedido.microperforado && (
+                        <div className="flex items-center gap-2 p-3 bg-purple-100 dark:bg-purple-900/30 border-2 border-purple-500 rounded-lg">
+                            <span className="text-2xl">🔵</span>
+                            <div className="flex-1">
+                                <p className="text-sm font-bold text-purple-800 dark:text-purple-300">MICROPERFORADO</p>
+                                <p className="text-xs text-purple-700 dark:text-purple-400">Este pedido requiere microperforación</p>
+                            </div>
+                        </div>
+                    )}
+                    {pedido.macroperforado && (
+                        <div className="flex items-center gap-2 p-3 bg-orange-100 dark:bg-orange-900/30 border-2 border-orange-500 rounded-lg">
+                            <span className="text-2xl">🟠</span>
+                            <div className="flex-1">
+                                <p className="text-sm font-bold text-orange-800 dark:text-orange-300">MACROPERFORADO</p>
+                                <p className="text-xs text-orange-700 dark:text-orange-400">Este pedido requiere macroperforación</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                 <form onSubmit={handleSubmit}>
                     <div className="space-y-6">
                         {(!pedido.antivaho || isAntivahoReconfirmation) && (

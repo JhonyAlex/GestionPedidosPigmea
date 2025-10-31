@@ -151,6 +151,7 @@ const AppContent: React.FC = () => {
       sortConfig,
       handleSort,
       updateSortConfig,
+      resetAllFilters,
     } = useFiltrosYOrden(pedidos);
 
     // Hook para navegación a pedidos desde reportes
@@ -857,6 +858,7 @@ const AppContent: React.FC = () => {
                     onExportData={doExportData}
                     onImportData={doImportData}
                     onUserManagement={() => setShowUserManagement(true)}
+                    onResetAllFilters={resetAllFilters}
                 />
                 {renderContent()}
                 {selectedPedido && (

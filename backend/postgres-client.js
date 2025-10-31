@@ -845,7 +845,7 @@ class PostgreSQLClient {
             ];
             
             // Columnas opcionales que pueden no existir
-            const optionalColumns = ['nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'vendedor_id', 'cliche_info_adicional', 'anonimo', 'compra_cliche', 'recepcion_cliche', 'observaciones_material'];
+            const optionalColumns = ['nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'vendedor_id', 'cliche_info_adicional', 'anonimo', 'compra_cliche', 'recepcion_cliche', 'observaciones_material', 'microperforado', 'macroperforado', 'anonimo_post_impresion'];
             
             // Construir lista de columnas a insertar
             const columnsToInsert = baseColumns.filter(col => existingColumns.includes(col));
@@ -907,6 +907,15 @@ class PostgreSQLClient {
             }
             if (existingColumns.includes('observaciones_material')) {
                 values.push(pedido.observacionesMaterial || null);
+            }
+            if (existingColumns.includes('microperforado')) {
+                values.push(pedido.microperforado || false);
+            }
+            if (existingColumns.includes('macroperforado')) {
+                values.push(pedido.macroperforado || false);
+            }
+            if (existingColumns.includes('anonimo_post_impresion')) {
+                values.push(pedido.anonimoPostImpresion || null);
             }
             
             // Construir placeholders para los valores
@@ -972,6 +981,9 @@ class PostgreSQLClient {
             const hasCompraCliche = existingColumns.includes('compra_cliche');
             const hasRecepcionCliche = existingColumns.includes('recepcion_cliche');
             const hasObservacionesMaterial = existingColumns.includes('observaciones_material');
+            const hasMicroperforado = existingColumns.includes('microperforado');
+            const hasMacroperforado = existingColumns.includes('macroperforado');
+            const hasAnonimoPostImpresion = existingColumns.includes('anonimo_post_impresion');
 
             // Construir query dinámicamente basado en columnas existentes
             const updateFields = [];
@@ -1071,6 +1083,24 @@ class PostgreSQLClient {
             if (hasObservacionesMaterial) {
                 updateFields.push(`observaciones_material = $${paramIndex++}`);
                 values.push(pedido.observacionesMaterial || null);
+            }
+
+            // Agregar microperforado solo si la columna existe
+            if (hasMicroperforado) {
+                updateFields.push(`microperforado = $${paramIndex++}`);
+                values.push(pedido.microperforado || false);
+            }
+
+            // Agregar macroperforado solo si la columna existe
+            if (hasMacroperforado) {
+                updateFields.push(`macroperforado = $${paramIndex++}`);
+                values.push(pedido.macroperforado || false);
+            }
+
+            // Agregar anonimo_post_impresion solo si la columna existe
+            if (hasAnonimoPostImpresion) {
+                updateFields.push(`anonimo_post_impresion = $${paramIndex++}`);
+                values.push(pedido.anonimoPostImpresion || null);
             }
 
             updateFields.push(`data = $${paramIndex++}`);

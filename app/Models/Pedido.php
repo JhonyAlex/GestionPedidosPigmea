@@ -13,7 +13,10 @@ class Pedido extends Model
         // ...existing code...
         'camisa',
         'antivaho',
+        'microperforado',
+        'macroperforado',
         'anonimo',
+        'anonimo_post_impresion',
         'compra_cliche',
         'recepcion_cliche',
         'observaciones_material',
