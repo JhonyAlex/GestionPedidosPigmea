@@ -815,6 +815,11 @@ class PostgreSQLClient {
                 const vendedorResult = await client.query('SELECT nombre FROM vendedores WHERE id = $1', [pedido.vendedorId]);
                 if (vendedorResult.rowCount > 0) {
                     pedido.vendedorNombre = vendedorResult.rows[0].nombre;
+                } else {
+                    // Si el vendedor no existe, establecer vendedorId como null
+                    console.warn(`⚠️ Vendedor ${pedido.vendedorId} no encontrado. Estableciendo vendedorId como null.`);
+                    pedido.vendedorId = null;
+                    pedido.vendedorNombre = null;
                 }
             }
 
@@ -937,6 +942,11 @@ class PostgreSQLClient {
                 const vendedorResult = await client.query('SELECT nombre FROM vendedores WHERE id = $1', [pedido.vendedorId]);
                 if (vendedorResult.rowCount > 0) {
                     pedido.vendedorNombre = vendedorResult.rows[0].nombre;
+                } else {
+                    // Si el vendedor no existe, establecer vendedorId como null
+                    console.warn(`⚠️ Vendedor ${pedido.vendedorId} no encontrado. Estableciendo vendedorId como null.`);
+                    pedido.vendedorId = null;
+                    pedido.vendedorNombre = null;
                 }
             }
 
