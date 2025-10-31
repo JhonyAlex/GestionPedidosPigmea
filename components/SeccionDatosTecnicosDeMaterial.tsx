@@ -70,6 +70,12 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
             parsedValue = value;
         } else if (field === 'recibido') {
             parsedValue = value === 'true' || value === true;
+        } else if (field === 'micras' || field === 'necesario') {
+            // Para micras y necesario, parsear como número
+            parsedValue = value === '' ? null : parseFloat(value as string);
+        } else if (field === 'densidad') {
+            // Para densidad, parsear como número con decimales
+            parsedValue = value === '' ? null : parseFloat(value as string);
         } else {
             parsedValue = value === '' ? null : parseFloat(value as string);
         }
@@ -152,7 +158,7 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                     />
                 </div>
 
-                {/* SECCIÓN 2: Material (Suministro) + Números de Compra FUSIONADOS */}
+                {/* SECCIÓN 2: Material (Suministro) + Láminas FUSIONADOS */}
                 <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-5 border-2 border-blue-200 dark:border-blue-800">
                     <div className="flex items-center justify-between mb-4">
                         <h4 className="text-lg font-semibold text-blue-800 dark:text-blue-300">
@@ -185,7 +191,7 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                         </span>
                                     </div>
                                     
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                         {/* Número de Compra */}
                                         <div>
                                             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -216,6 +222,38 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
                                             />
                                             {renderValidationMessage(formData.materialConsumo?.[index]?.necesario)}
+                                        </div>
+                                        
+                                        {/* Micras */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                                📏 Micras (µm)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                placeholder="Ej: 12"
+                                                value={formData.materialConsumo?.[index]?.micras || ''}
+                                                onChange={(e) => handleNestedArrayChange('materialConsumo', index, 'micras', e.target.value)}
+                                                disabled={isReadOnly}
+                                                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                            />
+                                            {renderValidationMessage(formData.materialConsumo?.[index]?.micras)}
+                                        </div>
+                                        
+                                        {/* Densidad */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                                ⚖️ Densidad (g/cm³)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                placeholder="Ej: 0.92"
+                                                value={formData.materialConsumo?.[index]?.densidad || ''}
+                                                onChange={(e) => handleNestedArrayChange('materialConsumo', index, 'densidad', e.target.value)}
+                                                disabled={isReadOnly}
+                                                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                            />
                                         </div>
                                     </div>
                                     
@@ -339,83 +377,7 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                     </div>
                 </div>
 
-                {/* SECCIÓN 3: Material (Láminas) */}
-                <div className="bg-purple-50 dark:bg-purple-900/10 rounded-lg p-5 border-2 border-purple-200 dark:border-purple-800">
-                    <div className="flex items-center justify-between mb-4">
-                        <h4 className="text-lg font-semibold text-purple-800 dark:text-purple-300">
-                            📄 Material en Láminas
-                        </h4>
-                        <div className="flex items-center gap-3">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Cantidad de láminas:
-                            </label>
-                            <select
-                                name="materialCapasCantidad"
-                                value={formData.materialCapasCantidad || ''}
-                                onChange={handleInputChange}
-                                disabled={isReadOnly}
-                                className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-purple-500"
-                            >
-                                <option value="">0</option>
-                                {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}</option>)}
-                            </select>
-                        </div>
-                    </div>
-                    
-                    {formData.materialCapasCantidad && formData.materialCapasCantidad > 0 ? (
-                        <div className="space-y-4">
-                            {Array.from({ length: formData.materialCapasCantidad }).map((_, index) => (
-                                <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-purple-200 dark:border-purple-700 shadow-sm">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <span className="bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded">
-                                            Lámina {index + 1}
-                                        </span>
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {/* Micras */}
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                                📏 Micras (µm)
-                                            </label>
-                                            <input
-                                                type="number"
-                                                placeholder="Ej: 12"
-                                                value={formData.materialCapas?.[index]?.micras || ''}
-                                                onChange={(e) => handleNestedArrayChange('materialCapas', index, 'micras', e.target.value)}
-                                                disabled={isReadOnly}
-                                                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:opacity-50"
-                                            />
-                                            {renderValidationMessage(formData.materialCapas?.[index]?.micras)}
-                                        </div>
-                                        
-                                        {/* Densidad */}
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                                ⚖️ Densidad (g/cm³)
-                                            </label>
-                                            <input
-                                                type="number"
-                                                step="0.1"
-                                                placeholder="Ej: 0.92"
-                                                value={formData.materialCapas?.[index]?.densidad || ''}
-                                                onChange={(e) => handleNestedArrayChange('materialCapas', index, 'densidad', e.target.value)}
-                                                disabled={isReadOnly}
-                                                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:opacity-50"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-center py-6 text-gray-500 dark:text-gray-400 text-sm">
-                            Seleccione la cantidad de láminas para comenzar
-                        </div>
-                    )}
-                </div>
-
-                {/* SECCIÓN 4: Datos Técnicos (Bobinas, Minutos, Colores) */}
+                {/* SECCIÓN 3: Datos Técnicos (Bobinas, Minutos, Colores) */}
                 <div className="bg-green-50 dark:bg-green-900/10 rounded-lg p-5 border-2 border-green-200 dark:border-green-800">
                     <h4 className="text-lg font-semibold text-green-800 dark:text-green-300 mb-4">
                         ⚙️ Especificaciones Técnicas de Producción

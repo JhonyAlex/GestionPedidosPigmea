@@ -97,14 +97,19 @@ export interface Pedido {
 
     /** El nombre o código del producto final. */
     producto?: string | null;
-    /** El número de capas de material que componen el producto. */
+    /** El número de capas de material que componen el producto. @deprecated Use materialConsumoCantidad instead */
     materialCapasCantidad?: 1 | 2 | 3 | 4 | null;
-    /** Un array que detalla las propiedades de cada capa de material. */
+    /** Un array que detalla las propiedades de cada capa de material. @deprecated Data merged into materialConsumo */
     materialCapas?: Array<{ micras?: number | null; densidad?: number | null }> | null;
     /** El número de consumibles o materiales adicionales necesarios. */
     materialConsumoCantidad?: 1 | 2 | 3 | 4 | null;
-    /** Un array que detalla el consumo de materiales. */
-    materialConsumo?: Array<{ necesario?: number | null; recibido?: boolean | null }> | null;
+    /** Un array que detalla el consumo de materiales, incluyendo micras y densidad. */
+    materialConsumo?: Array<{ 
+        necesario?: number | null; 
+        recibido?: boolean | null;
+        micras?: number | null;
+        densidad?: number | null;
+    }> | null;
     /** Observaciones específicas sobre el material de suministro */
     observacionesMaterial?: string;
     /** El diámetro o medida de la bobina madre. */
