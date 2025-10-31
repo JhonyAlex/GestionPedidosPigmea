@@ -453,7 +453,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                             <fieldset disabled={isReadOnly}>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {/* Columna Izquierda */}
-                                    <div>
+                                    <div className="space-y-4">
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Cliente</label>
@@ -461,49 +461,71 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                             </div>
                                             <div>
                                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">N° Pedido Cliente</label>
-                                                <input type="text" name="numeroPedidoCliente" value={formData.numeroPedidoCliente} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"/>
+                                                <input type="text" name="numeroPedidoCliente" value={formData.numeroPedidoCliente} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"/>
                                             </div>
                                         </div>
                                         
-                                        <div className="grid grid-cols-2 gap-4 items-center">
+                                        <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Máquina de Impresión</label>
-                                                <select
-                                                    value={printingStageValue}
-                                                    onChange={handlePrintingStageChange}
-                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
-                                                    disabled={isReadOnly || !isCurrentlyInPrinting}
-                                                >
-                                                    <option value="" disabled>Seleccione una máquina</option>
-                                                    {printingStages.map(stageId => (
-                                                        <option key={stageId} value={stageId}>
-                                                            {ETAPAS[stageId].title}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Desarrollo</label>
+                                                <input type="text" name="desarrollo" value={formData.desarrollo} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"/>
                                             </div>
-                                            <div className="flex items-center justify-start pt-6">
-                                                <input type="checkbox" id="antivaho" name="antivaho" checked={!!formData.antivaho} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                                                <label htmlFor="antivaho" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Antivaho</label>
+                                            <div>
+                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Capa</label>
+                                                <input type="text" name="capa" value={formData.capa} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50" placeholder="Número o texto de capa"/>
                                             </div>
-                                            <div className="flex items-center justify-start pt-2">
-                                                <input type="checkbox" id="microperforado" name="microperforado" checked={!!formData.microperforado} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
-                                                <label htmlFor="microperforado" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Microperforado</label>
-                                            </div>
-                                            <div className="flex items-center justify-start pt-2">
-                                                <input type="checkbox" id="macroperforado" name="macroperforado" checked={!!formData.macroperforado} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500" />
-                                                <label htmlFor="macroperforado" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Macroperforado</label>
-                                            </div>
-                                            <div className="flex items-center justify-start pt-6">
-                                                <input type="checkbox" id="anonimo" name="anonimo" checked={!!formData.anonimo} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                                                <label htmlFor="anonimo" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Anónimo</label>
+                                        </div>
+
+                                        <div>
+                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Máquina de Impresión</label>
+                                            <select
+                                                value={printingStageValue}
+                                                onChange={handlePrintingStageChange}
+                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                                disabled={isReadOnly || !isCurrentlyInPrinting}
+                                            >
+                                                <option value="" disabled>Seleccione una máquina</option>
+                                                {printingStages.map(stageId => (
+                                                    <option key={stageId} value={stageId}>
+                                                        {ETAPAS[stageId].title}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Tipo de Impresión</label>
+                                            <select name="tipoImpresion" value={formData.tipoImpresion} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50">
+                                                {Object.values(TipoImpresion).map(t => <option key={t} value={t}>{t}</option>)}
+                                            </select>
+                                        </div>
+
+                                        <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                                            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Características del Pedido</h4>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="flex items-center">
+                                                    <input type="checkbox" id="antivaho" name="antivaho" checked={!!formData.antivaho} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                                    <label htmlFor="antivaho" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Antivaho</label>
+                                                </div>
+                                                <div className="flex items-center">
+                                                    <input type="checkbox" id="microperforado" name="microperforado" checked={!!formData.microperforado} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
+                                                    <label htmlFor="microperforado" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Microperforado</label>
+                                                </div>
+                                                <div className="flex items-center">
+                                                    <input type="checkbox" id="macroperforado" name="macroperforado" checked={!!formData.macroperforado} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500" />
+                                                    <label htmlFor="macroperforado" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Macroperforado</label>
+                                                </div>
+                                                <div className="flex items-center">
+                                                    <input type="checkbox" id="anonimo" name="anonimo" checked={!!formData.anonimo} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                                    <label htmlFor="anonimo" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Anónimo</label>
+                                                </div>
                                             </div>
 
                                             {/* Select de Post-Impresión para Anónimos */}
                                             {formData.anonimo && (
-                                                <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-400 dark:border-yellow-600 rounded-lg">
+                                                <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-400 dark:border-yellow-600 rounded-lg">
                                                     <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                                                        📦 Post-Impresión (Anónimo)
+                                                        📦 Post-Impresión (Anónimo) <span className="text-red-500">*</span>
                                                     </label>
                                                     <select 
                                                         name="anonimoPostImpresion" 
@@ -524,46 +546,19 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                 </div>
                                             )}
                                         </div>
-
-                                        <label className="block mt-4 mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Tipo de Impresión</label>
-                                        <select name="tipoImpresion" value={formData.tipoImpresion} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50">
-                                            {Object.values(TipoImpresion).map(t => <option key={t} value={t}>{t}</option>)}
-                                        </select>
                                     </div>
+                                    
                                     {/* Columna Derecha */}
-                                    <div>
+                                    <div className="space-y-4">
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Desarrollo</label>
-                                                <input type="text" name="desarrollo" value={formData.desarrollo} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"/>
-                                            </div>
-                                            <div>
-                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Capa</label>
-                                                <input type="text" name="capa" value={formData.capa} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50" placeholder="Número o texto de capa"/>
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4 mt-4">
-                                            <div>
-                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Prioridad</label>
-                                                <select name="prioridad" value={formData.prioridad} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50">
-                                                    {Object.values(Prioridad).map(p => <option key={p} value={p}>{p}</option>)}
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Camisa</label>
-                                                <input type="text" name="camisa" value={formData.camisa || ''} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50" placeholder="Información de la camisa"/>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-4 mt-4">
-                                            <div>
                                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Metros</label>
-                                                <input type="text" inputMode="numeric" pattern="[0-9]*" name="metros" value={formData.metros} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"/>
+                                                <input type="text" inputMode="numeric" pattern="[0-9]*" name="metros" value={formData.metros} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"/>
                                             </div>
                                             <div>
                                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
                                                     Tiempo Prod. (HH:mm)
-                                                    {formData.anonimo && <span className="ml-2 text-xs text-yellow-600 dark:text-yellow-400">(Deshabilitado por Anónimo)</span>}
+                                                    {formData.anonimo && <span className="ml-1 text-xs text-yellow-600 dark:text-yellow-400">(Auto)</span>}
                                                 </label>
                                                 <input 
                                                     type="text" 
@@ -571,75 +566,115 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                     value={formData.tiempoProduccionPlanificado} 
                                                     onChange={handleChange} 
                                                     disabled={formData.anonimo}
-                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 />
                                             </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Prioridad</label>
+                                                <select name="prioridad" value={formData.prioridad} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50">
+                                                    {Object.values(Prioridad).map(p => <option key={p} value={p}>{p}</option>)}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Camisa</label>
+                                                <input type="text" name="camisa" value={formData.camisa || ''} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50" placeholder="Info de la camisa"/>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Fecha de Creación</label>
+                                            <div className="w-full bg-gray-100 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm">
+                                                {formatDateTimeDDMMYYYY(formData.fechaCreacion)}
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Fecha de Entrega</label>
+                                                <input type="date" name="fechaEntrega" value={formData.fechaEntrega} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"/>
+                                            </div>
+                                            <div>
+                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Nueva Fecha Entrega</label>
+                                                <input type="date" name="nuevaFechaEntrega" value={formData.nuevaFechaEntrega || ''} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"/>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Vendedor</label>
+                                            {!showVendedorInput ? (
+                                                <select name="vendedorId" value={formData.vendedorId || ''} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50">
+                                                    <option value="">Seleccione un vendedor</option>
+                                                    {vendedores.filter(v => v.activo).map(vendedor => (
+                                                        <option key={vendedor.id} value={vendedor.id}>{vendedor.nombre}</option>
+                                                    ))}
+                                                    {!isReadOnly && <option value="add_new_vendedor">-- Crear nuevo vendedor --</option>}
+                                                </select>
+                                            ) : (
+                                                <div className="flex gap-2">
+                                                    <input 
+                                                        type="text" 
+                                                        value={nuevoVendedor} 
+                                                        onChange={(e) => setNuevoVendedor(e.target.value)}
+                                                        placeholder="Nombre del vendedor"
+                                                        className="flex-1 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
+                                                        autoFocus
+                                                    />
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={handleAddVendedor}
+                                                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+                                                        title="Guardar vendedor"
+                                                    >
+                                                        ✓
+                                                    </button>
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={handleCancelVendedor}
+                                                        className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
+                                                        title="Cancelar"
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">📝 Observaciones</label>
+                                            <textarea 
+                                                name="observaciones" 
+                                                value={formData.observaciones} 
+                                                onChange={handleChange} 
+                                                rows={4} 
+                                                placeholder="Notas importantes, instrucciones especiales..."
+                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                            ></textarea>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                                    <div>
-                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Fecha de Creación</label>
-                                        <p className="w-full bg-gray-100 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm">
-                                            {formatDateTimeDDMMYYYY(formData.fechaCreacion)}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Fecha de Entrega</label>
-                                        <input type="date" name="fechaEntrega" value={formData.fechaEntrega} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"/>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                                    <div>
-                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Nueva Fecha Entrega</label>
-                                        <input type="date" name="nuevaFechaEntrega" value={formData.nuevaFechaEntrega || ''} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"/>
-                                    </div>
-                                    <div>
-                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Vendedor</label>
-                                        {!showVendedorInput ? (
-                                            <select name="vendedorId" value={formData.vendedorId || ''} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50">
-                                                <option value="">Seleccione un vendedor</option>
-                                                {vendedores.filter(v => v.activo).map(vendedor => (
-                                                    <option key={vendedor.id} value={vendedor.id}>{vendedor.nombre}</option>
-                                                ))}
-                                                {!isReadOnly && <option value="add_new_vendedor">-- Crear nuevo vendedor --</option>}
-                                            </select>
-                                        ) : (
-                                            <div className="flex gap-2">
-                                                <input 
-                                                    type="text" 
-                                                    value={nuevoVendedor} 
-                                                    onChange={(e) => setNuevoVendedor(e.target.value)}
-                                                    placeholder="Nombre del vendedor"
-                                                    className="flex-1 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
-                                                    autoFocus
-                                                />
-                                                <button 
-                                                    type="button" 
-                                                    onClick={handleAddVendedor}
-                                                    className="bg-green-600 hover:bg-green-700 text-white px-3 rounded-lg"
-                                                    title="Guardar vendedor"
-                                                >
-                                                    ✓
-                                                </button>
-                                                <button 
-                                                    type="button" 
-                                                    onClick={handleCancelVendedor}
-                                                    className="bg-gray-500 hover:bg-gray-600 text-white px-3 rounded-lg"
-                                                    title="Cancelar"
-                                                >
-                                                    ✕
-                                                </button>
-                                            </div>
+                                {/* Secuencia de Trabajo */}
+                                <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+                                            🔄 Secuencia de Trabajo Post-Impresión
+                                        </h3>
+                                        {formData.antivaho && (!formData.secuenciaTrabajo || formData.secuenciaTrabajo.length === 0) && (
+                                            <span className="text-sm text-yellow-600 dark:text-yellow-400 font-medium">
+                                                ⚠️ Requerido para pedidos con Antivaho
+                                            </span>
                                         )}
                                     </div>
-                                </div>
-
-                                <div className="md:col-span-2 mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
-                                    <h3 className="text-xl font-semibold mb-4">Secuencia de Trabajo Post-Impresión</h3>
-                                    <SequenceBuilder sequence={formData.secuenciaTrabajo || []} onChange={handleSequenceChange} isReadOnly={isReadOnly} />
+                                    <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                                        <SequenceBuilder 
+                                            sequence={formData.secuenciaTrabajo || []} 
+                                            onChange={handleSequenceChange} 
+                                            isReadOnly={isReadOnly} 
+                                        />
+                                    </div>
                                 </div>
                             </fieldset>
 
