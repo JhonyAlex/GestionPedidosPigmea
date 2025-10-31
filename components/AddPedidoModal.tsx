@@ -35,7 +35,7 @@ const initialFormData = {
     clicheDisponible: false,
     estadoCliché: EstadoCliché.PENDIENTE_CLIENTE,
     clicheInfoAdicional: '',
-    dtoCompra: '',
+    compraCliche: '',
     recepcionCliche: '',
     camisa: '',
     antivaho: false,
@@ -226,11 +226,11 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                 </p>
                             )}
 
-                            <label className="block mt-4 mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Dto Compra</label>
+                            <label className="block mt-4 mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Compra Cliché</label>
                             <input 
                                 type="date" 
-                                name="dtoCompra" 
-                                value={formData.dtoCompra || ''} 
+                                name="compraCliche" 
+                                value={formData.compraCliche || ''} 
                                 onChange={handleChange} 
                                 className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
                             />

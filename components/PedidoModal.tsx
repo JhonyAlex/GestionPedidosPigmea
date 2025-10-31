@@ -738,11 +738,11 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                             )}
                                         </div>
                                         <div>
-                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Dto Compra</label>
+                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Compra Cliché</label>
                                             <input 
                                                 type="date" 
-                                                name="dtoCompra" 
-                                                value={formData.dtoCompra || ''} 
+                                                name="compraCliche" 
+                                                value={formData.compraCliche || ''} 
                                                 onChange={handleChange} 
                                                 disabled={isReadOnly}
                                                 className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"

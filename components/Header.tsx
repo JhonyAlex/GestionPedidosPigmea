@@ -127,7 +127,7 @@ const Header: React.FC<HeaderProps> = ({
         { value: 'fechaEntrega', label: 'F. Entrega' },
         { value: 'nuevaFechaEntrega', label: 'Nueva F. Entrega' },
         { value: 'fechaFinalizacion', label: 'F. Finalización' },
-        { value: 'dtoCompra', label: 'Dto Compra' },
+        { value: 'compraCliche', label: 'Compra Cliché' },
         { value: 'recepcionCliche', label: 'Recepción Cliché' },
     ];
 

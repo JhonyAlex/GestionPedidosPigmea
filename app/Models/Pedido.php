@@ -14,7 +14,7 @@ class Pedido extends Model
         'camisa',
         'antivaho',
         'anonimo',
-        'dto_compra',
+        'compra_cliche',
         'recepcion_cliche',
         'observaciones_material',
     ];

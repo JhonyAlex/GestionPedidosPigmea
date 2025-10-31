@@ -1816,21 +1816,21 @@ app.post('/api/admin/migrate', requirePermission('usuarios.admin'), async (req, 
                 results.push({ migration: 'anonimo', status: 'error', error: error.message });
             }
 
-            // ===== MIGRACIÓN 13: Campos de fecha Cliché (dto_compra, recepcion_cliche) =====
+            // ===== MIGRACIÓN 13: Campos de fecha Cliché (compra_cliche, recepcion_cliche) =====
             try {
                 await client.query(`
                     DO $$ 
                     BEGIN
                         IF NOT EXISTS (
                             SELECT 1 FROM information_schema.columns 
-                            WHERE table_name = 'pedidos' AND column_name = 'dto_compra'
+                            WHERE table_name = 'pedidos' AND column_name = 'compra_cliche'
                         ) THEN
-                            ALTER TABLE pedidos ADD COLUMN dto_compra DATE;
-                            CREATE INDEX IF NOT EXISTS idx_pedidos_dto_compra ON pedidos(dto_compra);
-                            COMMENT ON COLUMN pedidos.dto_compra IS 'Fecha de Dto Compra del cliché';
-                            RAISE NOTICE 'Columna dto_compra agregada';
+                            ALTER TABLE pedidos ADD COLUMN compra_cliche DATE;
+                            CREATE INDEX IF NOT EXISTS idx_pedidos_compra_cliche ON pedidos(compra_cliche);
+                            COMMENT ON COLUMN pedidos.compra_cliche IS 'Fecha de Compra Cliché';
+                            RAISE NOTICE 'Columna compra_cliche agregada';
                         ELSE
-                            RAISE NOTICE 'Columna dto_compra ya existe';
+                            RAISE NOTICE 'Columna compra_cliche ya existe';
                         END IF;
 
                         IF NOT EXISTS (
@@ -1857,7 +1857,7 @@ app.post('/api/admin/migrate', requirePermission('usuarios.admin'), async (req, 
                 SELECT column_name 
                 FROM information_schema.columns 
                 WHERE table_name = 'pedidos' 
-                AND column_name IN ('nueva_fecha_entrega', 'numero_compra', 'vendedor', 'anonimo', 'dto_compra', 'recepcion_cliche')
+                AND column_name IN ('nueva_fecha_entrega', 'numero_compra', 'vendedor', 'anonimo', 'compra_cliche', 'recepcion_cliche')
                 ORDER BY column_name;
             `);
             
