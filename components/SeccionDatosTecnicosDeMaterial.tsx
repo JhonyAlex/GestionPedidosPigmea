@@ -247,7 +247,7 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                             </label>
                                             <input
                                                 type="number"
-                                                step="0.01"
+                                                step="any"
                                                 placeholder="Ej: 0.92"
                                                 value={formData.materialConsumo?.[index]?.densidad || ''}
                                                 onChange={(e) => handleNestedArrayChange('materialConsumo', index, 'densidad', e.target.value)}
