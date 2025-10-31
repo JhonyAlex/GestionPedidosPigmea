@@ -46,7 +46,9 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
     const [isEditingFecha, setIsEditingFecha] = useState(false);
     const [tempFecha, setTempFecha] = useState(pedido.nuevaFechaEntrega || '');
     const dateInputRef = useRef<HTMLInputElement>(null);
+    const dateContainerRef = useRef<HTMLDivElement>(null);
     const [isHovered, setIsHovered] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     
     // Usar valor por defecto si la prioridad no existe en PRIORIDAD_COLORS
     const priorityColor = PRIORIDAD_COLORS[pedido.prioridad] || PRIORIDAD_COLORS[Prioridad.NORMAL] || 'border-blue-500';
@@ -54,59 +56,93 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
     // Detectar si es móvil
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
-    // Cerrar el date picker al hacer click fuera
+    // Cerrar el editor al hacer click fuera del contenedor completo
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (dateInputRef.current && !dateInputRef.current.contains(event.target as Node)) {
-                setIsEditingFecha(false);
+            // Solo cerrar si el click es fuera del contenedor completo (no solo el input)
+            if (dateContainerRef.current && !dateContainerRef.current.contains(event.target as Node)) {
+                handleCancelEdit();
             }
         };
 
         if (isEditingFecha) {
-            document.addEventListener('mousedown', handleClickOutside);
+            // Pequeño delay para evitar que el click de apertura lo cierre inmediatamente
+            setTimeout(() => {
+                document.addEventListener('mousedown', handleClickOutside);
+            }, 100);
         }
 
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [isEditingFecha]);
+    }, [isEditingFecha, tempFecha]);
 
     const handleFechaClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        setIsEditingFecha(true);
-        setTempFecha(pedido.nuevaFechaEntrega || '');
+        if (!isSaving) {
+            setIsEditingFecha(true);
+            setTempFecha(pedido.nuevaFechaEntrega || '');
+            // Enfocar el input después de un pequeño delay
+            setTimeout(() => {
+                dateInputRef.current?.focus();
+                dateInputRef.current?.showPicker?.(); // Mostrar el calendario si está disponible
+            }, 50);
+        }
     };
 
-    const handleFechaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newFecha = e.target.value;
-        setTempFecha(newFecha);
+    const handleFechaInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        // Solo actualizar el estado temporal, NO guardar aún
+        setTempFecha(e.target.value);
+    };
+
+    const handleSaveFecha = async () => {
+        if (!onUpdatePedido || !tempFecha || tempFecha === pedido.nuevaFechaEntrega || isSaving) {
+            setIsEditingFecha(false);
+            return;
+        }
+
+        setIsSaving(true);
         
-        // Guardar cambios
-        if (onUpdatePedido && newFecha) {
+        try {
             const fechaAnterior = pedido.nuevaFechaEntrega || 'Sin fecha';
             
             // Actualizar el pedido con la nueva fecha
             const updatedPedido = {
                 ...pedido,
-                nuevaFechaEntrega: newFecha,
+                nuevaFechaEntrega: tempFecha,
                 historial: [
                     ...(pedido.historial || []),
                     {
                         timestamp: new Date().toISOString(),
                         usuario: currentUserRole,
                         accion: 'Actualización de Nueva Fecha Entrega',
-                        detalles: `Cambiado de '${fechaAnterior}' a '${newFecha}'.`
+                        detalles: `Cambiado de '${fechaAnterior}' a '${tempFecha}'.`
                     }
                 ]
             };
 
-            try {
-                await onUpdatePedido(updatedPedido);
-                setIsEditingFecha(false);
-            } catch (error) {
-                console.error('Error al actualizar la fecha:', error);
-                alert('Error al actualizar la fecha. Por favor, intente de nuevo.');
-            }
+            await onUpdatePedido(updatedPedido);
+            setIsEditingFecha(false);
+        } catch (error) {
+            console.error('Error al actualizar la fecha:', error);
+            alert('Error al actualizar la fecha. Por favor, intente de nuevo.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setTempFecha(pedido.nuevaFechaEntrega || '');
+        setIsEditingFecha(false);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleSaveFecha();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            handleCancelEdit();
         }
     };
 
@@ -307,21 +343,46 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
             </div>
             
             {pedido.nuevaFechaEntrega && (
-                <div className="flex items-center text-xs text-blue-600 dark:text-blue-400 mb-2">
+                <div className="flex items-center text-xs text-blue-600 dark:text-blue-400 mb-2" ref={dateContainerRef}>
                     <CalendarIcon />
                     {isEditingFecha ? (
-                        <input
-                            ref={dateInputRef}
-                            type="date"
-                            value={tempFecha}
-                            onChange={handleFechaChange}
-                            onClick={(e) => e.stopPropagation()}
-                            className="font-semibold bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-600 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            autoFocus
-                        />
+                        <div className="flex items-center gap-1 flex-1">
+                            <input
+                                ref={dateInputRef}
+                                type="date"
+                                value={tempFecha}
+                                onChange={handleFechaInputChange}
+                                onKeyDown={handleKeyDown}
+                                onClick={(e) => e.stopPropagation()}
+                                disabled={isSaving}
+                                className="flex-1 font-semibold bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-600 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            />
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSaveFecha();
+                                }}
+                                disabled={isSaving || !tempFecha || tempFecha === pedido.nuevaFechaEntrega}
+                                className="px-2 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                title="Guardar (Enter)"
+                            >
+                                {isSaving ? '...' : '✓'}
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCancelEdit();
+                                }}
+                                disabled={isSaving}
+                                className="px-2 py-1 bg-gray-400 hover:bg-gray-500 text-white rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                title="Cancelar (Esc)"
+                            >
+                                ✕
+                            </button>
+                        </div>
                     ) : (
                         <span 
-                            className="font-semibold cursor-pointer hover:underline"
+                            className="font-semibold cursor-pointer hover:underline hover:bg-blue-100 dark:hover:bg-blue-900/50 px-1 py-0.5 rounded transition-colors"
                             onClick={handleFechaClick}
                             title="Click para editar la fecha"
                         >
