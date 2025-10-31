@@ -75,7 +75,9 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
             parsedValue = value === '' ? null : parseFloat(value as string);
         } else if (field === 'densidad') {
             // Para densidad, parsear como número con decimales
-            parsedValue = value === '' ? null : parseFloat(value as string);
+            // Reemplazar coma por punto para compatibilidad con parseFloat
+            const normalizedValue = (value as string).replace(',', '.');
+            parsedValue = value === '' ? null : parseFloat(normalizedValue);
         } else {
             parsedValue = value === '' ? null : parseFloat(value as string);
         }
@@ -246,9 +248,9 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                                 ⚖️ Densidad (g/cm³)
                                             </label>
                                             <input
-                                                type="number"
-                                                step="any"
-                                                placeholder="Ej: 0.92"
+                                                type="text"
+                                                inputMode="decimal"
+                                                placeholder="Ej: 0.92 o 0,03"
                                                 value={formData.materialConsumo?.[index]?.densidad || ''}
                                                 onChange={(e) => handleNestedArrayChange('materialConsumo', index, 'densidad', e.target.value)}
                                                 disabled={isReadOnly}
