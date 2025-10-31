@@ -232,6 +232,7 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
 
     return (
         <div 
+            data-pedido-id={pedido.id}
             onClick={handleCardClick}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}

@@ -4,6 +4,7 @@ import { Pedido, Etapa, ViewType, UserRole, AuditEntry, Prioridad, EstadoCliché
 import { KANBAN_FUNNELS, ETAPAS, PRIORIDAD_ORDEN, PREPARACION_SUB_ETAPAS_IDS } from './constants';
 import { DateFilterOption } from './utils/date';
 import { calculateTotalProductionTime, generatePedidosPDF } from './utils/kpi';
+import { scrollToPedido } from './utils/scroll';
 import KanbanColumn from './components/KanbanColumn';
 import PedidoModal from './components/PedidoModal';
 import AddPedidoModal from './components/AddPedidoModal';
@@ -27,6 +28,7 @@ import PermissionsDebug from './components/PermissionsDebug';
 import BulkActionsToolbar from './components/BulkActionsToolbar';
 import DeleteConfirmationModal from './components/DeleteConfirmationModal';
 import BulkDateUpdateModal from './components/BulkDateUpdateModal';
+import { ToastContainer } from './components/Toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { calcularSiguienteEtapa, estaFueraDeSecuencia } from './utils/etapaLogic';
 import { procesarDragEnd } from './utils/dragLogic';
@@ -35,11 +37,15 @@ import { useWebSocket } from './hooks/useWebSocket';
 import { useFiltrosYOrden } from './hooks/useFiltrosYOrden';
 import { useNavigateToPedido } from './hooks/useNavigateToPedido';
 import { useBulkOperations } from './hooks/useBulkOperations';
+import { useToast } from './hooks/useToast';
 import { auditService } from './services/audit';
 
 
 const AppContent: React.FC = () => {
     const { user, loading } = useAuth();
+    
+    // Hook de toast para notificaciones
+    const { messages: toastMessages, addToast, removeToast } = useToast();
     
     // Estados locales - siempre llamar antes de returns condicionales
     const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
@@ -306,9 +312,37 @@ const AppContent: React.FC = () => {
 
             logAction(`Pedido ${pedidoToAdvance.numeroPedidoCliente} avanzado de ${ETAPAS[etapaActual].title} a ${ETAPAS[newEtapa].title}.`, pedidoToAdvance.id);
 
+            // 🎉 Notificación toast con opción de navegar
+            const etapaAnterior = ETAPAS[etapaActual]?.title || etapaActual;
+            const etapaNueva = ETAPAS[newEtapa]?.title || newEtapa;
+            
+            addToast(
+                `✅ Pedido ${pedidoToAdvance.numeroPedidoCliente} movido de "${etapaAnterior}" a "${etapaNueva}"`,
+                'success',
+                {
+                    duration: 6000,
+                    pedidoId: pedidoToAdvance.id,
+                    onNavigate: () => {
+                        // Cambiar a la vista apropiada según la etapa
+                        if (newEtapa === Etapa.PREPARACION) {
+                            setView('preparacion');
+                        } else if (newEtapa === Etapa.COMPLETADO) {
+                            setView('archived');
+                        } else {
+                            setView('kanban');
+                        }
+                        // Scroll automático al pedido
+                        scrollToPedido(pedidoToAdvance.id);
+                    }
+                }
+            );
+
+            // Scroll automático al pedido después de un pequeño delay
+            scrollToPedido(pedidoToAdvance.id, 120);
+
             setTimeout(() => {
                 setHighlightedPedidoId(null);
-            }, 5000); // 5 segundos
+            }, 6000); // 6 segundos (sincronizado con la animación)
         }
     };
 
@@ -366,10 +400,28 @@ const AppContent: React.FC = () => {
                     if (updatedPedido) {
                         logAction(`Pedido ${updatedPedido.numeroPedidoCliente} enviado a Impresión.`, updatedPedido.id);
                         
+                        // 🎉 Notificación toast
+                        const etapaNueva = ETAPAS[impresionEtapa]?.title || impresionEtapa;
+                        addToast(
+                            `✅ Pedido ${updatedPedido.numeroPedidoCliente} enviado a "${etapaNueva}"`,
+                            'success',
+                            {
+                                duration: 6000,
+                                pedidoId: updatedPedido.id,
+                                onNavigate: () => {
+                                    setView('kanban');
+                                    scrollToPedido(updatedPedido.id);
+                                }
+                            }
+                        );
+
+                        // Scroll automático
+                        scrollToPedido(updatedPedido.id, 120);
+                        
                         // 3. Set timer to remove highlight from new position
                         setTimeout(() => {
                             setHighlightedPedidoId(null);
-                        }, 5000); // 5 segundos
+                        }, 6000); // 6 segundos
                     } else {
                         // If the update failed, remove the highlight
                         setHighlightedPedidoId(null);
@@ -870,6 +922,9 @@ const AppContent: React.FC = () => {
                     pedido={antivahoModalState.pedido}
                 />
                 <ThemeSwitcher theme={theme} toggleTheme={toggleTheme} />
+                
+                {/* 🎉 Toast Notifications */}
+                <ToastContainer messages={toastMessages} onClose={removeToast} />
                 
                 {/* 🚀 WebSocket Components */}
                 <NotificationCenter

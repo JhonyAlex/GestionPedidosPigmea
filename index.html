@@ -65,49 +65,95 @@
       }
     }
 
-    /* Keyframes para tema claro */
+    /* Keyframes mejorados para tema claro - MÁS VISIBLE */
     @keyframes glow-light {
       0% {
         background-color: #d1fae5; /* emerald-100 */
         border-left-color: #10b981; /* emerald-500 */
-        box-shadow: 0 4px 12px #a7f3d0; /* emerald-200 */
+        border-left-width: 6px;
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4), 0 0 0 3px rgba(16, 185, 129, 0.2);
+        transform: scale(1.02);
       }
-      50% {
+      20% {
+        background-color: #a7f3d0; /* emerald-200 */
+        border-left-color: #059669; /* emerald-600 */
+        box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3), 0 0 0 2px rgba(16, 185, 129, 0.15);
+        transform: scale(1.01);
+      }
+      60% {
         background-color: #ecfdf5; /* emerald-50 */
         border-left-color: #34d399; /* emerald-400 */
-        box-shadow: 0 2px 8px #d1fae5; /* emerald-100 */
+        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+        transform: scale(1);
       }
       100% {
         background-color: #ffffff; /* white */
         box-shadow: 0 1px 3px #e5e7eb; /* gray-200 */
+        transform: scale(1);
       }
     }
 
-    /* Keyframes para tema oscuro */
+    /* Keyframes mejorados para tema oscuro - MÁS VISIBLE */
     @keyframes glow-dark {
       0% {
         background-color: #064e3b; /* emerald-900 */
         border-left-color: #34d399; /* emerald-400 */
-        box-shadow: 0 4px 12px #065f46; /* emerald-800 */
+        border-left-width: 6px;
+        box-shadow: 0 6px 20px rgba(52, 211, 153, 0.4), 0 0 0 3px rgba(52, 211, 153, 0.2);
+        transform: scale(1.02);
       }
-      50% {
-        background-color: #022c22; /* emerald-950 */
+      20% {
+        background-color: #065f46; /* emerald-800 */
         border-left-color: #10b981; /* emerald-500 */
-        box-shadow: 0 2px 8px #064e3b; /* emerald-900 */
+        box-shadow: 0 4px 16px rgba(52, 211, 153, 0.3), 0 0 0 2px rgba(52, 211, 153, 0.15);
+        transform: scale(1.01);
+      }
+      60% {
+        background-color: #022c22; /* emerald-950 */
+        border-left-color: #059669; /* emerald-600 */
+        box-shadow: 0 2px 8px rgba(52, 211, 153, 0.2);
+        transform: scale(1);
       }
       100% {
         background-color: #111827; /* gray-900 */
         box-shadow: 0 1px 3px #000000; /* black */
+        transform: scale(1);
       }
     }
 
-    /* Aplicación de la animación */
+    /* Aplicación de la animación mejorada */
     .card-highlight {
-      animation: glow-light 5s ease-out forwards;
+      animation: glow-light 6s ease-out forwards;
+      position: relative;
     }
     
     .dark .card-highlight {
-      animation: glow-dark 5s ease-out forwards;
+      animation: glow-dark 6s ease-out forwards;
+      position: relative;
+    }
+
+    /* Badge "MOVIDO" temporal */
+    .card-highlight::before {
+      content: '📍 MOVIDO';
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: bold;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      z-index: 10;
+      animation: badge-fade 6s ease-out forwards;
+      letter-spacing: 0.5px;
+    }
+
+    @keyframes badge-fade {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      70% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-10px) scale(0.8); }
     }
   </style>
 <script type="importmap">
