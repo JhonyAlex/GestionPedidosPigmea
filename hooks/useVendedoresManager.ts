@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Vendedor, VendedorCreateRequest, VendedorUpdateRequest } from '../types/vendedor';
 import { useAuth } from '../contexts/AuthContext';
+import webSocketService from '../services/websocket';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -157,6 +158,52 @@ export function useVendedoresManager() {
     useEffect(() => {
         fetchVendedores();
     }, [fetchVendedores]);
+
+    // 🔥 Socket.IO: Sincronización en tiempo real para vendedores
+    useEffect(() => {
+        // Suscribirse a eventos de vendedores
+        const unsubscribeCreated = webSocketService.subscribeToVendedorCreated((data: { vendedor: Vendedor; message: string; timestamp: string }) => {
+            console.log('🔄 Sincronizando nuevo vendedor:', data.vendedor.nombre);
+            
+            setVendedores(current => {
+                // Verificar si el vendedor ya existe para evitar duplicados
+                const exists = current.some(v => v.id === data.vendedor.id);
+                if (!exists) {
+                    return [...current, data.vendedor];
+                }
+                return current;
+            });
+        });
+
+        const unsubscribeUpdated = webSocketService.subscribeToVendedorUpdated((data: { vendedor: Vendedor; message: string; timestamp: string }) => {
+            console.log('🔄 Sincronizando vendedor actualizado:', data.vendedor.nombre);
+            
+            setVendedores(current => 
+                current.map(v => v.id === data.vendedor.id ? data.vendedor : v)
+            );
+        });
+
+        const unsubscribeDeleted = webSocketService.subscribeToVendedorDeleted((data: { vendedorId: string; vendedor?: Vendedor; message: string; timestamp: string }) => {
+            console.log('🔄 Sincronizando vendedor eliminado:', data.vendedorId);
+            
+            if (data.vendedor) {
+                // Si el backend devuelve el vendedor, actualizarlo (por si es soft delete)
+                setVendedores(current => 
+                    current.map(v => v.id === data.vendedorId ? data.vendedor! : v)
+                );
+            } else {
+                // Si no, remover de la lista
+                setVendedores(current => current.filter(v => v.id !== data.vendedorId));
+            }
+        });
+
+        // Cleanup al desmontar
+        return () => {
+            unsubscribeCreated();
+            unsubscribeUpdated();
+            unsubscribeDeleted();
+        };
+    }, []);
 
     return {
         vendedores,

@@ -1989,7 +1989,14 @@ app.post('/api/clientes', requirePermission('clientes.create'), async (req, res)
         console.log('🔍 POST /api/clientes - Datos recibidos:', JSON.stringify(req.body, null, 2));
         console.log('🔍 Database initialized:', dbClient.isInitialized);
         
-        const newCliente = await dbClient.createCliente(req.body);
+        // Agregar información del usuario para auditoría
+        const clienteData = {
+            ...req.body,
+            _changedBy: req.user?.username || req.user?.displayName || 'Sistema',
+            _userRole: req.user?.role || 'SYSTEM'
+        };
+        
+        const newCliente = await dbClient.createCliente(clienteData);
         console.log('✅ Cliente creado exitosamente:', newCliente.id);
         
         broadcastToClients('cliente-created', { cliente: newCliente });
@@ -2014,7 +2021,14 @@ app.post('/api/clientes', requirePermission('clientes.create'), async (req, res)
 // PUT /api/clientes/:id - Update an existing cliente
 app.put('/api/clientes/:id', requirePermission('clientes.edit'), async (req, res) => {
     try {
-        const updatedCliente = await dbClient.updateCliente(req.params.id, req.body);
+        // Agregar información del usuario para auditoría
+        const clienteData = {
+            ...req.body,
+            _changedBy: req.user?.username || req.user?.displayName || 'Sistema',
+            _userRole: req.user?.role || 'SYSTEM'
+        };
+        
+        const updatedCliente = await dbClient.updateCliente(req.params.id, clienteData);
         broadcastToClients('cliente-updated', { cliente: updatedCliente });
         res.status(200).json(updatedCliente);
     } catch (error) {
@@ -2083,6 +2097,21 @@ app.delete('/api/clientes/:id/permanent', requirePermission('clientes.delete'), 
         } else {
             res.status(500).json({ message: "Error interno del servidor al eliminar el cliente permanentemente." });
         }
+    }
+});
+
+// GET /api/clientes/:id/history - Obtener historial de cambios de un cliente
+app.get('/api/clientes/:id/history', requireAuth, async (req, res) => {
+    try {
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({ message: 'Base de datos no disponible', history: [] });
+        }
+        
+        const history = await dbClient.getClienteHistory(req.params.id);
+        res.status(200).json({ history });
+    } catch (error) {
+        console.error(`Error in GET /api/clientes/${req.params.id}/history:`, error);
+        res.status(500).json({ message: "Error al obtener historial del cliente." });
     }
 });
 
@@ -2169,7 +2198,9 @@ app.post('/api/vendedores', requirePermission('pedidos.create'), async (req, res
             nombre: nombre.trim(),
             email: email || null,
             telefono: telefono || null,
-            activo: activo !== undefined ? activo : true
+            activo: activo !== undefined ? activo : true,
+            _changedBy: req.user?.username || req.user?.displayName || 'Sistema',
+            _userRole: req.user?.role || 'SYSTEM'
         });
 
         // 🔥 EVENTO WEBSOCKET: Nuevo vendedor creado
@@ -2238,7 +2269,9 @@ app.put('/api/vendedores/:id', requirePermission('pedidos.edit'), async (req, re
             nombre: nombre?.trim(),
             email,
             telefono,
-            activo
+            activo,
+            _changedBy: req.user?.username || req.user?.displayName || 'Sistema',
+            _userRole: req.user?.role || 'SYSTEM'
         });
 
         if (!vendedorActualizado) {
@@ -2338,6 +2371,21 @@ app.get('/api/vendedores/:id/estadisticas', authenticateUser, async (req, res) =
     } catch (error) {
         console.error(`Error in GET /api/vendedores/${req.params.id}/estadisticas:`, error);
         res.status(500).json({ message: "Error interno del servidor al obtener las estadísticas del vendedor." });
+    }
+});
+
+// GET /api/vendedores/:id/history - Obtener historial de cambios de un vendedor
+app.get('/api/vendedores/:id/history', requireAuth, async (req, res) => {
+    try {
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({ message: 'Base de datos no disponible', history: [] });
+        }
+        
+        const history = await dbClient.getVendedorHistory(req.params.id);
+        res.status(200).json({ history });
+    } catch (error) {
+        console.error(`Error in GET /api/vendedores/${req.params.id}/history:`, error);
+        res.status(500).json({ message: "Error al obtener historial del vendedor." });
     }
 });
 

@@ -13,6 +13,13 @@ export interface WebSocketEvents {
   'user-activity-received': (data: { userId: string; userRole: UserRole; activity: string; data?: any }) => void;
   'comment:added': (comment: any) => void;
   'comment:deleted': (data: { commentId: string; pedidoId: string }) => void;
+  'cliente-created': (data: { cliente: any; timestamp: string }) => void;
+  'cliente-updated': (data: { cliente: any; timestamp: string }) => void;
+  'cliente-deleted': (data: { clienteId: string; cliente?: any; timestamp: string }) => void;
+  'cliente-deleted-permanent': (data: { clienteId: string; timestamp: string }) => void;
+  'vendedor-created': (data: { vendedor: any; message: string; timestamp: string }) => void;
+  'vendedor-updated': (data: { vendedor: any; message: string; timestamp: string }) => void;
+  'vendedor-deleted': (data: { vendedorId: string; vendedor?: any; message: string; timestamp: string }) => void;
   
   // Eventos del cliente
   authenticate: (data: { userId: string; userRole: UserRole }) => void;
@@ -55,6 +62,16 @@ class WebSocketService {
   // Callbacks para comentarios en tiempo real
   private commentAddedListeners: ((comment: any) => void)[] = [];
   private commentDeletedListeners: ((data: { commentId: string; pedidoId: string }) => void)[] = [];
+  
+  // Callbacks para clientes en tiempo real
+  private clienteCreatedListeners: ((data: any) => void)[] = [];
+  private clienteUpdatedListeners: ((data: any) => void)[] = [];
+  private clienteDeletedListeners: ((data: any) => void)[] = [];
+  
+  // Callbacks para vendedores en tiempo real
+  private vendedorCreatedListeners: ((data: any) => void)[] = [];
+  private vendedorUpdatedListeners: ((data: any) => void)[] = [];
+  private vendedorDeletedListeners: ((data: any) => void)[] = [];
   
   // Control de visibilidad de pestaña y sincronización
   private isPageVisible = true;
@@ -512,6 +529,43 @@ class WebSocketService {
       console.log('🗑️ Comentario eliminado:', data);
       this.notifyCommentDeletedListeners(data);
     });
+
+    // Eventos de clientes
+    this.socket.on('cliente-created', (data) => {
+      console.log('👤 Nuevo cliente creado:', data);
+      this.notifyClienteCreatedListeners(data);
+    });
+
+    this.socket.on('cliente-updated', (data) => {
+      console.log('✏️ Cliente actualizado:', data);
+      this.notifyClienteUpdatedListeners(data);
+    });
+
+    this.socket.on('cliente-deleted', (data) => {
+      console.log('🗑️ Cliente eliminado:', data);
+      this.notifyClienteDeletedListeners(data);
+    });
+
+    this.socket.on('cliente-deleted-permanent', (data) => {
+      console.log('🗑️ Cliente eliminado permanentemente:', data);
+      this.notifyClienteDeletedListeners(data);
+    });
+
+    // Eventos de vendedores
+    this.socket.on('vendedor-created', (data) => {
+      console.log('👤 Nuevo vendedor creado:', data);
+      this.notifyVendedorCreatedListeners(data);
+    });
+
+    this.socket.on('vendedor-updated', (data) => {
+      console.log('✏️ Vendedor actualizado:', data);
+      this.notifyVendedorUpdatedListeners(data);
+    });
+
+    this.socket.on('vendedor-deleted', (data) => {
+      console.log('🗑️ Vendedor eliminado:', data);
+      this.notifyVendedorDeletedListeners(data);
+    });
   }
 
   // Métodos públicos
@@ -646,6 +700,68 @@ class WebSocketService {
     };
   }
 
+  // Métodos de suscripción para clientes
+  public subscribeToClienteCreated(callback: (data: any) => void): () => void {
+    this.clienteCreatedListeners.push(callback);
+    return () => {
+      const index = this.clienteCreatedListeners.indexOf(callback);
+      if (index > -1) {
+        this.clienteCreatedListeners.splice(index, 1);
+      }
+    };
+  }
+
+  public subscribeToClienteUpdated(callback: (data: any) => void): () => void {
+    this.clienteUpdatedListeners.push(callback);
+    return () => {
+      const index = this.clienteUpdatedListeners.indexOf(callback);
+      if (index > -1) {
+        this.clienteUpdatedListeners.splice(index, 1);
+      }
+    };
+  }
+
+  public subscribeToClienteDeleted(callback: (data: any) => void): () => void {
+    this.clienteDeletedListeners.push(callback);
+    return () => {
+      const index = this.clienteDeletedListeners.indexOf(callback);
+      if (index > -1) {
+        this.clienteDeletedListeners.splice(index, 1);
+      }
+    };
+  }
+
+  // Métodos de suscripción para vendedores
+  public subscribeToVendedorCreated(callback: (data: any) => void): () => void {
+    this.vendedorCreatedListeners.push(callback);
+    return () => {
+      const index = this.vendedorCreatedListeners.indexOf(callback);
+      if (index > -1) {
+        this.vendedorCreatedListeners.splice(index, 1);
+      }
+    };
+  }
+
+  public subscribeToVendedorUpdated(callback: (data: any) => void): () => void {
+    this.vendedorUpdatedListeners.push(callback);
+    return () => {
+      const index = this.vendedorUpdatedListeners.indexOf(callback);
+      if (index > -1) {
+        this.vendedorUpdatedListeners.splice(index, 1);
+      }
+    };
+  }
+
+  public subscribeToVendedorDeleted(callback: (data: any) => void): () => void {
+    this.vendedorDeletedListeners.push(callback);
+    return () => {
+      const index = this.vendedorDeletedListeners.indexOf(callback);
+      if (index > -1) {
+        this.vendedorDeletedListeners.splice(index, 1);
+      }
+    };
+  }
+
   // Métodos para notificar cambios
   private notifyPedidoCreatedListeners(pedido: Pedido) {
     this.pedidoCreatedListeners.forEach(listener => listener(pedido));
@@ -665,6 +781,30 @@ class WebSocketService {
 
   private notifyCommentDeletedListeners(data: { commentId: string; pedidoId: string }) {
     this.commentDeletedListeners.forEach(listener => listener(data));
+  }
+
+  private notifyClienteCreatedListeners(data: any) {
+    this.clienteCreatedListeners.forEach(listener => listener(data));
+  }
+
+  private notifyClienteUpdatedListeners(data: any) {
+    this.clienteUpdatedListeners.forEach(listener => listener(data));
+  }
+
+  private notifyClienteDeletedListeners(data: any) {
+    this.clienteDeletedListeners.forEach(listener => listener(data));
+  }
+
+  private notifyVendedorCreatedListeners(data: any) {
+    this.vendedorCreatedListeners.forEach(listener => listener(data));
+  }
+
+  private notifyVendedorUpdatedListeners(data: any) {
+    this.vendedorUpdatedListeners.forEach(listener => listener(data));
+  }
+
+  private notifyVendedorDeletedListeners(data: any) {
+    this.vendedorDeletedListeners.forEach(listener => listener(data));
   }
 
   public disconnect() {
@@ -687,6 +827,12 @@ class WebSocketService {
     this.pedidoDeletedListeners = [];
     this.commentAddedListeners = [];
     this.commentDeletedListeners = [];
+    this.clienteCreatedListeners = [];
+    this.clienteUpdatedListeners = [];
+    this.clienteDeletedListeners = [];
+    this.vendedorCreatedListeners = [];
+    this.vendedorUpdatedListeners = [];
+    this.vendedorDeletedListeners = [];
     this.notificationListeners = [];
     this.connectedUsersListeners = [];
     this.pageRefreshCallbacks = [];

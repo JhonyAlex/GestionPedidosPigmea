@@ -107,18 +107,18 @@ export const usePedidosManager = (
             const newHistoryEntries: HistorialEntry[] = [];
             const fieldsToCompare: Array<keyof Pedido> = [
                 // Información básica
-                'numeroPedidoCliente', 'cliente', 'metros', 'fechaEntrega', 'nuevaFechaEntrega', 'fechaFinalizacion', 'prioridad', 
-                'maquinaImpresion', 'orden', 'vendedor',
+                'numeroPedidoCliente', 'cliente', 'clienteId', 'metros', 'fechaEntrega', 'nuevaFechaEntrega', 'fechaFinalizacion', 'prioridad', 
+                'maquinaImpresion', 'orden', 'vendedorId', 'vendedorNombre',
                 // Información de producción
                 'tipoImpresion', 'desarrollo', 'capa', 'tiempoProduccionPlanificado', 'tiempoTotalProduccion',
                 'observaciones', 
                 // Secuencia y etapas
                 'secuenciaTrabajo', 'subEtapaActual', 'etapasSecuencia',
                 // Datos de preparación
-                'materialDisponible', 'clicheDisponible', 'estadoCliché', 'clicheInfoAdicional', 'dtoCompra', 'recepcionCliche', 'camisa', 'antivaho', 'antivahoRealizado', 'anonimo',
+                'materialDisponible', 'clicheDisponible', 'estadoCliché', 'clicheInfoAdicional', 'compraCliche', 'recepcionCliche', 'camisa', 'antivaho', 'antivahoRealizado', 'anonimo', 'anonimoPostImpresion',
                 // Datos técnicos de material (excluimos materialCapas, materialConsumo y numerosCompra para manejarlos por separado)
-                'producto', 'materialCapasCantidad', 'materialConsumoCantidad', 
-                'bobinaMadre', 'bobinaFinal', 'minAdap', 'colores', 'minColor'
+                'producto', 'materialCapasCantidad', 'materialConsumoCantidad', 'observacionesMaterial',
+                'bobinaMadre', 'bobinaFinal', 'minAdap', 'colores', 'minColor', 'microperforado', 'macroperforado'
             ];
 
             // Variables para controlar si se registraron cambios granulares

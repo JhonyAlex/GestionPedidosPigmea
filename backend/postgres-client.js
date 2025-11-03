@@ -796,6 +796,102 @@ class PostgreSQLClient {
         }
     }
 
+    // === MÉTODOS DE AUDITORÍA ===
+
+    /**
+     * Registrar cambio en historial de clientes
+     * @param {Object} client - Cliente de PostgreSQL
+     * @param {string} clienteId - ID del cliente
+     * @param {string} changedBy - Usuario que realizó el cambio
+     * @param {string} userRole - Rol del usuario
+     * @param {string} action - Acción realizada (created, updated, deleted, restored)
+     * @param {string|null} fieldName - Nombre del campo modificado (para updates)
+     * @param {string|null} oldValue - Valor anterior
+     * @param {string|null} newValue - Valor nuevo
+     * @param {string|null} details - Detalles adicionales
+     */
+    async logClienteHistory(client, clienteId, changedBy, userRole, action, fieldName = null, oldValue = null, newValue = null, details = null) {
+        try {
+            const query = `
+                INSERT INTO clientes_history (cliente_id, changed_by, user_role, action, field_name, old_value, new_value, details)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            `;
+            await client.query(query, [clienteId, changedBy, userRole, action, fieldName, oldValue, newValue, details]);
+        } catch (error) {
+            console.error('❌ Error registrando historial de cliente:', error.message);
+            // No lanzar error para no bloquear la operación principal
+        }
+    }
+
+    /**
+     * Registrar cambio en historial de vendedores
+     * @param {Object} client - Cliente de PostgreSQL
+     * @param {string} vendedorId - ID del vendedor
+     * @param {string} changedBy - Usuario que realizó el cambio
+     * @param {string} userRole - Rol del usuario
+     * @param {string} action - Acción realizada (created, updated, deleted, restored)
+     * @param {string|null} fieldName - Nombre del campo modificado (para updates)
+     * @param {string|null} oldValue - Valor anterior
+     * @param {string|null} newValue - Valor nuevo
+     * @param {string|null} details - Detalles adicionales
+     */
+    async logVendedorHistory(client, vendedorId, changedBy, userRole, action, fieldName = null, oldValue = null, newValue = null, details = null) {
+        try {
+            const query = `
+                INSERT INTO vendedores_history (vendedor_id, changed_by, user_role, action, field_name, old_value, new_value, details)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            `;
+            await client.query(query, [vendedorId, changedBy, userRole, action, fieldName, oldValue, newValue, details]);
+        } catch (error) {
+            console.error('❌ Error registrando historial de vendedor:', error.message);
+            // No lanzar error para no bloquear la operación principal
+        }
+    }
+
+    /**
+     * Obtener historial de cambios de un cliente
+     * @param {string} clienteId - ID del cliente
+     * @returns {Array} Lista de cambios del cliente
+     */
+    async getClienteHistory(clienteId) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                SELECT * FROM clientes_history
+                WHERE cliente_id = $1
+                ORDER BY changed_at DESC
+                LIMIT 100
+            `;
+            const result = await client.query(query, [clienteId]);
+            return result.rows;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Obtener historial de cambios de un vendedor
+     * @param {string} vendedorId - ID del vendedor
+     * @returns {Array} Lista de cambios del vendedor
+     */
+    async getVendedorHistory(vendedorId) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                SELECT * FROM vendedores_history
+                WHERE vendedor_id = $1
+                ORDER BY changed_at DESC
+                LIMIT 100
+            `;
+            const result = await client.query(query, [vendedorId]);
+            return result.rows;
+        } finally {
+            client.release();
+        }
+    }
+
     // === MÉTODOS PARA PEDIDOS ===
 
     async create(pedido) {
@@ -1395,6 +1491,9 @@ class PostgreSQLClient {
         try {
             console.log('🔍 createCliente - Datos recibidos:', JSON.stringify(clienteData, null, 2));
             
+            // Comenzar transacción
+            await client.query('BEGIN');
+            
             const query = `
                 INSERT INTO clientes (nombre, razon_social, cif, telefono, email, direccion_fiscal, codigo_postal, poblacion, provincia, pais, persona_contacto, notas, estado)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
@@ -1424,6 +1523,24 @@ class PostgreSQLClient {
             const result = await client.query(query, values);
             const newCliente = result.rows[0];
 
+            // 📝 AUDITORÍA: Registrar creación en historial
+            const changedBy = clienteData._changedBy || 'Sistema';
+            const userRole = clienteData._userRole || 'SYSTEM';
+            await this.logClienteHistory(
+                client,
+                newCliente.id,
+                changedBy,
+                userRole,
+                'created',
+                null,
+                null,
+                null,
+                `Cliente creado: ${newCliente.nombre}`
+            );
+
+            // Confirmar transacción
+            await client.query('COMMIT');
+
             if (newCliente.direccion_fiscal !== undefined) {
                 newCliente.direccion = newCliente.direccion_fiscal;
                 delete newCliente.direccion_fiscal;
@@ -1435,6 +1552,9 @@ class PostgreSQLClient {
             
             console.log('✅ Cliente creado exitosamente:', newCliente.id);
             return newCliente;
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
         } finally {
             client.release();
         }
@@ -1445,6 +1565,17 @@ class PostgreSQLClient {
         const client = await this.pool.connect();
         try {
             console.log('🔍 updateCliente - Datos recibidos:', JSON.stringify(clienteData, null, 2));
+            
+            // Comenzar transacción
+            await client.query('BEGIN');
+            
+            // Obtener el cliente anterior para auditoría
+            const previousResult = await client.query('SELECT * FROM clientes WHERE id = $1', [id]);
+            if (previousResult.rowCount === 0) {
+                await client.query('ROLLBACK');
+                throw new Error(`Cliente con ID ${id} no encontrado.`);
+            }
+            const previousCliente = previousResult.rows[0];
             
             const setParts = [];
             const values = [];
@@ -1482,6 +1613,7 @@ class PostgreSQLClient {
 
             if (setParts.length === 0) {
                 console.log('⚠️ No hay campos válidos para actualizar');
+                await client.query('ROLLBACK');
                 return this.getClienteById(id);
             }
 
@@ -1497,9 +1629,34 @@ class PostgreSQLClient {
             console.log('🔍 Values:', values);
 
             const result = await client.query(query, values);
-            if (result.rowCount === 0) throw new Error(`Cliente con ID ${id} no encontrado.`);
-            
             const updatedCliente = result.rows[0];
+
+            // 📝 AUDITORÍA: Registrar cambios en historial
+            const changedBy = clienteData._changedBy || 'Sistema';
+            const userRole = clienteData._userRole || 'SYSTEM';
+            
+            // Auditar cada campo modificado
+            for (const field in cleanData) {
+                const oldValue = previousCliente[field];
+                const newValue = cleanData[field];
+                
+                if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+                    await this.logClienteHistory(
+                        client,
+                        id,
+                        changedBy,
+                        userRole,
+                        'updated',
+                        field,
+                        String(oldValue || ''),
+                        String(newValue || ''),
+                        `Campo '${field}' modificado`
+                    );
+                }
+            }
+
+            // Confirmar transacción
+            await client.query('COMMIT');
 
             // Map backend fields to frontend fields before returning
             if (updatedCliente.direccion_fiscal !== undefined) {
@@ -1513,6 +1670,9 @@ class PostgreSQLClient {
             
             console.log('✅ Cliente actualizado exitosamente:', updatedCliente.id);
             return updatedCliente;
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
         } finally {
             client.release();
         }
@@ -1885,6 +2045,9 @@ class PostgreSQLClient {
         if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
         try {
+            // Comenzar transacción
+            await client.query('BEGIN');
+            
             const query = `
                 INSERT INTO vendedores (nombre, email, telefono, activo)
                 VALUES ($1, $2, $3, $4)
@@ -1898,7 +2061,30 @@ class PostgreSQLClient {
             ];
             
             const result = await client.query(query, values);
-            return result.rows[0];
+            const newVendedor = result.rows[0];
+            
+            // 📝 AUDITORÍA: Registrar creación en historial
+            const changedBy = vendedorData._changedBy || 'Sistema';
+            const userRole = vendedorData._userRole || 'SYSTEM';
+            await this.logVendedorHistory(
+                client,
+                newVendedor.id,
+                changedBy,
+                userRole,
+                'created',
+                null,
+                null,
+                null,
+                `Vendedor creado: ${newVendedor.nombre}`
+            );
+            
+            // Confirmar transacción
+            await client.query('COMMIT');
+            
+            return newVendedor;
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
         } finally {
             client.release();
         }
@@ -1908,19 +2094,34 @@ class PostgreSQLClient {
         if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
         try {
+            // Comenzar transacción
+            await client.query('BEGIN');
+            
+            // Obtener el vendedor anterior para auditoría
+            const previousResult = await client.query('SELECT * FROM vendedores WHERE id = $1', [id]);
+            if (previousResult.rowCount === 0) {
+                await client.query('ROLLBACK');
+                throw new Error(`Vendedor con ID ${id} no encontrado.`);
+            }
+            const previousVendedor = previousResult.rows[0];
+            
             const setParts = [];
             const values = [];
             let valueIndex = 1;
 
             const validFields = ['nombre', 'email', 'telefono', 'activo'];
+            const updatedFields = {};
+            
             validFields.forEach(field => {
                 if (vendedorData[field] !== undefined) {
                     setParts.push(`${field} = $${valueIndex++}`);
                     values.push(vendedorData[field]);
+                    updatedFields[field] = vendedorData[field];
                 }
             });
 
             if (setParts.length === 0) {
+                await client.query('ROLLBACK');
                 return this.getVendedorById(id);
             }
 
@@ -1933,9 +2134,39 @@ class PostgreSQLClient {
             `;
 
             const result = await client.query(query, values);
-            if (result.rowCount === 0) throw new Error(`Vendedor con ID ${id} no encontrado.`);
+            const updatedVendedor = result.rows[0];
             
-            return result.rows[0];
+            // 📝 AUDITORÍA: Registrar cambios en historial
+            const changedBy = vendedorData._changedBy || 'Sistema';
+            const userRole = vendedorData._userRole || 'SYSTEM';
+            
+            // Auditar cada campo modificado
+            for (const field in updatedFields) {
+                const oldValue = previousVendedor[field];
+                const newValue = updatedFields[field];
+                
+                if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+                    await this.logVendedorHistory(
+                        client,
+                        id,
+                        changedBy,
+                        userRole,
+                        'updated',
+                        field,
+                        String(oldValue || ''),
+                        String(newValue || ''),
+                        `Campo '${field}' modificado`
+                    );
+                }
+            }
+            
+            // Confirmar transacción
+            await client.query('COMMIT');
+            
+            return updatedVendedor;
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
         } finally {
             client.release();
         }

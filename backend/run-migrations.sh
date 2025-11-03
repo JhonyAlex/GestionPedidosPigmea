@@ -41,6 +41,8 @@ OBSERVACIONES_MATERIAL_MIGRATION="$MIGRATIONS_DIR/016-add-observaciones-material
 RENAME_DTO_COMPRA_MIGRATION="$MIGRATIONS_DIR/017-rename-dto-compra.sql"
 PERFORADO_FIELDS_MIGRATION="$MIGRATIONS_DIR/018-add-perforado-fields.sql"
 ANONIMO_POST_IMPRESION_MIGRATION="$MIGRATIONS_DIR/019-add-anonimo-post-impresion.sql"
+CLIENTES_HISTORY_MIGRATION="$MIGRATIONS_DIR/020-create-clientes-history.sql"
+VENDEDORES_HISTORY_MIGRATION="$MIGRATIONS_DIR/021-create-vendedores-history.sql"
 # Añade aquí futuras migraciones
 
 # Función para aplicar una migración
@@ -80,6 +82,8 @@ apply_migration "Agregar Observaciones de Material" "$OBSERVACIONES_MATERIAL_MIG
 apply_migration "Renombrar Dto Compra a Compra Cliché" "$RENAME_DTO_COMPRA_MIGRATION"
 apply_migration "Agregar Campos Microperforado y Macroperforado" "$PERFORADO_FIELDS_MIGRATION"
 apply_migration "Agregar Campo Anónimo Post-Impresión" "$ANONIMO_POST_IMPRESION_MIGRATION"
+apply_migration "Crear Tabla de Historial de Clientes" "$CLIENTES_HISTORY_MIGRATION"
+apply_migration "Crear Tabla de Historial de Vendedores" "$VENDEDORES_HISTORY_MIGRATION"
 
 # Añade llamadas a futuras migraciones aquí
 # apply_migration "Nombre de tu nueva migración" "$MIGRATIONS_DIR/tu_nuevo_archivo.sql"

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { clienteService } from '../services/clienteService';
+import webSocketService from '../services/websocket';
 
 // --- Placeholder Types ---
 // These types are placeholders as the original type file was not found.
@@ -60,6 +61,54 @@ export const useClientesManager = () => {
   useEffect(() => {
     fetchClientes();
   }, [fetchClientes]);
+
+  // 🔥 Socket.IO: Sincronización en tiempo real para clientes
+  useEffect(() => {
+    // Suscribirse a eventos de clientes
+    const unsubscribeCreated = webSocketService.subscribeToClienteCreated((data: { cliente: Cliente; timestamp: string }) => {
+      console.log('🔄 Sincronizando nuevo cliente:', data.cliente.nombre);
+      
+      setClientes(current => {
+        // Verificar si el cliente ya existe para evitar duplicados
+        const exists = current.some(c => c.id === data.cliente.id);
+        if (!exists) {
+          setTotalClientes(prev => prev + 1);
+          return [data.cliente, ...current];
+        }
+        return current;
+      });
+    });
+
+    const unsubscribeUpdated = webSocketService.subscribeToClienteUpdated((data: { cliente: Cliente; timestamp: string }) => {
+      console.log('🔄 Sincronizando cliente actualizado:', data.cliente.nombre);
+      
+      setClientes(current => 
+        current.map(c => c.id === data.cliente.id ? data.cliente : c)
+      );
+    });
+
+    const unsubscribeDeleted = webSocketService.subscribeToClienteDeleted((data: { clienteId: string; cliente?: Cliente; timestamp: string }) => {
+      console.log('🔄 Sincronizando cliente eliminado:', data.clienteId);
+      
+      if (data.cliente) {
+        // Si es soft delete (archivado), actualizar el estado
+        setClientes(current => 
+          current.map(c => c.id === data.clienteId ? data.cliente! : c)
+        );
+      } else {
+        // Si es eliminación completa, remover de la lista
+        setClientes(current => current.filter(c => c.id !== data.clienteId));
+        setTotalClientes(prev => prev - 1);
+      }
+    });
+
+    // Cleanup al desmontar
+    return () => {
+      unsubscribeCreated();
+      unsubscribeUpdated();
+      unsubscribeDeleted();
+    };
+  }, []);
 
   const addCliente = async (clienteData: ClienteCreateRequest) => {
     try {
