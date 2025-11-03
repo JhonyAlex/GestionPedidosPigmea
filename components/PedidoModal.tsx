@@ -363,9 +363,9 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
 
     return (
                 <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50">
-            <div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg shadow-2xl w-full max-w-7xl h-[90vh] flex flex-col">
+            <div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg shadow-2xl w-full max-w-7xl h-[90vh] flex flex-col overflow-hidden">
                 {/* Header */}
-                <div className="flex justify-between items-center p-8 pb-4 bg-gradient-to-r from-slate-50 to-gray-100 dark:from-gray-800 dark:to-gray-750 rounded-t-lg border-b border-gray-200 dark:border-gray-700">
+                <div className="flex justify-between items-center p-8 pb-4 bg-gradient-to-r from-slate-50 to-gray-100 dark:from-gray-800 dark:to-gray-750 rounded-t-lg border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
                     <div className="flex items-center gap-4">
                         <h2 className="text-3xl font-bold">Pedido: {pedido.numeroPedidoCliente}</h2>
                         <div className="flex items-center gap-2">
@@ -390,7 +390,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                         <button onClick={handleClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-3xl leading-none">&times;</button>
                     </div>
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 px-8 pb-6 font-mono bg-gradient-to-r from-slate-50 to-gray-100 dark:from-gray-800 dark:to-gray-750 border-b border-gray-200 dark:border-gray-700">Registro Interno: {pedido.numeroRegistro}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 px-8 pb-6 font-mono bg-gradient-to-r from-slate-50 to-gray-100 dark:from-gray-800 dark:to-gray-750 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">Registro Interno: {pedido.numeroRegistro}</p>
                 
                 {/* Two-column layout */}
                 <div className="flex flex-1 min-h-0">
@@ -677,65 +677,6 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                     </div>
                                 </div>
                             </fieldset>
-
-                            <div className="mt-8 flex justify-between items-center">
-                                {isReadOnly ? (
-                                    <span className="text-sm text-gray-500">Modo de solo lectura - No tiene permisos de edición.</span>
-                                ) : (
-                                    <div className="flex gap-2">
-                                        {canArchivePedidos() && (
-                                            <button type="button" onClick={handleArchiveClick} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled={pedido.etapaActual !== Etapa.COMPLETADO && pedido.etapaActual !== Etapa.ARCHIVADO && pedido.etapaActual !== Etapa.PREPARACION}>
-                                                {pedido.etapaActual === Etapa.ARCHIVADO ? 'Desarchivar' : 'Archivar'}
-                                            </button>
-                                        )}
-                                        {canMovePedidos() && pedido.etapaActual === Etapa.PREPARACION && (
-                                            <button
-                                                type="button"
-                                                onClick={handleSendToPrintClick}
-                                                className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                disabled={!formData.materialDisponible || (!!formData.antivaho && (!formData.secuenciaTrabajo || formData.secuenciaTrabajo.length === 0))}
-                                                title={
-                                                    !formData.materialDisponible
-                                                        ? "El material debe estar disponible para enviar a impresión"
-                                                        : (!!formData.antivaho && (!formData.secuenciaTrabajo || formData.secuenciaTrabajo.length === 0))
-                                                        ? "Debe definir la secuencia de trabajo para pedidos con Antivaho"
-                                                        : !!formData.antivaho
-                                                        ? "Enviar a Post-Impresión (Antivaho)"
-                                                        : "Enviar a Impresión"
-                                                }
-                                            >
-                                                {!!formData.antivaho ? "Enviar a Post-Impresión" : "Enviar a Impresión"}
-                                            </button>
-                                        )}
-                                        {canMovePedidos() && pedido.etapaActual !== Etapa.PREPARACION && !printingStages.includes(pedido.etapaActual) && (
-                                            <select onChange={(e) => handleRevertToPrinting(e.target.value as Etapa)} className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded transition-colors duration-200" value="">
-                                                <option value="" disabled>Volver a Impresión...</option>
-                                                {printingStages.map(stage => <option key={stage} value={stage}>{ETAPAS[stage].title}</option>)}
-                                            </select>
-                                        )}
-                                    </div>
-                                )}
-                            
-                                <div className="flex gap-4">
-                                    <button type="button" onClick={handleClose} className="bg-gray-500 hover:bg-gray-400 text-white dark:bg-gray-600 dark:hover:bg-gray-500 font-bold py-2 px-4 rounded transition-colors duration-200">Cancelar</button>
-                                    {!isReadOnly && (
-                                        <>
-                                            {canMovePedidos() && canAdvance && (
-                                                <button type="button" onClick={handleAdvanceClick} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200">
-                                                    {advanceButtonTitle}
-                                                </button>
-                                            )}
-                                            <button type="submit" className={`font-bold py-2 px-4 rounded transition-colors duration-200 ${
-                                                hasUnsavedChanges 
-                                                    ? 'bg-orange-600 hover:bg-orange-700 text-white' 
-                                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                                            }`}>
-                                                {hasUnsavedChanges ? '● Guardar Cambios' : 'Guardar Cambios'}
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
                         </form>
                         </>
                     )}
@@ -864,66 +805,6 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                         className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"
                                     ></textarea>
                                 </div>
-
-                                {/* Botones de acción */}
-                                <div className="mt-8 flex justify-between items-center">
-                                    {isReadOnly ? (
-                                        <span className="text-sm text-gray-500">Modo de solo lectura - No tiene permisos de edición.</span>
-                                    ) : (
-                                        <div className="flex gap-2">
-                                            {canArchivePedidos() && (
-                                                <button type="button" onClick={handleArchiveClick} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled={pedido.etapaActual !== Etapa.COMPLETADO && pedido.etapaActual !== Etapa.ARCHIVADO && pedido.etapaActual !== Etapa.PREPARACION}>
-                                                    {pedido.etapaActual === Etapa.ARCHIVADO ? 'Desarchivar' : 'Archivar'}
-                                                </button>
-                                            )}
-                                            {canMovePedidos() && pedido.etapaActual === Etapa.PREPARACION && (
-                                                <button
-                                                    type="button"
-                                                    onClick={handleSendToPrintClick}
-                                                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    disabled={!formData.materialDisponible || (!!formData.antivaho && (!formData.secuenciaTrabajo || formData.secuenciaTrabajo.length === 0))}
-                                                    title={
-                                                        !formData.materialDisponible
-                                                            ? "El material debe estar disponible para enviar a impresión"
-                                                            : (!!formData.antivaho && (!formData.secuenciaTrabajo || formData.secuenciaTrabajo.length === 0))
-                                                            ? "Debe definir la secuencia de trabajo para pedidos con Antivaho"
-                                                            : !!formData.antivaho
-                                                            ? "Enviar a Post-Impresión (Antivaho)"
-                                                            : "Enviar a Impresión"
-                                                    }
-                                                >
-                                                    {!!formData.antivaho ? "Enviar a Post-Impresión" : "Enviar a Impresión"}
-                                                </button>
-                                            )}
-                                            {canMovePedidos() && pedido.etapaActual !== Etapa.PREPARACION && !printingStages.includes(pedido.etapaActual) && (
-                                                <select onChange={(e) => handleRevertToPrinting(e.target.value as Etapa)} className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded transition-colors duration-200" value="">
-                                                    <option value="" disabled>Volver a Impresión...</option>
-                                                    {printingStages.map(stage => <option key={stage} value={stage}>{ETAPAS[stage].title}</option>)}
-                                                </select>
-                                            )}
-                                        </div>
-                                    )}
-                                
-                                    <div className="flex gap-4">
-                                        <button type="button" onClick={handleClose} className="bg-gray-500 hover:bg-gray-400 text-white dark:bg-gray-600 dark:hover:bg-gray-500 font-bold py-2 px-4 rounded transition-colors duration-200">Cancelar</button>
-                                        {!isReadOnly && (
-                                            <>
-                                                {canMovePedidos() && canAdvance && (
-                                                    <button type="button" onClick={handleAdvanceClick} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200">
-                                                        {advanceButtonTitle}
-                                                    </button>
-                                                )}
-                                                <button type="submit" className={`font-bold py-2 px-4 rounded transition-colors duration-200 ${
-                                                    hasUnsavedChanges 
-                                                        ? 'bg-orange-600 hover:bg-orange-700 text-white' 
-                                                        : 'bg-blue-600 hover:bg-blue-700 text-white'
-                                                }`}>
-                                                    {hasUnsavedChanges ? '● Guardar Cambios' : 'Guardar Cambios'}
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
                             </fieldset>
                         </form>
                     )}
@@ -990,6 +871,70 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                 isConnected={isConnected}
                             />
                         </div>
+                    </div>
+                </div>
+
+                {/* Footer fijo con botones de acción */}
+                <div className="border-t-2 border-gray-300 dark:border-gray-600 bg-gradient-to-r from-slate-50 to-gray-100 dark:from-gray-800 dark:to-gray-750 px-8 py-4 flex justify-between items-center flex-shrink-0">
+                    {isReadOnly ? (
+                        <span className="text-sm text-gray-500">Modo de solo lectura - No tiene permisos de edición.</span>
+                    ) : (
+                        <div className="flex gap-2">
+                            {canArchivePedidos() && (
+                                <button type="button" onClick={handleArchiveClick} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled={pedido.etapaActual !== Etapa.COMPLETADO && pedido.etapaActual !== Etapa.ARCHIVADO && pedido.etapaActual !== Etapa.PREPARACION}>
+                                    {pedido.etapaActual === Etapa.ARCHIVADO ? 'Desarchivar' : 'Archivar'}
+                                </button>
+                            )}
+                            {canMovePedidos() && pedido.etapaActual === Etapa.PREPARACION && (
+                                <button
+                                    type="button"
+                                    onClick={handleSendToPrintClick}
+                                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={!formData.materialDisponible || (!!formData.antivaho && (!formData.secuenciaTrabajo || formData.secuenciaTrabajo.length === 0))}
+                                    title={
+                                        !formData.materialDisponible
+                                            ? "El material debe estar disponible para enviar a impresión"
+                                            : (!!formData.antivaho && (!formData.secuenciaTrabajo || formData.secuenciaTrabajo.length === 0))
+                                            ? "Debe definir la secuencia de trabajo para pedidos con Antivaho"
+                                            : !!formData.antivaho
+                                            ? "Enviar a Post-Impresión (Antivaho)"
+                                            : "Enviar a Impresión"
+                                    }
+                                >
+                                    {!!formData.antivaho ? "Enviar a Post-Impresión" : "Enviar a Impresión"}
+                                </button>
+                            )}
+                            {canMovePedidos() && pedido.etapaActual !== Etapa.PREPARACION && !printingStages.includes(pedido.etapaActual) && (
+                                <select onChange={(e) => handleRevertToPrinting(e.target.value as Etapa)} className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded transition-colors duration-200" value="">
+                                    <option value="" disabled>Volver a Impresión...</option>
+                                    {printingStages.map(stage => <option key={stage} value={stage}>{ETAPAS[stage].title}</option>)}
+                                </select>
+                            )}
+                        </div>
+                    )}
+                    
+                    <div className="flex gap-4">
+                        <button type="button" onClick={handleClose} className="bg-gray-500 hover:bg-gray-400 text-white dark:bg-gray-600 dark:hover:bg-gray-500 font-bold py-2 px-4 rounded transition-colors duration-200">Cancelar</button>
+                        {!isReadOnly && (
+                            <>
+                                {canMovePedidos() && canAdvance && (
+                                    <button type="button" onClick={handleAdvanceClick} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200">
+                                        {advanceButtonTitle}
+                                    </button>
+                                )}
+                                <button type="button" onClick={(e) => {
+                                    e.preventDefault();
+                                    const form = document.querySelector('form') as HTMLFormElement;
+                                    if (form) form.requestSubmit();
+                                }} className={`font-bold py-2 px-4 rounded transition-colors duration-200 ${
+                                    hasUnsavedChanges 
+                                        ? 'bg-orange-600 hover:bg-orange-700 text-white' 
+                                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                }`}>
+                                    {hasUnsavedChanges ? '● Guardar Cambios' : 'Guardar Cambios'}
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
