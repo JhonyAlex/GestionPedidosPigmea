@@ -7,9 +7,10 @@ interface ClienteModalProps {
   onClose: () => void;
   onSave: (data: ClienteCreateRequest | ClienteUpdateRequest, id?: string) => Promise<void>;
   cliente: Cliente | null;
+  isEmbedded?: boolean; // ✅ Nueva prop para indicar que se llama desde otro modal
 }
 
-const ClienteModal: React.FC<ClienteModalProps> = ({ isOpen, onClose, onSave, cliente }) => {
+const ClienteModal: React.FC<ClienteModalProps> = ({ isOpen, onClose, onSave, cliente, isEmbedded = false }) => {
   const [formData, setFormData] = useState<Partial<Cliente>>({
     nombre: '',
     razon_social: '',
@@ -62,9 +63,16 @@ const ClienteModal: React.FC<ClienteModalProps> = ({ isOpen, onClose, onSave, cl
     setError(null);
     setIsSaving(true);
 
-    // Basic validation
-    if (!formData.nombre) {
+    // Basic validation - Solo validar si NO está en modo embedded
+    if (!isEmbedded && !formData.nombre) {
         setError("El nombre es un campo obligatorio.");
+        setIsSaving(false);
+        return;
+    }
+
+    // En modo embedded, si no hay nombre, no crear nada
+    if (isEmbedded && (!formData.nombre || formData.nombre.trim() === '')) {
+        setError("Al menos el nombre es necesario para crear un cliente.");
         setIsSaving(false);
         return;
     }

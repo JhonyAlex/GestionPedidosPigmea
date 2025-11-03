@@ -7,9 +7,10 @@ interface VendedorModalProps {
   onClose: () => void;
   onSave: (data: VendedorCreateRequest | VendedorUpdateRequest, id?: string) => Promise<void>;
   vendedor: Vendedor | null;
+  isEmbedded?: boolean; // ✅ Nueva prop para indicar que se llama desde otro modal
 }
 
-const VendedorModal: React.FC<VendedorModalProps> = ({ isOpen, onClose, onSave, vendedor }) => {
+const VendedorModal: React.FC<VendedorModalProps> = ({ isOpen, onClose, onSave, vendedor, isEmbedded = false }) => {
   const [formData, setFormData] = useState<Partial<Vendedor>>({
     nombre: '',
     email: '',
@@ -56,8 +57,14 @@ const VendedorModal: React.FC<VendedorModalProps> = ({ isOpen, onClose, onSave, 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
 
-    if (!formData.nombre || formData.nombre.trim() === '') {
+    // Solo validar nombre obligatorio si NO está en modo embedded
+    if (!isEmbedded && (!formData.nombre || formData.nombre.trim() === '')) {
       errors.nombre = 'El nombre es obligatorio';
+    }
+
+    // En modo embedded, al menos necesitamos el nombre
+    if (isEmbedded && (!formData.nombre || formData.nombre.trim() === '')) {
+      errors.nombre = 'El nombre es necesario para crear un vendedor';
     }
 
     if (formData.email && formData.email.trim() !== '') {

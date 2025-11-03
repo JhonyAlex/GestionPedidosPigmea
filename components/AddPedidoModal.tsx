@@ -5,7 +5,9 @@ import SequenceBuilder from './SequenceBuilder';
 import SeccionDatosTecnicosDeMaterial from './SeccionDatosTecnicosDeMaterial';
 import { useClientesManager, ClienteCreateRequest } from '../hooks/useClientesManager';
 import { useVendedoresManager } from '../hooks/useVendedoresManager';
+import { VendedorCreateRequest } from '../types/vendedor';
 import ClienteModal from './ClienteModal';
+import VendedorModal from './VendedorModal';
 
 interface AddPedidoModalProps {
     onClose: () => void;
@@ -62,8 +64,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
     const { clientes, addCliente, fetchClientes } = useClientesManager();
     const { vendedores, addVendedor, fetchVendedores } = useVendedoresManager();
     const [isClienteModalOpen, setClienteModalOpen] = useState(false);
-    const [nuevoVendedor, setNuevoVendedor] = useState('');
-    const [showVendedorInput, setShowVendedorInput] = useState(false);
+    const [isVendedorModalOpen, setVendedorModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'detalles' | 'gestion'>('detalles');
     const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
@@ -167,7 +168,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                 clienteId: clienteSeleccionado?.id || '' 
             }));
         } else if (name === "vendedorId" && value === "add_new_vendedor") {
-            setShowVendedorInput(true);
+            setVendedorModalOpen(true);
             setFormData(prev => ({ ...prev, vendedorId: '', vendedorNombre: '' }));
         } else if (name === "vendedorId" && value !== "add_new_vendedor") {
             // Cuando se selecciona un vendedor, guardar tanto el ID como el nombre
@@ -201,30 +202,18 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
         }
     };
 
-    const handleAddVendedor = async () => {
-        if (!nuevoVendedor.trim()) {
-            alert('Por favor, ingrese un nombre para el vendedor.');
-            return;
-        }
-        
+    const handleSaveVendedor = async (vendedorData: VendedorCreateRequest) => {
         try {
-            const vendedorCreado = await addVendedor({ nombre: nuevoVendedor.trim(), activo: true });
+            const nuevoVendedor = await addVendedor(vendedorData);
             setFormData(prev => ({ 
                 ...prev, 
-                vendedorId: vendedorCreado.id,
-                vendedorNombre: vendedorCreado.nombre 
+                vendedorId: nuevoVendedor.id,
+                vendedorNombre: nuevoVendedor.nombre 
             }));
-            setNuevoVendedor('');
-            setShowVendedorInput(false);
+            setVendedorModalOpen(false);
         } catch (error) {
             console.error("Error al crear vendedor:", error);
-            alert('Error al crear el vendedor. Por favor, intente de nuevo.');
         }
-    };
-
-    const handleCancelVendedor = () => {
-        setNuevoVendedor('');
-        setShowVendedorInput(false);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -527,47 +516,18 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
 
                                         <div>
                                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Vendedor</label>
-                                            {!showVendedorInput ? (
-                                                <select 
-                                                    name="vendedorId" 
-                                                    value={formData.vendedorId} 
-                                                    onChange={handleChange} 
-                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
-                                                >
-                                                    <option value="">Seleccione un vendedor</option>
-                                                    {vendedores.filter(v => v.activo).map(vendedor => (
-                                                        <option key={vendedor.id} value={vendedor.id}>{vendedor.nombre}</option>
-                                                    ))}
-                                                    <option value="add_new_vendedor">-- Crear nuevo vendedor --</option>
-                                                </select>
-                                            ) : (
-                                                <div className="flex gap-2">
-                                                    <input 
-                                                        type="text" 
-                                                        value={nuevoVendedor} 
-                                                        onChange={(e) => setNuevoVendedor(e.target.value)}
-                                                        placeholder="Nombre del vendedor"
-                                                        className="flex-1 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
-                                                        autoFocus
-                                                    />
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={handleAddVendedor}
-                                                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
-                                                        title="Guardar vendedor"
-                                                    >
-                                                        ✓
-                                                    </button>
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={handleCancelVendedor}
-                                                        className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
-                                                        title="Cancelar"
-                                                    >
-                                                        ✕
-                                                    </button>
-                                                </div>
-                                            )}
+                                            <select 
+                                                name="vendedorId" 
+                                                value={formData.vendedorId} 
+                                                onChange={handleChange} 
+                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
+                                            >
+                                                <option value="">Seleccione un vendedor</option>
+                                                {vendedores.filter(v => v.activo).map(vendedor => (
+                                                    <option key={vendedor.id} value={vendedor.id}>{vendedor.nombre}</option>
+                                                ))}
+                                                <option value="add_new_vendedor">-- Crear nuevo vendedor --</option>
+                                            </select>
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-4">
@@ -799,6 +759,17 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                     onClose={() => setClienteModalOpen(false)}
                     onSave={handleSaveCliente}
                     cliente={null}
+                    isEmbedded={true}
+                />
+            )}
+
+            {isVendedorModalOpen && (
+                <VendedorModal
+                    isOpen={isVendedorModalOpen}
+                    onClose={() => setVendedorModalOpen(false)}
+                    onSave={handleSaveVendedor}
+                    vendedor={null}
+                    isEmbedded={true}
                 />
             )}
         </div>
