@@ -1,5 +1,5 @@
 
-export type DateFilterOption = 'all' | 'this-week' | 'last-week' | 'this-month' | 'last-month' | 'custom';
+export type DateFilterOption = 'all' | 'this-week' | 'last-week' | 'next-week' | 'this-month' | 'last-month' | 'next-month' | 'custom';
 
 export const getDateRange = (filter: DateFilterOption): { start: Date, end: Date } | null => {
     if (filter === 'all' || filter === 'custom') {
@@ -32,6 +32,17 @@ export const getDateRange = (filter: DateFilterOption): { start: Date, end: Date
             end.setDate(start.getDate() + 6);
             break;
         }
+        case 'next-week': {
+            const afterOneWeek = new Date();
+            afterOneWeek.setDate(today.getDate() + 7);
+            const dayOfWeek = afterOneWeek.getDay();
+            const diffToMonday = afterOneWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+            start = new Date(afterOneWeek.setDate(diffToMonday));
+            start.setHours(0, 0, 0, 0);
+            end = new Date(start);
+            end.setDate(start.getDate() + 6);
+            break;
+        }
         case 'this-month': {
             start = new Date(today.getFullYear(), today.getMonth(), 1);
             end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
@@ -40,6 +51,11 @@ export const getDateRange = (filter: DateFilterOption): { start: Date, end: Date
         case 'last-month': {
             start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
             end = new Date(today.getFullYear(), today.getMonth(), 0);
+            break;
+        }
+        case 'next-month': {
+            start = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+            end = new Date(today.getFullYear(), today.getMonth() + 2, 0);
             break;
         }
         default:

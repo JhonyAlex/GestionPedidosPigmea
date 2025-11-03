@@ -143,8 +143,10 @@ const Header: React.FC<HeaderProps> = ({
         { value: 'all', label: 'Todas las Fechas' },
         { value: 'this-week', label: 'Esta Semana' },
         { value: 'last-week', label: 'Semana Pasada' },
+        { value: 'next-week', label: 'Próxima Semana' },
         { value: 'this-month', label: 'Este Mes' },
         { value: 'last-month', label: 'Mes Pasado' },
+        { value: 'next-month', label: 'Próximo Mes' },
         { value: 'custom', label: 'Personalizado' },
     ];
 
