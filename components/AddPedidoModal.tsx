@@ -6,7 +6,7 @@ import SeccionDatosTecnicosDeMaterial from './SeccionDatosTecnicosDeMaterial';
 import { useClientesManager, ClienteCreateRequest } from '../hooks/useClientesManager';
 import { useVendedoresManager } from '../hooks/useVendedoresManager';
 import { VendedorCreateRequest } from '../types/vendedor';
-import ClienteModal from './ClienteModal';
+import ClienteModalMejorado from './ClienteModalMejorado';
 import VendedorModal from './VendedorModal';
 
 interface AddPedidoModalProps {
@@ -754,7 +754,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
             </div>
 
             {isClienteModalOpen && (
-                <ClienteModal
+                <ClienteModalMejorado
                     isOpen={isClienteModalOpen}
                     onClose={() => setClienteModalOpen(false)}
                     onSave={handleSaveCliente}

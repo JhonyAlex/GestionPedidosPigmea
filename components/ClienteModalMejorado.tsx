@@ -7,11 +7,12 @@ interface ClienteModalProps {
   onClose: () => void;
   onSave: (data: ClienteCreateRequest | ClienteUpdateRequest, id?: string) => Promise<void>;
   cliente: Cliente | null;
+  isEmbedded?: boolean; // ✅ Nueva prop para indicar que se llama desde otro modal
 }
 
 type TabType = 'basicos' | 'contacto' | 'direccion' | 'observaciones';
 
-const ClienteModalMejorado: React.FC<ClienteModalProps> = ({ isOpen, onClose, onSave, cliente }) => {
+const ClienteModalMejorado: React.FC<ClienteModalProps> = ({ isOpen, onClose, onSave, cliente, isEmbedded = false }) => {
   const [activeTab, setActiveTab] = useState<TabType>('basicos');
   const [formData, setFormData] = useState<Partial<Cliente>>({
     nombre: '',
@@ -75,6 +76,20 @@ const ClienteModalMejorado: React.FC<ClienteModalProps> = ({ isOpen, onClose, on
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
 
+    // En modo embedded, solo validar el nombre
+    if (isEmbedded) {
+      if (!formData.nombre || formData.nombre.trim() === '') {
+        errors.nombre = 'El nombre es necesario para crear un cliente';
+      }
+      // Validar formato de email si se proporciona
+      if (formData.email && formData.email.trim() !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        errors.email = 'El email no es válido';
+      }
+      setValidationErrors(errors);
+      return Object.keys(errors).length === 0;
+    }
+
+    // Validación completa para modo normal
     if (!formData.nombre || formData.nombre.trim() === '') {
       errors.nombre = 'El nombre es obligatorio';
     }
