@@ -3,6 +3,7 @@ import { Vendedor } from '../types/vendedor';
 import { Pedido } from '../types';
 import { Icons } from './Icons';
 import { formatDateDDMMYYYY } from '../utils/date';
+import { useAuth } from '../contexts/AuthContext';
 
 interface VendedorDetailModalProps {
     isOpen: boolean;
@@ -29,8 +30,15 @@ const VendedorDetailModal: React.FC<VendedorDetailModalProps> = ({ isOpen, onClo
     const [pedidosArchivados, setPedidosArchivados] = useState<Pedido[]>([]);
     const [estadisticas, setEstadisticas] = useState<VendedorEstadisticas | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const { user } = useAuth();
 
     const API_URL = import.meta.env.VITE_API_URL || '/api';
+
+    const getAuthHeaders = () => ({
+        'Content-Type': 'application/json',
+        'x-user-id': String(user?.id || ''),
+        'x-user-role': user?.role || 'OPERATOR'
+    });
 
     useEffect(() => {
         if (isOpen && vendedor) {
@@ -44,7 +52,8 @@ const VendedorDetailModal: React.FC<VendedorDetailModalProps> = ({ isOpen, onClo
             // Fetch estadísticas
             try {
                 const statsResponse = await fetch(`${API_URL}/vendedores/${vendedor.id}/estadisticas`, {
-                    credentials: 'include'
+                    credentials: 'include',
+                    headers: getAuthHeaders()
                 });
                 if (statsResponse.ok) {
                     const stats = await statsResponse.json();
@@ -57,7 +66,8 @@ const VendedorDetailModal: React.FC<VendedorDetailModalProps> = ({ isOpen, onClo
             // Fetch pedidos en preparación
             try {
                 const prepResponse = await fetch(`${API_URL}/vendedores/${vendedor.id}/pedidos?estado=preparacion`, {
-                    credentials: 'include'
+                    credentials: 'include',
+                    headers: getAuthHeaders()
                 });
                 if (prepResponse.ok) {
                     const preparacion = await prepResponse.json();
@@ -71,7 +81,8 @@ const VendedorDetailModal: React.FC<VendedorDetailModalProps> = ({ isOpen, onClo
             // Fetch pedidos en producción
             try {
                 const prodResponse = await fetch(`${API_URL}/vendedores/${vendedor.id}/pedidos?estado=produccion`, {
-                    credentials: 'include'
+                    credentials: 'include',
+                    headers: getAuthHeaders()
                 });
                 if (prodResponse.ok) {
                     const produccion = await prodResponse.json();
@@ -85,7 +96,8 @@ const VendedorDetailModal: React.FC<VendedorDetailModalProps> = ({ isOpen, onClo
             // Fetch pedidos completados
             try {
                 const compResponse = await fetch(`${API_URL}/vendedores/${vendedor.id}/pedidos?estado=completado`, {
-                    credentials: 'include'
+                    credentials: 'include',
+                    headers: getAuthHeaders()
                 });
                 if (compResponse.ok) {
                     const completados = await compResponse.json();
@@ -99,7 +111,8 @@ const VendedorDetailModal: React.FC<VendedorDetailModalProps> = ({ isOpen, onClo
             // Fetch pedidos archivados
             try {
                 const archResponse = await fetch(`${API_URL}/vendedores/${vendedor.id}/pedidos?estado=archivado`, {
-                    credentials: 'include'
+                    credentials: 'include',
+                    headers: getAuthHeaders()
                 });
                 if (archResponse.ok) {
                     const archivados = await archResponse.json();

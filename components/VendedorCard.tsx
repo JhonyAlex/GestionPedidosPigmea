@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Vendedor } from '../types/vendedor';
 import { Icons } from './Icons';
 import { formatDateDDMMYYYY } from '../utils/date';
+import { useAuth } from '../contexts/AuthContext';
 
 interface VendedorCardProps {
   vendedor: Vendedor;
@@ -19,6 +20,7 @@ interface VendedorStats {
 const VendedorCard: React.FC<VendedorCardProps> = ({ vendedor, onEdit, onDelete, onClick }) => {
   const [stats, setStats] = useState<VendedorStats | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const { user } = useAuth();
 
   const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -30,7 +32,12 @@ const VendedorCard: React.FC<VendedorCardProps> = ({ vendedor, onEdit, onDelete,
     setIsLoadingStats(true);
     try {
       const response = await fetch(`${API_URL}/vendedores/${vendedor.id}/estadisticas`, {
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': String(user?.id || ''),
+          'x-user-role': user?.role || 'OPERATOR'
+        }
       });
       
       if (!response.ok) throw new Error('Error al cargar estadísticas');
