@@ -57,7 +57,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     const [showClienteInput, setShowClienteInput] = useState(false);
     const { user } = useAuth();
     const { vendedores, addVendedor, fetchVendedores } = useVendedoresManager();
-    const { clientes, addCliente, fetchClientes } = useClientesManager();
+    const { clientes, addCliente, fetchClientes, isLoading: isLoadingClientes } = useClientesManager();
     const { 
         canEditPedidos, 
         canDeletePedidos, 
@@ -87,6 +87,26 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     useEffect(() => {
         fetchClientes();
     }, [fetchClientes]);
+
+    // Efecto para resolver clienteId si solo tenemos el nombre del cliente
+    useEffect(() => {
+        if (formData.cliente && !formData.clienteId && clientes.length > 0) {
+            console.log('🔍 Buscando clienteId para:', formData.cliente);
+            const clienteEncontrado = clientes.find(c => 
+                c.nombre.toLowerCase() === formData.cliente.toLowerCase()
+            );
+            if (clienteEncontrado) {
+                console.log('✅ Cliente encontrado:', clienteEncontrado);
+                setFormData(prev => ({
+                    ...prev,
+                    clienteId: clienteEncontrado.id,
+                    cliente: clienteEncontrado.nombre
+                }));
+            } else {
+                console.warn('⚠️ Cliente no encontrado en la lista:', formData.cliente);
+            }
+        }
+    }, [formData.cliente, formData.clienteId, clientes]);
 
     // Efecto para controlar el scroll del body
     useEffect(() => {
@@ -509,14 +529,27 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Cliente</label>
+                                                {(() => {
+                                                    // 🔥 Logging para debug
+                                                    console.log('🔍 Debug Cliente:', {
+                                                        clienteId: formData.clienteId,
+                                                        clienteNombre: formData.cliente,
+                                                        totalClientes: clientes.length,
+                                                        clientesActivos: clientes.filter(c => c.estado === 'activo').length
+                                                    });
+                                                    return null;
+                                                })()}
                                                 {!showClienteInput ? (
                                                     <select 
                                                         name="clienteId" 
                                                         value={formData.clienteId || ''} 
                                                         onChange={handleChange} 
                                                         className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                                        disabled={isReadOnly || isLoadingClientes}
                                                     >
-                                                        <option value="">Seleccione un cliente</option>
+                                                        <option value="">
+                                                            {isLoadingClientes ? 'Cargando clientes...' : 'Seleccione un cliente'}
+                                                        </option>
                                                         {clientes
                                                             .filter(c => c.estado === 'activo')
                                                             .sort((a, b) => a.nombre.localeCompare(b.nombre))

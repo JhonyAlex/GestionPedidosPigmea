@@ -47,12 +47,14 @@ export const useClientesManager = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await clienteService.obtenerClientes({ limite: 50 }); // Fetch first 50 for now
+      // 🔥 Cargar TODOS los clientes activos (sin límite)
+      const response = await clienteService.obtenerClientes({ estado: 'activo', limite: 1000 });
+      console.log('✅ Clientes cargados:', response.data.length);
       setClientes(response.data);
       setTotalClientes(response.total);
     } catch (err) {
       setError(err as Error);
-      console.error("Error fetching clients:", err);
+      console.error("❌ Error fetching clients:", err);
     } finally {
       setIsLoading(false);
     }
