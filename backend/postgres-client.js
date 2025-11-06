@@ -1262,6 +1262,131 @@ class PostgreSQLClient {
         }
     }
 
+    /**
+     * Obtener pedidos con paginación y filtros
+     * @param {Object} options - Opciones de filtrado y paginación
+     * @param {number} options.page - Número de página (1-indexed)
+     * @param {number} options.limit - Cantidad de resultados por página
+     * @param {string} options.fechaEntregaDesde - Fecha mínima (YYYY-MM-DD)
+     * @param {string} options.fechaEntregaHasta - Fecha máxima (YYYY-MM-DD)
+     * @param {boolean} options.incluirArchivados - Incluir pedidos archivados
+     * @param {boolean} options.incluirCompletados - Incluir pedidos completados
+     * @param {Array<string>} options.etapas - Filtrar por etapas específicas
+     * @param {boolean} options.sinFiltroFecha - Omitir filtro de fecha por defecto
+     * @returns {Promise<{pedidos: Array, pagination: Object}>}
+     */
+    async getAllPaginated(options = {}) {
+        if (!this.isInitialized) {
+            throw new Error('Database not initialized');
+        }
+
+        const {
+            page = 1,
+            limit = 100,
+            fechaEntregaDesde = null,
+            fechaEntregaHasta = null,
+            incluirArchivados = false,
+            incluirCompletados = true,
+            etapas = null,
+            sinFiltroFecha = false
+        } = options;
+
+        const offset = (page - 1) * limit;
+        const client = await this.pool.connect();
+        
+        try {
+            let query = 'SELECT data FROM pedidos WHERE 1=1';
+            const params = [];
+            let paramCount = 1;
+
+            // Filtro: Excluir pedidos según estado
+            if (!incluirArchivados) {
+                query += ` AND (estado IS NULL OR estado != 'ARCHIVADO')`;
+            }
+            
+            // Filtro: Excluir archivados por etapa (legacy)
+            if (!incluirArchivados) {
+                query += ` AND data->>'etapaActual' != 'ARCHIVADO'`;
+            }
+
+            // Filtro: Incluir/excluir completados
+            if (!incluirCompletados) {
+                query += ` AND data->>'etapaActual' != 'COMPLETADO'`;
+            }
+
+            // Filtro: Fecha de entrega mínima
+            if (fechaEntregaDesde && !sinFiltroFecha) {
+                query += ` AND (data->>'fechaEntrega')::date >= $${paramCount}::date`;
+                params.push(fechaEntregaDesde);
+                paramCount++;
+            }
+
+            // Filtro: Fecha de entrega máxima
+            if (fechaEntregaHasta && !sinFiltroFecha) {
+                query += ` AND (data->>'fechaEntrega')::date <= $${paramCount}::date`;
+                params.push(fechaEntregaHasta);
+                paramCount++;
+            }
+
+            // Filtro: Etapas específicas
+            if (etapas && Array.isArray(etapas) && etapas.length > 0) {
+                query += ` AND data->>'etapaActual' = ANY($${paramCount})`;
+                params.push(etapas);
+                paramCount++;
+            }
+
+            // Orden y paginación
+            query += ` ORDER BY secuencia_pedido DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
+            params.push(limit, offset);
+
+            // Ejecutar consulta principal
+            const result = await client.query(query, params);
+
+            // Obtener total de registros (para calcular páginas)
+            let countQuery = 'SELECT COUNT(*) FROM pedidos WHERE 1=1';
+            const countParams = [];
+            let countParamCount = 1;
+
+            if (!incluirArchivados) {
+                countQuery += ` AND (estado IS NULL OR estado != 'ARCHIVADO')`;
+                countQuery += ` AND data->>'etapaActual' != 'ARCHIVADO'`;
+            }
+            if (!incluirCompletados) {
+                countQuery += ` AND data->>'etapaActual' != 'COMPLETADO'`;
+            }
+            if (fechaEntregaDesde && !sinFiltroFecha) {
+                countQuery += ` AND (data->>'fechaEntrega')::date >= $${countParamCount}::date`;
+                countParams.push(fechaEntregaDesde);
+                countParamCount++;
+            }
+            if (fechaEntregaHasta && !sinFiltroFecha) {
+                countQuery += ` AND (data->>'fechaEntrega')::date <= $${countParamCount}::date`;
+                countParams.push(fechaEntregaHasta);
+                countParamCount++;
+            }
+            if (etapas && Array.isArray(etapas) && etapas.length > 0) {
+                countQuery += ` AND data->>'etapaActual' = ANY($${countParamCount})`;
+                countParams.push(etapas);
+            }
+
+            const countResult = await client.query(countQuery, countParams);
+            const total = parseInt(countResult.rows[0].count);
+
+            return {
+                pedidos: result.rows.map(row => row.data),
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    totalPages: Math.ceil(total / limit)
+                }
+            };
+            
+        } finally {
+            client.release();
+        }
+    }
+
     async delete(id) {
         if (!this.isInitialized) {
             throw new Error('Database not initialized');

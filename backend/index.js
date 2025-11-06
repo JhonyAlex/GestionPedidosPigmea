@@ -1241,7 +1241,7 @@ app.post('/api/audit', async (req, res) => {
 
 // === RUTAS DE PEDIDOS ===
 
-// GET /api/pedidos - Get all pedidos
+// GET /api/pedidos - Get all pedidos (con soporte de paginación)
 app.get('/api/pedidos', async (req, res) => {
     try {
         // 🔒 Headers anti-caché para prevenir problemas de sincronización
@@ -1254,16 +1254,49 @@ app.get('/api/pedidos', async (req, res) => {
 
         if (!dbClient.isInitialized) {
             console.log('⚠️ BD no disponible - devolviendo datos mock');
-            return res.status(200).json([]);
+            return res.status(200).json({ pedidos: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } });
         }
+
+        // Detectar si el cliente solicita paginación
+        const usePagination = req.query.page || req.query.limit || req.query.fechaEntregaDesde || req.query.sinFiltroFecha;
         
-        const pedidos = await dbClient.getAll();
-        
-        // Log para debugging en producción
-        const timestamp = new Date().toISOString();
-        console.log(`📊 [${timestamp}] GET /api/pedidos - Total: ${pedidos.length} pedidos`);
-        
-        res.status(200).json(pedidos.sort((a, b) => b.secuenciaPedido - a.secuenciaPedido));
+        if (usePagination) {
+            // === MODO PAGINADO (nuevo) ===
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 100;
+            const incluirArchivados = req.query.incluirArchivados === 'true';
+            const incluirCompletados = req.query.incluirCompletados !== 'false'; // true por defecto
+            const sinFiltroFecha = req.query.sinFiltroFecha === 'true';
+
+            // Calcular fecha de hace 2 meses (para filtro por defecto)
+            const dosMesesAtras = new Date();
+            dosMesesAtras.setMonth(dosMesesAtras.getMonth() - 2);
+            const fechaEntregaDesde = req.query.fechaEntregaDesde || (sinFiltroFecha ? null : dosMesesAtras.toISOString().split('T')[0]);
+
+            const result = await dbClient.getAllPaginated({
+                page,
+                limit,
+                fechaEntregaDesde,
+                fechaEntregaHasta: req.query.fechaEntregaHasta || null,
+                incluirArchivados,
+                incluirCompletados,
+                etapas: req.query.etapas ? req.query.etapas.split(',') : null,
+                sinFiltroFecha
+            });
+
+            const timestamp = new Date().toISOString();
+            console.log(`📊 [${timestamp}] GET /api/pedidos (PAGINADO) - Página ${page}: ${result.pedidos.length}/${result.pagination.total} pedidos`);
+            
+            res.status(200).json(result);
+        } else {
+            // === MODO LEGACY (sin paginación) - para compatibilidad ===
+            const pedidos = await dbClient.getAll();
+            
+            const timestamp = new Date().toISOString();
+            console.log(`📊 [${timestamp}] GET /api/pedidos (LEGACY) - Total: ${pedidos.length} pedidos`);
+            
+            res.status(200).json(pedidos.sort((a, b) => b.secuenciaPedido - a.secuenciaPedido));
+        }
         
     } catch (error) {
         console.error("Error in GET /api/pedidos:", error);
