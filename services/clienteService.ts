@@ -89,6 +89,11 @@ class ClienteService {
     return apiRetryFetch<ClienteListResponse>(`/clientes${queryString}`);
   }
 
+  async obtenerClientesSimple(): Promise<Cliente[]> {
+    // Endpoint específico para obtener lista simple de clientes activos (para selectores)
+    return apiRetryFetch<Cliente[]>('/clientes/simple');
+  }
+
   async obtenerClientePorId(id: string): Promise<Cliente> {
     if (!id) throw new Error("El ID del cliente es requerido.");
     return apiRetryFetch<Cliente>(`/clientes/${id}`);

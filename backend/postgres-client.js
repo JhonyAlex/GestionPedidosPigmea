@@ -1743,12 +1743,13 @@ class PostgreSQLClient {
         const client = await this.pool.connect();
         try {
             const query = `
-                SELECT id, nombre
+                SELECT id, nombre, estado
                 FROM clientes
-                WHERE estado = 'Activo'
+                WHERE LOWER(estado) = 'activo'
                 ORDER BY nombre ASC;
             `;
             const result = await client.query(query);
+            console.log(`📊 [getAllClientesSimple] Clientes activos encontrados: ${result.rows.length}`);
             return result.rows;
         } finally {
             client.release();
