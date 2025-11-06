@@ -462,6 +462,7 @@ const Header: React.FC<HeaderProps> = ({
                                     searchTerm={searchTerm}
                                     results={searchResults}
                                     onSelectPedido={handleSelectPedido}
+                                    onClose={() => setShowSearchDropdown(false)}
                                 />
                             )}
                         </div>
