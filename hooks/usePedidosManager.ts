@@ -21,11 +21,24 @@ export const usePedidosManager = (
     useEffect(() => {
         const initStore = async () => {
             setIsLoading(true);
+            const startTime = Date.now();
+            const timestamp = new Date().toISOString();
+            
+            console.log(`📊 [${timestamp}] Iniciando carga de pedidos...`);
+            
             try {
                 const currentPedidos = await store.getAll();
+                const loadTime = Date.now() - startTime;
+                
                 setPedidos(currentPedidos);
+                
+                console.log(`✅ [${new Date().toISOString()}] Pedidos cargados exitosamente:`);
+                console.log(`   - Total: ${currentPedidos.length} pedidos`);
+                console.log(`   - Tiempo de carga: ${loadTime}ms`);
+                console.log(`   - Usuario: ${typeof window !== 'undefined' ? localStorage.getItem('pigmea_user') : 'N/A'}`);
+                
             } catch (error) {
-                console.error("Failed to fetch data from backend:", error);
+                console.error("❌ Failed to fetch data from backend:", error);
                 alert("No se pudo conectar al servidor. Por favor, asegúrese de que el backend esté en ejecución y sea accesible.");
             } finally {
                 setIsLoading(false);

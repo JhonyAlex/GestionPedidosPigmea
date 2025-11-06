@@ -78,7 +78,7 @@ class WebSocketService {
   private lastActivityTime = Date.now();
   private inactivityTimeout: NodeJS.Timeout | null = null;
   private pageRefreshCallbacks: (() => void)[] = [];
-  private readonly INACTIVITY_THRESHOLD = 5 * 60 * 1000; // 5 minutos
+  private readonly INACTIVITY_THRESHOLD = 2 * 60 * 1000; // 🔥 Reducido a 2 minutos (era 5)
 
   constructor() {
     // Suprimir errores específicos de extensiones del navegador
@@ -132,14 +132,20 @@ class WebSocketService {
         const timeAway = Date.now() - this.lastActivityTime;
         console.log(`👁️ Usuario regresó a la pestaña después de ${Math.round(timeAway / 1000)}s`);
 
-        // Si estuvo inactivo más del umbral, actualizar la página
-        if (timeAway > this.INACTIVITY_THRESHOLD) {
-          console.log('🔄 Inactividad detectada, actualizando datos...');
-          this.handlePageReturn();
-        } else if (!this.isConnected) {
-          // Si está desconectado, intentar reconectar
-          console.log('🔄 Reconectando WebSocket...');
+        // 🔥 SIEMPRE verificar el estado de conexión cuando vuelve
+        if (!this.isConnected) {
+          console.log('🔄 WebSocket desconectado, reconectando...');
           this.forceReconnection();
+        }
+
+        // 🔥 Si estuvo inactivo más del umbral, forzar actualización de datos
+        if (timeAway > this.INACTIVITY_THRESHOLD) {
+          console.log(`🔄 Inactividad detectada (${Math.round(timeAway / 1000)}s > ${this.INACTIVITY_THRESHOLD / 1000}s), actualizando datos...`);
+          this.handlePageReturn();
+        } else if (timeAway > 30000) { // Más de 30 segundos
+          // Aunque no supere el umbral, si fue más de 30s, notificar suavemente
+          console.log('🔄 Usuario estuvo ausente, verificando sincronización...');
+          this.handlePageReturn();
         }
       }
     };

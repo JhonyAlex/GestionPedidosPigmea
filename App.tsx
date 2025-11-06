@@ -190,13 +190,19 @@ const AppContent: React.FC = () => {
     useEffect(() => {
         const unsubscribe = subscribeToPageReturn(async () => {
             console.log('🔄 Refrescando datos después de inactividad...');
+            console.log(`📊 Total pedidos antes: ${pedidos.length}`);
             setIsLoading(true);
             try {
                 // Importar el store dinámicamente para evitar ciclos
                 const { store } = await import('./services/storage');
                 const currentPedidos = await store.getAll();
                 setPedidos(currentPedidos);
-                console.log('✅ Datos actualizados exitosamente');
+                console.log(`✅ Datos actualizados exitosamente - Total pedidos ahora: ${currentPedidos.length}`);
+                
+                // 🔥 Log detallado para debugging en producción
+                if (currentPedidos.length !== pedidos.length) {
+                    console.warn(`⚠️ CAMBIO DETECTADO: Pedidos antes=${pedidos.length}, después=${currentPedidos.length}`);
+                }
             } catch (error) {
                 console.error('❌ Error al refrescar datos:', error);
             } finally {
@@ -207,7 +213,7 @@ const AppContent: React.FC = () => {
         return () => {
             unsubscribe();
         };
-    }, [subscribeToPageReturn, setPedidos, setIsLoading]);
+    }, [subscribeToPageReturn, setPedidos, setIsLoading, pedidos.length]);
 
 
     useEffect(() => {

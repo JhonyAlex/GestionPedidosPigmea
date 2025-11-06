@@ -91,12 +91,23 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise
             return {};
         };
 
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        // 🔥 Para GET requests, agregar timestamp para evitar caché + configurar cache: 'no-cache'
+        let finalEndpoint = endpoint;
+        const isGetRequest = !options.method || options.method.toUpperCase() === 'GET';
+        
+        if (isGetRequest) {
+            const separator = endpoint.includes('?') ? '&' : '?';
+            finalEndpoint = `${endpoint}${separator}_t=${Date.now()}`;
+        }
+
+        const response = await fetch(`${API_BASE_URL}${finalEndpoint}`, {
             headers: {
                 'Content-Type': 'application/json',
                 ...getAuthHeaders(), // Añadir headers de autenticación automáticamente
                 ...options.headers,
             },
+            // 🔥 Forzar no usar caché del navegador
+            cache: isGetRequest ? 'no-cache' : (options.cache || 'default'),
             ...options,
         });
 

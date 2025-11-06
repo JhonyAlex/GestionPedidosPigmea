@@ -1244,12 +1244,25 @@ app.post('/api/audit', async (req, res) => {
 // GET /api/pedidos - Get all pedidos
 app.get('/api/pedidos', async (req, res) => {
     try {
+        // 🔒 Headers anti-caché para prevenir problemas de sincronización
+        res.set({
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+            'Surrogate-Control': 'no-store'
+        });
+
         if (!dbClient.isInitialized) {
             console.log('⚠️ BD no disponible - devolviendo datos mock');
             return res.status(200).json([]);
         }
         
         const pedidos = await dbClient.getAll();
+        
+        // Log para debugging en producción
+        const timestamp = new Date().toISOString();
+        console.log(`📊 [${timestamp}] GET /api/pedidos - Total: ${pedidos.length} pedidos`);
+        
         res.status(200).json(pedidos.sort((a, b) => b.secuenciaPedido - a.secuenciaPedido));
         
     } catch (error) {
