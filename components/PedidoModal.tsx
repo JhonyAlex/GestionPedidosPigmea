@@ -10,7 +10,8 @@ import CommentSystem from './comments/CommentSystem';
 import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../contexts/AuthContext';
 import { useVendedoresManager } from '../hooks/useVendedoresManager';
-import { useClientesManager } from '../hooks/useClientesManager';
+import { useClientesManager, type Cliente } from '../hooks/useClientesManager';
+import ClienteModalMejorado from './ClienteModalMejorado';
 
 const DuplicateIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m9.75 0h-3.375c-.621 0-1.125.504-1.125 1.125v6.75c0 .621.504 1.125 1.125 1.125h3.375c.621 0 1.125-.504 1.125-1.125v-6.75a1.125 1.125 0 0 0-1.125-1.125Z" /></svg>;
 const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>;
@@ -53,8 +54,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     const [showConfirmClose, setShowConfirmClose] = useState(false);
     const [nuevoVendedor, setNuevoVendedor] = useState('');
     const [showVendedorInput, setShowVendedorInput] = useState(false);
-    const [nuevoCliente, setNuevoCliente] = useState('');
-    const [showClienteInput, setShowClienteInput] = useState(false);
+    const [isClienteModalOpen, setIsClienteModalOpen] = useState(false);
     const { user } = useAuth();
     const { vendedores, addVendedor, fetchVendedores } = useVendedoresManager();
     const { clientes, addCliente, fetchClientes, isLoading: isLoadingClientes } = useClientesManager();
@@ -206,8 +206,8 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                 vendedorNombre: vendedorSeleccionado?.nombre || '' 
             }));
         } else if (name === "clienteId" && value === "add_new_cliente") {
-            setShowClienteInput(true);
-            setFormData(prev => ({ ...prev, clienteId: '', cliente: '' }));
+            // Abrir modal de creación de cliente
+            setIsClienteModalOpen(true);
         } else if (name === "clienteId" && value !== "add_new_cliente") {
             // Cuando se selecciona un cliente, guardar tanto el ID como el nombre
             const clienteSeleccionado = clientes.find(c => c.id === value);
@@ -251,36 +251,25 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         setShowVendedorInput(false);
     };
 
-    const handleAddCliente = async () => {
-        if (!nuevoCliente.trim()) {
-            alert('Por favor, ingrese un nombre para el cliente.');
-            return;
-        }
-        
+    const handleClienteModalSave = async (clienteData: any) => {
         try {
-            const clienteCreado = await addCliente({ 
-                nombre: nuevoCliente.trim(),
-                cif: '',
-                direccion: '',
-                telefono: '',
-                email: ''
-            });
+            const nuevoCliente = await addCliente(clienteData);
+            // Asignar el cliente recién creado al formulario
             setFormData(prev => ({ 
                 ...prev, 
-                clienteId: clienteCreado.id,
-                cliente: clienteCreado.nombre 
+                clienteId: nuevoCliente.id,
+                cliente: nuevoCliente.nombre 
             }));
-            setNuevoCliente('');
-            setShowClienteInput(false);
+            setIsClienteModalOpen(false);
+            // Refrescar la lista de clientes para que aparezca el nuevo
+            fetchClientes();
         } catch (error) {
             console.error("Error al crear cliente:", error);
-            alert('Error al crear el cliente. Por favor, intente de nuevo.');
         }
     };
 
-    const handleCancelCliente = () => {
-        setNuevoCliente('');
-        setShowClienteInput(false);
+    const handleClienteModalClose = () => {
+        setIsClienteModalOpen(false);
     };
 
     const handleSequenceChange = (newSequence: Etapa[]) => {
@@ -539,53 +528,24 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                     });
                                                     return null;
                                                 })()}
-                                                {!showClienteInput ? (
-                                                    <select 
-                                                        name="clienteId" 
-                                                        value={formData.clienteId || ''} 
-                                                        onChange={handleChange} 
-                                                        className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
-                                                        disabled={isReadOnly || isLoadingClientes}
-                                                    >
-                                                        <option value="">
-                                                            {isLoadingClientes ? 'Cargando clientes...' : 'Seleccione un cliente'}
-                                                        </option>
-                                                        {clientes
-                                                            .sort((a, b) => a.nombre.localeCompare(b.nombre))
-                                                            .map(cliente => (
-                                                                <option key={cliente.id} value={cliente.id}>{cliente.nombre}</option>
-                                                            ))
-                                                        }
-                                                        {!isReadOnly && <option value="add_new_cliente">-- Crear nuevo cliente --</option>}
-                                                    </select>
-                                                ) : (
-                                                    <div className="flex gap-2">
-                                                        <input 
-                                                            type="text" 
-                                                            value={nuevoCliente} 
-                                                            onChange={(e) => setNuevoCliente(e.target.value)}
-                                                            placeholder="Nombre del cliente"
-                                                            className="flex-1 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
-                                                            autoFocus
-                                                        />
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={handleAddCliente}
-                                                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
-                                                            title="Guardar cliente"
-                                                        >
-                                                            ✓
-                                                        </button>
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={handleCancelCliente}
-                                                            className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
-                                                            title="Cancelar"
-                                                        >
-                                                            ✕
-                                                        </button>
-                                                    </div>
-                                                )}
+                                                <select 
+                                                    name="clienteId" 
+                                                    value={formData.clienteId || ''} 
+                                                    onChange={handleChange} 
+                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                                    disabled={isReadOnly || isLoadingClientes}
+                                                >
+                                                    <option value="">
+                                                        {isLoadingClientes ? 'Cargando clientes...' : 'Seleccione un cliente'}
+                                                    </option>
+                                                    {clientes
+                                                        .sort((a, b) => a.nombre.localeCompare(b.nombre))
+                                                        .map(cliente => (
+                                                            <option key={cliente.id} value={cliente.id}>{cliente.nombre}</option>
+                                                        ))
+                                                    }
+                                                    {!isReadOnly && <option value="add_new_cliente">-- Crear nuevo cliente --</option>}
+                                                </select>
                                             </div>
                                             <div>
                                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">N° Pedido Cliente</label>
@@ -1110,6 +1070,15 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                     </div>
                 </div>
             )}
+
+            {/* Modal de creación de cliente */}
+            <ClienteModalMejorado
+                isOpen={isClienteModalOpen}
+                onClose={handleClienteModalClose}
+                onSave={handleClienteModalSave}
+                cliente={null}
+                isEmbedded={true}
+            />
         </div>
     );
 };
