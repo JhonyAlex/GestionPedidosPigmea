@@ -457,15 +457,19 @@ const Header: React.FC<HeaderProps> = ({
                                 onChange={handleSearchChange}
                                 onFocus={() => searchTerm.trim().length > 0 && setShowSearchDropdown(true)}
                             />
-                            {showSearchDropdown && (
-                                <GlobalSearchDropdown
-                                    searchTerm={searchTerm}
-                                    results={searchResults}
-                                    onSelectPedido={handleSelectPedido}
-                                    onClose={() => setShowSearchDropdown(false)}
-                                />
-                            )}
                         </div>
+                        {showSearchDropdown && (
+                            <GlobalSearchDropdown
+                                searchTerm={searchTerm}
+                                onSearchChange={(value) => {
+                                    onSearch(value);
+                                    setShowSearchDropdown(value.trim().length > 0);
+                                }}
+                                results={searchResults}
+                                onSelectPedido={handleSelectPedido}
+                                onClose={() => setShowSearchDropdown(false)}
+                            />
+                        )}
                     </div>
                 )}
 
