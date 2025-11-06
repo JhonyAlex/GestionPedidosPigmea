@@ -43,6 +43,8 @@ PERFORADO_FIELDS_MIGRATION="$MIGRATIONS_DIR/018-add-perforado-fields.sql"
 ANONIMO_POST_IMPRESION_MIGRATION="$MIGRATIONS_DIR/019-add-anonimo-post-impresion.sql"
 CLIENTES_HISTORY_MIGRATION="$MIGRATIONS_DIR/020-create-clientes-history.sql"
 VENDEDORES_HISTORY_MIGRATION="$MIGRATIONS_DIR/021-create-vendedores-history.sql"
+ESTADO_PEDIDO_MIGRATION="$MIGRATIONS_DIR/022-add-estado-pedido.sql"
+PERFORMANCE_INDEXES_MIGRATION="$MIGRATIONS_DIR/023-add-performance-indexes.sql"
 # Añade aquí futuras migraciones
 
 # Función para aplicar una migración
@@ -84,6 +86,8 @@ apply_migration "Agregar Campos Microperforado y Macroperforado" "$PERFORADO_FIE
 apply_migration "Agregar Campo Anónimo Post-Impresión" "$ANONIMO_POST_IMPRESION_MIGRATION"
 apply_migration "Crear Tabla de Historial de Clientes" "$CLIENTES_HISTORY_MIGRATION"
 apply_migration "Crear Tabla de Historial de Vendedores" "$VENDEDORES_HISTORY_MIGRATION"
+apply_migration "Agregar Campo Estado para Archivado" "$ESTADO_PEDIDO_MIGRATION"
+apply_migration "Agregar Índices de Rendimiento" "$PERFORMANCE_INDEXES_MIGRATION"
 
 # Añade llamadas a futuras migraciones aquí
 # apply_migration "Nombre de tu nueva migración" "$MIGRATIONS_DIR/tu_nuevo_archivo.sql"
