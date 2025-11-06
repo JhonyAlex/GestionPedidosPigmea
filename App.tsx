@@ -127,6 +127,7 @@ const AppContent: React.FC = () => {
 
     const {
       processedPedidos,
+      searchTerm,
       setSearchTerm,
       filters,
       handleFilterChange,
@@ -154,22 +155,29 @@ const AppContent: React.FC = () => {
       resetAllFilters,
     } = useFiltrosYOrden(pedidos);
 
-    // Hook para navegación a pedidos desde reportes
+    // Hook para navegación a pedidos desde reportes y búsqueda global
     const { navigateToPedido } = useNavigateToPedido({
         setView,
         setSelectedPedido,
         setHighlightedPedidoId
     });
 
-    // Función para navegar a un pedido por ID
+    // Función para navegar a un pedido (usado por búsqueda global y referencias)
+    const handleNavigateToPedido = useCallback((pedido: Pedido) => {
+        // Limpiar el término de búsqueda al navegar
+        setSearchTerm('');
+        navigateToPedido(pedido);
+    }, [navigateToPedido, setSearchTerm]);
+
+    // Función para navegar a un pedido por ID (usado por clientes/vendedores)
     const handleNavigateToPedidoById = useCallback((pedidoId: string) => {
         const pedido = pedidos.find(p => p.id === pedidoId);
         if (pedido) {
-            navigateToPedido(pedido);
+            handleNavigateToPedido(pedido);
         } else {
             console.warn('Pedido no encontrado:', pedidoId);
         }
-    }, [pedidos, navigateToPedido]);
+    }, [pedidos, handleNavigateToPedido]);
 
     // Hook para operaciones masivas
     const {
@@ -838,7 +846,10 @@ const AppContent: React.FC = () => {
         <DragDropContext onDragEnd={handleDragEnd}>
             <div className="min-h-screen text-gray-900 dark:text-white flex flex-col">
                 <Header
+                    searchTerm={searchTerm}
                     onSearch={setSearchTerm}
+                    allPedidos={pedidos}
+                    onNavigateToPedido={handleNavigateToPedido}
                     currentView={view}
                     onViewChange={handleViewChange}
                     onFilterChange={handleFilterChange}

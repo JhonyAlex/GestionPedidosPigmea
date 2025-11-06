@@ -317,7 +317,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
             let preparacionMatch = true;
             if (p.etapaActual === Etapa.PREPARACION && preparacionFilter !== 'all') {
                 const isSinMaterial = !p.materialDisponible;
-                const isSinCliche = !!p.materialDisponible && !p.clicheDisponible;
+                const isSinCliche = !p.clicheDisponible; // Sin cliché, sin importar el material
                 const isListo = !!p.materialDisponible && !!p.clicheDisponible;
                 
                 if (preparacionFilter === 'sin-material') {

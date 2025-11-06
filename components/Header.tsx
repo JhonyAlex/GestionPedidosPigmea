@@ -1,17 +1,21 @@
 
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ViewType, Prioridad, Etapa, UserRole, Pedido, DateField, WeekFilter as WeekFilterType, EstadoCliché } from '../types';
 import { ETAPAS_KANBAN, ETAPAS, STAGE_GROUPS } from '../constants';
 import { DateFilterOption } from '../utils/date';
 import UserInfo from './UserInfo';
 import WeekFilter from './WeekFilter';
+import GlobalSearchDropdown from './GlobalSearchDropdown';
 import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
 
 
 interface HeaderProps {
+    searchTerm: string; // Añadido para controlar el valor del input
     onSearch: (term: string) => void;
+    allPedidos: Pedido[]; // Añadido para la búsqueda global
+    onNavigateToPedido?: (pedido: Pedido) => void; // Añadido para navegación
     currentView: ViewType;
     onViewChange: (view: ViewType) => void;
     onFilterChange: (name: string, value: string) => void;
@@ -72,7 +76,10 @@ const ResetFiltersIcon = () => (
 
 
 const Header: React.FC<HeaderProps> = ({ 
-    onSearch, 
+    searchTerm,
+    onSearch,
+    allPedidos,
+    onNavigateToPedido,
     currentView, 
     onViewChange, 
     onFilterChange, 
@@ -109,6 +116,8 @@ const Header: React.FC<HeaderProps> = ({
     } = usePermissions();
     const currentUserRole = user?.role || 'Operador';
     const [isStageFiltersCollapsed, setIsStageFiltersCollapsed] = useState(false);
+    const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+    const searchContainerRef = useRef<HTMLDivElement>(null);
 
     // Resetear el estado cuando cambie la vista
     useEffect(() => {
@@ -116,6 +125,72 @@ const Header: React.FC<HeaderProps> = ({
             setIsStageFiltersCollapsed(false);
         }
     }, [currentView]);
+
+    // Cerrar dropdown al hacer click fuera
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+                setShowSearchDropdown(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
+    // Función para filtrar pedidos basada en el término de búsqueda
+    const searchResults = React.useMemo(() => {
+        if (!searchTerm || searchTerm.trim().length === 0) {
+            return [];
+        }
+
+        const searchTermLower = searchTerm.toLowerCase();
+        return allPedidos.filter(p => {
+            return (
+                // Campos de identificación y cliente
+                p.numeroPedidoCliente.toLowerCase().includes(searchTermLower) ||
+                p.numeroRegistro.toLowerCase().includes(searchTermLower) ||
+                p.cliente.toLowerCase().includes(searchTermLower) ||
+                (p.clienteId && p.clienteId.toLowerCase().includes(searchTermLower)) ||
+                (p.numerosCompra && p.numerosCompra.some(numero => numero.toLowerCase().includes(searchTermLower))) ||
+                
+                // Campos de producción
+                p.desarrollo.toLowerCase().includes(searchTermLower) ||
+                p.maquinaImpresion.toLowerCase().includes(searchTermLower) ||
+                String(p.metros).includes(searchTermLower) ||
+                (p.capa && p.capa.toLowerCase().includes(searchTermLower)) ||
+                (p.camisa && p.camisa.toLowerCase().includes(searchTermLower)) ||
+                p.tipoImpresion.toLowerCase().includes(searchTermLower) ||
+                
+                // Campos de etapas y prioridad
+                ETAPAS[p.etapaActual].title.toLowerCase().includes(searchTermLower) ||
+                (p.subEtapaActual && p.subEtapaActual.toLowerCase().includes(searchTermLower)) ||
+                p.prioridad.toLowerCase().includes(searchTermLower) ||
+                
+                // Observaciones
+                p.observaciones.toLowerCase().includes(searchTermLower) ||
+                (p.vendedorNombre && p.vendedorNombre.toLowerCase().includes(searchTermLower)) ||
+                
+                // Producto
+                (p.producto && p.producto.toLowerCase().includes(searchTermLower))
+            );
+        });
+    }, [searchTerm, allPedidos]);
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        onSearch(value);
+        setShowSearchDropdown(value.trim().length > 0);
+    };
+
+    const handleSelectPedido = (pedido: Pedido) => {
+        setShowSearchDropdown(false);
+        if (onNavigateToPedido) {
+            onNavigateToPedido(pedido);
+        }
+    };
     
     const { canViewClientes } = usePermissions();
 
@@ -355,7 +430,7 @@ const Header: React.FC<HeaderProps> = ({
                             >
                                 <option value="all">Estado Preparación (Todos)</option>
                                 <option value="sin-material">❌ Sin Material</option>
-                                <option value="sin-cliche">⚠️ Sin Cliché (Mat. OK)</option>
+                                <option value="sin-cliche">⚠️ Sin Cliché</option>
                                 <option value="listo">✅ Listo para Producción</option>
                             </select>
                         )}
@@ -373,12 +448,23 @@ const Header: React.FC<HeaderProps> = ({
                             </select>
                         )}
 
-                        <input
-                            type="text"
-                            placeholder="Buscar en todo..."
-                            className="w-48 sm:w-64 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                            onChange={(e) => onSearch(e.target.value)}
-                        />
+                        <div ref={searchContainerRef} className="relative">
+                            <input
+                                type="text"
+                                placeholder="Buscar en todo..."
+                                value={searchTerm}
+                                className="w-48 sm:w-64 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                onChange={handleSearchChange}
+                                onFocus={() => searchTerm.trim().length > 0 && setShowSearchDropdown(true)}
+                            />
+                            {showSearchDropdown && (
+                                <GlobalSearchDropdown
+                                    searchTerm={searchTerm}
+                                    results={searchResults}
+                                    onSelectPedido={handleSelectPedido}
+                                />
+                            )}
+                        </div>
                     </div>
                 )}
 
