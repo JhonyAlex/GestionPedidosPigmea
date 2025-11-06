@@ -535,7 +535,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                         clienteId: formData.clienteId,
                                                         clienteNombre: formData.cliente,
                                                         totalClientes: clientes.length,
-                                                        clientesActivos: clientes.filter(c => c.estado === 'activo').length
+                                                        primerCliente: clientes.length > 0 ? clientes[0] : null
                                                     });
                                                     return null;
                                                 })()}
@@ -551,7 +551,6 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                             {isLoadingClientes ? 'Cargando clientes...' : 'Seleccione un cliente'}
                                                         </option>
                                                         {clientes
-                                                            .filter(c => c.estado === 'activo')
                                                             .sort((a, b) => a.nombre.localeCompare(b.nombre))
                                                             .map(cliente => (
                                                                 <option key={cliente.id} value={cliente.id}>{cliente.nombre}</option>
