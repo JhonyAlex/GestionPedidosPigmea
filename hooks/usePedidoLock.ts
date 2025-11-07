@@ -196,13 +196,16 @@ export const usePedidoLock = ({
       return;
     }
 
+    // ✅ IMPORTANTE: Actualizar refs INMEDIATAMENTE para evitar doble desbloqueo en cleanup
+    isLockedByMeRef.current = false;
+    currentPedidoIdRef.current = null;
+
     if (!socketRef.current || !socketRef.current.connected) {
       console.warn('⚠️ [UNLOCK] Socket no conectado, solo limpiando estados locales');
       // Limpiar estados locales de todos modos
       setIsLocked(false);
       setIsLockedByMe(false);
       setLockedBy(null);
-      isLockedByMeRef.current = false;
       return;
     }
 
@@ -222,8 +225,6 @@ export const usePedidoLock = ({
     setIsLocked(false);
     setIsLockedByMe(false);
     setLockedBy(null);
-    isLockedByMeRef.current = false; // ✅ Actualizar ref
-    currentPedidoIdRef.current = null; // ✅ Limpiar el pedido actual
   }, [user, pedidoId]);
 
   // Auto-desbloquear al cambiar de pedido o al desmontar
