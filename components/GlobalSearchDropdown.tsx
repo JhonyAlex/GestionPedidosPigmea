@@ -40,11 +40,21 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
             {/* Overlay de fondo */}
             <div 
                 className="fixed inset-0 bg-black/20 dark:bg-black/40 z-40" 
-                onClick={onClose}
+                onClick={(e) => {
+                    console.log('🖱️ Click en overlay');
+                    e.stopPropagation();
+                    onClose();
+                }}
             />
             
             {/* Dropdown */}
-            <div className="fixed inset-x-4 top-20 z-50 max-w-4xl mx-auto bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-2xl max-h-[calc(100vh-8rem)] flex flex-col">
+            <div 
+                className="fixed inset-x-4 top-20 z-50 max-w-4xl mx-auto bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-2xl max-h-[calc(100vh-8rem)] flex flex-col"
+                onClick={(e) => {
+                    console.log('🖱️ Click en dropdown container');
+                    e.stopPropagation();
+                }}
+            >
                 {/* Header con campo de búsqueda */}
                 <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-300 dark:border-gray-600 px-6 py-4 z-10">
                     <div className="flex items-center gap-3">
@@ -115,7 +125,10 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
                             {displayResults.map((pedido) => (
                                 <button
                                     key={pedido.id}
-                                    onClick={() => onSelectPedido(pedido)}
+                                    onClick={() => {
+                                        console.log('🖱️ GlobalSearchDropdown - Click en pedido:', pedido);
+                                        onSelectPedido(pedido);
+                                    }}
                                     className="w-full px-6 py-4 text-left hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 focus:outline-none transition-colors border-b border-gray-200 dark:border-gray-700 last:border-b-0"
                                 >
                                     <div className="flex flex-col gap-3">
