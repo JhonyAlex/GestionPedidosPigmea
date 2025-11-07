@@ -112,8 +112,11 @@ export const usePedidosManager = (
         let modifiedPedido = { ...updatedPedido };
         let hasChanges = false;
 
-        // ❌ ELIMINADO: Ya no recalculamos automáticamente la subEtapaActual
-        // Los usuarios ahora controlan manualmente la posición de los pedidos en Preparación
+        // ✅ RESTAURADO: Recalcular automáticamente la subEtapaActual según los campos
+        // Esto mueve el pedido entre columnas cuando cambia materialDisponible o clicheDisponible
+        if (modifiedPedido.etapaActual === Etapa.PREPARACION) {
+            modifiedPedido.subEtapaActual = determinarEtapaPreparacion(modifiedPedido);
+        }
         
         if (generateHistory) {
             const newHistoryEntries: HistorialEntry[] = [];

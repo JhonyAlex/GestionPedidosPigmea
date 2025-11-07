@@ -283,12 +283,14 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                             )}
                             {pedido.materialDisponible && pedido.clicheDisponible && (
                                 <span 
-                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 cursor-help" 
-                                    title={`✅ Pedido listo para producción - Material y cliché disponibles${pedido.clicheInfoAdicional ? `\nCliché: ${pedido.clicheInfoAdicional}` : ''}`}
+                                    className="inline-flex items-center px-2 py-1 rounded-md text-xs font-bold bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-lg animate-pulse cursor-help" 
+                                    title={`✅ ¡TODO LISTO! Puedes enviar este pedido a producción\n\nMaterial: Disponible ✓\nCliché: Disponible ✓${pedido.clicheInfoAdicional ? `\n\nInfo Cliché: ${pedido.clicheInfoAdicional}` : ''}\n\n👉 Usa el botón verde "→" para enviar a impresión`}
+                                    style={{ animationDuration: '2s' }}
                                 >
-                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg className="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                     </svg>
+                                    ¡LISTO!
                                 </span>
                             )}
                         </div>
