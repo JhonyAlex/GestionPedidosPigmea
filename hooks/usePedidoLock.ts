@@ -35,6 +35,8 @@ export const usePedidoLock = ({
   const activityIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
   const isUnmountingRef = useRef(false);
+  const currentPedidoIdRef = useRef<string | null>(null);
+  const isLockedByMeRef = useRef<boolean>(false);
 
   // Conectar al WebSocket
   useEffect(() => {
@@ -65,6 +67,8 @@ export const usePedidoLock = ({
         setIsLocked(true);
         setIsLockedByMe(true);
         setLockedBy(user.displayName || user.username);
+        isLockedByMeRef.current = true; // ✅ Actualizar ref
+        currentPedidoIdRef.current = pedidoId; // ✅ Guardar pedidoId
       }
     });
 
@@ -96,6 +100,7 @@ export const usePedidoLock = ({
         setIsLocked(false);
         setIsLockedByMe(false);
         setLockedBy(null);
+        isLockedByMeRef.current = false; // ✅ Actualizar ref
         
         // Si era nuestro bloqueo y se perdió por timeout, notificar
         if (isLockedByMe && data.reason === 'timeout' && onLockLost) {
@@ -135,7 +140,10 @@ export const usePedidoLock = ({
     }
 
     const username = user.displayName || user.username;
-    console.log(`🔒 Solicitando bloqueo para pedido ${pedidoId}`);
+    console.log(`🔒 [LOCK REQUEST] Solicitando bloqueo para pedido ${pedidoId} (usuario: ${username})`);
+    
+    // Guardar en ref
+    currentPedidoIdRef.current = pedidoId;
     
     socketRef.current.emit('lock-pedido', {
       pedidoId,
@@ -161,14 +169,27 @@ export const usePedidoLock = ({
 
   // Desbloquear el pedido
   const unlockPedido = useCallback(() => {
-    if (!user || !pedidoId || !socketRef.current) {
+    const pedidoToUnlock = pedidoId || currentPedidoIdRef.current;
+    
+    if (!user || !pedidoToUnlock) {
+      console.warn('⚠️ No se puede desbloquear: falta usuario o pedidoId');
       return;
     }
 
-    console.log(`🔓 Desbloqueando pedido ${pedidoId}`);
+    if (!socketRef.current || !socketRef.current.connected) {
+      console.warn('⚠️ Socket no conectado, no se puede desbloquear:', pedidoToUnlock);
+      // Limpiar estados locales de todos modos
+      setIsLocked(false);
+      setIsLockedByMe(false);
+      setLockedBy(null);
+      isLockedByMeRef.current = false;
+      return;
+    }
+
+    console.log(`🔓 [UNLOCK] Desbloqueando pedido ${pedidoToUnlock}`);
     
     socketRef.current.emit('unlock-pedido', {
-      pedidoId,
+      pedidoId: pedidoToUnlock,
       userId: user.id.toString()
     });
 
@@ -181,35 +202,80 @@ export const usePedidoLock = ({
     setIsLocked(false);
     setIsLockedByMe(false);
     setLockedBy(null);
+    isLockedByMeRef.current = false; // ✅ Actualizar ref
   }, [user, pedidoId]);
 
   // Auto-desbloquear al cambiar de pedido o al desmontar
   useEffect(() => {
+    // Guardar el pedidoId actual cuando el efecto se ejecuta
+    if (pedidoId) {
+      currentPedidoIdRef.current = pedidoId;
+    }
+
     return () => {
       isUnmountingRef.current = true;
       
-      if (autoUnlock && isLockedByMe) {
-        unlockPedido();
+      // ✅ Usar las referencias en lugar del estado para asegurar el desbloqueo
+      if (autoUnlock && isLockedByMeRef.current && currentPedidoIdRef.current && user) {
+        console.log(`🔓 [CLEANUP] Desbloqueando pedido ${currentPedidoIdRef.current} al desmontar/cambiar`);
+        
+        // Verificar que el socket esté conectado
+        if (socketRef.current && socketRef.current.connected) {
+          socketRef.current.emit('unlock-pedido', {
+            pedidoId: currentPedidoIdRef.current,
+            userId: user.id.toString()
+          });
+        } else {
+          console.warn('⚠️ [CLEANUP] Socket no conectado, no se puede desbloquear');
+        }
+        
+        isLockedByMeRef.current = false;
       }
 
       // Limpiar intervalo de actividad
       if (activityIntervalRef.current) {
         clearInterval(activityIntervalRef.current);
+        activityIntervalRef.current = null;
       }
     };
-  }, [autoUnlock, isLockedByMe, unlockPedido]);
+  }, [autoUnlock, pedidoId, user]); // ✅ Dependencias correctas
+
+  // ✅ Desbloquear pedido anterior cuando cambia el pedidoId
+  useEffect(() => {
+    const previousPedidoId = currentPedidoIdRef.current;
+    
+    // Si hay un pedido anterior diferente al actual y estaba bloqueado, desbloquearlo
+    if (previousPedidoId && pedidoId && previousPedidoId !== pedidoId && isLockedByMeRef.current) {
+      console.log(`🔄 Cambiando de pedido ${previousPedidoId} a ${pedidoId} - Desbloqueando anterior`);
+      
+      if (socketRef.current && socketRef.current.connected) {
+        socketRef.current.emit('unlock-pedido', {
+          pedidoId: previousPedidoId,
+          userId: user?.id.toString()
+        });
+      }
+      
+      isLockedByMeRef.current = false;
+    }
+    
+    // Actualizar referencia con el nuevo pedidoId
+    if (pedidoId) {
+      currentPedidoIdRef.current = pedidoId;
+    }
+  }, [pedidoId, user]);
 
   // Detectar cuando el usuario cambia de pestaña
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden' && isLockedByMe) {
+      // ✅ Usar referencias en lugar del estado
+      if (document.visibilityState === 'hidden' && isLockedByMeRef.current) {
         // Actualizar última actividad pero no desbloquear
         lastActivityRef.current = Date.now();
-      } else if (document.visibilityState === 'visible' && isLockedByMe) {
+      } else if (document.visibilityState === 'visible' && isLockedByMeRef.current) {
         // Al volver, enviar señal de actividad inmediatamente
-        if (socketRef.current && pedidoId && user) {
+        if (socketRef.current && currentPedidoIdRef.current && user) {
           socketRef.current.emit('pedido-activity', {
-            pedidoId,
+            pedidoId: currentPedidoIdRef.current,
             userId: user.id.toString()
           });
           lastActivityRef.current = Date.now();
@@ -222,15 +288,17 @@ export const usePedidoLock = ({
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [isLockedByMe, pedidoId, user]);
+  }, [user]); // ✅ Solo depende de user ya que usa referencias
 
   // Detectar cierre de navegador / pestaña
   useEffect(() => {
     const handleBeforeUnload = () => {
-      if (isLockedByMe && socketRef.current && pedidoId && user) {
+      // ✅ Usar referencias en lugar del estado
+      if (isLockedByMeRef.current && socketRef.current && currentPedidoIdRef.current && user) {
+        console.log(`🔓 [BEFOREUNLOAD] Desbloqueando pedido ${currentPedidoIdRef.current} antes de cerrar`);
         // Intentar desbloquear antes de cerrar
         socketRef.current.emit('unlock-pedido', {
-          pedidoId,
+          pedidoId: currentPedidoIdRef.current,
           userId: user.id.toString()
         });
       }
@@ -241,7 +309,7 @@ export const usePedidoLock = ({
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [isLockedByMe, pedidoId, user]);
+  }, [user]); // ✅ Solo depende de user ya que usa referencias
 
   return {
     isLocked,
