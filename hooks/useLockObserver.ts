@@ -30,7 +30,6 @@ export const useLockObserver = () => {
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      console.log('🔌 Lock Observer conectado');
       socket.emit('get-locks');
     });
 

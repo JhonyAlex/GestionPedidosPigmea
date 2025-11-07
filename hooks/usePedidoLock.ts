@@ -55,26 +55,21 @@ export const usePedidoLock = ({
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      console.log('🔌 Socket conectado para sistema de bloqueo');
-      
       // Solicitar lista actual de bloqueos
       socket.emit('get-locks');
     });
 
     socket.on('lock-acquired', (data: { pedidoId: string; userId: string; username: string }) => {
       if (data.pedidoId === pedidoId && data.userId === user.id.toString()) {
-        console.log(`🔒 Bloqueo adquirido para pedido ${pedidoId}`);
         setIsLocked(true);
         setIsLockedByMe(true);
-        setLockedBy(user.displayName || user.username);
-        isLockedByMeRef.current = true; // ✅ Actualizar ref
-        currentPedidoIdRef.current = pedidoId; // ✅ Guardar pedidoId
+        setLockedBy(data.username);
+        isLockedByMeRef.current = true;
       }
     });
 
     socket.on('lock-denied', (data: { pedidoId: string; lockedBy: string }) => {
       if (data.pedidoId === pedidoId) {
-        console.log(`❌ Bloqueo denegado para pedido ${pedidoId}. Bloqueado por: ${data.lockedBy}`);
         setIsLocked(true);
         setIsLockedByMe(false);
         setLockedBy(data.lockedBy);
@@ -87,7 +82,6 @@ export const usePedidoLock = ({
 
     socket.on('pedido-locked', (data: { pedidoId: string; userId: string; username: string }) => {
       if (data.pedidoId === pedidoId && data.userId !== user.id.toString()) {
-        console.log(`🔒 Pedido ${pedidoId} bloqueado por otro usuario: ${data.username}`);
         setIsLocked(true);
         setIsLockedByMe(false);
         setLockedBy(data.username);
@@ -96,7 +90,6 @@ export const usePedidoLock = ({
 
     socket.on('pedido-unlocked', (data: { pedidoId: string; reason: string }) => {
       if (data.pedidoId === pedidoId) {
-        console.log(`🔓 Pedido ${pedidoId} desbloqueado. Razón: ${data.reason}`);
         setIsLocked(false);
         setIsLockedByMe(false);
         setLockedBy(null);
@@ -135,12 +128,10 @@ export const usePedidoLock = ({
   // Intentar bloquear el pedido
   const lockPedido = useCallback(() => {
     if (!user || !pedidoId || !socketRef.current) {
-      console.warn('⚠️ No se puede bloquear: falta usuario, pedidoId o socket');
       return;
     }
 
     const username = user.displayName || user.username;
-    console.log(`🔒 [LOCK REQUEST] Solicitando bloqueo para pedido ${pedidoId} (usuario: ${username})`);
     
     // Guardar en ref
     currentPedidoIdRef.current = pedidoId;
@@ -177,7 +168,6 @@ export const usePedidoLock = ({
     }
 
     if (!socketRef.current || !socketRef.current.connected) {
-      console.warn('⚠️ Socket no conectado, no se puede desbloquear:', pedidoToUnlock);
       // Limpiar estados locales de todos modos
       setIsLocked(false);
       setIsLockedByMe(false);
@@ -217,16 +207,12 @@ export const usePedidoLock = ({
       
       // ✅ Usar las referencias en lugar del estado para asegurar el desbloqueo
       if (autoUnlock && isLockedByMeRef.current && currentPedidoIdRef.current && user) {
-        console.log(`🔓 [CLEANUP] Desbloqueando pedido ${currentPedidoIdRef.current} al desmontar/cambiar`);
-        
         // Verificar que el socket esté conectado
         if (socketRef.current && socketRef.current.connected) {
           socketRef.current.emit('unlock-pedido', {
             pedidoId: currentPedidoIdRef.current,
             userId: user.id.toString()
           });
-        } else {
-          console.warn('⚠️ [CLEANUP] Socket no conectado, no se puede desbloquear');
         }
         
         isLockedByMeRef.current = false;
@@ -246,8 +232,6 @@ export const usePedidoLock = ({
     
     // Si hay un pedido anterior diferente al actual y estaba bloqueado, desbloquearlo
     if (previousPedidoId && pedidoId && previousPedidoId !== pedidoId && isLockedByMeRef.current) {
-      console.log(`🔄 Cambiando de pedido ${previousPedidoId} a ${pedidoId} - Desbloqueando anterior`);
-      
       if (socketRef.current && socketRef.current.connected) {
         socketRef.current.emit('unlock-pedido', {
           pedidoId: previousPedidoId,

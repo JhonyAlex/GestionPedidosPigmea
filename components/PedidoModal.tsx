@@ -587,16 +587,6 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Cliente</label>
-                                                {(() => {
-                                                    // 🔥 Logging para debug
-                                                    console.log('🔍 Debug Cliente:', {
-                                                        clienteId: formData.clienteId,
-                                                        clienteNombre: formData.cliente,
-                                                        totalClientes: clientes.length,
-                                                        primerCliente: clientes.length > 0 ? clientes[0] : null
-                                                    });
-                                                    return null;
-                                                })()}
                                                 <select 
                                                     name="clienteId" 
                                                     value={formData.clienteId || ''} 
