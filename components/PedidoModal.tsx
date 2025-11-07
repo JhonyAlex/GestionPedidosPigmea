@@ -11,6 +11,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../contexts/AuthContext';
 import { useVendedoresManager } from '../hooks/useVendedoresManager';
 import { useClientesManager, type Cliente } from '../hooks/useClientesManager';
+import { usePedidoLock } from '../hooks/usePedidoLock';
 import ClienteModalMejorado from './ClienteModalMejorado';
 
 const DuplicateIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m9.75 0h-3.375c-.621 0-1.125.504-1.125 1.125v6.75c0 .621.504 1.125 1.125 1.125h3.375c.621 0 1.125-.504 1.125-1.125v-6.75a1.125 1.125 0 0 0-1.125-1.125Z" /></svg>;
@@ -55,6 +56,9 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     const [nuevoVendedor, setNuevoVendedor] = useState('');
     const [showVendedorInput, setShowVendedorInput] = useState(false);
     const [isClienteModalOpen, setIsClienteModalOpen] = useState(false);
+    const [showLockWarning, setShowLockWarning] = useState(false);
+    const [lockWarningMessage, setLockWarningMessage] = useState('');
+    
     const { user } = useAuth();
     const { vendedores, addVendedor, fetchVendedores } = useVendedoresManager();
     const { clientes, addCliente, fetchClientes, isLoading: isLoadingClientes } = useClientesManager();
@@ -65,8 +69,28 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         canMovePedidos 
     } = usePermissions();
     
-    // Determinar si el modal es de solo lectura basado en permisos
-    const isReadOnly = !canEditPedidos();
+    // Sistema de bloqueo de pedidos
+    const {
+        isLocked,
+        isLockedByMe,
+        lockedBy,
+        lockPedido,
+        unlockPedido
+    } = usePedidoLock({
+        pedidoId: pedido.id,
+        onLockDenied: (lockedByUser) => {
+            setLockWarningMessage(`Este pedido está siendo editado por ${lockedByUser}`);
+            setShowLockWarning(true);
+        },
+        onLockLost: () => {
+            alert('⚠️ Has perdido el bloqueo de este pedido por inactividad. Los cambios no guardados se perderán.');
+            onClose();
+        },
+        autoUnlock: true
+    });
+    
+    // Determinar si el modal es de solo lectura
+    const isReadOnly = !canEditPedidos() || (isLocked && !isLockedByMe);
 
     // Función para detectar si hay cambios no guardados
     const hasUnsavedChanges = useMemo(() => {
@@ -77,6 +101,13 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         // Hacer una copia profunda para evitar modificar el pedido original
         setFormData(JSON.parse(JSON.stringify(pedido)));
     }, [pedido]);
+
+    // Solicitar bloqueo al abrir el modal (solo si tiene permisos de edición)
+    useEffect(() => {
+        if (canEditPedidos()) {
+            lockPedido();
+        }
+    }, [canEditPedidos, lockPedido]);
 
     // Cargar vendedores al montar el componente
     useEffect(() => {
@@ -429,6 +460,21 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                 <div className="flex justify-between items-center p-8 pb-4 bg-gradient-to-r from-slate-50 to-gray-100 dark:from-gray-800 dark:to-gray-750 rounded-t-lg border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
                     <div className="flex items-center gap-4">
                         <h2 className="text-3xl font-bold">Pedido: {pedido.numeroPedidoCliente}</h2>
+                        
+                        {/* Indicador de bloqueo */}
+                        {isLocked && (
+                            <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${
+                                isLockedByMe 
+                                    ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' 
+                                    : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                            }`}>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                                </svg>
+                                {isLockedByMe ? 'Editando' : `Bloqueado por ${lockedBy}`}
+                            </div>
+                        )}
+                        
                         <div className="flex items-center gap-2">
                             {canDeletePedidos() && (
                                 <>
@@ -451,6 +497,29 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                         <button onClick={handleClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-3xl leading-none">&times;</button>
                     </div>
                 </div>
+                
+                {/* Warning de bloqueo */}
+                {showLockWarning && (
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800 px-8 py-3 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-yellow-600 dark:text-yellow-400">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                            </svg>
+                            <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+                                {lockWarningMessage}
+                            </p>
+                        </div>
+                        <button 
+                            onClick={() => setShowLockWarning(false)}
+                            className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-200"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                )}
+                
                 <p className="text-sm text-gray-500 dark:text-gray-400 px-8 pb-6 font-mono bg-gradient-to-r from-slate-50 to-gray-100 dark:from-gray-800 dark:to-gray-750 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">Registro Interno: {pedido.numeroRegistro}</p>
                 
                 {/* Two-column layout */}

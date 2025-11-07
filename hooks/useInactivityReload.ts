@@ -1,21 +1,27 @@
 import { useEffect, useRef } from 'react';
 
 interface UseInactivityReloadOptions {
-  inactivityThreshold?: number; // Tiempo en ms antes de considerar la página inactiva (default: 5 minutos)
+  inactivityThreshold?: number; // Tiempo en ms antes de considerar la página inactiva (default: 30 minutos)
   reloadDelay?: number; // Delay antes de recargar cuando se detecta retorno (default: 500ms)
+  onLogout?: () => void; // Callback para cerrar sesión
 }
 
 /**
  * Hook que detecta cuando el usuario regresa después de un período de inactividad
- * y recarga automáticamente la página para evitar conflictos con otros usuarios.
+ * y cierra sesión automáticamente para evitar conflictos con otros usuarios.
+ * 
+ * ⚠️ IMPORTANTE: Después de 30 minutos de inactividad, se cierra la sesión automáticamente
+ * para garantizar que los datos estén sincronizados y liberar bloqueos de pedidos.
  * 
  * @param options - Opciones de configuración
- * @param options.inactivityThreshold - Tiempo en ms antes de considerar inactividad (default: 5 minutos)
+ * @param options.inactivityThreshold - Tiempo en ms antes de considerar inactividad (default: 30 minutos)
  * @param options.reloadDelay - Delay antes de recargar (default: 500ms)
+ * @param options.onLogout - Callback para cerrar sesión
  */
 export const useInactivityReload = ({
-  inactivityThreshold = 5 * 60 * 1000, // 5 minutos por defecto
-  reloadDelay = 500
+  inactivityThreshold = 30 * 60 * 1000, // 30 minutos por defecto (sincronizado con bloqueo de pedidos)
+  reloadDelay = 500,
+  onLogout
 }: UseInactivityReloadOptions = {}) => {
   const lastActiveTime = useRef<number>(Date.now());
   const isReloadingRef = useRef<boolean>(false);
@@ -35,36 +41,44 @@ export const useInactivityReload = ({
         const timeSinceLastActive = currentTime - lastActiveTime.current;
         
         console.log('👁️ Pestaña reactivada');
-        console.log(`⏱️ Tiempo inactivo: ${Math.round(timeSinceLastActive / 1000)} segundos`);
+        console.log(`⏱️ Tiempo inactivo: ${Math.round(timeSinceLastActive / 1000)} segundos (${Math.round(timeSinceLastActive / 60000)} minutos)`);
         
-        // Si el tiempo de inactividad supera el umbral, recargar la página
+        // Si el tiempo de inactividad supera el umbral, cerrar sesión y recargar
         if (timeSinceLastActive > inactivityThreshold) {
-          console.log('🔄 Inactividad detectada. Recargando página para sincronizar...');
+          console.log('� Inactividad prolongada detectada (>30 min). Cerrando sesión por seguridad...');
           
-          // Mostrar mensaje antes de recargar (opcional)
+          // Mostrar mensaje antes de cerrar sesión
           const mensaje = document.createElement('div');
           mensaje.style.cssText = `
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: white;
-            padding: 20px 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
             z-index: 9999;
             text-align: center;
             font-family: system-ui, -apple-system, sans-serif;
+            max-width: 400px;
           `;
           mensaje.innerHTML = `
-            <div style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 10px;">
-              🔄 Sincronizando datos...
+            <div style="font-size: 48px; margin-bottom: 15px;">⏱️</div>
+            <div style="font-size: 20px; font-weight: 700; margin-bottom: 10px;">
+              Sesión Expirada
             </div>
-            <div style="font-size: 14px; color: #6b7280;">
-              Recargando la aplicación para obtener los últimos cambios
+            <div style="font-size: 14px; opacity: 0.95; margin-bottom: 20px; line-height: 1.5;">
+              Has estado inactivo por más de 30 minutos.<br/>
+              Por seguridad, cerramos tu sesión automáticamente.
             </div>
-            <div style="margin-top: 15px;">
-              <div style="width: 40px; height: 40px; margin: 0 auto; border: 4px solid #e5e7eb; border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            <div style="font-size: 13px; opacity: 0.8; margin-bottom: 15px;">
+              🔓 Todos los bloqueos de pedidos han sido liberados<br/>
+              🔄 La aplicación se recargará en unos segundos
+            </div>
+            <div style="margin-top: 20px;">
+              <div style="width: 40px; height: 40px; margin: 0 auto; border: 4px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite;"></div>
             </div>
             <style>
               @keyframes spin {
@@ -77,15 +91,21 @@ export const useInactivityReload = ({
           // Marcar que estamos recargando
           isReloadingRef.current = true;
           
-          // Guardar flag en sessionStorage para detectar reload automático
-          sessionStorage.setItem('pigmea_auto_reload', 'true');
+          // Cerrar sesión si se proporcionó el callback
+          if (onLogout) {
+            onLogout();
+          }
           
-          // Recargar después de un pequeño delay
+          // Limpiar localStorage y sessionStorage
+          localStorage.removeItem('pigmea_user');
+          sessionStorage.setItem('pigmea_session_expired', 'true');
+          
+          // Recargar después de un delay
           setTimeout(() => {
-            window.location.reload();
-          }, reloadDelay);
+            window.location.href = '/'; // Redirigir a la raíz para forzar login
+          }, 3000); // 3 segundos para que el usuario lea el mensaje
         } else {
-          console.log('✅ Tiempo de inactividad aceptable. No es necesario recargar.');
+          console.log('✅ Tiempo de inactividad aceptable. No es necesario cerrar sesión.');
           // Actualizar el tiempo de última actividad
           lastActiveTime.current = currentTime;
         }
@@ -96,18 +116,18 @@ export const useInactivityReload = ({
       }
     };
 
-    // Verificar si es un reload automático y mostrar mensaje
-    if (sessionStorage.getItem('pigmea_auto_reload') === 'true') {
-      console.log('✅ Página recargada automáticamente después de inactividad');
-      sessionStorage.removeItem('pigmea_auto_reload');
+    // Verificar si es un reload por sesión expirada y mostrar mensaje
+    if (sessionStorage.getItem('pigmea_session_expired') === 'true') {
+      console.log('🔒 Sesión expirada por inactividad - Mostrando pantalla de login');
+      sessionStorage.removeItem('pigmea_session_expired');
       
-      // Opcional: Mostrar notificación temporal
+      // Mostrar notificación temporal informativa
       const notification = document.createElement('div');
       notification.style.cssText = `
         position: fixed;
         top: 20px;
         right: 20px;
-        background: #10b981;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         padding: 15px 20px;
         border-radius: 8px;
@@ -118,10 +138,10 @@ export const useInactivityReload = ({
       `;
       notification.innerHTML = `
         <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="font-size: 20px;">✅</span>
+          <span style="font-size: 24px;">🔒</span>
           <div>
-            <div style="font-weight: 600; margin-bottom: 2px;">Datos actualizados</div>
-            <div style="font-size: 13px; opacity: 0.9;">La aplicación se ha sincronizado correctamente</div>
+            <div style="font-weight: 600; margin-bottom: 2px;">Sesión cerrada</div>
+            <div style="font-size: 13px; opacity: 0.9;">Por inactividad prolongada (>30 min)</div>
           </div>
         </div>
         <style>
@@ -139,7 +159,7 @@ export const useInactivityReload = ({
       `;
       document.body.appendChild(notification);
       
-      // Remover notificación después de 4 segundos
+      // Remover notificación después de 5 segundos
       setTimeout(() => {
         notification.style.animation = 'slideOut 0.3s ease-in';
         notification.style.cssText += 'animation: slideOut 0.3s ease-in; @keyframes slideOut { to { transform: translateX(100%); opacity: 0; } }';
@@ -148,7 +168,7 @@ export const useInactivityReload = ({
             document.body.removeChild(notification);
           }
         }, 300);
-      }, 4000);
+      }, 5000);
     }
 
     // Agregar event listener
@@ -161,7 +181,7 @@ export const useInactivityReload = ({
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [inactivityThreshold, reloadDelay]);
+  }, [inactivityThreshold, reloadDelay, onLogout]);
 
   return {
     lastActiveTime: lastActiveTime.current,

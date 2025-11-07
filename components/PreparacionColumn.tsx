@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Droppable, Draggable } from 'react-beautiful-dnd';
 import { Pedido, UserRole } from '../types';
 import PedidoCard from './PedidoCard';
+import { useLockObserver } from '../hooks/useLockObserver';
+import { useAuth } from '../contexts/AuthContext';
 
 interface PreparacionColumnProps {
     columna: { id: string; title: string; color: string; };
@@ -31,6 +33,8 @@ const PreparacionColumn: React.FC<PreparacionColumnProps> = ({
     isSelectionActive = false,
     onToggleSelection
 }) => {
+    const { user } = useAuth();
+    const { getLockInfo } = useLockObserver();
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
@@ -76,6 +80,7 @@ const PreparacionColumn: React.FC<PreparacionColumnProps> = ({
                                                 isSelected={selectedIds.includes(pedido.id)}
                                                 isSelectionActive={isSelectionActive}
                                                 onToggleSelection={onToggleSelection}
+                                                lockInfo={getLockInfo(pedido.id, user?.id.toString())}
                                             />
                                         </div>
                                     )}

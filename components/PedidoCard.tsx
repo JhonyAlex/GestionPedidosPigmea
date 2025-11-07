@@ -5,6 +5,7 @@ import { puedeAvanzarSecuencia, estaFueraDeSecuencia } from '../utils/etapaLogic
 import { SparklesIcon } from './Icons';
 import { usePermissions } from '../hooks/usePermissions';
 import { formatDateDDMMYYYY } from '../utils/date';
+import LockIndicator from './LockIndicator';
 
 const ClockIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1 inline-block"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>;
 const CalendarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1 inline-block"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" /></svg>;
@@ -27,6 +28,12 @@ interface PedidoCardProps {
     isSelected?: boolean;
     isSelectionActive?: boolean;
     onToggleSelection?: (id: string) => void;
+    // Lock status props
+    lockInfo?: {
+        isLocked: boolean;
+        isLockedByMe: boolean;
+        lockedBy: string | null;
+    };
 }
 
 const PedidoCard: React.FC<PedidoCardProps> = ({ 
@@ -40,7 +47,8 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
     onUpdatePedido,
     isSelected = false,
     isSelectionActive = false,
-    onToggleSelection
+    onToggleSelection,
+    lockInfo
 }) => {
     const { canMovePedidos, canArchivePedidos } = usePermissions();
     const [isEditingFecha, setIsEditingFecha] = useState(false);
@@ -295,6 +303,17 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                             )}
                         </div>
                     )}
+                    
+                    {/* Indicador de bloqueo */}
+                    {lockInfo && lockInfo.isLocked && (
+                        <LockIndicator
+                            isLocked={lockInfo.isLocked}
+                            isLockedByMe={lockInfo.isLockedByMe}
+                            lockedBy={lockInfo.lockedBy}
+                            size="small"
+                        />
+                    )}
+                    
                     {pedido.antivaho && (
                         <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
                             pedido.antivahoRealizado 

@@ -252,6 +252,82 @@ app.post('/api/reset-users', (req, res) => {
 // --- WEBSOCKET SETUP ---
 let connectedUsers = new Map(); // userId -> { socketId, userRole, joinedAt }
 
+// === SISTEMA DE BLOQUEO DE PEDIDOS ===
+let pedidoLocks = new Map(); // pedidoId -> { userId, username, socketId, lockedAt, lastActivity }
+const LOCK_TIMEOUT = 30 * 60 * 1000; // 30 minutos de inactividad
+
+// Función para limpiar bloqueos expirados
+function cleanupExpiredLocks() {
+    const now = Date.now();
+    let hasChanges = false;
+    
+    Array.from(pedidoLocks.entries()).forEach(([pedidoId, lockData]) => {
+        const timeSinceActivity = now - lockData.lastActivity;
+        
+        // Si han pasado más de 30 minutos sin actividad, desbloquear
+        if (timeSinceActivity > LOCK_TIMEOUT) {
+            console.log(`🔓 Auto-desbloqueando pedido ${pedidoId} por inactividad (${Math.round(timeSinceActivity / 60000)} min)`);
+            pedidoLocks.delete(pedidoId);
+            hasChanges = true;
+            
+            // Notificar a todos que el pedido se desbloqueó
+            io.emit('pedido-unlocked', {
+                pedidoId,
+                reason: 'timeout',
+                timestamp: new Date().toISOString()
+            });
+        }
+    });
+    
+    if (hasChanges) {
+        // Emitir lista actualizada de bloqueos
+        io.emit('locks-updated', {
+            locks: Array.from(pedidoLocks.entries()).map(([id, data]) => ({
+                pedidoId: id,
+                userId: data.userId,
+                username: data.username,
+                lockedAt: data.lockedAt
+            }))
+        });
+    }
+}
+
+// Limpiar bloqueos expirados cada minuto
+setInterval(cleanupExpiredLocks, 60000);
+
+// Función para desbloquear todos los pedidos de un usuario
+function unlockAllPedidosForUser(userId, socketId) {
+    const unlockedPedidos = [];
+    
+    Array.from(pedidoLocks.entries()).forEach(([pedidoId, lockData]) => {
+        if (lockData.userId === userId || lockData.socketId === socketId) {
+            pedidoLocks.delete(pedidoId);
+            unlockedPedidos.push(pedidoId);
+            
+            // Notificar a todos que el pedido se desbloqueó
+            io.emit('pedido-unlocked', {
+                pedidoId,
+                reason: 'user-disconnect',
+                timestamp: new Date().toISOString()
+            });
+        }
+    });
+    
+    if (unlockedPedidos.length > 0) {
+        console.log(`🔓 Desbloqueados ${unlockedPedidos.length} pedidos del usuario ${userId}`);
+        
+        // Emitir lista actualizada de bloqueos
+        io.emit('locks-updated', {
+            locks: Array.from(pedidoLocks.entries()).map(([id, data]) => ({
+                pedidoId: id,
+                userId: data.userId,
+                username: data.username,
+                lockedAt: data.lockedAt
+            }))
+        });
+    }
+}
+
 // Función para limpiar usuarios fantasma periodicamente
 function cleanupGhostUsers() {
     const now = Date.now();
@@ -326,6 +402,9 @@ io.on('connection', (socket) => {
     // Manejar desconexión
     socket.on('disconnect', () => {
         if (socket.userId) {
+            // Desbloquear todos los pedidos del usuario
+            unlockAllPedidosForUser(socket.userId, socket.id);
+            
             connectedUsers.delete(socket.userId);
             
             // Notificar a otros usuarios sobre la desconexión
@@ -338,6 +417,123 @@ io.on('connection', (socket) => {
                 }))
             });
         }
+    });
+    
+    // === SISTEMA DE BLOQUEO DE PEDIDOS ===
+    
+    // Intentar bloquear un pedido
+    socket.on('lock-pedido', (data) => {
+        const { pedidoId, userId, username } = data;
+        
+        // Verificar si el pedido ya está bloqueado
+        const existingLock = pedidoLocks.get(pedidoId);
+        
+        if (existingLock) {
+            // Si está bloqueado por otro usuario, rechazar
+            if (existingLock.userId !== userId) {
+                socket.emit('lock-denied', {
+                    pedidoId,
+                    lockedBy: existingLock.username,
+                    lockedAt: existingLock.lockedAt
+                });
+                return;
+            }
+            
+            // Si está bloqueado por el mismo usuario, actualizar actividad
+            existingLock.lastActivity = Date.now();
+            existingLock.socketId = socket.id; // Actualizar socketId por si cambió
+            socket.emit('lock-acquired', { pedidoId, userId, username });
+            return;
+        }
+        
+        // Crear nuevo bloqueo
+        const now = Date.now();
+        pedidoLocks.set(pedidoId, {
+            userId,
+            username,
+            socketId: socket.id,
+            lockedAt: now,
+            lastActivity: now
+        });
+        
+        console.log(`🔒 Pedido ${pedidoId} bloqueado por ${username} (${userId})`);
+        
+        // Confirmar bloqueo al usuario que lo solicitó
+        socket.emit('lock-acquired', { pedidoId, userId, username });
+        
+        // Notificar a todos los demás usuarios que el pedido está bloqueado
+        socket.broadcast.emit('pedido-locked', {
+            pedidoId,
+            userId,
+            username,
+            lockedAt: now
+        });
+        
+        // Emitir lista actualizada de bloqueos
+        io.emit('locks-updated', {
+            locks: Array.from(pedidoLocks.entries()).map(([id, data]) => ({
+                pedidoId: id,
+                userId: data.userId,
+                username: data.username,
+                lockedAt: data.lockedAt
+            }))
+        });
+    });
+    
+    // Desbloquear un pedido
+    socket.on('unlock-pedido', (data) => {
+        const { pedidoId, userId } = data;
+        
+        const existingLock = pedidoLocks.get(pedidoId);
+        
+        // Solo permitir desbloqueo si es el mismo usuario
+        if (existingLock && existingLock.userId === userId) {
+            pedidoLocks.delete(pedidoId);
+            
+            console.log(`🔓 Pedido ${pedidoId} desbloqueado por ${existingLock.username}`);
+            
+            // Notificar a todos que el pedido se desbloqueó
+            io.emit('pedido-unlocked', {
+                pedidoId,
+                reason: 'user-unlock',
+                timestamp: new Date().toISOString()
+            });
+            
+            // Emitir lista actualizada de bloqueos
+            io.emit('locks-updated', {
+                locks: Array.from(pedidoLocks.entries()).map(([id, data]) => ({
+                    pedidoId: id,
+                    userId: data.userId,
+                    username: data.username,
+                    lockedAt: data.lockedAt
+                }))
+            });
+        }
+    });
+    
+    // Actualizar actividad en un pedido bloqueado (keep-alive)
+    socket.on('pedido-activity', (data) => {
+        const { pedidoId, userId } = data;
+        
+        const existingLock = pedidoLocks.get(pedidoId);
+        
+        // Solo actualizar si el pedido está bloqueado por este usuario
+        if (existingLock && existingLock.userId === userId) {
+            existingLock.lastActivity = Date.now();
+            existingLock.socketId = socket.id;
+        }
+    });
+    
+    // Solicitar lista actual de bloqueos
+    socket.on('get-locks', () => {
+        socket.emit('locks-updated', {
+            locks: Array.from(pedidoLocks.entries()).map(([id, data]) => ({
+                pedidoId: id,
+                userId: data.userId,
+                username: data.username,
+                lockedAt: data.lockedAt
+            }))
+        });
     });
     
     // Manejar eventos de presencia (usuario está escribiendo, viendo, etc.)

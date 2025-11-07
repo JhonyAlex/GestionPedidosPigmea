@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Droppable, Draggable } from 'react-beautiful-dnd';
 import { Pedido, KanbanEtapa, UserRole } from '../types';
 import PedidoCard from './PedidoCard';
+import { useLockObserver } from '../hooks/useLockObserver';
+import { useAuth } from '../contexts/AuthContext';
 
 interface KanbanColumnProps {
     etapa: KanbanEtapa;
@@ -31,6 +33,9 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
     isSelectionActive = false,
     onToggleSelection
 }) => {
+    const { user } = useAuth();
+    const { getLockInfo } = useLockObserver();
+    
     // Eliminado delay artificial, renderiza directamente
     const isMounted = true;
 
@@ -72,6 +77,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                                                 isSelected={selectedIds.includes(pedido.id)}
                                                 isSelectionActive={isSelectionActive}
                                                 onToggleSelection={onToggleSelection}
+                                                lockInfo={getLockInfo(pedido.id, user?.id.toString())}
                                             />
                                         </div>
                                     )}

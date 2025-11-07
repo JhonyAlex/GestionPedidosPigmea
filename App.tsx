@@ -43,13 +43,14 @@ import { auditService } from './services/audit';
 
 
 const AppContent: React.FC = () => {
-    const { user, loading } = useAuth();
+    const { user, loading, logout } = useAuth();
     
-    // Hook para detectar inactividad y recargar automáticamente
-    // Recarga si la pestaña estuvo inactiva por más de 5 minutos
+    // Hook para detectar inactividad y cerrar sesión automáticamente
+    // ⚠️ Sincronizado con el timeout de bloqueo de pedidos (30 minutos)
     useInactivityReload({
-        inactivityThreshold: 5 * 60 * 1000, // 5 minutos
-        reloadDelay: 500 // Medio segundo de delay antes de recargar
+        inactivityThreshold: 30 * 60 * 1000, // 30 minutos (igual que el timeout de bloqueos)
+        reloadDelay: 3000, // 3 segundos para mostrar mensaje
+        onLogout: logout // Cerrar sesión al detectar inactividad
     });
     
     // Hook de toast para notificaciones
