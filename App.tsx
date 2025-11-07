@@ -627,6 +627,13 @@ const AppContent: React.FC = () => {
             alert('Permiso denegado.');
             return;
         }
+        
+        // Cerrar cualquier modal abierto al cambiar de vista
+        if (selectedPedido) {
+            console.log('🔄 [APP] Cambiando de vista - cerrando modal abierto');
+            setSelectedPedido(null);
+        }
+        
         setView(newView);
     }
     
