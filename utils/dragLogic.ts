@@ -1,6 +1,6 @@
 import React from 'react';
 import { DropResult } from 'react-beautiful-dnd';
-import { Pedido, Etapa, UserRole, EstadoCliché, HistorialEntry } from '../types';
+import { Pedido, Etapa, UserRole, HistorialEntry } from '../types';
 import { ETAPAS, PREPARACION_SUB_ETAPAS_IDS } from '../constants';
 import { store } from '../services/storage';
 import { calculateTotalProductionTime } from './kpi';
@@ -119,27 +119,22 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
         };
 
         switch (destId) {
+            case PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA:
+                // Sin gestión iniciada: ambos campos undefined
+                tempUpdatedPedido.materialDisponible = undefined;
+                tempUpdatedPedido.clicheDisponible = undefined;
+                break;
             case PREPARACION_SUB_ETAPAS_IDS.MATERIAL_NO_DISPONIBLE:
                 tempUpdatedPedido.materialDisponible = false;
+                tempUpdatedPedido.clicheDisponible = undefined;
                 break;
             case PREPARACION_SUB_ETAPAS_IDS.CLICHE_NO_DISPONIBLE:
                 tempUpdatedPedido.materialDisponible = true;
                 tempUpdatedPedido.clicheDisponible = false;
                 break;
-            case PREPARACION_SUB_ETAPAS_IDS.CLICHE_PENDIENTE:
+            case PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION:
                 tempUpdatedPedido.materialDisponible = true;
                 tempUpdatedPedido.clicheDisponible = true;
-                tempUpdatedPedido.estadoCliché = EstadoCliché.PENDIENTE_CLIENTE;
-                break;
-            case PREPARACION_SUB_ETAPAS_IDS.CLICHE_REPETICION:
-                tempUpdatedPedido.materialDisponible = true;
-                tempUpdatedPedido.clicheDisponible = true;
-                tempUpdatedPedido.estadoCliché = EstadoCliché.REPETICION_CAMBIO;
-                break;
-            case PREPARACION_SUB_ETAPAS_IDS.CLICHE_NUEVO:
-                tempUpdatedPedido.materialDisponible = true;
-                tempUpdatedPedido.clicheDisponible = true;
-                tempUpdatedPedido.estadoCliché = EstadoCliché.NUEVO;
                 break;
         }
 

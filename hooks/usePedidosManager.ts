@@ -112,9 +112,8 @@ export const usePedidosManager = (
         let modifiedPedido = { ...updatedPedido };
         let hasChanges = false;
 
-        if (modifiedPedido.etapaActual === Etapa.PREPARACION) {
-            modifiedPedido.subEtapaActual = determinarEtapaPreparacion(modifiedPedido);
-        }
+        // ❌ ELIMINADO: Ya no recalculamos automáticamente la subEtapaActual
+        // Los usuarios ahora controlan manualmente la posición de los pedidos en Preparación
         
         if (generateHistory) {
             const newHistoryEntries: HistorialEntry[] = [];
