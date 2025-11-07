@@ -115,6 +115,25 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // ✅ Array vacío = solo al montar
 
+    // Limpiar el warning cuando el pedido se desbloquea
+    useEffect(() => {
+        if (!isLocked || isLockedByMe) {
+            // Si el pedido no está bloqueado O si soy yo quien lo tiene bloqueado, ocultar el warning
+            if (showLockWarning) {
+                console.log('🔓 [MODAL] Pedido desbloqueado - ocultando warning');
+                setShowLockWarning(false);
+                setLockWarningMessage('');
+            }
+        } else if (isLocked && !isLockedByMe && lockedBy) {
+            // Si está bloqueado por otro usuario, mostrar el warning
+            if (!showLockWarning) {
+                console.log('🔒 [MODAL] Pedido bloqueado por otro usuario - mostrando warning');
+                setLockWarningMessage(`Este pedido está siendo editado por ${lockedBy}`);
+                setShowLockWarning(true);
+            }
+        }
+    }, [isLocked, isLockedByMe, lockedBy, showLockWarning]);
+
     // Cargar vendedores al montar el componente
     useEffect(() => {
         fetchVendedores();
