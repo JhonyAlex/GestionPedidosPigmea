@@ -349,19 +349,36 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
             {pedido.numerosCompra && pedido.numerosCompra.length > 0 && (
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                     <span className="font-medium">Nº Compra:</span>{' '}
-                    {pedido.numerosCompra.length === 1 ? (
-                        pedido.numerosCompra[0]
-                    ) : (
-                        <span className="inline-flex flex-wrap gap-1">
-                            {pedido.numerosCompra.map((numero, index) => (
-                                numero && (
-                                    <span key={index} className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded">
-                                        #{index + 1}: {numero}
-                                    </span>
-                                )
-                            ))}
-                        </span>
-                    )}
+                    <span className="inline-flex flex-wrap gap-1">
+                        {pedido.numerosCompra.map((numero, index) => {
+                            // Determinar el color según el estado del material correspondiente
+                            const materialItem = pedido.materialConsumo?.[index];
+                            const recibido = materialItem?.recibido;
+                            
+                            // Verificar si TODOS los materiales están disponibles (para mostrar verde)
+                            const todosDisponibles = pedido.materialConsumo?.every(m => m.recibido === true);
+                            
+                            let bgColor = 'bg-blue-100 dark:bg-blue-900'; // Azul por defecto (sin estado)
+                            let textColor = 'text-blue-800 dark:text-blue-200';
+                            
+                            if (todosDisponibles) {
+                                // Verde: TODOS los materiales están disponibles
+                                bgColor = 'bg-green-100 dark:bg-green-900';
+                                textColor = 'text-green-800 dark:text-green-200';
+                            } else if (recibido === false) {
+                                // Rojo: Este material NO está disponible
+                                bgColor = 'bg-red-100 dark:bg-red-900';
+                                textColor = 'text-red-800 dark:text-red-200';
+                            }
+                            // else: Azul (recibido === null/undefined o true pero no todos)
+                            
+                            return numero ? (
+                                <span key={index} className={`${bgColor} ${textColor} px-2 py-0.5 rounded`}>
+                                    {pedido.numerosCompra.length === 1 ? numero : `#${index + 1}: ${numero}`}
+                                </span>
+                            ) : null;
+                        })}
+                    </span>
                 </div>
             )}
             
