@@ -37,6 +37,18 @@ export const usePedidoLock = ({
   const isUnmountingRef = useRef(false);
   const currentPedidoIdRef = useRef<string | null>(null);
   const isLockedByMeRef = useRef<boolean>(false);
+  
+  // ✅ Refs para callbacks y pedidoId para evitar stale closures
+  const pedidoIdRef = useRef(pedidoId);
+  const onLockDeniedRef = useRef(onLockDenied);
+  const onLockLostRef = useRef(onLockLost);
+  
+  // Actualizar refs cuando cambien los props
+  useEffect(() => {
+    pedidoIdRef.current = pedidoId;
+    onLockDeniedRef.current = onLockDenied;
+    onLockLostRef.current = onLockLost;
+  }, [pedidoId, onLockDenied, onLockLost]);
 
   // Conectar al WebSocket
   useEffect(() => {
@@ -60,7 +72,7 @@ export const usePedidoLock = ({
     });
 
     socket.on('lock-acquired', (data: { pedidoId: string; userId: string; username: string }) => {
-      if (data.pedidoId === pedidoId && data.userId === user.id.toString()) {
+      if (data.pedidoId === pedidoIdRef.current && data.userId === user.id.toString()) {
         setIsLocked(true);
         setIsLockedByMe(true);
         setLockedBy(data.username);
@@ -69,19 +81,19 @@ export const usePedidoLock = ({
     });
 
     socket.on('lock-denied', (data: { pedidoId: string; lockedBy: string }) => {
-      if (data.pedidoId === pedidoId) {
+      if (data.pedidoId === pedidoIdRef.current) {
         setIsLocked(true);
         setIsLockedByMe(false);
         setLockedBy(data.lockedBy);
         
-        if (onLockDenied) {
-          onLockDenied(data.lockedBy);
+        if (onLockDeniedRef.current) {
+          onLockDeniedRef.current(data.lockedBy);
         }
       }
     });
 
     socket.on('pedido-locked', (data: { pedidoId: string; userId: string; username: string }) => {
-      if (data.pedidoId === pedidoId && data.userId !== user.id.toString()) {
+      if (data.pedidoId === pedidoIdRef.current && data.userId !== user.id.toString()) {
         setIsLocked(true);
         setIsLockedByMe(false);
         setLockedBy(data.username);
@@ -89,15 +101,15 @@ export const usePedidoLock = ({
     });
 
     socket.on('pedido-unlocked', (data: { pedidoId: string; reason: string }) => {
-      if (data.pedidoId === pedidoId) {
+      if (data.pedidoId === pedidoIdRef.current) {
         setIsLocked(false);
         setIsLockedByMe(false);
         setLockedBy(null);
-        isLockedByMeRef.current = false; // ✅ Actualizar ref
+        isLockedByMeRef.current = false;
         
         // Si era nuestro bloqueo y se perdió por timeout, notificar
-        if (isLockedByMe && data.reason === 'timeout' && onLockLost) {
-          onLockLost();
+        if (isLockedByMe && data.reason === 'timeout' && onLockLostRef.current) {
+          onLockLostRef.current();
         }
       }
     });
@@ -106,8 +118,9 @@ export const usePedidoLock = ({
       setAllLocks(data.locks);
       
       // Verificar si el pedido actual está en la lista
-      if (pedidoId) {
-        const lock = data.locks.find(l => l.pedidoId === pedidoId);
+      const currentPedidoId = pedidoIdRef.current;
+      if (currentPedidoId) {
+        const lock = data.locks.find(l => l.pedidoId === currentPedidoId);
         if (lock) {
           setIsLocked(true);
           setIsLockedByMe(lock.userId === user.id.toString());
@@ -123,7 +136,7 @@ export const usePedidoLock = ({
     return () => {
       socket.disconnect();
     };
-  }, [user, pedidoId, onLockDenied, onLockLost, isLockedByMe]);
+  }, [user]); // ✅ Solo depender de 'user', no de las demás variables que cambian frecuentemente
 
   // Intentar bloquear el pedido
   const lockPedido = useCallback(() => {
