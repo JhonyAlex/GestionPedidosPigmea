@@ -200,6 +200,21 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         }, 100);
     }, [pedido.id, isLockedByMe, unlockPedido, onClose]);
 
+        // ✅ Desbloquear, guardar cambios y cerrar modal (usado por submits directos)
+        const savePedidoAndClose = useCallback((pedidoActualizado: Pedido) => {
+            console.log('🔓 [MODAL] Desbloqueando antes de guardar pedido:', pedidoActualizado.id);
+            if (isLockedByMe) {
+                unlockPedido();
+            }
+
+            onSave(pedidoActualizado);
+
+            // Cerrar el modal después de un pequeño delay para garantizar que el unlock llegue al servidor
+            setTimeout(() => {
+                onClose();
+            }, 100);
+        }, [isLockedByMe, unlockPedido, onSave, onClose]);
+
     // Manejar el cierre del modal con confirmación si hay cambios
     const handleClose = () => {
         if (hasUnsavedChanges && !isReadOnly) {
@@ -250,20 +265,9 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
             alert('Metros debe ser un número mayor a 0.');
             return;
         }
-        
-        // ✅ IMPORTANTE: Desbloquear ANTES de guardar para evitar que el re-render cause problemas
-        console.log('🔓 [MODAL] Desbloqueando antes de guardar');
-        if (isLockedByMe) {
-            unlockPedido();
-        }
-        
-        // Guardar los cambios
-        onSave(formData);
-        
-        // Cerrar después de un pequeño delay
-        setTimeout(() => {
-            onClose();
-        }, 100);
+
+        const pedidoActualizado = { ...formData, metros: metrosValue } as Pedido;
+        savePedidoAndClose(pedidoActualizado);
     };
 
     // Descartar cambios y cerrar
@@ -373,7 +377,8 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
             alert('Metros debe ser un número mayor a 0.');
             return;
         }
-        onSave({ ...formData, metros: metrosValue });
+        const pedidoActualizado = { ...formData, metros: metrosValue } as Pedido;
+        savePedidoAndClose(pedidoActualizado);
     };
     
     const handleArchiveClick = () => {
