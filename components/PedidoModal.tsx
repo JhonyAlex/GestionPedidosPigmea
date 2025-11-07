@@ -102,12 +102,18 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         setFormData(JSON.parse(JSON.stringify(pedido)));
     }, [pedido]);
 
-    // Solicitar bloqueo al abrir el modal (solo si tiene permisos de edición)
+    // Solicitar bloqueo al abrir el modal (solo una vez al montar)
     useEffect(() => {
+        console.log('🔒 [MODAL] Modal montado - verificando permisos para bloqueo');
         if (canEditPedidos()) {
+            console.log('✅ [MODAL] Tiene permisos - solicitando bloqueo');
             lockPedido();
+        } else {
+            console.log('⚠️ [MODAL] Sin permisos de edición - no se solicita bloqueo');
         }
-    }, [canEditPedidos, lockPedido]);
+        // Solo ejecutar al montar, NO agregar lockPedido a las dependencias
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // ✅ Array vacío = solo al montar
 
     // Cargar vendedores al montar el componente
     useEffect(() => {

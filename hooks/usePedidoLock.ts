@@ -89,6 +89,7 @@ export const usePedidoLock = ({
         setIsLocked(true);
         setIsLockedByMe(false);
         setLockedBy(data.lockedBy);
+        isLockedByMeRef.current = false; // ✅ Actualizar ref
         
         if (onLockDeniedRef.current) {
           onLockDeniedRef.current(data.lockedBy);
@@ -103,6 +104,7 @@ export const usePedidoLock = ({
         setIsLocked(true);
         setIsLockedByMe(false);
         setLockedBy(data.username);
+        isLockedByMeRef.current = false; // ✅ Actualizar ref
       }
     });
 
@@ -130,13 +132,16 @@ export const usePedidoLock = ({
       if (currentPedidoId) {
         const lock = data.locks.find(l => l.pedidoId === currentPedidoId);
         if (lock) {
+          const isLockedByCurrentUser = lock.userId === user.id.toString();
           setIsLocked(true);
-          setIsLockedByMe(lock.userId === user.id.toString());
+          setIsLockedByMe(isLockedByCurrentUser);
           setLockedBy(lock.username);
+          isLockedByMeRef.current = isLockedByCurrentUser; // ✅ Actualizar ref
         } else {
           setIsLocked(false);
           setIsLockedByMe(false);
           setLockedBy(null);
+          isLockedByMeRef.current = false; // ✅ Actualizar ref
         }
       }
     });
