@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Pedido, Prioridad, Etapa, UserRole, TipoImpresion, EstadoCliché } from '../types';
 import { calcularTiempoRealProduccion, parseTimeToMinutes, formatMinutesToHHMM } from '../utils/kpi';
 import { formatDateTimeDDMMYYYY } from '../utils/date';
@@ -188,20 +188,24 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         };
     }, [hasUnsavedChanges, isReadOnly, showConfirmClose]);
 
+    // ✅ Función centralizada para cerrar el modal y desbloquear el pedido
+    const closeModalAndUnlock = useCallback(() => {
+        console.log('🔓 [MODAL] Cerrando modal - desbloqueando pedido:', pedido.id);
+        if (isLockedByMe) {
+            unlockPedido();
+        }
+        // Pequeño delay para asegurar que el desbloqueo se envíe
+        setTimeout(() => {
+            onClose();
+        }, 50);
+    }, [pedido.id, isLockedByMe, unlockPedido, onClose]);
+
     // Manejar el cierre del modal con confirmación si hay cambios
     const handleClose = () => {
         if (hasUnsavedChanges && !isReadOnly) {
             setShowConfirmClose(true);
         } else {
-            // ✅ Desbloquear explícitamente antes de cerrar
-            console.log('🔓 [MODAL] Cerrando modal - desbloqueando pedido:', pedido.id);
-            if (isLockedByMe) {
-                unlockPedido();
-            }
-            // Pequeño delay para asegurar que el desbloqueo se envíe
-            setTimeout(() => {
-                onClose();
-            }, 50);
+            closeModalAndUnlock();
         }
     };
 
@@ -226,7 +230,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         }
         
         onSetReadyForProduction(formData);
-        onClose();
+        closeModalAndUnlock();
     };
 
     // Guardar cambios y cerrar
@@ -237,21 +241,13 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
             return;
         }
         onSave(formData);
-        onClose();
+        closeModalAndUnlock();
     };
 
     // Descartar cambios y cerrar
     const handleDiscardAndClose = () => {
         setShowConfirmClose(false);
-        // ✅ Desbloquear explícitamente antes de cerrar
-        console.log('🔓 [MODAL] Descartando cambios - desbloqueando pedido:', pedido.id);
-        if (isLockedByMe) {
-            unlockPedido();
-        }
-        // Pequeño delay para asegurar que el desbloqueo se envíe
-        setTimeout(() => {
-            onClose();
-        }, 50);
+        closeModalAndUnlock();
     };
 
     // Cancelar el cierre
@@ -364,7 +360,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     
     const handleAdvanceClick = () => {
         onAdvanceStage(pedido);
-        onClose();
+        closeModalAndUnlock();
     };
 
     const handleSendToPrintClick = () => {
@@ -382,20 +378,20 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         // Asegurar que se guarden los cambios antes de enviar a impresión
         const updatedPedido = { ...pedido, ...formData };
         onSendToPrint(updatedPedido);
-        onClose();
+        closeModalAndUnlock();
     }
 
     const handleDuplicateClick = () => {
         if (window.confirm(`¿Está seguro de que desea duplicar el pedido ${pedido.numeroPedidoCliente}?`)) {
             onDuplicate(pedido);
-            onClose();
+            closeModalAndUnlock();
         }
     };
 
     const handleDeleteClick = () => {
         if (window.confirm(`¿Está seguro de que desea ELIMINAR PERMANENTEMENTE el pedido ${pedido.numeroPedidoCliente}? Esta acción no se puede deshacer.`)) {
             onDelete(pedido.id);
-            onClose();
+            closeModalAndUnlock();
         }
     };
 
@@ -487,7 +483,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     const handleRevertToPrinting = (newStage: Etapa) => {
         if (!printingStages.includes(newStage)) return;
         onUpdateEtapa(pedido, newStage);
-        onClose();
+        closeModalAndUnlock();
     }
 
     const sortedHistory = useMemo(() => {
