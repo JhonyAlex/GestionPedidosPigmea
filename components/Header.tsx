@@ -28,6 +28,8 @@ interface HeaderProps {
     onPreparacionFilterChange?: (value: 'all' | 'sin-material' | 'sin-cliche' | 'listo') => void;
     estadoClicheFilter?: EstadoCliché | 'all';
     onEstadoClicheFilterChange?: (value: EstadoCliché | 'all') => void;
+    anonimoFilter?: 'all' | 'si' | 'no';
+    onAnonimoFilterChange?: (value: 'all' | 'si' | 'no') => void;
     weekFilter: WeekFilterType;
     onWeekFilterToggle: () => void;
     onWeekChange: (year: number, week: number) => void;
@@ -92,6 +94,8 @@ const Header: React.FC<HeaderProps> = ({
     onPreparacionFilterChange,
     estadoClicheFilter = 'all',
     onEstadoClicheFilterChange,
+    anonimoFilter = 'all',
+    onAnonimoFilterChange,
     weekFilter,
     onWeekFilterToggle,
     onWeekChange,
@@ -410,6 +414,20 @@ const Header: React.FC<HeaderProps> = ({
                             <option value="sin">Sin Antivaho</option>
                             <option value="hecho">Antivaho Hecho</option>
                         </select>
+
+                        {/* Filtro de Anónimo */}
+                        {onAnonimoFilterChange && (
+                            <select
+                                name="anonimo"
+                                value={anonimoFilter}
+                                onChange={(e) => onAnonimoFilterChange(e.target.value as 'all' | 'si' | 'no')}
+                                className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            >
+                                <option value="all">Anónimo (Todos)</option>
+                                <option value="si">Sí Anónimo</option>
+                                <option value="no">No Anónimo</option>
+                            </select>
+                        )}
 
                         {/* Filtro de Estado de Cliché */}
                         {onEstadoClicheFilterChange && (

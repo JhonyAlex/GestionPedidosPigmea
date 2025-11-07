@@ -15,6 +15,7 @@ interface PersistedFilters {
     antivahoFilter: 'all' | 'con' | 'sin' | 'hecho';
     preparacionFilter: 'all' | 'sin-material' | 'sin-cliche' | 'listo';
     estadoClicheFilter: EstadoCliché | 'all';
+    anonimoFilter: 'all' | 'si' | 'no';
     dateFilter: DateFilterOption;
     customDateRange: { start: string; end: string };
     weekFilter: WeekFilter;
@@ -63,6 +64,9 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
     const [estadoClicheFilter, setEstadoClicheFilter] = useState<EstadoCliché | 'all'>(
         savedFilters.estadoClicheFilter || 'all'
     );
+    const [anonimoFilter, setAnonimoFilter] = useState<'all' | 'si' | 'no'>(
+        savedFilters.anonimoFilter || 'all'
+    );
     const [dateFilter, setDateFilter] = useState<DateFilterOption>(savedFilters.dateFilter || 'all');
     const [customDateRange, setCustomDateRange] = useState<{ start: string, end: string }>(
         savedFilters.customDateRange || { start: '', end: '' }
@@ -90,6 +94,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
             antivahoFilter,
             preparacionFilter,
             estadoClicheFilter,
+            anonimoFilter,
             dateFilter,
             customDateRange,
             weekFilter,
@@ -103,6 +108,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         antivahoFilter,
         preparacionFilter,
         estadoClicheFilter,
+        anonimoFilter,
         dateFilter,
         customDateRange,
         weekFilter,
@@ -114,6 +120,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
     const handleAntivahoFilterChange = (value: 'all' | 'con' | 'sin' | 'hecho') => setAntivahoFilter(value);
     const handlePreparacionFilterChange = (value: 'all' | 'sin-material' | 'sin-cliche' | 'listo') => setPreparacionFilter(value);
     const handleEstadoClicheFilterChange = (value: EstadoCliché | 'all') => setEstadoClicheFilter(value);
+    const handleAnonimoFilterChange = (value: 'all' | 'si' | 'no') => setAnonimoFilter(value);
     const handleCustomDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setCustomDateRange(prev => ({ ...prev, [name]: value }));
@@ -184,6 +191,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         setAntivahoFilter('all');
         setPreparacionFilter('all');
         setEstadoClicheFilter('all');
+        setAnonimoFilter('all');
         setDateFilter('all');
         setCustomDateRange({ start: '', end: '' });
         setWeekFilter({
@@ -302,6 +310,11 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
             // Filtro de Estado de Cliché
             const estadoClicheMatch = estadoClicheFilter === 'all' || p.estadoCliché === estadoClicheFilter;
 
+            // Filtro de Anónimo
+            const anonimoMatch = anonimoFilter === 'all' || 
+                (anonimoFilter === 'si' && p.anonimo === true) || 
+                (anonimoFilter === 'no' && p.anonimo !== true);
+
             // Filtro de semana (tiene prioridad sobre filtro de fecha normal)
             let weekMatch = true;
             if (weekFilter.enabled) {
@@ -332,7 +345,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
             // Si el filtro de semana está activo, usar weekMatch en lugar de dateMatch
             const finalDateMatch = weekFilter.enabled ? weekMatch : dateMatch;
 
-            return searchTermMatch && priorityMatch && stageMatch && finalDateMatch && antivahoMatch && preparacionMatch && estadoClicheMatch;
+            return searchTermMatch && priorityMatch && stageMatch && finalDateMatch && antivahoMatch && preparacionMatch && estadoClicheMatch && anonimoMatch;
         });
 
         if (sortConfig.key) {
@@ -383,7 +396,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         
         return filtered;
 
-    }, [pedidos, searchTerm, filters, selectedStages, antivahoFilter, preparacionFilter, estadoClicheFilter, dateFilter, sortConfig, customDateRange, weekFilter]);
+    }, [pedidos, searchTerm, filters, selectedStages, antivahoFilter, preparacionFilter, estadoClicheFilter, anonimoFilter, dateFilter, sortConfig, customDateRange, weekFilter]);
 
     return {
         processedPedidos,
@@ -401,6 +414,8 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         handlePreparacionFilterChange,
         estadoClicheFilter,
         handleEstadoClicheFilterChange,
+        anonimoFilter,
+        handleAnonimoFilterChange,
         dateFilter,
         handleDateFilterChange,
         customDateRange,

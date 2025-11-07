@@ -150,6 +150,8 @@ const AppContent: React.FC = () => {
       handlePreparacionFilterChange,
       estadoClicheFilter,
       handleEstadoClicheFilterChange,
+      anonimoFilter,
+      handleAnonimoFilterChange,
       weekFilter,
       handleWeekFilterToggle,
       handleWeekChange,
@@ -841,6 +843,8 @@ const AppContent: React.FC = () => {
                     onPreparacionFilterChange={handlePreparacionFilterChange}
                     estadoClicheFilter={estadoClicheFilter}
                     onEstadoClicheFilterChange={handleEstadoClicheFilterChange}
+                    anonimoFilter={anonimoFilter}
+                    onAnonimoFilterChange={handleAnonimoFilterChange}
                     weekFilter={weekFilter}
                     onWeekFilterToggle={handleWeekFilterToggle}
                     onWeekChange={handleWeekChange}
