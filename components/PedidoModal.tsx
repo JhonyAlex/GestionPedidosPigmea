@@ -194,10 +194,10 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         if (isLockedByMe) {
             unlockPedido();
         }
-        // Pequeño delay para asegurar que el desbloqueo se envíe
+        // Delay para asegurar que el desbloqueo se envíe
         setTimeout(() => {
             onClose();
-        }, 50);
+        }, 100);
     }, [pedido.id, isLockedByMe, unlockPedido, onClose]);
 
     // Manejar el cierre del modal con confirmación si hay cambios
@@ -229,8 +229,18 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
             return;
         }
         
+        // ✅ IMPORTANTE: Desbloquear ANTES de guardar
+        console.log('🔓 [MODAL] Desbloqueando antes de marcar como listo para producción');
+        if (isLockedByMe) {
+            unlockPedido();
+        }
+        
         onSetReadyForProduction(formData);
-        closeModalAndUnlock();
+        
+        // Cerrar después de un pequeño delay
+        setTimeout(() => {
+            onClose();
+        }, 100);
     };
 
     // Guardar cambios y cerrar
@@ -240,8 +250,20 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
             alert('Metros debe ser un número mayor a 0.');
             return;
         }
+        
+        // ✅ IMPORTANTE: Desbloquear ANTES de guardar para evitar que el re-render cause problemas
+        console.log('🔓 [MODAL] Desbloqueando antes de guardar');
+        if (isLockedByMe) {
+            unlockPedido();
+        }
+        
+        // Guardar los cambios
         onSave(formData);
-        closeModalAndUnlock();
+        
+        // Cerrar después de un pequeño delay
+        setTimeout(() => {
+            onClose();
+        }, 100);
     };
 
     // Descartar cambios y cerrar
