@@ -186,10 +186,15 @@ const Header: React.FC<HeaderProps> = ({
     };
 
     const handleSelectPedido = (pedido: Pedido) => {
+        console.log('🔍 handleSelectPedido - Pedido seleccionado:', pedido);
+        console.log('🔍 onNavigateToPedido existe?', !!onNavigateToPedido);
         setShowSearchDropdown(false);
         onSearch(''); // Limpiar el término de búsqueda
         if (onNavigateToPedido) {
+            console.log('🔍 Llamando a onNavigateToPedido...');
             onNavigateToPedido(pedido);
+        } else {
+            console.error('❌ onNavigateToPedido no está definido!');
         }
     };
     

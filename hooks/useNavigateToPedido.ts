@@ -15,6 +15,9 @@ export const useNavigateToPedido = ({
 }: UseNavigateToPedidoProps) => {
     
     const navigateToPedido = useCallback((pedido: Pedido) => {
+        console.log('🚀 useNavigateToPedido - Pedido recibido:', pedido);
+        console.log('🚀 Etapa actual:', pedido.etapaActual);
+        
         // Determinar qué vista usar según la etapa del pedido
         let targetView: ViewType = 'kanban'; // Vista por defecto
         
@@ -38,17 +41,23 @@ export const useNavigateToPedido = ({
             targetView = 'archived';
         }
         
+        console.log('🚀 Vista destino:', targetView);
+        
         // Cambiar a la vista correspondiente
         setView(targetView);
         
+        console.log('🚀 Abriendo modal del pedido...');
         // Abrir el modal del pedido
         setSelectedPedido(pedido);
         
+        console.log('🚀 Resaltando pedido...');
         // Resaltar el pedido brevemente
         setHighlightedPedidoId(pedido.id);
         setTimeout(() => {
             setHighlightedPedidoId(null);
         }, 3000); // Resaltar por 3 segundos
+        
+        console.log('✅ useNavigateToPedido - Proceso completado');
     }, [setView, setSelectedPedido, setHighlightedPedidoId]);
 
     return { navigateToPedido };
