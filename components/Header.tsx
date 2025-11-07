@@ -133,12 +133,10 @@ const Header: React.FC<HeaderProps> = ({
             
             // No cerrar si el clic es dentro del dropdown (buscar por clases del GlobalSearchDropdown)
             if (target.closest('.global-search-dropdown')) {
-                console.log('🔍 Click dentro del dropdown - NO cerrar');
                 return;
             }
             
             if (searchContainerRef.current && !searchContainerRef.current.contains(target)) {
-                console.log('🔍 Click fuera - cerrando dropdown');
                 setShowSearchDropdown(false);
             }
         };
@@ -190,23 +188,15 @@ const Header: React.FC<HeaderProps> = ({
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        console.log('🔍 Header - Búsqueda cambiada:', value);
         onSearch(value);
-        const shouldShow = value.trim().length > 0;
-        console.log('🔍 Header - Mostrar dropdown?', shouldShow);
-        setShowSearchDropdown(shouldShow);
+        setShowSearchDropdown(value.trim().length > 0);
     };
 
     const handleSelectPedido = (pedido: Pedido) => {
-        console.log('🔍 handleSelectPedido - Pedido seleccionado:', pedido);
-        console.log('🔍 onNavigateToPedido existe?', !!onNavigateToPedido);
         setShowSearchDropdown(false);
         onSearch(''); // Limpiar el término de búsqueda
         if (onNavigateToPedido) {
-            console.log('🔍 Llamando a onNavigateToPedido...');
             onNavigateToPedido(pedido);
-        } else {
-            console.error('❌ onNavigateToPedido no está definido!');
         }
     };
     

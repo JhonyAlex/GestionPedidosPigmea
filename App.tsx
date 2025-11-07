@@ -173,10 +173,8 @@ const AppContent: React.FC = () => {
 
     // Función para navegar a un pedido (usado por búsqueda global y referencias)
     const handleNavigateToPedido = useCallback((pedido: Pedido) => {
-        console.log('🎯 handleNavigateToPedido - Iniciando navegación:', pedido);
         // Limpiar el término de búsqueda al navegar
         setSearchTerm('');
-        console.log('🎯 Llamando a navigateToPedido...');
         navigateToPedido(pedido);
     }, [navigateToPedido, setSearchTerm]);
 
