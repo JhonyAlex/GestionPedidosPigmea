@@ -187,6 +187,7 @@ const Header: React.FC<HeaderProps> = ({
 
     const handleSelectPedido = (pedido: Pedido) => {
         setShowSearchDropdown(false);
+        onSearch(''); // Limpiar el término de búsqueda
         if (onNavigateToPedido) {
             onNavigateToPedido(pedido);
         }
