@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NotificationData } from '../services/websocket';
 import { formatDateTimeDDMMYYYY } from '../utils/date';
 
@@ -8,6 +8,17 @@ interface NotificationProps {
 }
 
 const NotificationItem: React.FC<NotificationProps> = ({ notification, onRemove }) => {
+  // ✅ Auto-cerrar notificación si tiene autoClose: true
+  useEffect(() => {
+    if (notification.autoClose && notification.duration) {
+      const timer = setTimeout(() => {
+        onRemove(notification.id);
+      }, notification.duration);
+
+      return () => clearTimeout(timer);
+    }
+  }, [notification.id, notification.autoClose, notification.duration, onRemove]);
+
   const getIcon = () => {
     switch (notification.type) {
       case 'success': return '✅';

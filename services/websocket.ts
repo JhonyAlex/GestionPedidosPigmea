@@ -384,7 +384,8 @@ class WebSocketService {
           type: 'warning',
           title: 'Desconectado',
           message: 'Conexión en tiempo real perdida. Reintentando...',
-          autoClose: false
+          autoClose: true, // ✅ Cambiar a true para auto-cerrar después de 5 segundos
+          duration: 5000 // ✅ Cerrar después de 5 segundos
         });
         // Comenzar pruebas de conectividad
         this.startConnectionTest();
@@ -400,7 +401,8 @@ class WebSocketService {
           type: 'error',
           title: 'Error de conexión',
           message: 'No se pudo restablecer la conexión en tiempo real',
-          autoClose: false
+          autoClose: true, // ✅ Auto-cerrar después de 8 segundos
+          duration: 8000
         });
       }
     });
@@ -413,13 +415,15 @@ class WebSocketService {
       this.reconnectAttempts = 0;
       this.stopConnectionTest(); // Detener pruebas cuando ya estamos conectados
       
-      // Limpiar notificaciones de desconexión anteriores
+      // ✅ Limpiar TODAS las notificaciones de desconexión inmediatamente
       this.notifications = this.notifications.filter(n => 
-        n.type !== 'warning' && n.type !== 'error' || 
-        !n.message.includes('conexión') && !n.message.includes('internet')
+        !(n.type === 'warning' && (n.title === 'Desconectado' || n.message.includes('Conexión en tiempo real perdida'))) &&
+        !(n.type === 'error' && n.message.includes('conexión')) &&
+        !(n.type === 'info' && n.message.includes('internet'))
       );
       this.notificationListeners.forEach(callback => callback(this.notifications));
       
+      // Mostrar mensaje de éxito
       this.addNotification({
         type: 'success',
         title: 'Sistema restablecido',
@@ -438,7 +442,8 @@ class WebSocketService {
         type: 'error',
         title: 'Reconexión fallida',
         message: 'No se pudo restablecer la conexión automáticamente',
-        autoClose: false
+        autoClose: true, // ✅ Auto-cerrar después de 10 segundos
+        duration: 10000
       });
     });
 
