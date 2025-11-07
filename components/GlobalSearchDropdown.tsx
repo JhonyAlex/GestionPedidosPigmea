@@ -21,6 +21,12 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
 }) => {
     const inputRef = useRef<HTMLInputElement>(null);
 
+    console.log('🔍 GlobalSearchDropdown renderizado:', {
+        searchTerm,
+        resultsCount: results.length,
+        onSelectPedidoExists: !!onSelectPedido
+    });
+
     // Auto-focus en el input cuando se abre
     useEffect(() => {
         inputRef.current?.focus();
@@ -28,6 +34,7 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
 
     // No mostrar dropdown si no hay término de búsqueda
     if (!searchTerm || searchTerm.trim().length === 0) {
+        console.log('🔍 GlobalSearchDropdown: No se muestra (sin término de búsqueda)');
         return null;
     }
 
@@ -39,7 +46,7 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
         <>
             {/* Overlay de fondo */}
             <div 
-                className="fixed inset-0 bg-black/20 dark:bg-black/40 z-40" 
+                className="fixed inset-0 bg-black/20 dark:bg-black/40 z-40 global-search-dropdown" 
                 onClick={(e) => {
                     console.log('🖱️ Click en overlay');
                     e.stopPropagation();
@@ -49,7 +56,7 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
             
             {/* Dropdown */}
             <div 
-                className="fixed inset-x-4 top-20 z-50 max-w-4xl mx-auto bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-2xl max-h-[calc(100vh-8rem)] flex flex-col"
+                className="global-search-dropdown fixed inset-x-4 top-20 z-50 max-w-4xl mx-auto bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-2xl max-h-[calc(100vh-8rem)] flex flex-col"
                 onClick={(e) => {
                     console.log('🖱️ Click en dropdown container');
                     e.stopPropagation();

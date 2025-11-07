@@ -129,7 +129,16 @@ const Header: React.FC<HeaderProps> = ({
     // Cerrar dropdown al hacer click fuera
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+            const target = event.target as HTMLElement;
+            
+            // No cerrar si el clic es dentro del dropdown (buscar por clases del GlobalSearchDropdown)
+            if (target.closest('.global-search-dropdown')) {
+                console.log('🔍 Click dentro del dropdown - NO cerrar');
+                return;
+            }
+            
+            if (searchContainerRef.current && !searchContainerRef.current.contains(target)) {
+                console.log('🔍 Click fuera - cerrando dropdown');
                 setShowSearchDropdown(false);
             }
         };
@@ -181,8 +190,11 @@ const Header: React.FC<HeaderProps> = ({
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
+        console.log('🔍 Header - Búsqueda cambiada:', value);
         onSearch(value);
-        setShowSearchDropdown(value.trim().length > 0);
+        const shouldShow = value.trim().length > 0;
+        console.log('🔍 Header - Mostrar dropdown?', shouldShow);
+        setShowSearchDropdown(shouldShow);
     };
 
     const handleSelectPedido = (pedido: Pedido) => {
