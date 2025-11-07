@@ -72,7 +72,9 @@ export const usePedidoLock = ({
     });
 
     socket.on('lock-acquired', (data: { pedidoId: string; userId: string; username: string }) => {
+      console.log('🔒 [EVENT] lock-acquired recibido:', data);
       if (data.pedidoId === pedidoIdRef.current && data.userId === user.id.toString()) {
+        console.log(`✅ [LOCK] Bloqueo confirmado para pedido ${data.pedidoId}`);
         setIsLocked(true);
         setIsLockedByMe(true);
         setLockedBy(data.username);
@@ -81,7 +83,9 @@ export const usePedidoLock = ({
     });
 
     socket.on('lock-denied', (data: { pedidoId: string; lockedBy: string }) => {
+      console.log('❌ [EVENT] lock-denied recibido:', data);
       if (data.pedidoId === pedidoIdRef.current) {
+        console.log(`⚠️ [LOCK] Bloqueo denegado para pedido ${data.pedidoId} - bloqueado por ${data.lockedBy}`);
         setIsLocked(true);
         setIsLockedByMe(false);
         setLockedBy(data.lockedBy);
@@ -93,7 +97,9 @@ export const usePedidoLock = ({
     });
 
     socket.on('pedido-locked', (data: { pedidoId: string; userId: string; username: string }) => {
+      console.log('🔒 [EVENT] pedido-locked recibido:', data);
       if (data.pedidoId === pedidoIdRef.current && data.userId !== user.id.toString()) {
+        console.log(`⚠️ [LOCK] Pedido ${data.pedidoId} bloqueado por otro usuario: ${data.username}`);
         setIsLocked(true);
         setIsLockedByMe(false);
         setLockedBy(data.username);
@@ -101,7 +107,9 @@ export const usePedidoLock = ({
     });
 
     socket.on('pedido-unlocked', (data: { pedidoId: string; reason: string }) => {
+      console.log('🔓 [EVENT] pedido-unlocked recibido:', data);
       if (data.pedidoId === pedidoIdRef.current) {
+        console.log(`✅ [UNLOCK] Pedido ${data.pedidoId} desbloqueado - razón: ${data.reason}`);
         setIsLocked(false);
         setIsLockedByMe(false);
         setLockedBy(null);
@@ -141,6 +149,7 @@ export const usePedidoLock = ({
   // Intentar bloquear el pedido
   const lockPedido = useCallback(() => {
     if (!user || !pedidoId || !socketRef.current) {
+      console.warn('⚠️ [LOCK] No se puede bloquear: falta usuario, pedidoId o socket');
       return;
     }
 
@@ -148,6 +157,8 @@ export const usePedidoLock = ({
     
     // Guardar en ref
     currentPedidoIdRef.current = pedidoId;
+    
+    console.log(`🔒 [LOCK] Solicitando bloqueo para pedido ${pedidoId} - usuario: ${username}`);
     
     socketRef.current.emit('lock-pedido', {
       pedidoId,
@@ -161,9 +172,9 @@ export const usePedidoLock = ({
     }
 
     activityIntervalRef.current = setInterval(() => {
-      if (socketRef.current && !isUnmountingRef.current) {
+      if (socketRef.current && !isUnmountingRef.current && currentPedidoIdRef.current) {
         socketRef.current.emit('pedido-activity', {
-          pedidoId,
+          pedidoId: currentPedidoIdRef.current,
           userId: user.id.toString()
         });
         lastActivityRef.current = Date.now();
@@ -176,11 +187,12 @@ export const usePedidoLock = ({
     const pedidoToUnlock = pedidoId || currentPedidoIdRef.current;
     
     if (!user || !pedidoToUnlock) {
-      console.warn('⚠️ No se puede desbloquear: falta usuario o pedidoId');
+      console.warn('⚠️ [UNLOCK] No se puede desbloquear: falta usuario o pedidoId');
       return;
     }
 
     if (!socketRef.current || !socketRef.current.connected) {
+      console.warn('⚠️ [UNLOCK] Socket no conectado, solo limpiando estados locales');
       // Limpiar estados locales de todos modos
       setIsLocked(false);
       setIsLockedByMe(false);
@@ -189,7 +201,7 @@ export const usePedidoLock = ({
       return;
     }
 
-    console.log(`🔓 [UNLOCK] Desbloqueando pedido ${pedidoToUnlock}`);
+    console.log(`🔓 [UNLOCK] Desbloqueando pedido ${pedidoToUnlock} - userId: ${user.id}`);
     
     socketRef.current.emit('unlock-pedido', {
       pedidoId: pedidoToUnlock,
@@ -206,6 +218,7 @@ export const usePedidoLock = ({
     setIsLockedByMe(false);
     setLockedBy(null);
     isLockedByMeRef.current = false; // ✅ Actualizar ref
+    currentPedidoIdRef.current = null; // ✅ Limpiar el pedido actual
   }, [user, pedidoId]);
 
   // Auto-desbloquear al cambiar de pedido o al desmontar
@@ -216,16 +229,23 @@ export const usePedidoLock = ({
     }
 
     return () => {
+      console.log(`🧹 [CLEANUP] Limpiando efecto de bloqueo - pedidoId: ${currentPedidoIdRef.current}, isLockedByMe: ${isLockedByMeRef.current}, autoUnlock: ${autoUnlock}`);
+      
       isUnmountingRef.current = true;
       
       // ✅ Usar las referencias en lugar del estado para asegurar el desbloqueo
       if (autoUnlock && isLockedByMeRef.current && currentPedidoIdRef.current && user) {
+        console.log(`🔓 [CLEANUP] Desbloqueando pedido ${currentPedidoIdRef.current} en cleanup`);
+        
         // Verificar que el socket esté conectado
         if (socketRef.current && socketRef.current.connected) {
           socketRef.current.emit('unlock-pedido', {
             pedidoId: currentPedidoIdRef.current,
             userId: user.id.toString()
           });
+          console.log(`✅ [CLEANUP] Señal de desbloqueo enviada para ${currentPedidoIdRef.current}`);
+        } else {
+          console.warn(`⚠️ [CLEANUP] Socket no conectado, no se pudo enviar señal de desbloqueo`);
         }
         
         isLockedByMeRef.current = false;

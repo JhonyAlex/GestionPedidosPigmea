@@ -168,7 +168,15 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         if (hasUnsavedChanges && !isReadOnly) {
             setShowConfirmClose(true);
         } else {
-            onClose();
+            // ✅ Desbloquear explícitamente antes de cerrar
+            console.log('🔓 [MODAL] Cerrando modal - desbloqueando pedido:', pedido.id);
+            if (isLockedByMe) {
+                unlockPedido();
+            }
+            // Pequeño delay para asegurar que el desbloqueo se envíe
+            setTimeout(() => {
+                onClose();
+            }, 50);
         }
     };
 
@@ -210,7 +218,15 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     // Descartar cambios y cerrar
     const handleDiscardAndClose = () => {
         setShowConfirmClose(false);
-        onClose();
+        // ✅ Desbloquear explícitamente antes de cerrar
+        console.log('🔓 [MODAL] Descartando cambios - desbloqueando pedido:', pedido.id);
+        if (isLockedByMe) {
+            unlockPedido();
+        }
+        // Pequeño delay para asegurar que el desbloqueo se envíe
+        setTimeout(() => {
+            onClose();
+        }, 50);
     };
 
     // Cancelar el cierre
