@@ -47,14 +47,10 @@ export const useClientesManager = () => {
     setIsLoading(true);
     setError(null);
     try {
-      // 🔥 Usar endpoint simple para selectores
-      console.log('🔄 Solicitando clientes (endpoint simple)...');
       const clientesData = await clienteService.obtenerClientesSimple();
-      console.log('✅ Respuesta del servidor:', clientesData);
-      console.log('✅ Clientes activos cargados:', clientesData.length);
       
       if (clientesData.length === 0) {
-        console.warn('⚠️ No se encontraron clientes activos. Verifica que existan clientes en la base de datos.');
+        console.warn('⚠️ No se encontraron clientes activos.');
       }
       
       setClientes(clientesData);
@@ -62,10 +58,6 @@ export const useClientesManager = () => {
     } catch (err) {
       setError(err as Error);
       console.error("❌ Error fetching clients:", err);
-      console.error("❌ Detalles del error:", {
-        message: (err as Error).message,
-        stack: (err as Error).stack
-      });
     } finally {
       setIsLoading(false);
     }

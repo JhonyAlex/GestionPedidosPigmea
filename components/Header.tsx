@@ -237,8 +237,6 @@ const Header: React.FC<HeaderProps> = ({
     const activeButtonClass = "bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm";
     const inactiveButtonClass = "text-gray-600 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/10";
 
-    console.log('Permissions:', { canViewClientes: canViewClientes() });
-
     return (
         <header className="bg-white dark:bg-gray-800 shadow-md p-4 sticky top-0 z-40">
             <div className="container mx-auto">
