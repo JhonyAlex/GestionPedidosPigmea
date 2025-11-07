@@ -38,11 +38,19 @@ import { useFiltrosYOrden } from './hooks/useFiltrosYOrden';
 import { useNavigateToPedido } from './hooks/useNavigateToPedido';
 import { useBulkOperations } from './hooks/useBulkOperations';
 import { useToast } from './hooks/useToast';
+import { useInactivityReload } from './hooks/useInactivityReload';
 import { auditService } from './services/audit';
 
 
 const AppContent: React.FC = () => {
     const { user, loading } = useAuth();
+    
+    // Hook para detectar inactividad y recargar automáticamente
+    // Recarga si la pestaña estuvo inactiva por más de 5 minutos
+    useInactivityReload({
+        inactivityThreshold: 5 * 60 * 1000, // 5 minutos
+        reloadDelay: 500 // Medio segundo de delay antes de recargar
+    });
     
     // Hook de toast para notificaciones
     const { messages: toastMessages, addToast, removeToast } = useToast();
@@ -193,36 +201,6 @@ const AppContent: React.FC = () => {
     useEffect(() => {
         clearSelection();
     }, [view, clearSelection]);
-
-    // Suscribirse al evento de retorno de página para refrescar datos
-    useEffect(() => {
-        const unsubscribe = subscribeToPageReturn(async () => {
-            console.log('🔄 Refrescando datos después de inactividad...');
-            console.log(`📊 Total pedidos antes: ${pedidos.length}`);
-            setIsLoading(true);
-            try {
-                // Importar el store dinámicamente para evitar ciclos
-                const { store } = await import('./services/storage');
-                const currentPedidos = await store.getAll();
-                setPedidos(currentPedidos);
-                console.log(`✅ Datos actualizados exitosamente - Total pedidos ahora: ${currentPedidos.length}`);
-                
-                // 🔥 Log detallado para debugging en producción
-                if (currentPedidos.length !== pedidos.length) {
-                    console.warn(`⚠️ CAMBIO DETECTADO: Pedidos antes=${pedidos.length}, después=${currentPedidos.length}`);
-                }
-            } catch (error) {
-                console.error('❌ Error al refrescar datos:', error);
-            } finally {
-                setIsLoading(false);
-            }
-        });
-
-        return () => {
-            unsubscribe();
-        };
-    }, [subscribeToPageReturn, setPedidos, setIsLoading, pedidos.length]);
-
 
     useEffect(() => {
         const root = window.document.documentElement;

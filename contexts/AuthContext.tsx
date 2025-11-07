@@ -131,6 +131,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         };
 
         verifyUser();
+
+        // Detectar cuando la pestaña vuelve a estar visible para verificar sesión
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                console.log('👁️ Pestaña reactivada - verificando sesión...');
+                
+                // Verificar que la sesión sigue siendo válida
+                const savedUser = localStorage.getItem('pigmea_user');
+                if (!savedUser && window.location.pathname !== '/login') {
+                    console.warn('⚠️ Sesión perdida. Redirigiendo a login...');
+                    // El hook useInactivityReload recargará la página automáticamente
+                    // si hay inactividad prolongada
+                } else if (savedUser) {
+                    try {
+                        const userData = JSON.parse(savedUser);
+                        console.log('✅ Sesión verificada:', userData.username);
+                    } catch (error) {
+                        console.error('❌ Error al verificar sesión:', error);
+                        localStorage.removeItem('pigmea_user');
+                        window.location.href = '/login';
+                    }
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, []);
 
     const login = async (username: string, password: string): Promise<AuthResponse> => {
