@@ -17,6 +17,12 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
     // Estado local para mantener el texto de densidad mientras se edita
     const [densidadTexts, setDensidadTexts] = useState<{ [key: number]: string }>({});
 
+    // ✅ FIX: Limpiar el estado local cuando cambia el pedido (duplicación o carga)
+    // Esto evita que valores de ediciones anteriores interfieran con el nuevo pedido
+    useEffect(() => {
+        setDensidadTexts({});
+    }, [formData.id]); // Se ejecuta cuando cambia el ID del pedido
+
     // Verificar si todos los materiales están recibidos
     const checkAllMaterialsReceived = () => {
         if (!formData.materialConsumoCantidad) {
@@ -147,8 +153,15 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
     const handleDensidadBlur = (index: number) => {
         const textValue = densidadTexts[index];
         
+        // ✅ FIX: Solo actualizar si realmente se editó el campo
+        // Si densidadTexts[index] es undefined, significa que el usuario no tocó el campo
+        if (textValue === undefined) {
+            // No hacer nada - mantener el valor existente en formData
+            return;
+        }
+        
         if (!textValue || textValue === '') {
-            // Si está vacío, actualizar como null
+            // Si el usuario borró el contenido, actualizar como null
             handleNestedArrayChange('materialConsumo', index, 'densidad', '');
             return;
         }

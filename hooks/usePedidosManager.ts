@@ -465,8 +465,13 @@ export const usePedidosManager = (
         const initialStage = Etapa.PREPARACION;
         const maxOrder = Math.max(...pedidos.map(p => p.orden), 0);
     
+        // ✅ FIX CRÍTICO: Hacer una copia profunda (deep copy) para evitar referencias compartidas
+        // El operador spread solo hace copia superficial, lo que causa que arrays como
+        // materialConsumo, etapasSecuencia, historial, etc. se compartan entre pedidos duplicados
+        const pedidoClonado = JSON.parse(JSON.stringify(pedidoToDuplicate));
+    
         const newPedido: Pedido = {
-            ...pedidoToDuplicate,
+            ...pedidoClonado, // Ahora usamos la copia profunda
             id: newId,
             secuenciaPedido: parseInt(newId.slice(-6)),
             orden: maxOrder + 1,
