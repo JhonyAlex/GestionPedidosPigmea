@@ -346,7 +346,7 @@ export const usePedidosManager = (
         const now = new Date();
         const newId = now.getTime().toString();
         const numeroRegistro = `REG-${now.toISOString().slice(0, 19).replace(/[-:T]/g, '')}-${newId.slice(-4)}`;
-        const initialStage = Etapa.PREPARACION;
+        const initialStage = Etapa.PENDIENTE; // ✅ Los pedidos nuevos van a "Sin Gestión Iniciada"
         const maxOrder = Math.max(...pedidos.map(p => p.orden), 0);
 
         // 🐛 DEBUG: Log para verificar clienteId
@@ -363,7 +363,7 @@ export const usePedidosManager = (
             fechaCreacion: now.toISOString(),
             etapaActual: initialStage,
             etapasSecuencia: [{ etapa: initialStage, fecha: now.toISOString() }],
-            historial: [generarEntradaHistorial(currentUserRole, 'Creación', 'Pedido creado en Preparación.')],
+            historial: [generarEntradaHistorial(currentUserRole, 'Creación', 'Pedido creado en Sin Gestión Iniciada.')],
             maquinaImpresion: '',
             secuenciaTrabajo,
             antivaho: pedidoData.antivaho || false,
