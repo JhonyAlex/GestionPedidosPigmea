@@ -17,6 +17,9 @@ export const usePedidosManager = (
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [antivahoModalState, setAntivahoModalState] = useState<{ isOpen: boolean; pedido: Pedido | null; toEtapa: Etapa | null }>({ isOpen: false, pedido: null, toEtapa: null });
+    
+    // ✅ Set para trackear IDs de pedidos que están siendo creados localmente
+    const [creatingPedidoIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         const initStore = async () => {
@@ -54,6 +57,16 @@ export const usePedidosManager = (
         if (subscribeToPedidoCreated) {
             const unsubscribeCreated = subscribeToPedidoCreated((newPedido: Pedido) => {
                 console.log('🔄 Sincronizando nuevo pedido desde WebSocket:', newPedido.numeroPedidoCliente, 'ID:', newPedido.id);
+                
+                // Verificar si este pedido está siendo creado localmente
+                if (creatingPedidoIds.has(newPedido.id)) {
+                    console.log('⚠️ Pedido en proceso de creación local, omitiendo evento WebSocket:', newPedido.numeroPedidoCliente);
+                    // Remover del Set después de un delay para limpiar
+                    setTimeout(() => {
+                        creatingPedidoIds.delete(newPedido.id);
+                    }, 1000);
+                    return;
+                }
                 
                 setPedidos(current => {
                     // Verificar si el pedido ya existe para evitar duplicados
@@ -111,11 +124,15 @@ export const usePedidosManager = (
         let modifiedPedido = { ...updatedPedido };
         let hasChanges = false;
 
-        // ✅ RESTAURADO: Recalcular automáticamente la subEtapaActual según los campos
-        // Esto mueve el pedido entre columnas cuando cambia materialDisponible o clicheDisponible
-        if (modifiedPedido.etapaActual === Etapa.PREPARACION) {
+        // ✅ Recalcular automáticamente la subEtapaActual según los campos SOLO si NO fue cambiada manualmente
+        // Verificar si hubo un cambio manual en subEtapaActual (comparando con el original)
+        const subEtapaChangedManually = originalPedidoCopy.subEtapaActual !== modifiedPedido.subEtapaActual;
+        
+        if (modifiedPedido.etapaActual === Etapa.PREPARACION && !subEtapaChangedManually) {
+            // Solo recalcular si NO fue cambiada manualmente por el usuario
             modifiedPedido.subEtapaActual = determinarEtapaPreparacion(modifiedPedido);
         }
+        // Si subEtapaChangedManually === true, respetar el cambio manual del usuario
         
         if (generateHistory) {
             const newHistoryEntries: HistorialEntry[] = [];
@@ -313,6 +330,26 @@ export const usePedidosManager = (
             
             if (originalPedidoCopy.etapaActual !== modifiedPedido.etapaActual) {
                 newHistoryEntries.push(generarEntradaHistorial(currentUserRole, 'Cambio de Etapa', `Movido de '${ETAPAS[originalPedidoCopy.etapaActual].title}' a '${ETAPAS[modifiedPedido.etapaActual].title}'.`));
+                
+                // ✅ Actualizar etapasSecuencia cuando cambia la etapa
+                const existingEtapaIndex = modifiedPedido.etapasSecuencia.findIndex(
+                    e => e.etapa === modifiedPedido.etapaActual
+                );
+                
+                if (existingEtapaIndex === -1) {
+                    // Si la etapa no existe en la secuencia, agregarla
+                    modifiedPedido.etapasSecuencia = [
+                        ...modifiedPedido.etapasSecuencia,
+                        { etapa: modifiedPedido.etapaActual, fecha: new Date().toISOString() }
+                    ];
+                } else {
+                    // Si ya existe, actualizar la fecha
+                    modifiedPedido.etapasSecuencia = modifiedPedido.etapasSecuencia.map((e, idx) =>
+                        idx === existingEtapaIndex 
+                            ? { ...e, fecha: new Date().toISOString() }
+                            : e
+                    );
+                }
             }
             
             if (newHistoryEntries.length > 0) {
@@ -376,8 +413,19 @@ export const usePedidosManager = (
 
         console.log('  - ClienteId en newPedido final:', newPedido.clienteId);
 
+        // ✅ Marcar este ID como "en proceso de creación" ANTES de añadirlo localmente
+        creatingPedidoIds.add(newId);
+        console.log('🔒 Marcando pedido como "en creación":', newId);
+
         const createdPedido = await store.create(newPedido);
         setPedidos(prev => [createdPedido, ...prev]);
+        
+        // ✅ Remover del Set después de un pequeño delay para dar tiempo a que llegue el evento WebSocket
+        setTimeout(() => {
+            creatingPedidoIds.delete(newId);
+            console.log('🔓 Removiendo pedido del Set de creación:', newId);
+        }, 2000); // 2 segundos debería ser suficiente
+        
         return createdPedido;
     };
 
