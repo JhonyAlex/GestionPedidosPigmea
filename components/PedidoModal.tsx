@@ -586,6 +586,48 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                 
                 <p className="text-sm text-gray-500 dark:text-gray-400 px-8 pb-6 font-mono bg-gradient-to-r from-slate-50 to-gray-100 dark:from-gray-800 dark:to-gray-750 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">Registro Interno: {pedido.numeroRegistro}</p>
                 
+                {/* Select de Etapa Actual */}
+                <div className="px-8 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-b border-gray-200 dark:border-gray-700">
+                    <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        🔄 Etapa Actual del Pedido
+                    </label>
+                    <select 
+                        name="etapaActual" 
+                        value={formData.etapaActual} 
+                        onChange={handleChange} 
+                        className="w-full max-w-md bg-white dark:bg-gray-700 border-2 border-blue-400 dark:border-blue-600 rounded-lg p-2.5 text-sm font-medium focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={isReadOnly || !canMovePedidos()}
+                    >
+                        <optgroup label="📋 Preparación">
+                            <option value={Etapa.PREPARACION}>Preparación</option>
+                        </optgroup>
+                        
+                        <optgroup label="🖨️ Impresión">
+                            {KANBAN_FUNNELS.IMPRESION.stages.map(etapa => (
+                                <option key={etapa} value={etapa}>
+                                    {ETAPAS[etapa].title}
+                                </option>
+                            ))}
+                        </optgroup>
+                        
+                        <optgroup label="📦 Post-Impresión">
+                            {KANBAN_FUNNELS.POST_IMPRESION.stages.map(etapa => (
+                                <option key={etapa} value={etapa}>
+                                    {ETAPAS[etapa].title}
+                                </option>
+                            ))}
+                        </optgroup>
+                        
+                        <optgroup label="✅ Estado Final">
+                            <option value={Etapa.COMPLETADO}>Completado</option>
+                            <option value={Etapa.ARCHIVADO}>Archivado</option>
+                        </optgroup>
+                    </select>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
+                        ℹ️ Cambiar la etapa moverá el pedido a la columna correspondiente al guardar
+                    </p>
+                </div>
+                
                 {/* Two-column layout */}
                 <div className="flex flex-1 min-h-0">
                     {/* Main content - Left column */}
