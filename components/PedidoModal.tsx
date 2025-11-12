@@ -217,13 +217,27 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         }, [isLockedByMe, unlockPedido, onSave, onClose]);
 
     // Manejar el cierre del modal con confirmación si hay cambios
-    const handleClose = () => {
+    const handleClose = useCallback(() => {
         if (hasUnsavedChanges && !isReadOnly) {
             setShowConfirmClose(true);
         } else {
             closeModalAndUnlock();
         }
-    };
+    }, [hasUnsavedChanges, isReadOnly, closeModalAndUnlock]);
+
+    // Manejar tecla Escape
+    useEffect(() => {
+        const handleEscapeKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && !showConfirmClose) {
+                handleClose();
+            }
+        };
+
+        document.addEventListener('keydown', handleEscapeKey);
+        return () => {
+            document.removeEventListener('keydown', handleEscapeKey);
+        };
+    }, [handleClose, showConfirmClose]);
 
     const handleReadyForProductionClick = () => {
         const errors: string[] = [];
