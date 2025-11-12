@@ -12,8 +12,8 @@ const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcryptjs');
 const { v5: uuidv5 } = require('uuid');
 const PostgreSQLClient = require('./postgres-client');
-const { requirePermission, requireAnyPermission } = require('./middleware/permissions');
-const { authenticateUser, requireAuth, extractUserFromRequest } = require('./middleware/auth');
+const { requirePermission, requireAnyPermission, setDbClient: setPermissionsDbClient } = require('./middleware/permissions');
+const { authenticateUser, requireAuth, extractUserFromRequest, setDbClient: setAuthDbClient } = require('./middleware/auth');
 
 // Mapeo de roles entre frontend y base de datos
 const ROLE_MAPPING = {
@@ -3050,6 +3050,11 @@ async function startServer() {
             console.log('🔄 Intentando conectar a PostgreSQL...');
             await dbClient.init();
             console.log('🐘 PostgreSQL conectado exitosamente');
+            
+            // 🔴 CRÍTICO: Configurar el dbClient en los middlewares
+            setAuthDbClient(dbClient);
+            setPermissionsDbClient(dbClient);
+            console.log('✅ dbClient compartido con middlewares');
         } else {
             console.log('⚠️ No se encontró configuración de base de datos');
         }

@@ -1,30 +1,23 @@
 /**
  * Middleware de permisos para Express
- * Implementa verificación de permisos a niv            // Verificar si el usuario tiene al menos uno de los permisos
-            const dbClient = getDbClient();
-            for (const permId of permissionIds) {
-                const hasPermission = await dbClient.hasPermission(req.user.id, permId);
-                if (hasPermission) {
-                    // Si tiene al menos un permiso, continuar
-                    return next();
-                }
-            }
-            
-            // Si no tiene ningún permiso, denegar acceso y registrar
-            await dbClient.logAuditEvent({
+ * Implementa verificación de permisos a nivel de usuario
  */
 
-const PostgreSQLClient = require('../postgres-client');
+// Cliente de base de datos compartido (se inyecta desde index.js)
+let sharedDbClient = null;
 
-// Instancia del cliente de base de datos (se inicializa de forma lazy)
-let dbClient = null;
+/**
+ * Configurar el cliente de base de datos compartido
+ */
+const setDbClient = (dbClient) => {
+    sharedDbClient = dbClient;
+};
 
-// Función para obtener o crear la instancia del cliente de BD
+/**
+ * Función para obtener el cliente de BD
+ */
 const getDbClient = () => {
-    if (!dbClient) {
-        dbClient = new PostgreSQLClient();
-    }
-    return dbClient;
+    return sharedDbClient;
 };
 
 /**
@@ -217,5 +210,6 @@ const requireAllPermissions = (permissionIds) => {
 module.exports = {
     requirePermission,
     requireAnyPermission,
-    requireAllPermissions
+    requireAllPermissions,
+    setDbClient // 🔴 NUEVO: Exportar función para configurar dbClient
 };

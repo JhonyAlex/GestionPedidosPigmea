@@ -4,17 +4,23 @@
  */
 
 const jwt = require('jsonwebtoken');
-const PostgreSQLClient = require('../postgres-client');
 
-// Instancia del cliente de base de datos
-let dbClient = null;
+// Cliente de base de datos compartido (se inyecta desde index.js)
+let sharedDbClient = null;
 
-// Inicializar el cliente de base de datos de forma lazy
+/**
+ * Configurar el cliente de base de datos compartido
+ * Debe llamarse desde index.js después de inicializar el dbClient
+ */
+const setDbClient = (dbClient) => {
+    sharedDbClient = dbClient;
+};
+
+/**
+ * Obtener el cliente de base de datos
+ */
 const getDbClient = () => {
-    if (!dbClient) {
-        dbClient = new PostgreSQLClient();
-    }
-    return dbClient;
+    return sharedDbClient;
 };
 
 /**
@@ -49,7 +55,7 @@ const authenticateUser = async (req, res, next) => {
             const db = getDbClient();
             
             // En producción, si la BD no está inicializada, fallar inmediatamente
-            if (isProduction && !db.isInitialized) {
+            if (isProduction && db && !db.isInitialized) {
                 console.error('   - 🚨 ERROR CRÍTICO: BD no disponible en producción');
                 return res.status(503).json({
                     error: 'Service Unavailable',
@@ -59,7 +65,7 @@ const authenticateUser = async (req, res, next) => {
             
             // Verificar que el usuario existe en la base de datos
             try {
-                if (db.isInitialized) {
+                if (db && db.isInitialized) {
                     console.log('   - Buscando usuario en BD...');
                     const user = await db.getAdminUserById(userId);
                     if (user) {
@@ -158,5 +164,6 @@ const extractUserFromRequest = (req, res, next) => {
 module.exports = {
     authenticateUser,
     requireAuth,
-    extractUserFromRequest
+    extractUserFromRequest,
+    setDbClient // 🔴 NUEVO: Exportar función para configurar dbClient
 };
