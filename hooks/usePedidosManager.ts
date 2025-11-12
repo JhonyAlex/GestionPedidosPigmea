@@ -53,20 +53,19 @@ export const usePedidosManager = (
 
         if (subscribeToPedidoCreated) {
             const unsubscribeCreated = subscribeToPedidoCreated((newPedido: Pedido) => {
-                console.log('🔄 Sincronizando nuevo pedido:', newPedido.numeroPedidoCliente);
+                console.log('🔄 Sincronizando nuevo pedido desde WebSocket:', newPedido.numeroPedidoCliente, 'ID:', newPedido.id);
                 
-                // Pequeño delay para permitir que el estado local se actualice primero
-                setTimeout(() => {
-                    setPedidos(current => {
-                        // Verificar si el pedido ya existe para evitar duplicados
-                        const exists = current.some(p => p.id === newPedido.id);
-                        if (!exists) {
-                            return [...current, newPedido];
-                        } else {
-                            return current;
-                        }
-                    });
-                }, 100); // 100ms delay para que el estado local se procese primero
+                setPedidos(current => {
+                    // Verificar si el pedido ya existe para evitar duplicados
+                    const exists = current.some(p => p.id === newPedido.id);
+                    if (!exists) {
+                        console.log('✅ Añadiendo pedido desde WebSocket:', newPedido.numeroPedidoCliente);
+                        return [newPedido, ...current];
+                    } else {
+                        console.log('⚠️ Pedido ya existe localmente, omitiendo duplicado:', newPedido.numeroPedidoCliente);
+                        return current;
+                    }
+                });
             });
             unsubscribeFunctions.push(unsubscribeCreated);
         }
@@ -346,7 +345,7 @@ export const usePedidosManager = (
         const now = new Date();
         const newId = now.getTime().toString();
         const numeroRegistro = `REG-${now.toISOString().slice(0, 19).replace(/[-:T]/g, '')}-${newId.slice(-4)}`;
-        const initialStage = Etapa.PENDIENTE; // ✅ Los pedidos nuevos van a "Sin Gestión Iniciada"
+        const initialStage = Etapa.PREPARACION; // ✅ Los pedidos nuevos van a "Preparación" con sub-etapa "Sin Gestión Iniciada"
         const maxOrder = Math.max(...pedidos.map(p => p.orden), 0);
 
         // 🐛 DEBUG: Log para verificar clienteId
@@ -354,7 +353,10 @@ export const usePedidosManager = (
         console.log('  - Cliente:', pedidoData.cliente);
         console.log('  - ClienteId:', pedidoData.clienteId);
 
-        const tempPedido: Pedido = {
+        // ✅ Determinar la sub-etapa inicial basándose en los datos del pedido
+        const initialSubEtapa = PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA; // Por defecto, todos los pedidos nuevos van a "Sin Gestión Iniciada"
+
+        const newPedido: Pedido = {
             ...pedidoData,
             id: newId,
             secuenciaPedido: parseInt(newId.slice(-6)),
@@ -362,22 +364,14 @@ export const usePedidosManager = (
             numeroRegistro: numeroRegistro,
             fechaCreacion: now.toISOString(),
             etapaActual: initialStage,
+            subEtapaActual: initialSubEtapa,
             etapasSecuencia: [{ etapa: initialStage, fecha: now.toISOString() }],
-            historial: [generarEntradaHistorial(currentUserRole, 'Creación', 'Pedido creado en Sin Gestión Iniciada.')],
+            historial: [generarEntradaHistorial(currentUserRole, 'Creación', 'Pedido creado en Preparación - Sin Gestión Iniciada.')],
             maquinaImpresion: '',
             secuenciaTrabajo,
             antivaho: pedidoData.antivaho || false,
             antivahoRealizado: false,
             anonimo: pedidoData.anonimo || false,
-        };
-
-        console.log('  - ClienteId en tempPedido:', tempPedido.clienteId);
-
-        const initialSubEtapa = determinarEtapaPreparacion(tempPedido);
-
-        const newPedido: Pedido = {
-            ...tempPedido,
-            subEtapaActual: initialSubEtapa,
         };
 
         console.log('  - ClienteId en newPedido final:', newPedido.clienteId);
