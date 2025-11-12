@@ -4,6 +4,9 @@ class PostgreSQLClient {
     constructor() {
         this.pool = null;
         this.isInitialized = false;
+        this.isHealthy = false; // 🔴 NUEVO: Estado de salud de la conexión
+        this.lastHealthCheck = null;
+        this.healthCheckInterval = 5000; // Verificar cada 5 segundos
         
         // Priorizar DATABASE_URL que es el estándar en producción
         if (process.env.DATABASE_URL) {
@@ -41,6 +44,56 @@ class PostgreSQLClient {
                 connectionTimeoutMillis: 2000,
             };
         }
+    }
+
+    // 🔴 NUEVO: Verificar estado de salud de la conexión en tiempo real
+    async checkHealth() {
+        // Si estamos en desarrollo y no inicializado, devolver false sin logs molestos
+        if (!this.isInitialized) {
+            this.isHealthy = false;
+            return false;
+        }
+
+        try {
+            const client = await Promise.race([
+                this.pool.connect(),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Health check timeout')), 2000)
+                )
+            ]);
+            
+            // Ejecutar una consulta simple para verificar que la BD responde
+            await client.query('SELECT 1');
+            client.release();
+            
+            this.isHealthy = true;
+            this.lastHealthCheck = Date.now();
+            return true;
+        } catch (error) {
+            console.error('❌ Health check falló:', error.message);
+            this.isHealthy = false;
+            this.lastHealthCheck = Date.now();
+            
+            // En producción, marcar como no inicializado para bloquear operaciones
+            if (process.env.NODE_ENV === 'production') {
+                this.isInitialized = false;
+                console.error('🚨 PRODUCCIÓN: Marcando BD como no disponible');
+            }
+            
+            return false;
+        }
+    }
+
+    // 🔴 NUEVO: Obtener si la BD está saludable (con cache de 5 segundos)
+    async isConnectionHealthy() {
+        const now = Date.now();
+        
+        // Si nunca hemos hecho un health check o han pasado más de 5 segundos, verificar
+        if (!this.lastHealthCheck || (now - this.lastHealthCheck) > this.healthCheckInterval) {
+            await this.checkHealth();
+        }
+        
+        return this.isHealthy;
     }
 
     // === MÉTODOS PARA ADMIN USERS ===
@@ -172,8 +225,13 @@ class PostgreSQLClient {
     }
 
     async init() {
+        const isProduction = process.env.NODE_ENV === 'production';
+        
         try {
             this.pool = new Pool(this.config);
+            
+            // 🔴 NUEVO: Listeners de eventos del pool para diagnóstico
+            this.setupPoolEventListeners();
             
             // Probar la conexión con timeout
             const client = await Promise.race([
@@ -184,14 +242,30 @@ class PostgreSQLClient {
             ]);
             
             console.log('✅ PostgreSQL conectado correctamente');
+            console.log(`   - Host: ${this.config.host || this.config.connectionString?.split('@')[1]?.split('/')[0]}`);
+            console.log(`   - Database: ${this.config.database || 'desde DATABASE_URL'}`);
+            console.log(`   - Max connections: ${this.config.max}`);
             client.release();
             
             // Crear las tablas si no existen
             await this.createTables();
             this.isInitialized = true;
+            this.isHealthy = true; // 🔴 NUEVO: Marcar como saludable al inicio
+            
+            // 🔴 NUEVO: Iniciar health checks periódicos
+            this.startHealthCheckInterval();
             
         } catch (error) {
             console.error('❌ Error conectando a PostgreSQL:', error.message);
+            
+            // 🔴 EN PRODUCCIÓN: FALLAR INMEDIATAMENTE - NO PERMITIR QUE EL SISTEMA FUNCIONE SIN BD
+            if (isProduction) {
+                console.error('🚨 ERROR CRÍTICO EN PRODUCCIÓN: La base de datos NO está disponible');
+                console.error('🚨 El sistema NO puede funcionar sin base de datos');
+                console.error('🚨 Deteniendo la aplicación...');
+                this.isInitialized = false;
+                throw new Error('CRITICAL: Database connection failed in production');
+            }
             
             // Si el error es específicamente de clave foránea o columnas faltantes, intentar recuperación
             if (error.message.includes('foreign key constraint') || 
@@ -2700,13 +2774,101 @@ class PostgreSQLClient {
         return defaultPermissions;
     }
 
+    // === HEALTH CHECKS PERIÓDICOS ===
+    
+    // 🔴 NUEVO: Configurar listeners de eventos del pool
+    setupPoolEventListeners() {
+        if (!this.pool) return;
+        
+        // Evento: Cuando se adquiere un cliente del pool
+        this.pool.on('acquire', () => {
+            const totalCount = this.pool.totalCount;
+            const idleCount = this.pool.idleCount;
+            const waitingCount = this.pool.waitingCount;
+            
+            // Solo loguear si estamos cerca del límite
+            if (totalCount >= this.config.max * 0.8) {
+                console.warn(`⚠️ Pool de conexiones al ${Math.round((totalCount/this.config.max)*100)}% de capacidad`);
+                console.warn(`   - Total: ${totalCount}/${this.config.max}`);
+                console.warn(`   - Idle: ${idleCount}`);
+                console.warn(`   - Waiting: ${waitingCount}`);
+            }
+        });
+        
+        // Evento: Error en el pool
+        this.pool.on('error', (err, client) => {
+            console.error('❌ ERROR EN POOL DE CONEXIONES:', err.message);
+            console.error('   - Código:', err.code);
+            console.error('   - Timestamp:', new Date().toISOString());
+            
+            // Errores comunes y su significado
+            if (err.code === 'ECONNREFUSED') {
+                console.error('   🔴 CAUSA: PostgreSQL no está corriendo o no es accesible');
+            } else if (err.code === 'ETIMEDOUT') {
+                console.error('   🔴 CAUSA: Timeout de conexión (red lenta o PostgreSQL sobrecargado)');
+            } else if (err.code === '53300') {
+                console.error('   🔴 CAUSA: Demasiadas conexiones abiertas (max_connections alcanzado)');
+            } else if (err.code === 'ENOTFOUND') {
+                console.error('   🔴 CAUSA: No se pudo resolver el hostname de PostgreSQL');
+            } else if (err.code === '57P01') {
+                console.error('   🔴 CAUSA: PostgreSQL está en proceso de shutdown');
+            }
+            
+            // En producción, marcar como no saludable
+            if (process.env.NODE_ENV === 'production') {
+                this.isHealthy = false;
+                this.isInitialized = false;
+                console.error('🚨 PRODUCCIÓN: Marcando BD como no disponible debido a error');
+            }
+        });
+        
+        // Evento: Cliente removido del pool
+        this.pool.on('remove', () => {
+            console.log('🔄 Cliente removido del pool de conexiones');
+        });
+        
+        // Evento: Nuevo cliente conectado
+        this.pool.on('connect', () => {
+            console.log('🔗 Nueva conexión al pool establecida');
+        });
+        
+        console.log('👂 Event listeners del pool configurados');
+    }
+    
+    // 🔴 NUEVO: Iniciar verificaciones periódicas de salud
+    startHealthCheckInterval() {
+        // Verificar cada 10 segundos si la conexión sigue viva
+        this.healthCheckTimer = setInterval(async () => {
+            const isHealthy = await this.checkHealth();
+            
+            if (!isHealthy && process.env.NODE_ENV === 'production') {
+                console.error('🚨 PRODUCCIÓN: Conexión a BD perdida - sistema en modo degradado');
+            }
+        }, 10000); // Cada 10 segundos
+        
+        console.log('🔄 Health checks periódicos iniciados (cada 10s)');
+    }
+    
+    // 🔴 NUEVO: Detener health checks (para shutdown limpio)
+    stopHealthCheckInterval() {
+        if (this.healthCheckTimer) {
+            clearInterval(this.healthCheckTimer);
+            this.healthCheckTimer = null;
+            console.log('⏹️ Health checks periódicos detenidos');
+        }
+    }
+
     // === MÉTODO DE CIERRE ===
     async close() {
+        // Detener health checks antes de cerrar
+        this.stopHealthCheckInterval();
+        
         if (this.pool) {
             console.log('🔄 Cerrando conexiones a PostgreSQL...');
             await this.pool.end();
             this.pool = null;
             this.isInitialized = false;
+            this.isHealthy = false;
             console.log('✅ Conexiones a PostgreSQL cerradas');
         }
     }
