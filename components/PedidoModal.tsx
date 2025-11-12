@@ -3,7 +3,7 @@ import { Pedido, Prioridad, Etapa, UserRole, TipoImpresion, EstadoCliché } from
 import { calcularTiempoRealProduccion, parseTimeToMinutes, formatMinutesToHHMM } from '../utils/kpi';
 import { formatDateTimeDDMMYYYY } from '../utils/date';
 import { puedeAvanzarSecuencia, estaFueraDeSecuencia } from '../utils/etapaLogic';
-import { ETAPAS, KANBAN_FUNNELS } from '../constants';
+import { ETAPAS, KANBAN_FUNNELS, PREPARACION_COLUMNS, PREPARACION_SUB_ETAPAS_IDS } from '../constants';
 import SequenceBuilder from './SequenceBuilder';
 import SeccionDatosTecnicosDeMaterial from './SeccionDatosTecnicosDeMaterial';
 import CommentSystem from './comments/CommentSystem';
@@ -58,6 +58,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     const [isClienteModalOpen, setIsClienteModalOpen] = useState(false);
     const [showLockWarning, setShowLockWarning] = useState(false);
     const [lockWarningMessage, setLockWarningMessage] = useState('');
+    const [isEtapaDropdownOpen, setIsEtapaDropdownOpen] = useState(false);
     
     const { user } = useAuth();
     const { vendedores, addVendedor, fetchVendedores } = useVendedoresManager();
@@ -288,7 +289,94 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
         
-        if (name === "vendedorId" && value === "add_new_vendedor") {
+        if (name === "etapaActual") {
+            // Verificar si es una etapa principal o una sub-etapa de Preparación
+            const isSubEtapa = Object.values(PREPARACION_SUB_ETAPAS_IDS).includes(value as any);
+            
+            // ✅ VALIDACIONES: Aplicar reglas antes de permitir el cambio de etapa
+            
+            // 1. Validar si intenta mover a "Listo para Producción"
+            if (value === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION) {
+                const errors: string[] = [];
+                
+                if (!formData.materialDisponible) {
+                    errors.push('❌ Material NO está disponible');
+                }
+                if (!formData.clicheDisponible) {
+                    errors.push(`⚠️ Cliché NO está disponible${formData.estadoCliché ? ` (Estado: ${formData.estadoCliché})` : ''}`);
+                }
+                
+                if (errors.length > 0) {
+                    alert(
+                        '🚫 No se puede mover a "Listo para Producción"\n\n' +
+                        'Problemas encontrados:\n' +
+                        errors.join('\n') +
+                        '\n\nPor favor, asegúrese de que tanto el material como el cliché estén disponibles antes de continuar.'
+                    );
+                    return; // ⛔ Bloquear el cambio
+                }
+            }
+            
+            // 2. Validar si intenta mover a etapas de Impresión o Post-Impresión desde Preparación
+            const isPrintingStage = KANBAN_FUNNELS.IMPRESION.stages.includes(value as Etapa);
+            const isPostPrintingStage = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(value as Etapa);
+            const isCurrentlyInPreparacion = formData.etapaActual === Etapa.PREPARACION;
+            
+            if (isCurrentlyInPreparacion && (isPrintingStage || isPostPrintingStage)) {
+                // Verificar que esté en "Listo para Producción" antes de salir de Preparación
+                if (formData.subEtapaActual !== PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION) {
+                    alert(
+                        '⚠️ No se puede mover a Impresión/Post-Impresión\n\n' +
+                        'El pedido debe estar en "Listo para Producción" antes de poder avanzar a las siguientes etapas.\n\n' +
+                        'Primero:\n' +
+                        '1. Asegúrese de que el material y el cliché estén disponibles\n' +
+                        '2. Mueva el pedido a "Listo para Producción"\n' +
+                        '3. Luego podrá moverlo a Impresión o Post-Impresión'
+                    );
+                    return; // ⛔ Bloquear el cambio
+                }
+                
+                // Validar material y cliché también
+                if (!formData.materialDisponible || !formData.clicheDisponible) {
+                    alert(
+                        '🚫 No se puede mover a Impresión/Post-Impresión\n\n' +
+                        'Requisitos no cumplidos:\n' +
+                        (!formData.materialDisponible ? '❌ Material NO disponible\n' : '') +
+                        (!formData.clicheDisponible ? '❌ Cliché NO disponible\n' : '') +
+                        '\n\nPor favor, complete los requisitos antes de continuar.'
+                    );
+                    return; // ⛔ Bloquear el cambio
+                }
+            }
+            
+            // 3. Validar secuencia de trabajo para antivaho
+            if (formData.antivaho && (isPrintingStage || isPostPrintingStage)) {
+                if (!formData.secuenciaTrabajo || formData.secuenciaTrabajo.length === 0) {
+                    alert(
+                        '⚠️ Secuencia de trabajo requerida\n\n' +
+                        'Este pedido tiene Antivaho marcado. Debe definir la secuencia de trabajo de post-impresión antes de mover a Impresión o Post-Impresión.'
+                    );
+                    return; // ⛔ Bloquear el cambio
+                }
+            }
+            
+            // ✅ Si pasa todas las validaciones, proceder con el cambio
+            if (isSubEtapa) {
+                // Es una sub-etapa, establecer etapaActual como PREPARACION y subEtapaActual con el valor
+                setFormData(prev => ({ 
+                    ...prev, 
+                    etapaActual: Etapa.PREPARACION,
+                    subEtapaActual: value
+                }));
+            } else {
+                // Es una etapa principal, actualizar etapaActual y limpiar subEtapaActual
+                setFormData(prev => ({ 
+                    ...prev, 
+                    etapaActual: value as Etapa,
+                    subEtapaActual: undefined
+                }));
+            }
+        } else if (name === "vendedorId" && value === "add_new_vendedor") {
             setShowVendedorInput(true);
             setFormData(prev => ({ ...prev, vendedorId: '', vendedorNombre: '' }));
         } else if (name === "vendedorId" && value !== "add_new_vendedor") {
@@ -586,46 +674,83 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                 
                 <p className="text-sm text-gray-500 dark:text-gray-400 px-8 pb-6 font-mono bg-gradient-to-r from-slate-50 to-gray-100 dark:from-gray-800 dark:to-gray-750 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">Registro Interno: {pedido.numeroRegistro}</p>
                 
-                {/* Select de Etapa Actual */}
-                <div className="px-8 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-b border-gray-200 dark:border-gray-700">
-                    <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                        🔄 Etapa Actual del Pedido
-                    </label>
-                    <select 
-                        name="etapaActual" 
-                        value={formData.etapaActual} 
-                        onChange={handleChange} 
-                        className="w-full max-w-md bg-white dark:bg-gray-700 border-2 border-blue-400 dark:border-blue-600 rounded-lg p-2.5 text-sm font-medium focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                {/* Acordeón de Etapa Actual */}
+                <div className="border-b border-gray-200 dark:border-gray-700">
+                    <button
+                        type="button"
+                        onClick={() => setIsEtapaDropdownOpen(!isEtapaDropdownOpen)}
+                        className="w-full px-8 py-3 flex items-center justify-between bg-gradient-to-r from-slate-50 to-gray-100 dark:from-gray-800 dark:to-gray-750 hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 transition-colors duration-200"
                         disabled={isReadOnly || !canMovePedidos()}
                     >
-                        <optgroup label="📋 Preparación">
-                            <option value={Etapa.PREPARACION}>Preparación</option>
-                        </optgroup>
-                        
-                        <optgroup label="🖨️ Impresión">
-                            {KANBAN_FUNNELS.IMPRESION.stages.map(etapa => (
-                                <option key={etapa} value={etapa}>
-                                    {ETAPAS[etapa].title}
-                                </option>
-                            ))}
-                        </optgroup>
-                        
-                        <optgroup label="📦 Post-Impresión">
-                            {KANBAN_FUNNELS.POST_IMPRESION.stages.map(etapa => (
-                                <option key={etapa} value={etapa}>
-                                    {ETAPAS[etapa].title}
-                                </option>
-                            ))}
-                        </optgroup>
-                        
-                        <optgroup label="✅ Estado Final">
-                            <option value={Etapa.COMPLETADO}>Completado</option>
-                            <option value={Etapa.ARCHIVADO}>Archivado</option>
-                        </optgroup>
-                    </select>
-                    <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
-                        ℹ️ Cambiar la etapa moverá el pedido a la columna correspondiente al guardar
-                    </p>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                🔄 Etapa Actual del Pedido: 
+                            </span>
+                            <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                                {ETAPAS[formData.etapaActual]?.title || formData.etapaActual}
+                                {formData.etapaActual === Etapa.PREPARACION && formData.subEtapaActual && (
+                                    <span className="ml-1 text-xs font-normal text-gray-600 dark:text-gray-400">
+                                        ({PREPARACION_COLUMNS.find(col => col.id === formData.subEtapaActual)?.title})
+                                    </span>
+                                )}
+                            </span>
+                        </div>
+                        <svg 
+                            className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${isEtapaDropdownOpen ? 'rotate-180' : ''}`}
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    
+                    {isEtapaDropdownOpen && (
+                        <div className="px-8 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-t border-blue-200 dark:border-blue-800">
+                            <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                Cambiar etapa:
+                            </label>
+                            <select 
+                                name="etapaActual" 
+                                value={formData.etapaActual === Etapa.PREPARACION && formData.subEtapaActual ? formData.subEtapaActual : formData.etapaActual} 
+                                onChange={handleChange} 
+                                className="w-full max-w-md bg-white dark:bg-gray-700 border-2 border-blue-400 dark:border-blue-600 rounded-lg p-2.5 text-sm font-medium focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={isReadOnly || !canMovePedidos()}
+                            >
+                                <optgroup label="📋 Preparación">
+                                    {PREPARACION_COLUMNS.map(col => (
+                                        <option key={col.id} value={col.id}>
+                                            {col.title}
+                                        </option>
+                                    ))}
+                                </optgroup>
+                                
+                                <optgroup label="🖨️ Impresión">
+                                    {KANBAN_FUNNELS.IMPRESION.stages.map(etapa => (
+                                        <option key={etapa} value={etapa}>
+                                            {ETAPAS[etapa].title}
+                                        </option>
+                                    ))}
+                                </optgroup>
+                                
+                                <optgroup label="📦 Post-Impresión">
+                                    {KANBAN_FUNNELS.POST_IMPRESION.stages.map(etapa => (
+                                        <option key={etapa} value={etapa}>
+                                            {ETAPAS[etapa].title}
+                                        </option>
+                                    ))}
+                                </optgroup>
+                                
+                                <optgroup label="✅ Estado Final">
+                                    <option value={Etapa.COMPLETADO}>Completado</option>
+                                    <option value={Etapa.ARCHIVADO}>Archivado</option>
+                                </optgroup>
+                            </select>
+                            <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
+                                ℹ️ Cambiar la etapa moverá el pedido a la columna correspondiente al guardar
+                            </p>
+                        </div>
+                    )}
                 </div>
                 
                 {/* Two-column layout */}
