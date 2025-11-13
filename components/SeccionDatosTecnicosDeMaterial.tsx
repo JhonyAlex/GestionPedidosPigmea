@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Pedido } from '../types';
 
 interface SeccionDatosTecnicosProps {
@@ -18,6 +18,9 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
 }) => {
     // Estado local para mantener el texto de densidad mientras se edita
     const [densidadTexts, setDensidadTexts] = useState<{ [key: number]: string }>({});
+    // ✅ Ref para evitar llamadas múltiples al autoguardado
+    const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const previousMaterialDisponibleRef = useRef<boolean | undefined>(formData.materialDisponible);
 
     // ✅ FIX: Limpiar el estado local cuando cambia el pedido (duplicación o carga)
     // Esto evita que valores de ediciones anteriores interfieran con el nuevo pedido
@@ -46,23 +49,43 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
     // Efecto para sincronizar materialDisponible cuando todos los checkboxes están marcados
     useEffect(() => {
         const allReceived = checkAllMaterialsReceived();
+        const shouldBeMaterialDisponible = allReceived;
+        const currentMaterialDisponible = formData.materialDisponible;
         
-        // Solo actualizar si hay cambio
-        if (allReceived && !formData.materialDisponible) {
-            onDataChange('materialDisponible', true);
-            // ✅ Guardar automáticamente cuando se marca como disponible
-            if (onAutoSave) {
-                setTimeout(() => onAutoSave(), 100);
+        // Solo actualizar si hay un cambio REAL
+        if (shouldBeMaterialDisponible !== currentMaterialDisponible) {
+            console.log('🔄 [MATERIAL] Sincronizando materialDisponible:', { 
+                allReceived, 
+                shouldBe: shouldBeMaterialDisponible, 
+                current: currentMaterialDisponible 
+            });
+            
+            onDataChange('materialDisponible', shouldBeMaterialDisponible);
+            
+            // ✅ Guardar automáticamente con debounce
+            if (onAutoSave && currentMaterialDisponible !== undefined) {
+                // Limpiar timeout anterior si existe
+                if (autoSaveTimeoutRef.current) {
+                    clearTimeout(autoSaveTimeoutRef.current);
+                }
+                
+                // Ejecutar autoguardado después de 500ms (debounce)
+                autoSaveTimeoutRef.current = setTimeout(() => {
+                    console.log('💾 [MATERIAL] Ejecutando autoguardado por cambio de materialDisponible');
+                    onAutoSave();
+                }, 500);
             }
-        } else if (!allReceived && formData.materialDisponible && formData.materialConsumoCantidad && formData.materialConsumoCantidad > 0) {
-            // Solo desmarcar si hay materiales definidos y no todos están recibidos
-            onDataChange('materialDisponible', false);
-            // ✅ Guardar automáticamente cuando se desmarca como disponible
-            if (onAutoSave) {
-                setTimeout(() => onAutoSave(), 100);
-            }
+            
+            previousMaterialDisponibleRef.current = shouldBeMaterialDisponible;
         }
-    }, [formData.materialConsumo, formData.materialConsumoCantidad]);
+        
+        // Cleanup
+        return () => {
+            if (autoSaveTimeoutRef.current) {
+                clearTimeout(autoSaveTimeoutRef.current);
+            }
+        };
+    }, [formData.materialConsumo, formData.materialConsumoCantidad, formData.materialDisponible, onDataChange, onAutoSave]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
