@@ -9,6 +9,7 @@ import WeekFilter from './WeekFilter';
 import GlobalSearchDropdown from './GlobalSearchDropdown';
 import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
+import { useNotifications } from '../contexts/NotificationContext';
 
 
 interface HeaderProps {
@@ -44,6 +45,7 @@ interface HeaderProps {
     onImportData: () => void;
     onUserManagement?: () => void;
     onResetAllFilters?: () => void; // Nueva prop para resetear filtros
+    onToggleNotificationPanel?: () => void; // Nueva prop para abrir/cerrar panel de notificaciones
 }
 
 const PlusIcon = () => (

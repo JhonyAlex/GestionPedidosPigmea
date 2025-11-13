@@ -240,3 +240,43 @@ export interface AuthContextType {
     logout: () => void;
     updateUserPermissions?: (permissions: Permission[]) => Promise<boolean>;
 }
+
+// === NOTIFICACIONES ===
+
+export type NotificationType = 'success' | 'info' | 'warning' | 'error';
+
+export type NotificationCategory = 'pedido' | 'cliente' | 'vendedor' | 'sistema' | 'usuario';
+
+export interface NotificationMetadata {
+    cliente?: string;
+    prioridad?: Prioridad;
+    etapaActual?: Etapa;
+    etapaAnterior?: Etapa;
+    cambios?: string[];
+    [key: string]: any; // Permite campos adicionales
+}
+
+export interface Notification {
+    id: string;
+    type: NotificationType;
+    title: string;
+    message: string;
+    timestamp: string; // ISO 8601
+    read: boolean;
+    pedidoId?: string;
+    metadata?: NotificationMetadata;
+    userId?: string; // null = notificación global para todos
+    createdAt?: string; // Timestamp de creación en BD
+    category?: NotificationCategory;
+}
+
+export interface NotificationContextType {
+    notifications: Notification[];
+    unreadCount: number;
+    loading: boolean;
+    addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void;
+    markAsRead: (notificationId: string) => Promise<void>;
+    markAllAsRead: () => Promise<void>;
+    deleteNotification: (notificationId: string) => Promise<void>;
+    refreshNotifications: () => Promise<void>;
+}

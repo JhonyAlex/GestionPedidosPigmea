@@ -574,6 +574,118 @@ function broadcastToClients(event, data) {
     });
 }
 
+// === FUNCIONES AUXILIARES PARA NOTIFICACIONES ===
+
+/**
+ * Detectar cambios significativos entre dos pedidos
+ * @param {Object} previousPedido - Pedido anterior
+ * @param {Object} updatedPedido - Pedido actualizado
+ * @returns {Array} - Array de strings describiendo los cambios
+ */
+function detectChanges(previousPedido, updatedPedido) {
+    const changes = [];
+    
+    if (!previousPedido) return changes;
+    
+    // Cambios en etapa
+    if (previousPedido.etapaActual !== updatedPedido.etapaActual) {
+        changes.push(`Etapa: ${previousPedido.etapaActual} → ${updatedPedido.etapaActual}`);
+    }
+    
+    // Cambios en prioridad
+    if (previousPedido.prioridad !== updatedPedido.prioridad) {
+        changes.push(`Prioridad: ${previousPedido.prioridad} → ${updatedPedido.prioridad}`);
+    }
+    
+    // Cambios en cliente
+    if (previousPedido.cliente !== updatedPedido.cliente) {
+        changes.push(`Cliente: ${previousPedido.cliente} → ${updatedPedido.cliente}`);
+    }
+    
+    // Cambios en fechas
+    if (previousPedido.nuevaFechaEntrega !== updatedPedido.nuevaFechaEntrega) {
+        changes.push(`Nueva Fecha Entrega: ${previousPedido.nuevaFechaEntrega || 'Sin fecha'} → ${updatedPedido.nuevaFechaEntrega || 'Sin fecha'}`);
+    }
+    
+    if (previousPedido.fechaProduccion !== updatedPedido.fechaProduccion) {
+        changes.push(`Fecha Producción: ${previousPedido.fechaProduccion || 'Sin fecha'} → ${updatedPedido.fechaProduccion || 'Sin fecha'}`);
+    }
+    
+    // Cambios en estado de preparación
+    if (previousPedido.materialDisponible !== updatedPedido.materialDisponible) {
+        changes.push(`Material Disponible: ${previousPedido.materialDisponible ? 'Sí' : 'No'} → ${updatedPedido.materialDisponible ? 'Sí' : 'No'}`);
+    }
+    
+    if (previousPedido.clicheDisponible !== updatedPedido.clicheDisponible) {
+        changes.push(`Cliché Disponible: ${previousPedido.clicheDisponible ? 'Sí' : 'No'} → ${updatedPedido.clicheDisponible ? 'Sí' : 'No'}`);
+    }
+    
+    if (previousPedido.subEtapaActual !== updatedPedido.subEtapaActual) {
+        changes.push(`Sub-Etapa: ${previousPedido.subEtapaActual || 'Ninguna'} → ${updatedPedido.subEtapaActual || 'Ninguna'}`);
+    }
+    
+    // Cambios en post-impresión
+    if (previousPedido.antivaho !== updatedPedido.antivaho) {
+        changes.push(`Antivaho: ${previousPedido.antivaho ? 'Sí' : 'No'} → ${updatedPedido.antivaho ? 'Sí' : 'No'}`);
+    }
+    
+    if (previousPedido.antivahoRealizado !== updatedPedido.antivahoRealizado) {
+        changes.push(`Antivaho Realizado: ${previousPedido.antivahoRealizado ? 'Sí' : 'No'} → ${updatedPedido.antivahoRealizado ? 'Sí' : 'No'}`);
+    }
+    
+    // Cambios en números de compra (detectar si cambió el array)
+    const prevNumerosCompra = (previousPedido.numerosCompra || []).filter(n => n && n.trim()).join(', ');
+    const newNumerosCompra = (updatedPedido.numerosCompra || []).filter(n => n && n.trim()).join(', ');
+    if (prevNumerosCompra !== newNumerosCompra) {
+        changes.push(`Números de Compra: ${prevNumerosCompra || 'Ninguno'} → ${newNumerosCompra || 'Ninguno'}`);
+    }
+    
+    return changes;
+}
+
+/**
+ * Crear y persistir una notificación en la base de datos
+ * @param {string} type - Tipo de notificación: success, info, warning, error
+ * @param {string} title - Título de la notificación
+ * @param {string} message - Mensaje descriptivo
+ * @param {Object} options - Opciones adicionales
+ * @param {string} [options.pedidoId] - ID del pedido relacionado
+ * @param {Object} [options.metadata] - Metadata adicional
+ * @param {string} [options.userId] - ID del usuario destinatario (null = global)
+ * @returns {Promise<Object>} - Notificación creada
+ */
+async function createAndBroadcastNotification(type, title, message, options = {}) {
+    const notificationId = `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const timestamp = new Date().toISOString();
+    
+    const notification = {
+        id: notificationId,
+        type,
+        title,
+        message,
+        timestamp,
+        pedidoId: options.pedidoId || null,
+        metadata: options.metadata || null,
+        userId: options.userId || null
+    };
+    
+    // Intentar guardar en base de datos
+    if (dbClient.isInitialized) {
+        try {
+            await dbClient.createNotification(notification);
+            console.log(`✅ Notificación guardada en BD: ${notificationId}`);
+        } catch (error) {
+            console.error(`❌ Error al guardar notificación en BD:`, error);
+            // Continuar aunque falle la BD (la notificación se enviará por WebSocket)
+        }
+    }
+    
+    // Emitir notificación por WebSocket a todos los clientes
+    broadcastToClients('notification', notification);
+    
+    return notification;
+}
+
 // --- API ROUTES ---
 
 // === RUTAS DE AUTENTICACIÓN ===
@@ -1823,6 +1935,22 @@ app.post('/api/pedidos', requirePermission('pedidos.create'), async (req, res) =
             message: `Nuevo pedido creado: ${newPedido.numeroPedidoCliente}`
         });
         
+        // 📢 NOTIFICACIÓN PERSISTENTE
+        await createAndBroadcastNotification(
+            'success',
+            'Nuevo pedido',
+            `Pedido ${newPedido.numeroPedidoCliente} creado para ${newPedido.cliente}`,
+            {
+                pedidoId: newPedido.id,
+                metadata: {
+                    cliente: newPedido.cliente,
+                    prioridad: newPedido.prioridad,
+                    etapaActual: newPedido.etapaActual,
+                    categoria: 'pedido'
+                }
+            }
+        );
+        
         res.status(201).json(newPedido);
         
     } catch (error) {
@@ -1851,20 +1979,8 @@ app.put('/api/pedidos/:id', requirePermission('pedidos.edit'), async (req, res) 
         
         await dbClient.update(updatedPedido);
         
-        // 🔥 EVENTO WEBSOCKET: Pedido actualizado
-        const changes = [];
-        if (previousPedido) {
-            // Detectar cambios importantes
-            if (previousPedido.etapaActual !== updatedPedido.etapaActual) {
-                changes.push(`Etapa: ${previousPedido.etapaActual} → ${updatedPedido.etapaActual}`);
-            }
-            if (previousPedido.prioridad !== updatedPedido.prioridad) {
-                changes.push(`Prioridad: ${previousPedido.prioridad} → ${updatedPedido.prioridad}`);
-            }
-            if (previousPedido.cliente !== updatedPedido.cliente) {
-                changes.push(`Cliente: ${previousPedido.cliente} → ${updatedPedido.cliente}`);
-            }
-        }
+        // 🔥 EVENTO WEBSOCKET: Pedido actualizado (usar función mejorada detectChanges)
+        const changes = detectChanges(previousPedido, updatedPedido);
         
         broadcastToClients('pedido-updated', {
             pedido: updatedPedido,
@@ -1872,6 +1988,26 @@ app.put('/api/pedidos/:id', requirePermission('pedidos.edit'), async (req, res) 
             changes,
             message: `Pedido actualizado: ${updatedPedido.numeroPedidoCliente}${changes.length > 0 ? ` (${changes.join(', ')})` : ''}`
         });
+        
+        // 📢 NOTIFICACIÓN PERSISTENTE (solo si hay cambios significativos)
+        if (changes.length > 0) {
+            await createAndBroadcastNotification(
+                'info',
+                'Pedido actualizado',
+                `${updatedPedido.numeroPedidoCliente}: ${changes.slice(0, 2).join(', ')}${changes.length > 2 ? ` +${changes.length - 2} más` : ''}`,
+                {
+                    pedidoId: updatedPedido.id,
+                    metadata: {
+                        cliente: updatedPedido.cliente,
+                        prioridad: updatedPedido.prioridad,
+                        etapaActual: updatedPedido.etapaActual,
+                        etapaAnterior: previousPedido?.etapaActual,
+                        cambios: changes,
+                        categoria: 'pedido'
+                    }
+                }
+            );
+        }
         
         res.status(200).json(updatedPedido);
         
@@ -1902,6 +2038,22 @@ app.delete('/api/pedidos/:id', requirePermission('pedidos.delete'), async (req, 
             deletedPedido,
             message: `Pedido eliminado: ${deletedPedido?.numeroPedidoCliente || pedidoId}`
         });
+        
+        // 📢 NOTIFICACIÓN PERSISTENTE
+        await createAndBroadcastNotification(
+            'warning',
+            'Pedido eliminado',
+            `Pedido ${deletedPedido?.numeroPedidoCliente || pedidoId} de ${deletedPedido?.cliente || 'cliente desconocido'} ha sido eliminado`,
+            {
+                pedidoId: pedidoId,
+                metadata: {
+                    cliente: deletedPedido?.cliente,
+                    prioridad: deletedPedido?.prioridad,
+                    etapaActual: deletedPedido?.etapaActual,
+                    categoria: 'pedido'
+                }
+            }
+        );
         
         res.status(204).send();
         
@@ -2152,6 +2304,126 @@ app.post('/api/admin/migrate', requirePermission('usuarios.admin'), async (req, 
         res.status(500).json({ 
             message: 'Error aplicando migraciones',
             error: error.message
+        });
+    }
+});
+
+// === RUTAS DE NOTIFICACIONES ===
+
+// GET /api/notifications - Obtener notificaciones del usuario (últimas 50)
+app.get('/api/notifications', authenticateUser, async (req, res) => {
+    try {
+        const userId = req.headers['x-user-id'];
+        
+        if (!userId) {
+            return res.status(400).json({ message: 'ID de usuario requerido (x-user-id header)' });
+        }
+        
+        if (!dbClient.isInitialized) {
+            console.log('⚠️ BD no disponible - devolviendo array vacío');
+            return res.status(200).json([]);
+        }
+        
+        const notifications = await dbClient.getNotifications(userId, 50);
+        res.status(200).json(notifications);
+        
+    } catch (error) {
+        console.error('Error obteniendo notificaciones:', error);
+        res.status(500).json({ 
+            message: 'Error al obtener notificaciones',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
+// POST /api/notifications/:id/read - Marcar una notificación como leída
+app.post('/api/notifications/:id/read', authenticateUser, async (req, res) => {
+    try {
+        const notificationId = req.params.id;
+        const userId = req.headers['x-user-id'];
+        
+        if (!userId) {
+            return res.status(400).json({ message: 'ID de usuario requerido (x-user-id header)' });
+        }
+        
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({ message: 'Base de datos no disponible' });
+        }
+        
+        const updatedNotification = await dbClient.markNotificationAsRead(notificationId, userId);
+        
+        // Emitir evento WebSocket para sincronizar con otros clientes del mismo usuario
+        io.emit('notification-read', { notificationId, userId });
+        
+        res.status(200).json(updatedNotification);
+        
+    } catch (error) {
+        console.error('Error marcando notificación como leída:', error);
+        res.status(500).json({ 
+            message: 'Error al marcar notificación como leída',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
+// POST /api/notifications/read-all - Marcar todas las notificaciones como leídas
+app.post('/api/notifications/read-all', authenticateUser, async (req, res) => {
+    try {
+        const userId = req.headers['x-user-id'];
+        
+        if (!userId) {
+            return res.status(400).json({ message: 'ID de usuario requerido (x-user-id header)' });
+        }
+        
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({ message: 'Base de datos no disponible' });
+        }
+        
+        const updatedCount = await dbClient.markAllNotificationsAsRead(userId);
+        
+        // Emitir evento WebSocket para sincronizar con otros clientes del mismo usuario
+        io.emit('notifications-read-all', { userId });
+        
+        res.status(200).json({ 
+            message: `${updatedCount} notificaciones marcadas como leídas`,
+            count: updatedCount 
+        });
+        
+    } catch (error) {
+        console.error('Error marcando todas las notificaciones como leídas:', error);
+        res.status(500).json({ 
+            message: 'Error al marcar todas las notificaciones como leídas',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
+// DELETE /api/notifications/:id - Eliminar una notificación
+app.delete('/api/notifications/:id', authenticateUser, async (req, res) => {
+    try {
+        const notificationId = req.params.id;
+        const userId = req.headers['x-user-id'];
+        
+        if (!userId) {
+            return res.status(400).json({ message: 'ID de usuario requerido (x-user-id header)' });
+        }
+        
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({ message: 'Base de datos no disponible' });
+        }
+        
+        await dbClient.deleteNotification(notificationId, userId);
+        
+        // Emitir evento WebSocket para sincronizar con otros clientes del mismo usuario
+        io.emit('notification-deleted', { notificationId, userId });
+        
+        res.status(204).send();
+        
+    } catch (error) {
+        console.error('Error eliminando notificación:', error);
+        res.status(500).json({ 
+            message: 'Error al eliminar notificación',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 });

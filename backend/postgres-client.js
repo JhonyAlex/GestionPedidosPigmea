@@ -2868,6 +2868,278 @@ class PostgreSQLClient {
         }
     }
 
+    // === MÉTODOS PARA NOTIFICACIONES ===
+    
+    /**
+     * Crear una nueva notificación en la base de datos
+     * @param {Object} notification - Datos de la notificación
+     * @param {string} notification.id - ID único de la notificación
+     * @param {string} notification.type - Tipo: success, info, warning, error
+     * @param {string} notification.title - Título de la notificación
+     * @param {string} notification.message - Mensaje descriptivo
+     * @param {string} notification.timestamp - Timestamp ISO 8601
+     * @param {string} [notification.pedidoId] - ID del pedido relacionado (opcional)
+     * @param {Object} [notification.metadata] - Metadata adicional en JSON (opcional)
+     * @param {string} [notification.userId] - ID del usuario destinatario (opcional, null = todos)
+     * @returns {Promise<Object>} - Notificación creada
+     */
+    async createNotification(notification) {
+        if (!this.isInitialized) {
+            throw new Error('❌ Base de datos no inicializada');
+        }
+
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                INSERT INTO notifications (id, type, title, message, timestamp, read, pedido_id, metadata, user_id)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                RETURNING *
+            `;
+            
+            const values = [
+                notification.id,
+                notification.type,
+                notification.title,
+                notification.message,
+                notification.timestamp,
+                false, // read = false por defecto
+                notification.pedidoId || null,
+                notification.metadata ? JSON.stringify(notification.metadata) : null,
+                notification.userId || null
+            ];
+
+            const result = await client.query(query, values);
+            
+            // Después de crear, mantener solo las últimas 50 notificaciones por usuario
+            await this.cleanupOldNotifications(notification.userId, client);
+            
+            console.log(`✅ Notificación creada: ${notification.id} (${notification.type})`);
+            return this.mapNotificationFromDB(result.rows[0]);
+        } catch (error) {
+            console.error('❌ Error al crear notificación:', error);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Obtener notificaciones de un usuario (o todas si userId es null)
+     * @param {string|null} userId - ID del usuario (null = todas las notificaciones globales)
+     * @param {number} limit - Número máximo de notificaciones a retornar (default: 50)
+     * @returns {Promise<Array>} - Array de notificaciones ordenadas por timestamp DESC
+     */
+    async getNotifications(userId = null, limit = 50) {
+        if (!this.isInitialized) {
+            throw new Error('❌ Base de datos no inicializada');
+        }
+
+        const client = await this.pool.connect();
+        try {
+            let query, values;
+            
+            if (userId) {
+                // Obtener notificaciones para el usuario específico + notificaciones globales (user_id = null)
+                query = `
+                    SELECT * FROM notifications 
+                    WHERE user_id IS NULL OR user_id = $1
+                    ORDER BY timestamp DESC
+                    LIMIT $2
+                `;
+                values = [userId, limit];
+            } else {
+                // Obtener solo notificaciones globales
+                query = `
+                    SELECT * FROM notifications 
+                    WHERE user_id IS NULL
+                    ORDER BY timestamp DESC
+                    LIMIT $1
+                `;
+                values = [limit];
+            }
+
+            const result = await client.query(query, values);
+            console.log(`✅ ${result.rows.length} notificaciones obtenidas para usuario: ${userId || 'GLOBAL'}`);
+            
+            return result.rows.map(row => this.mapNotificationFromDB(row));
+        } catch (error) {
+            console.error('❌ Error al obtener notificaciones:', error);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Marcar una notificación como leída
+     * @param {string} notificationId - ID de la notificación
+     * @param {string} userId - ID del usuario (para validación)
+     * @returns {Promise<Object>} - Notificación actualizada
+     */
+    async markNotificationAsRead(notificationId, userId) {
+        if (!this.isInitialized) {
+            throw new Error('❌ Base de datos no inicializada');
+        }
+
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                UPDATE notifications 
+                SET read = true
+                WHERE id = $1 AND (user_id IS NULL OR user_id = $2)
+                RETURNING *
+            `;
+            
+            const result = await client.query(query, [notificationId, userId]);
+            
+            if (result.rows.length === 0) {
+                throw new Error(`Notificación ${notificationId} no encontrada o no pertenece al usuario`);
+            }
+
+            console.log(`✅ Notificación ${notificationId} marcada como leída`);
+            return this.mapNotificationFromDB(result.rows[0]);
+        } catch (error) {
+            console.error('❌ Error al marcar notificación como leída:', error);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Marcar todas las notificaciones de un usuario como leídas
+     * @param {string} userId - ID del usuario
+     * @returns {Promise<number>} - Número de notificaciones actualizadas
+     */
+    async markAllNotificationsAsRead(userId) {
+        if (!this.isInitialized) {
+            throw new Error('❌ Base de datos no inicializada');
+        }
+
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                UPDATE notifications 
+                SET read = true
+                WHERE (user_id IS NULL OR user_id = $1) AND read = false
+            `;
+            
+            const result = await client.query(query, [userId]);
+            
+            console.log(`✅ ${result.rowCount} notificaciones marcadas como leídas para usuario: ${userId}`);
+            return result.rowCount;
+        } catch (error) {
+            console.error('❌ Error al marcar todas las notificaciones como leídas:', error);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Eliminar una notificación
+     * @param {string} notificationId - ID de la notificación
+     * @param {string} userId - ID del usuario (para validación)
+     * @returns {Promise<boolean>} - true si se eliminó correctamente
+     */
+    async deleteNotification(notificationId, userId) {
+        if (!this.isInitialized) {
+            throw new Error('❌ Base de datos no inicializada');
+        }
+
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                DELETE FROM notifications 
+                WHERE id = $1 AND (user_id IS NULL OR user_id = $2)
+            `;
+            
+            const result = await client.query(query, [notificationId, userId]);
+            
+            if (result.rowCount === 0) {
+                throw new Error(`Notificación ${notificationId} no encontrada o no pertenece al usuario`);
+            }
+
+            console.log(`✅ Notificación ${notificationId} eliminada`);
+            return true;
+        } catch (error) {
+            console.error('❌ Error al eliminar notificación:', error);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Limpiar notificaciones antiguas, manteniendo solo las últimas 50 por usuario
+     * @param {string|null} userId - ID del usuario (null = notificaciones globales)
+     * @param {Object} client - Cliente de PostgreSQL (para usar en transacciones)
+     * @private
+     */
+    async cleanupOldNotifications(userId, client = null) {
+        const shouldReleaseClient = !client;
+        if (!client) {
+            client = await this.pool.connect();
+        }
+
+        try {
+            let query;
+            
+            if (userId) {
+                query = `
+                    DELETE FROM notifications 
+                    WHERE id IN (
+                        SELECT id FROM notifications 
+                        WHERE user_id = $1
+                        ORDER BY timestamp DESC
+                        OFFSET 50
+                    )
+                `;
+                await client.query(query, [userId]);
+            } else {
+                query = `
+                    DELETE FROM notifications 
+                    WHERE id IN (
+                        SELECT id FROM notifications 
+                        WHERE user_id IS NULL
+                        ORDER BY timestamp DESC
+                        OFFSET 50
+                    )
+                `;
+                await client.query(query);
+            }
+            
+            console.log(`🧹 Notificaciones antiguas limpiadas para usuario: ${userId || 'GLOBAL'}`);
+        } catch (error) {
+            console.error('❌ Error al limpiar notificaciones antiguas:', error);
+        } finally {
+            if (shouldReleaseClient) {
+                client.release();
+            }
+        }
+    }
+
+    /**
+     * Mapear notificación de formato BD a formato aplicación
+     * @param {Object} dbRow - Fila de la base de datos
+     * @returns {Object} - Notificación en formato de la aplicación
+     * @private
+     */
+    mapNotificationFromDB(dbRow) {
+        return {
+            id: dbRow.id,
+            type: dbRow.type,
+            title: dbRow.title,
+            message: dbRow.message,
+            timestamp: dbRow.timestamp,
+            read: dbRow.read,
+            pedidoId: dbRow.pedido_id,
+            metadata: dbRow.metadata,
+            userId: dbRow.user_id,
+            createdAt: dbRow.created_at
+        };
+    }
+
     // === MÉTODO DE CIERRE ===
     async close() {
         // Detener health checks antes de cerrar

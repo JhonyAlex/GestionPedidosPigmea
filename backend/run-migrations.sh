@@ -46,6 +46,7 @@ VENDEDORES_HISTORY_MIGRATION="$MIGRATIONS_DIR/021-create-vendedores-history.sql"
 ESTADO_PEDIDO_MIGRATION="$MIGRATIONS_DIR/022-add-estado-pedido.sql"
 PERFORMANCE_INDEXES_MIGRATION="$MIGRATIONS_DIR/023-add-performance-indexes.sql"
 TIEMPO_PRODUCCION_DECIMAL_MIGRATION="$MIGRATIONS_DIR/024-add-tiempo-produccion-decimal.sql"
+NOTIFICATIONS_TABLE_MIGRATION="$MIGRATIONS_DIR/025-create-notifications-table.sql"
 # Añade aquí futuras migraciones
 
 # Función para aplicar una migración
@@ -90,6 +91,7 @@ apply_migration "Crear Tabla de Historial de Vendedores" "$VENDEDORES_HISTORY_MI
 apply_migration "Agregar Campo Estado para Archivado" "$ESTADO_PEDIDO_MIGRATION"
 apply_migration "Agregar Índices de Rendimiento" "$PERFORMANCE_INDEXES_MIGRATION"
 apply_migration "Agregar Campo Tiempo Producción Decimal" "$TIEMPO_PRODUCCION_DECIMAL_MIGRATION"
+apply_migration "Crear Tabla de Notificaciones" "$NOTIFICATIONS_TABLE_MIGRATION"
 
 # Añade llamadas a futuras migraciones aquí
 # apply_migration "Nombre de tu nueva migración" "$MIGRATIONS_DIR/tu_nuevo_archivo.sql"
