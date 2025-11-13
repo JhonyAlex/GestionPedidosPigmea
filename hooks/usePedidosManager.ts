@@ -548,8 +548,19 @@ export const usePedidosManager = (
             antivahoRealizado: false, // Reset antivaho status
         };
     
+        // ✅ Marcar este ID como "en proceso de creación" ANTES de añadirlo localmente
+        creatingPedidoIds.add(newId);
+        console.log('🔒 Marcando pedido duplicado como "en creación":', newId);
+    
         const createdPedido = await store.create(newPedido);
         setPedidos(prev => [createdPedido, ...prev]);
+        
+        // ✅ Remover del Set después de un pequeño delay para dar tiempo a que llegue el evento WebSocket
+        setTimeout(() => {
+            creatingPedidoIds.delete(newId);
+            console.log('🔓 Removiendo pedido duplicado del Set de creación:', newId);
+        }, 2000); // 2 segundos debería ser suficiente
+        
         return createdPedido;
     };
     
