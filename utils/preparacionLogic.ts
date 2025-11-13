@@ -4,6 +4,12 @@ import { PREPARACION_SUB_ETAPAS_IDS } from '../constants';
 type PreparacionSubEtapa = typeof PREPARACION_SUB_ETAPAS_IDS[keyof typeof PREPARACION_SUB_ETAPAS_IDS];
 
 export const determinarEtapaPreparacion = (pedido: Pedido): PreparacionSubEtapa => {
+  // 🚨 REGLA PRIORITARIA: Si está en "SIN GESTION INICIADA", NUNCA cambiar automáticamente
+  // El usuario tiene control total y debe mover manualmente el pedido cuando lo desee
+  if (pedido.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA) {
+    return PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA;
+  }
+
   // REGLA 1: Si no se ha iniciado la gestión (ambos campos son null/undefined)
   // Mantener donde está - esta es la "zona de control total del usuario"
   if (pedido.materialDisponible == null && pedido.clicheDisponible == null) {

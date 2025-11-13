@@ -124,34 +124,38 @@ export const usePedidosManager = (
         let modifiedPedido = { ...updatedPedido };
         let hasChanges = false;
 
-        // ✅ NUEVO: Verificar si ambos están disponibles y preguntar antes de mover automáticamente
-        const shouldAskForConfirmation = 
-            modifiedPedido.etapaActual === Etapa.PREPARACION &&
-            modifiedPedido.subEtapaActual !== PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION &&
-            modifiedPedido.materialDisponible === true &&
-            modifiedPedido.clicheDisponible === true;
+        // ✅ ACTUALIZADO: Solo aplicar cambios automáticos si NO está en "SIN GESTION INICIADA"
+        // Si está en "SIN GESTION INICIADA", el usuario tiene control total y el pedido NO se mueve automáticamente
+        const isGestionNoIniciada = modifiedPedido.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA;
+        
+        if (modifiedPedido.etapaActual === Etapa.PREPARACION && !isGestionNoIniciada) {
+            // Solo preguntar si NO está en "SIN GESTION INICIADA" y ambos están disponibles
+            const shouldAskForConfirmation = 
+                modifiedPedido.subEtapaActual !== PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION &&
+                modifiedPedido.materialDisponible === true &&
+                modifiedPedido.clicheDisponible === true;
 
-        if (shouldAskForConfirmation) {
-            const confirmed = window.confirm(
-                '✅ Material y Cliché están listos\n\n' +
-                'Ambos requisitos están disponibles. ¿Desea mover el pedido a "Listo para Producción"?\n\n' +
-                'Si selecciona "Cancelar", el pedido se guardará pero permanecerá en su posición actual.'
-            );
-            
-            if (!confirmed) {
-                // Usuario rechazó - NO ejecutar determinarEtapaPreparacion, mantener posición actual
-                // Continuar con el guardado sin recalcular la sub-etapa
-                modifiedPedido.subEtapaActual = originalPedidoCopy.subEtapaActual;
+            if (shouldAskForConfirmation) {
+                const confirmed = window.confirm(
+                    '✅ Material y Cliché están listos\n\n' +
+                    'Ambos requisitos están disponibles. ¿Desea mover el pedido a "Listo para Producción"?\n\n' +
+                    'Si selecciona "Cancelar", el pedido se guardará pero permanecerá en su posición actual.'
+                );
+                
+                if (!confirmed) {
+                    // Usuario rechazó - mantener posición actual sin recalcular
+                    modifiedPedido.subEtapaActual = originalPedidoCopy.subEtapaActual;
+                } else {
+                    // Usuario aceptó - aplicar movimiento automático
+                    modifiedPedido.subEtapaActual = determinarEtapaPreparacion(modifiedPedido);
+                }
             } else {
-                // Usuario aceptó - aplicar movimiento automático
+                // Aplicar lógica automática solo si NO está en "SIN GESTION INICIADA"
                 modifiedPedido.subEtapaActual = determinarEtapaPreparacion(modifiedPedido);
             }
-        } else {
-            // ✅ ACTUALIZADO: Ejecutar determinarEtapaPreparacion SIEMPRE para pedidos en Preparación
-            // (excepto cuando el usuario rechazó la confirmación arriba)
-            if (modifiedPedido.etapaActual === Etapa.PREPARACION) {
-                modifiedPedido.subEtapaActual = determinarEtapaPreparacion(modifiedPedido);
-            }
+        } else if (modifiedPedido.etapaActual === Etapa.PREPARACION && isGestionNoIniciada) {
+            // Si está en "SIN GESTION INICIADA", mantener ahí sin importar el estado del material/cliché
+            modifiedPedido.subEtapaActual = PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA;
         }
         
         if (generateHistory) {
