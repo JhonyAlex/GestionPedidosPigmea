@@ -376,37 +376,42 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                 )}
             </div>
             
-            {pedido.numerosCompra && pedido.numerosCompra.length > 0 && (
+            {pedido.numerosCompra && pedido.numerosCompra.length > 0 && pedido.numerosCompra.some(n => n && n.trim()) && (
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                     <span className="font-medium">Nº Compra:</span>{' '}
                     <span className="inline-flex flex-wrap gap-1">
-                        {pedido.numerosCompra.map((numero, index) => {
-                            // ✅ CORREGIDO: Usar materialDisponible que está sincronizado automáticamente
-                            // en lugar de recalcular todosDisponibles manualmente
-                            const materialItem = pedido.materialConsumo?.[index];
-                            const recibido = materialItem?.recibido;
-                            
-                            let bgColor = 'bg-blue-100 dark:bg-blue-900'; // Azul por defecto (sin estado)
-                            let textColor = 'text-blue-800 dark:text-blue-200';
-                            
-                            // Verde: TODOS los materiales están disponibles (usa el flag sincronizado)
-                            if (pedido.materialDisponible === true) {
-                                bgColor = 'bg-green-100 dark:bg-green-900';
-                                textColor = 'text-green-800 dark:text-green-200';
-                            } 
-                            // Rojo: Este material específico NO está disponible
-                            else if (recibido === false) {
-                                bgColor = 'bg-red-100 dark:bg-red-900';
-                                textColor = 'text-red-800 dark:text-red-200';
-                            }
-                            // Azul: Estado indeterminado (recibido === null/undefined o true pero no todos)
-                            
-                            return numero ? (
-                                <span key={`${pedido.id}-compra-${index}`} className={`${bgColor} ${textColor} px-2 py-0.5 rounded`}>
-                                    {pedido.numerosCompra.length === 1 ? numero : `#${index + 1}: ${numero}`}
-                                </span>
-                            ) : null;
-                        })}
+                        {pedido.numerosCompra
+                            .map((numero, index) => {
+                                // ✅ Filtrar números vacíos o null/undefined
+                                if (!numero || !numero.trim()) return null;
+                                
+                                // ✅ CORREGIDO: Usar materialDisponible que está sincronizado automáticamente
+                                // en lugar de recalcular todosDisponibles manualmente
+                                const materialItem = pedido.materialConsumo?.[index];
+                                const recibido = materialItem?.recibido;
+                                
+                                let bgColor = 'bg-blue-100 dark:bg-blue-900'; // Azul por defecto (sin estado)
+                                let textColor = 'text-blue-800 dark:text-blue-200';
+                                
+                                // Verde: TODOS los materiales están disponibles (usa el flag sincronizado)
+                                if (pedido.materialDisponible === true) {
+                                    bgColor = 'bg-green-100 dark:bg-green-900';
+                                    textColor = 'text-green-800 dark:text-green-200';
+                                } 
+                                // Rojo: Este material específico NO está disponible
+                                else if (recibido === false) {
+                                    bgColor = 'bg-red-100 dark:bg-red-900';
+                                    textColor = 'text-red-800 dark:text-red-200';
+                                }
+                                // Azul: Estado indeterminado (recibido === null/undefined o true pero no todos)
+                                
+                                return (
+                                    <span key={`${pedido.id}-compra-${index}`} className={`${bgColor} ${textColor} px-2 py-0.5 rounded`}>
+                                        {pedido.numerosCompra.filter(n => n && n.trim()).length === 1 ? numero : `#${pedido.numerosCompra.filter((n, i) => i <= index && n && n.trim()).length}: ${numero}`}
+                                    </span>
+                                );
+                            })
+                            .filter(Boolean)}
                     </span>
                 </div>
             )}
