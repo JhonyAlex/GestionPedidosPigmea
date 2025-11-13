@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Notification, NotificationContextType } from '../types';
 import { useAuth } from './AuthContext';
-import websocketService from '../services/websocket.service';
+import websocketService from '../services/websocket';
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
@@ -159,59 +159,27 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     useEffect(() => {
         if (!user) return;
 
-        // Evento: Nueva notificación
-        const handleNotification = (notification: Notification) => {
-            console.log('📬 Nueva notificación recibida:', notification);
-            setNotifications(prev => {
-                // Verificar si ya existe (evitar duplicados)
-                if (prev.some(n => n.id === notification.id)) {
-                    return prev;
-                }
-                // Añadir al principio y mantener solo las últimas 50
-                const updated = [notification, ...prev];
-                return updated.slice(0, 50);
-            });
-        };
-
-        // Evento: Notificación marcada como leída (sincronización entre tabs/dispositivos)
-        const handleNotificationRead = ({ notificationId, userId }: { notificationId: string; userId: string }) => {
-            if (userId === String(user.id)) {
-                setNotifications(prev =>
-                    prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
-                );
+        // Por ahora, el sistema de notificaciones persistentes se maneja completamente
+        // desde el backend y se refresca al cargar. Los eventos en tiempo real se
+        // manejarán a través del Socket.IO cuando se implementen en el backend.
+        
+        // TODO: Añadir listeners de Socket.IO cuando el backend emita eventos:
+        // - 'notification' para nuevas notificaciones
+        // - 'notification-read' para sincronización de lectura
+        // - 'notifications-read-all' para marcar todas como leídas
+        // - 'notification-deleted' para eliminación sincronizada
+        
+        // Por ahora, solo refrescamos periódicamente si el usuario está activo
+        const intervalId = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                refreshNotifications();
             }
-        };
+        }, 30000); // Refrescar cada 30 segundos si la pestaña está visible
 
-        // Evento: Todas las notificaciones marcadas como leídas
-        const handleNotificationsReadAll = ({ userId }: { userId: string }) => {
-            if (userId === String(user.id)) {
-                setNotifications(prev =>
-                    prev.map(n => ({ ...n, read: true }))
-                );
-            }
-        };
-
-        // Evento: Notificación eliminada
-        const handleNotificationDeleted = ({ notificationId, userId }: { notificationId: string; userId: string }) => {
-            if (userId === String(user.id)) {
-                setNotifications(prev => prev.filter(n => n.id !== notificationId));
-            }
-        };
-
-        // Registrar listeners
-        websocketService.on('notification', handleNotification);
-        websocketService.on('notification-read', handleNotificationRead);
-        websocketService.on('notifications-read-all', handleNotificationsReadAll);
-        websocketService.on('notification-deleted', handleNotificationDeleted);
-
-        // Limpiar listeners al desmontar
         return () => {
-            websocketService.off('notification', handleNotification);
-            websocketService.off('notification-read', handleNotificationRead);
-            websocketService.off('notifications-read-all', handleNotificationsReadAll);
-            websocketService.off('notification-deleted', handleNotificationDeleted);
+            clearInterval(intervalId);
         };
-    }, [user]);
+    }, [user, refreshNotifications]);
 
     const value: NotificationContextType = {
         notifications,
