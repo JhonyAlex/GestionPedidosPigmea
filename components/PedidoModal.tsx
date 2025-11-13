@@ -344,6 +344,18 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
             }, 100);
         }, [isLockedByMe, unlockPedido, onSave, onClose]);
 
+    // ✅ NUEVO: Guardar automáticamente SIN cerrar el modal (para cambios de material)
+    const handleAutoSave = useCallback(() => {
+        console.log('💾 [AUTO-SAVE] Guardando cambios automáticamente:', formData.id);
+        const metrosValue = Number(formData.metros);
+        if (isNaN(metrosValue) || metrosValue <= 0) {
+            console.warn('⚠️ [AUTO-SAVE] Metros inválidos, omitiendo autoguardado');
+            return;
+        }
+        const pedidoActualizado = { ...formData, metros: metrosValue } as Pedido;
+        onSave(pedidoActualizado);
+    }, [formData, onSave]);
+
     // Manejar el cierre del modal con confirmación si hay cambios
     const handleClose = useCallback(() => {
         if (hasUnsavedChanges && !isReadOnly) {
@@ -1345,6 +1357,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                     onDataChange={handleDataChange}
                                     isReadOnly={isReadOnly}
                                     handleChange={handleChange}
+                                    onAutoSave={handleAutoSave}
                                 />
 
                                 {/* Observaciones */}

@@ -6,13 +6,15 @@ interface SeccionDatosTecnicosProps {
     onDataChange: (field: keyof Pedido, value: any) => void;
     isReadOnly?: boolean;
     handleChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+    onAutoSave?: () => void; // ✅ NUEVO: Callback para guardar automáticamente
 }
 
 const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ 
     formData, 
     onDataChange, 
     isReadOnly = false,
-    handleChange 
+    handleChange,
+    onAutoSave
 }) => {
     // Estado local para mantener el texto de densidad mientras se edita
     const [densidadTexts, setDensidadTexts] = useState<{ [key: number]: string }>({});
@@ -48,9 +50,17 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
         // Solo actualizar si hay cambio
         if (allReceived && !formData.materialDisponible) {
             onDataChange('materialDisponible', true);
+            // ✅ Guardar automáticamente cuando se marca como disponible
+            if (onAutoSave) {
+                setTimeout(() => onAutoSave(), 100);
+            }
         } else if (!allReceived && formData.materialDisponible && formData.materialConsumoCantidad && formData.materialConsumoCantidad > 0) {
             // Solo desmarcar si hay materiales definidos y no todos están recibidos
             onDataChange('materialDisponible', false);
+            // ✅ Guardar automáticamente cuando se desmarca como disponible
+            if (onAutoSave) {
+                setTimeout(() => onAutoSave(), 100);
+            }
         }
     }, [formData.materialConsumo, formData.materialConsumoCantidad]);
 
