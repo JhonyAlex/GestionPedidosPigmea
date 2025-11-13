@@ -9,6 +9,45 @@ import { VendedorCreateRequest } from '../types/vendedor';
 import ClienteModalMejorado from './ClienteModalMejorado';
 import VendedorModal from './VendedorModal';
 
+const decimalToHHMM = (decimal: number): string => {
+    if (!Number.isFinite(decimal) || decimal < 0) {
+        return '00:00';
+    }
+
+    const totalMinutes = Math.max(0, Math.round(decimal * 60));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+};
+
+const hhmmToDecimal = (value: string | null | undefined): number | null => {
+    if (!value || !value.includes(':')) {
+        return null;
+    }
+
+    const [hoursStr, minutesStr] = value.split(':');
+    const hours = Number(hoursStr);
+    const minutes = Number(minutesStr);
+
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes) || hours < 0 || minutes < 0) {
+        return null;
+    }
+
+    const totalMinutes = hours * 60 + minutes;
+    return parseFloat((Math.max(0, totalMinutes) / 60).toFixed(2));
+};
+
+const formatDecimalForInput = (value: number | null | undefined): string => {
+    if (value === null || value === undefined || Number.isNaN(value)) {
+        return '';
+    }
+
+    return value.toString();
+};
+
+const sanitizeDecimalInput = (value: string): string => value.replace(',', '.');
+
 interface AddPedidoModalProps {
     onClose: () => void;
     onAdd: (data: {
@@ -31,6 +70,7 @@ const initialFormData = {
     tipoImpresion: TipoImpresion.SUPERFICIE,
     desarrollo: '',
     capa: '',
+    tiempoProduccionDecimal: null,
     tiempoProduccionPlanificado: '00:00',
     observaciones: '',
     materialDisponible: false,
@@ -60,6 +100,7 @@ const initialFormData = {
 
 const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, clientePreseleccionado }) => {
     const [formData, setFormData] = useState<any>(initialFormData);
+    const [tiempoProduccionDecimalInput, setTiempoProduccionDecimalInput] = useState<string>(() => formatDecimalForInput(initialFormData.tiempoProduccionDecimal));
     const [secuenciaTrabajo, setSecuenciaTrabajo] = useState<Etapa[]>([]);
     const { clientes, addCliente, fetchClientes } = useClientesManager();
     const { vendedores, addVendedor, fetchVendedores } = useVendedoresManager();
@@ -83,6 +124,59 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
             }));
         }
     }, [clientePreseleccionado]);
+
+    useEffect(() => {
+        const decimal = formData.tiempoProduccionDecimal;
+
+        if (decimal === null || decimal === undefined || Number.isNaN(decimal)) {
+            setTiempoProduccionDecimalInput('');
+            if (!formData.tiempoProduccionPlanificado) {
+                setFormData((prev: any) => ({
+                    ...prev,
+                    tiempoProduccionPlanificado: '00:00',
+                }));
+            }
+            return;
+        }
+
+        const normalized = parseFloat(decimal.toFixed(2));
+        if (Math.abs(decimal - normalized) > 0.0001) {
+            setFormData((prev: any) => ({
+                ...prev,
+                tiempoProduccionDecimal: normalized,
+            }));
+            return;
+        }
+
+        setTiempoProduccionDecimalInput(formatDecimalForInput(normalized));
+
+        const hhmm = decimalToHHMM(normalized);
+        if (formData.tiempoProduccionPlanificado !== hhmm) {
+            setFormData((prev: any) => ({
+                ...prev,
+                tiempoProduccionPlanificado: hhmm,
+            }));
+        }
+    }, [formData.tiempoProduccionDecimal, formData.tiempoProduccionPlanificado]);
+
+    useEffect(() => {
+        const derivedDecimal = hhmmToDecimal(formData.tiempoProduccionPlanificado);
+        if (derivedDecimal === null) {
+            return;
+        }
+
+        if (
+            formData.tiempoProduccionDecimal === null ||
+            formData.tiempoProduccionDecimal === undefined ||
+            Math.abs(formData.tiempoProduccionDecimal - derivedDecimal) > 0.009
+        ) {
+            setFormData((prev: any) => ({
+                ...prev,
+                tiempoProduccionDecimal: derivedDecimal,
+            }));
+            setTiempoProduccionDecimalInput(formatDecimalForInput(derivedDecimal));
+        }
+    }, [formData.tiempoProduccionPlanificado]);
 
     // Efecto para controlar el scroll del body
     useEffect(() => {
@@ -148,6 +242,55 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
 
         setValidationErrors(errors);
         return errors.length === 0;
+    };
+
+    const handleDecimalTimeChange = (rawValue: string) => {
+        const sanitizedValue = sanitizeDecimalInput(rawValue);
+        setTiempoProduccionDecimalInput(rawValue);
+
+        if (sanitizedValue.trim() === '') {
+            setFormData((prev: any) => ({
+                ...prev,
+                tiempoProduccionDecimal: null,
+                tiempoProduccionPlanificado: '00:00',
+            }));
+            return;
+        }
+
+        const parsed = Number(sanitizedValue);
+        if (!Number.isFinite(parsed) || parsed < 0) {
+            return;
+        }
+
+        const normalized = parseFloat(parsed.toFixed(2));
+        setFormData((prev: any) => ({
+            ...prev,
+            tiempoProduccionDecimal: normalized,
+            tiempoProduccionPlanificado: decimalToHHMM(normalized),
+        }));
+    };
+
+    const handleDecimalTimeBlur = () => {
+        const sanitizedValue = sanitizeDecimalInput(tiempoProduccionDecimalInput);
+        if (sanitizedValue.trim() === '') {
+            setTiempoProduccionDecimalInput(formatDecimalForInput(formData.tiempoProduccionDecimal));
+            return;
+        }
+
+        const parsed = Number(sanitizedValue);
+        if (!Number.isFinite(parsed) || parsed < 0) {
+            setTiempoProduccionDecimalInput(formatDecimalForInput(formData.tiempoProduccionDecimal));
+            return;
+        }
+
+        const normalized = parseFloat(parsed.toFixed(2));
+        const formatted = formatDecimalForInput(normalized);
+        setTiempoProduccionDecimalInput(formatted);
+        setFormData((prev: any) => ({
+            ...prev,
+            tiempoProduccionDecimal: normalized,
+            tiempoProduccionPlanificado: decimalToHHMM(normalized),
+        }));
     };
 
     const handleDataChange = (field: keyof Pedido, value: any) => {
@@ -472,20 +615,37 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                             </div>
                                             <div>
                                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                    Tiempo Prod. (HH:mm)
+                                                    Tiempo Prod. Decimal (horas)
                                                     {formData.anonimo && <span className="ml-1 text-xs text-yellow-600 dark:text-yellow-400">(Auto)</span>}
+                                                </label>
+                                                <input 
+                                                    type="text" 
+                                                    inputMode="decimal"
+                                                    name="tiempoProduccionDecimal" 
+                                                    value={tiempoProduccionDecimalInput}
+                                                    onChange={(e) => handleDecimalTimeChange(e.target.value)}
+                                                    onBlur={handleDecimalTimeBlur}
+                                                    disabled={formData.anonimo}
+                                                    placeholder="Ej: 1.5 = 1h 30m"
+                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-blue-500 focus:border-blue-500" 
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                    Tiempo Prod. (HH:mm) <span className="text-xs text-gray-500">(solo lectura)</span>
                                                 </label>
                                                 <input 
                                                     type="text" 
                                                     name="tiempoProduccionPlanificado" 
                                                     value={formData.tiempoProduccionPlanificado} 
-                                                    onChange={handleChange} 
-                                                    disabled={formData.anonimo}
-                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-blue-500 focus:border-blue-500" 
-                                                    placeholder="HH:mm" 
-                                                    pattern="[0-9]{1,2}:[0-9]{2}" 
+                                                    readOnly
+                                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 cursor-not-allowed opacity-70" 
                                                 />
                                             </div>
+                                            <div></div>
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-4">

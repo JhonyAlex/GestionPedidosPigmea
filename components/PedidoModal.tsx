@@ -22,6 +22,45 @@ const ArrowPathIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" 
 const ArchiveBoxIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" /></svg>;
 const PaperAirplaneIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" /></svg>;
 
+const decimalToHHMM = (decimal: number): string => {
+    if (!Number.isFinite(decimal) || decimal < 0) {
+        return '00:00';
+    }
+
+    const totalMinutes = Math.max(0, Math.round(decimal * 60));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+};
+
+const hhmmToDecimal = (value: string | null | undefined): number | null => {
+    if (!value || !value.includes(':')) {
+        return null;
+    }
+
+    const [hoursStr, minutesStr] = value.split(':');
+    const hours = Number(hoursStr);
+    const minutes = Number(minutesStr);
+
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes) || hours < 0 || minutes < 0) {
+        return null;
+    }
+
+    const totalMinutes = hours * 60 + minutes;
+    return parseFloat((Math.max(0, totalMinutes) / 60).toFixed(2));
+};
+
+const formatDecimalForInput = (value: number | null | undefined): string => {
+    if (value === null || value === undefined || Number.isNaN(value)) {
+        return '';
+    }
+
+    return value.toString();
+};
+
+const sanitizeDecimalInput = (value: string): string => value.replace(',', '.');
+
 // Icons for history
 const PencilIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>;
 
@@ -51,6 +90,7 @@ interface PedidoModalProps {
 
 const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onArchiveToggle, currentUserRole, onAdvanceStage, onSendToPrint, onDuplicate, onDelete, onSetReadyForProduction, onUpdateEtapa, isConnected = false }) => {
     const [formData, setFormData] = useState<Pedido>(JSON.parse(JSON.stringify(pedido)));
+    const [tiempoProduccionDecimalInput, setTiempoProduccionDecimalInput] = useState<string>(() => formatDecimalForInput(pedido.tiempoProduccionDecimal));
     const [activeTab, setActiveTab] = useState<'detalles' | 'gestion' | 'historial'>('detalles');
     const [showConfirmClose, setShowConfirmClose] = useState(false);
     const [nuevoVendedor, setNuevoVendedor] = useState('');
@@ -100,8 +140,96 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
 
     useEffect(() => {
         // Hacer una copia profunda para evitar modificar el pedido original
-        setFormData(JSON.parse(JSON.stringify(pedido)));
+        const clonedPedido: Pedido = JSON.parse(JSON.stringify(pedido));
+
+        if (typeof clonedPedido.tiempoProduccionDecimal === 'number') {
+            const normalizedDecimal = parseFloat(clonedPedido.tiempoProduccionDecimal.toFixed(2));
+            clonedPedido.tiempoProduccionDecimal = normalizedDecimal;
+            clonedPedido.tiempoProduccionPlanificado = decimalToHHMM(normalizedDecimal);
+        } else if (clonedPedido.tiempoProduccionPlanificado) {
+            const derivedDecimal = hhmmToDecimal(clonedPedido.tiempoProduccionPlanificado);
+            if (derivedDecimal !== null) {
+                clonedPedido.tiempoProduccionDecimal = derivedDecimal;
+                clonedPedido.tiempoProduccionPlanificado = decimalToHHMM(derivedDecimal);
+            }
+        } else {
+            clonedPedido.tiempoProduccionPlanificado = '00:00';
+        }
+
+        setFormData(clonedPedido);
+        setTiempoProduccionDecimalInput(formatDecimalForInput(clonedPedido.tiempoProduccionDecimal));
     }, [pedido]);
+
+    useEffect(() => {
+        const derivedDecimal = hhmmToDecimal(formData.tiempoProduccionPlanificado);
+        if (derivedDecimal === null) {
+            return;
+        }
+
+        if (
+            formData.tiempoProduccionDecimal === null ||
+            formData.tiempoProduccionDecimal === undefined ||
+            Math.abs(formData.tiempoProduccionDecimal - derivedDecimal) > 0.009
+        ) {
+            setFormData(prev => ({
+                ...prev,
+                tiempoProduccionDecimal: derivedDecimal,
+            }));
+            setTiempoProduccionDecimalInput(formatDecimalForInput(derivedDecimal));
+        }
+    }, [formData.tiempoProduccionPlanificado]);
+
+    const handleDecimalTimeChange = useCallback((rawValue: string) => {
+        const sanitizedValue = sanitizeDecimalInput(rawValue);
+        setTiempoProduccionDecimalInput(rawValue);
+
+        if (sanitizedValue.trim() === '') {
+            setFormData(prev => ({
+                ...prev,
+                tiempoProduccionDecimal: null,
+                tiempoProduccionPlanificado: '00:00',
+            }));
+            return;
+        }
+
+        const parsed = Number(sanitizedValue);
+        if (!Number.isFinite(parsed) || parsed < 0) {
+            return;
+        }
+
+        const normalized = parseFloat(parsed.toFixed(2));
+        const hhmmValue = decimalToHHMM(normalized);
+
+        setFormData(prev => ({
+            ...prev,
+            tiempoProduccionDecimal: normalized,
+            tiempoProduccionPlanificado: hhmmValue,
+        }));
+    }, [setFormData]);
+
+    const handleDecimalTimeBlur = useCallback(() => {
+        const sanitizedValue = sanitizeDecimalInput(tiempoProduccionDecimalInput);
+        if (sanitizedValue.trim() === '') {
+            setTiempoProduccionDecimalInput(formatDecimalForInput(formData.tiempoProduccionDecimal));
+            return;
+        }
+
+        const parsed = Number(sanitizedValue);
+        if (!Number.isFinite(parsed) || parsed < 0) {
+            setTiempoProduccionDecimalInput(formatDecimalForInput(formData.tiempoProduccionDecimal));
+            return;
+        }
+
+        const normalized = parseFloat(parsed.toFixed(2));
+        const formatted = formatDecimalForInput(normalized);
+        setTiempoProduccionDecimalInput(formatted);
+
+        setFormData(prev => ({
+            ...prev,
+            tiempoProduccionDecimal: normalized,
+            tiempoProduccionPlanificado: decimalToHHMM(normalized),
+        }));
+    }, [formData.tiempoProduccionDecimal, setFormData, tiempoProduccionDecimalInput]);
 
     // Solicitar bloqueo al abrir el modal (solo una vez al montar)
     useEffect(() => {
@@ -309,7 +437,34 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
             
             // ✅ VALIDACIONES: Aplicar reglas antes de permitir el cambio de etapa
             
-            // 1. Validar si intenta mover a "Listo para Producción"
+            // 1. ⚠️ NUEVO: Validar inconsistencias al mover manualmente a columnas de preparación
+            if (value === PREPARACION_SUB_ETAPAS_IDS.MATERIAL_NO_DISPONIBLE && formData.materialDisponible === true) {
+                const confirmed = window.confirm(
+                    '⚠️ Advertencia de Inconsistencia\n\n' +
+                    'El material está marcado como DISPONIBLE en este pedido, ' +
+                    'pero intentas moverlo a "Material No Disponible".\n\n' +
+                    '¿Deseas continuar con este movimiento?\n\n' +
+                    '(El estado del material en el pedido no se modificará automáticamente)'
+                );
+                if (!confirmed) {
+                    return; // Usuario canceló - no hacer el cambio
+                }
+            }
+            
+            if (value === PREPARACION_SUB_ETAPAS_IDS.CLICHE_NO_DISPONIBLE && formData.clicheDisponible === true) {
+                const confirmed = window.confirm(
+                    '⚠️ Advertencia de Inconsistencia\n\n' +
+                    'El cliché está marcado como DISPONIBLE en este pedido, ' +
+                    'pero intentas moverlo a "Cliché No Disponible".\n\n' +
+                    '¿Deseas continuar con este movimiento?\n\n' +
+                    '(El estado del cliché en el pedido no se modificará automáticamente)'
+                );
+                if (!confirmed) {
+                    return; // Usuario canceló - no hacer el cambio
+                }
+            }
+            
+            // 2. Validar si intenta mover a "Listo para Producción"
             if (value === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION) {
                 const errors: string[] = [];
                 
@@ -331,39 +486,27 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                 }
             }
             
-            // 2. Validar si intenta mover a etapas de Impresión o Post-Impresión desde Preparación
+            // 3. ✅ ACTUALIZADO: Validar si intenta mover a Impresión/Post-Impresión desde Preparación
+            // Ya NO se requiere estar en "Listo para Producción", solo material + cliché disponibles
             const isPrintingStage = KANBAN_FUNNELS.IMPRESION.stages.includes(value as Etapa);
             const isPostPrintingStage = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(value as Etapa);
             const isCurrentlyInPreparacion = formData.etapaActual === Etapa.PREPARACION;
             
             if (isCurrentlyInPreparacion && (isPrintingStage || isPostPrintingStage)) {
-                // Verificar que esté en "Listo para Producción" antes de salir de Preparación
-                if (formData.subEtapaActual !== PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION) {
-                    alert(
-                        '⚠️ No se puede mover a Impresión/Post-Impresión\n\n' +
-                        'El pedido debe estar en "Listo para Producción" antes de poder avanzar a las siguientes etapas.\n\n' +
-                        'Primero:\n' +
-                        '1. Asegúrese de que el material y el cliché estén disponibles\n' +
-                        '2. Mueva el pedido a "Listo para Producción"\n' +
-                        '3. Luego podrá moverlo a Impresión o Post-Impresión'
-                    );
-                    return; // ⛔ Bloquear el cambio
-                }
-                
-                // Validar material y cliché también
+                // Solo validar material y cliché disponibles
                 if (!formData.materialDisponible || !formData.clicheDisponible) {
                     alert(
                         '🚫 No se puede mover a Impresión/Post-Impresión\n\n' +
                         'Requisitos no cumplidos:\n' +
                         (!formData.materialDisponible ? '❌ Material NO disponible\n' : '') +
                         (!formData.clicheDisponible ? '❌ Cliché NO disponible\n' : '') +
-                        '\n\nPor favor, complete los requisitos antes de continuar.'
+                        '\n\nPor favor, asegúrese de que tanto el material como el cliché estén disponibles antes de continuar.'
                     );
                     return; // ⛔ Bloquear el cambio
                 }
             }
             
-            // 3. Validar secuencia de trabajo para antivaho
+            // 4. Validar secuencia de trabajo para antivaho
             if (formData.antivaho && (isPrintingStage || isPostPrintingStage)) {
                 if (!formData.secuenciaTrabajo || formData.secuenciaTrabajo.length === 0) {
                     alert(
@@ -949,18 +1092,37 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                             </div>
                                             <div>
                                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                    Tiempo Prod. (HH:mm)
+                                                    Tiempo Prod. Decimal (horas)
                                                     {formData.anonimo && <span className="ml-1 text-xs text-yellow-600 dark:text-yellow-400">(Auto)</span>}
+                                                </label>
+                                                <input 
+                                                    type="text" 
+                                                    inputMode="decimal"
+                                                    name="tiempoProduccionDecimal" 
+                                                    value={tiempoProduccionDecimalInput}
+                                                    onChange={(e) => handleDecimalTimeChange(e.target.value)}
+                                                    onBlur={handleDecimalTimeBlur}
+                                                    disabled={formData.anonimo}
+                                                    placeholder="Ej: 1.5 = 1h 30m"
+                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                    Tiempo Prod. (HH:mm) <span className="text-xs text-gray-500">(solo lectura)</span>
                                                 </label>
                                                 <input 
                                                     type="text" 
                                                     name="tiempoProduccionPlanificado" 
                                                     value={formData.tiempoProduccionPlanificado} 
-                                                    onChange={handleChange} 
-                                                    disabled={formData.anonimo}
-                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    readOnly
+                                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 cursor-not-allowed opacity-70"
                                                 />
                                             </div>
+                                            <div></div>
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-4">

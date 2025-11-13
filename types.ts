@@ -78,7 +78,8 @@ export interface Pedido {
     tipoImpresion: TipoImpresion;
     desarrollo: string;
     capa: string;
-    tiempoProduccionPlanificado: string; // HH:mm
+    tiempoProduccionDecimal?: number | null; // ✅ NUEVO: Tiempo en formato decimal (ej: 1.5 = 1h 30m)
+    tiempoProduccionPlanificado: string; // HH:mm (calculado automáticamente desde tiempoProduccionDecimal)
     tiempoTotalProduccion?: string; // "X días, Y horas"
     secuenciaTrabajo: Etapa[];
     observaciones: string;

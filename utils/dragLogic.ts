@@ -113,35 +113,48 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
     if (source.droppableId.startsWith('PREP_') && destination.droppableId.startsWith('PREP_')) {
         const destId = destination.droppableId.replace('PREP_', '');
 
-        let tempUpdatedPedido = {
+        // ✅ NUEVO: Solo actualizar subEtapaActual, NO modificar flags de material/cliché
+        // Los flags se mantienen tal como están para preservar el estado real del pedido
+        const tempUpdatedPedido = {
             ...movedPedido,
             subEtapaActual: destId,
         };
 
-        switch (destId) {
-            case PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA:
-                // Sin gestión iniciada: ambos campos undefined
-                tempUpdatedPedido.materialDisponible = undefined;
-                tempUpdatedPedido.clicheDisponible = undefined;
-                break;
-            case PREPARACION_SUB_ETAPAS_IDS.MATERIAL_NO_DISPONIBLE:
-                tempUpdatedPedido.materialDisponible = false;
-                tempUpdatedPedido.clicheDisponible = undefined;
-                break;
-            case PREPARACION_SUB_ETAPAS_IDS.CLICHE_NO_DISPONIBLE:
-                tempUpdatedPedido.materialDisponible = true;
-                tempUpdatedPedido.clicheDisponible = false;
-                break;
-            case PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION:
-                tempUpdatedPedido.materialDisponible = true;
-                tempUpdatedPedido.clicheDisponible = true;
-                break;
+        // ⚠️ Validaciones de consistencia: Advertir si el estado no coincide con la columna destino
+        let showWarning = false;
+        let warningMessage = '';
+
+        if (destId === PREPARACION_SUB_ETAPAS_IDS.MATERIAL_NO_DISPONIBLE && movedPedido.materialDisponible === true) {
+            warningMessage = 
+                '⚠️ Advertencia de Inconsistencia\n\n' +
+                'El material está marcado como DISPONIBLE en este pedido, ' +
+                'pero lo estás moviendo a "Material No Disponible".\n\n' +
+                '¿Deseas continuar con este movimiento?\n\n' +
+                '(El estado del material en el pedido no se modificará automáticamente)';
+            showWarning = true;
+        } else if (destId === PREPARACION_SUB_ETAPAS_IDS.CLICHE_NO_DISPONIBLE && movedPedido.clicheDisponible === true) {
+            warningMessage = 
+                '⚠️ Advertencia de Inconsistencia\n\n' +
+                'El cliché está marcado como DISPONIBLE en este pedido, ' +
+                'pero lo estás moviendo a "Cliché No Disponible".\n\n' +
+                '¿Deseas continuar con este movimiento?\n\n' +
+                '(El estado del cliché en el pedido no se modificará automáticamente)';
+            showWarning = true;
         }
 
-        // Immediately update the UI for a smooth drag-and-drop experience.
+        // Mostrar confirmación si hay inconsistencia
+        if (showWarning) {
+            const confirmed = window.confirm(warningMessage);
+            if (!confirmed) {
+                // Usuario canceló - no hacer nada, el pedido se queda donde estaba
+                return;
+            }
+        }
+
+        // Actualización optimista inmediata para experiencia fluida
         setPedidos(prev => prev.map(p => p.id === draggableId ? tempUpdatedPedido : p));
 
-        // Persist the change and let the hook's logic handle the final state.
+        // Persistir cambio - el hook aplicará determinarEtapaPreparacion basado en los flags
         await handleSavePedido(tempUpdatedPedido);
         
         return;

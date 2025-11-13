@@ -124,15 +124,35 @@ export const usePedidosManager = (
         let modifiedPedido = { ...updatedPedido };
         let hasChanges = false;
 
-        // ✅ Recalcular automáticamente la subEtapaActual según los campos SOLO si NO fue cambiada manualmente
-        // Verificar si hubo un cambio manual en subEtapaActual (comparando con el original)
-        const subEtapaChangedManually = originalPedidoCopy.subEtapaActual !== modifiedPedido.subEtapaActual;
-        
-        if (modifiedPedido.etapaActual === Etapa.PREPARACION && !subEtapaChangedManually) {
-            // Solo recalcular si NO fue cambiada manualmente por el usuario
-            modifiedPedido.subEtapaActual = determinarEtapaPreparacion(modifiedPedido);
+        // ✅ NUEVO: Verificar si ambos están disponibles y preguntar antes de mover automáticamente
+        const shouldAskForConfirmation = 
+            modifiedPedido.etapaActual === Etapa.PREPARACION &&
+            modifiedPedido.subEtapaActual !== PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION &&
+            modifiedPedido.materialDisponible === true &&
+            modifiedPedido.clicheDisponible === true;
+
+        if (shouldAskForConfirmation) {
+            const confirmed = window.confirm(
+                '✅ Material y Cliché están listos\n\n' +
+                'Ambos requisitos están disponibles. ¿Desea mover el pedido a "Listo para Producción"?\n\n' +
+                'Si selecciona "Cancelar", el pedido se guardará pero permanecerá en su posición actual.'
+            );
+            
+            if (!confirmed) {
+                // Usuario rechazó - NO ejecutar determinarEtapaPreparacion, mantener posición actual
+                // Continuar con el guardado sin recalcular la sub-etapa
+                modifiedPedido.subEtapaActual = originalPedidoCopy.subEtapaActual;
+            } else {
+                // Usuario aceptó - aplicar movimiento automático
+                modifiedPedido.subEtapaActual = determinarEtapaPreparacion(modifiedPedido);
+            }
+        } else {
+            // ✅ ACTUALIZADO: Ejecutar determinarEtapaPreparacion SIEMPRE para pedidos en Preparación
+            // (excepto cuando el usuario rechazó la confirmación arriba)
+            if (modifiedPedido.etapaActual === Etapa.PREPARACION) {
+                modifiedPedido.subEtapaActual = determinarEtapaPreparacion(modifiedPedido);
+            }
         }
-        // Si subEtapaChangedManually === true, respetar el cambio manual del usuario
         
         if (generateHistory) {
             const newHistoryEntries: HistorialEntry[] = [];
@@ -141,7 +161,7 @@ export const usePedidosManager = (
                 'numeroPedidoCliente', 'cliente', 'clienteId', 'metros', 'fechaEntrega', 'nuevaFechaEntrega', 'fechaFinalizacion', 'prioridad', 
                 'maquinaImpresion', 'orden', 'vendedorId', 'vendedorNombre',
                 // Información de producción
-                'tipoImpresion', 'desarrollo', 'capa', 'tiempoProduccionPlanificado', 'tiempoTotalProduccion',
+                'tipoImpresion', 'desarrollo', 'capa', 'tiempoProduccionDecimal', 'tiempoProduccionPlanificado', 'tiempoTotalProduccion',
                 'observaciones', 
                 // Secuencia y etapas
                 'secuenciaTrabajo', 'subEtapaActual', 'etapasSecuencia',

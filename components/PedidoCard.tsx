@@ -289,7 +289,14 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                                     </svg>
                                 </span>
                             )}
-                            {pedido.materialDisponible && pedido.clicheDisponible && (
+                            {/* ✅ ACTUALIZADO: Badge "¡LISTO!" solo se muestra cuando:
+                                1. subEtapaActual === LISTO_PARA_PRODUCCION
+                                2. materialDisponible === true
+                                3. clicheDisponible === true
+                            */}
+                            {pedido.subEtapaActual === 'LISTO_PARA_PRODUCCION' && 
+                             pedido.materialDisponible === true && 
+                             pedido.clicheDisponible === true && (
                                 <span 
                                     className="inline-flex items-center px-2 py-1 rounded-md text-xs font-bold bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-lg animate-pulse cursor-help" 
                                     title={`✅ ¡TODO LISTO! Puedes enviar este pedido a producción\n\nMaterial: Disponible ✓\nCliché: Disponible ✓${pedido.clicheInfoAdicional ? `\n\nInfo Cliché: ${pedido.clicheInfoAdicional}` : ''}\n\n👉 Usa el botón verde "→" para enviar a impresión`}
@@ -299,6 +306,29 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                     </svg>
                                     ¡LISTO!
+                                </span>
+                            )}
+                            {/* ⚠️ NUEVO: Advertencias cuando está en "Listo para Producción" pero faltan requisitos */}
+                            {pedido.subEtapaActual === 'LISTO_PARA_PRODUCCION' && !pedido.materialDisponible && (
+                                <span 
+                                    className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 cursor-help" 
+                                    title="⚠️ En 'Listo para Producción' pero el material NO está disponible"
+                                >
+                                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                    Falta Material
+                                </span>
+                            )}
+                            {pedido.subEtapaActual === 'LISTO_PARA_PRODUCCION' && !pedido.clicheDisponible && (
+                                <span 
+                                    className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 cursor-help" 
+                                    title="⚠️ En 'Listo para Producción' pero el cliché NO está disponible"
+                                >
+                                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                    Falta Cliché
                                 </span>
                             )}
                         </div>
@@ -351,29 +381,28 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                     <span className="font-medium">Nº Compra:</span>{' '}
                     <span className="inline-flex flex-wrap gap-1">
                         {pedido.numerosCompra.map((numero, index) => {
-                            // Determinar el color según el estado del material correspondiente
+                            // ✅ CORREGIDO: Usar materialDisponible que está sincronizado automáticamente
+                            // en lugar de recalcular todosDisponibles manualmente
                             const materialItem = pedido.materialConsumo?.[index];
                             const recibido = materialItem?.recibido;
-                            
-                            // Verificar si TODOS los materiales están disponibles (para mostrar verde)
-                            const todosDisponibles = pedido.materialConsumo?.every(m => m.recibido === true);
                             
                             let bgColor = 'bg-blue-100 dark:bg-blue-900'; // Azul por defecto (sin estado)
                             let textColor = 'text-blue-800 dark:text-blue-200';
                             
-                            if (todosDisponibles) {
-                                // Verde: TODOS los materiales están disponibles
+                            // Verde: TODOS los materiales están disponibles (usa el flag sincronizado)
+                            if (pedido.materialDisponible === true) {
                                 bgColor = 'bg-green-100 dark:bg-green-900';
                                 textColor = 'text-green-800 dark:text-green-200';
-                            } else if (recibido === false) {
-                                // Rojo: Este material NO está disponible
+                            } 
+                            // Rojo: Este material específico NO está disponible
+                            else if (recibido === false) {
                                 bgColor = 'bg-red-100 dark:bg-red-900';
                                 textColor = 'text-red-800 dark:text-red-200';
                             }
-                            // else: Azul (recibido === null/undefined o true pero no todos)
+                            // Azul: Estado indeterminado (recibido === null/undefined o true pero no todos)
                             
                             return numero ? (
-                                <span key={index} className={`${bgColor} ${textColor} px-2 py-0.5 rounded`}>
+                                <span key={`${pedido.id}-compra-${index}`} className={`${bgColor} ${textColor} px-2 py-0.5 rounded`}>
                                     {pedido.numerosCompra.length === 1 ? numero : `#${index + 1}: ${numero}`}
                                 </span>
                             ) : null;
