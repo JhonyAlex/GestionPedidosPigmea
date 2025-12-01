@@ -116,7 +116,9 @@ const WeekFilter: React.FC<WeekFilterProps> = ({
         fechaCreacion: 'Fecha Creación',
         fechaEntrega: 'Fecha Entrega',
         nuevaFechaEntrega: 'Nueva Fecha',
-        fechaFinalizacion: 'Fecha Finalización'
+        fechaFinalizacion: 'Fecha Finalización',
+        compraCliche: 'Compra Cliché',
+        recepcionCliche: 'Recepción Cliché'
     };
 
     return (

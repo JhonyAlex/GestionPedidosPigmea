@@ -18,6 +18,7 @@ import ThemeSwitcher from './components/ThemeSwitcher';
 import CompletedPedidosList from './components/CompletedPedidosList';
 import PreparacionView from './components/PreparacionView';
 import ListoProduccionView from './components/ListoProduccionView';
+import { OperadorView } from './components/OperadorView';
 import EnviarAImpresionModal from './components/EnviarAImpresionModal';
 import SequenceReorderModal from './components/SequenceReorderModal';
 import NotificationCenter from './components/NotificationCenter';
@@ -840,6 +841,8 @@ const AppContent: React.FC = () => {
                     auditLog={auditLog} 
                     onNavigateToPedido={navigateToPedido}
                 />;
+            case 'operador':
+                return <OperadorView />;
             case 'permissions-debug':
                 return <PermissionsDebug />;
             default:

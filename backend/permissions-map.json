@@ -70,5 +70,11 @@
     "category": "dashboard",
     "action": "view",
     "description": "Permite ver el dashboard"
+  },
+  "pedidos.operate": {
+    "id": "pedidos.operate",
+    "category": "pedidos",
+    "action": "operate",
+    "description": "Permite trabajar en modo operador de producción"
   }
 }

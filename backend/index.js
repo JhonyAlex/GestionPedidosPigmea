@@ -12,6 +12,7 @@ const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcryptjs');
 const { v5: uuidv5 } = require('uuid');
 const PostgreSQLClient = require('./postgres-client');
+const ProduccionOperations = require('./produccion-operations');
 const { requirePermission, requireAnyPermission, setDbClient: setPermissionsDbClient } = require('./middleware/permissions');
 const { authenticateUser, requireAuth, extractUserFromRequest, setDbClient: setAuthDbClient } = require('./middleware/auth');
 
@@ -40,6 +41,9 @@ const mapRole = (role, toDatabase = true) => {
 
 // Inicializar el cliente de PostgreSQL
 const dbClient = new PostgreSQLClient();
+
+// Inicializar el módulo de operaciones de producción
+const produccionOps = new ProduccionOperations(dbClient);
 
 // --- EXPRESS APP SETUP ---
 const app = express();
@@ -2428,7 +2432,396 @@ app.delete('/api/notifications/:id', authenticateUser, async (req, res) => {
     }
 });
 
+// ============================================
+// === ENDPOINTS DE OPERACIONES DE PRODUCCIÓN ===
+// ============================================
+
+// POST /api/produccion/iniciar - Iniciar una nueva operación de producción
+app.post('/api/produccion/iniciar', requireAuth, async (req, res) => {
+    try {
+        const { pedidoId, maquina, metrosObjetivo, observaciones } = req.body;
+        const operadorId = req.headers['x-user-id'];
+        const operadorNombre = req.user?.displayName || req.user?.username || 'Operador';
+        
+        if (!pedidoId || !maquina) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'Datos incompletos: pedidoId y maquina son requeridos' 
+            });
+        }
+        
+        if (!operadorId) {
+            return res.status(401).json({ 
+                success: false,
+                message: 'Usuario no autenticado' 
+            });
+        }
+        
+        const operacion = await produccionOps.iniciarOperacion({
+            pedidoId,
+            operadorId,
+            operadorNombre,
+            maquina,
+            metrosObjetivo,
+            observaciones
+        });
+        
+        // Emitir evento WebSocket
+        io.emit('operacion-iniciada', operacion);
+        
+        res.status(201).json({
+            success: true,
+            operacion,
+            message: `Operación iniciada en ${maquina}`
+        });
+        
+    } catch (error) {
+        console.error('Error iniciando operación:', error);
+        res.status(500).json({ 
+            success: false,
+            message: error.message || 'Error al iniciar operación'
+        });
+    }
+});
+
+// POST /api/produccion/pausar/:operacionId - Pausar una operación
+app.post('/api/produccion/pausar/:operacionId', requireAuth, async (req, res) => {
+    try {
+        const { operacionId } = req.params;
+        const { motivo } = req.body;
+        
+        const operacion = await produccionOps.pausarOperacion(operacionId, motivo);
+        
+        // Emitir evento WebSocket
+        io.emit('operacion-pausada', operacion);
+        
+        res.status(200).json({
+            success: true,
+            operacion,
+            message: 'Operación pausada'
+        });
+        
+    } catch (error) {
+        console.error('Error pausando operación:', error);
+        res.status(500).json({ 
+            success: false,
+            message: error.message || 'Error al pausar operación'
+        });
+    }
+});
+
+// POST /api/produccion/reanudar/:operacionId - Reanudar una operación pausada
+app.post('/api/produccion/reanudar/:operacionId', requireAuth, async (req, res) => {
+    try {
+        const { operacionId } = req.params;
+        
+        const operacion = await produccionOps.reanudarOperacion(operacionId);
+        
+        // Emitir evento WebSocket
+        io.emit('operacion-reanudada', operacion);
+        
+        res.status(200).json({
+            success: true,
+            operacion,
+            message: 'Operación reanudada'
+        });
+        
+    } catch (error) {
+        console.error('Error reanudando operación:', error);
+        res.status(500).json({ 
+            success: false,
+            message: error.message || 'Error al reanudar operación'
+        });
+    }
+});
+
+// POST /api/produccion/completar - Completar una operación
+app.post('/api/produccion/completar', requireAuth, async (req, res) => {
+    try {
+        const { operacionId, metrosProducidos, observaciones, calidad } = req.body;
+        
+        if (!operacionId || metrosProducidos === undefined) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'Datos incompletos: operacionId y metrosProducidos son requeridos' 
+            });
+        }
+        
+        const operacion = await produccionOps.completarOperacion({
+            operacionId,
+            metrosProducidos: parseFloat(metrosProducidos),
+            observaciones,
+            calidad
+        });
+        
+        // Emitir evento WebSocket
+        io.emit('operacion-completada', operacion);
+        
+        // También emitir actualización del pedido
+        const pedidoActualizado = await dbClient.findById(operacion.pedidoId);
+        if (pedidoActualizado) {
+            io.emit('pedido-updated', {
+                pedido: pedidoActualizado,
+                message: `Pedido actualizado: ${metrosProducidos}m producidos`
+            });
+        }
+        
+        res.status(200).json({
+            success: true,
+            operacion,
+            message: `Operación completada: ${metrosProducidos}m producidos`
+        });
+        
+    } catch (error) {
+        console.error('Error completando operación:', error);
+        res.status(500).json({ 
+            success: false,
+            message: error.message || 'Error al completar operación'
+        });
+    }
+});
+
+// POST /api/produccion/cancelar/:operacionId - Cancelar una operación
+app.post('/api/produccion/cancelar/:operacionId', requireAuth, async (req, res) => {
+    try {
+        const { operacionId } = req.params;
+        const { motivo } = req.body;
+        
+        const operacion = await produccionOps.cancelarOperacion(operacionId, motivo);
+        
+        // Emitir evento WebSocket
+        io.emit('operacion-cancelada', operacion);
+        
+        res.status(200).json({
+            success: true,
+            operacion,
+            message: 'Operación cancelada'
+        });
+        
+    } catch (error) {
+        console.error('Error cancelando operación:', error);
+        res.status(500).json({ 
+            success: false,
+            message: error.message || 'Error al cancelar operación'
+        });
+    }
+});
+
+// GET /api/produccion/operaciones-activas - Obtener todas las operaciones activas
+app.get('/api/produccion/operaciones-activas', requireAuth, async (req, res) => {
+    try {
+        const { operadorId, maquina, etapa } = req.query;
+        
+        const operaciones = await produccionOps.obtenerOperacionesActivas({
+            operadorId,
+            maquina,
+            etapa
+        });
+        
+        res.status(200).json({
+            success: true,
+            operaciones,
+            count: operaciones.length
+        });
+        
+    } catch (error) {
+        console.error('Error obteniendo operaciones activas:', error);
+        res.status(500).json({ 
+            success: false,
+            message: error.message || 'Error al obtener operaciones activas'
+        });
+    }
+});
+
+// GET /api/produccion/operacion/:operacionId - Obtener una operación por ID
+app.get('/api/produccion/operacion/:operacionId', requireAuth, async (req, res) => {
+    try {
+        const { operacionId } = req.params;
+        
+        const operacion = await produccionOps.obtenerOperacionPorId(operacionId);
+        
+        if (!operacion) {
+            return res.status(404).json({
+                success: false,
+                message: 'Operación no encontrada'
+            });
+        }
+        
+        res.status(200).json({
+            success: true,
+            operacion
+        });
+        
+    } catch (error) {
+        console.error('Error obteniendo operación:', error);
+        res.status(500).json({ 
+            success: false,
+            message: error.message || 'Error al obtener operación'
+        });
+    }
+});
+
+// GET /api/produccion/historial/:pedidoId - Obtener historial de operaciones de un pedido
+app.get('/api/produccion/historial/:pedidoId', requireAuth, async (req, res) => {
+    try {
+        const { pedidoId } = req.params;
+        
+        const historial = await produccionOps.obtenerHistorialPedido(pedidoId);
+        
+        res.status(200).json({
+            success: true,
+            historial,
+            count: historial.length
+        });
+        
+    } catch (error) {
+        console.error('Error obteniendo historial:', error);
+        res.status(500).json({ 
+            success: false,
+            message: error.message || 'Error al obtener historial'
+        });
+    }
+});
+
+// GET /api/produccion/pedidos-disponibles - Obtener pedidos disponibles para operación
+app.get('/api/produccion/pedidos-disponibles', requireAuth, async (req, res) => {
+    try {
+        const { etapa } = req.query;
+        
+        const pedidos = await produccionOps.obtenerPedidosDisponibles({ etapa });
+        
+        res.status(200).json({
+            success: true,
+            pedidos,
+            count: pedidos.length
+        });
+        
+    } catch (error) {
+        console.error('Error obteniendo pedidos disponibles:', error);
+        res.status(500).json({ 
+            success: false,
+            message: error.message || 'Error al obtener pedidos disponibles'
+        });
+    }
+});
+
+// GET /api/produccion/estadisticas/:operadorId - Obtener estadísticas del operador (hoy)
+app.get('/api/produccion/estadisticas/:operadorId', requireAuth, async (req, res) => {
+    try {
+        const { operadorId } = req.params;
+        
+        const estadisticas = await produccionOps.obtenerEstadisticasOperadorHoy(operadorId);
+        
+        res.status(200).json({
+            success: true,
+            estadisticas: estadisticas || {
+                operadorId,
+                totalOperaciones: 0,
+                operacionesCompletadas: 0,
+                operacionesEnProgreso: 0,
+                operacionesPausadas: 0,
+                metrosProducidosHoy: 0,
+                tiempoTrabajadoSegundos: 0,
+                tiempoPromedioOperacion: 0
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error obteniendo estadísticas:', error);
+        res.status(500).json({ 
+            success: false,
+            message: error.message || 'Error al obtener estadísticas'
+        });
+    }
+});
+
+// POST /api/produccion/observacion - Agregar observación a una operación
+app.post('/api/produccion/observacion', requireAuth, async (req, res) => {
+    try {
+        const { operacionId, pedidoId, observacion, tipo } = req.body;
+        const creadoPor = req.headers['x-user-id'];
+        const creadoNombre = req.user?.displayName || req.user?.username || 'Usuario';
+        
+        if (!operacionId || !pedidoId || !observacion) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'Datos incompletos' 
+            });
+        }
+        
+        const observacionCreada = await produccionOps.agregarObservacion({
+            operacionId,
+            pedidoId,
+            observacion,
+            tipo,
+            creadoPor,
+            creadoNombre
+        });
+        
+        // Emitir evento WebSocket
+        io.emit('observacion-agregada', observacionCreada);
+        
+        res.status(201).json({
+            success: true,
+            observacion: observacionCreada,
+            message: 'Observación agregada'
+        });
+        
+    } catch (error) {
+        console.error('Error agregando observación:', error);
+        res.status(500).json({ 
+            success: false,
+            message: error.message || 'Error al agregar observación'
+        });
+    }
+});
+
+// GET /api/produccion/observaciones/:operacionId - Obtener observaciones de una operación
+app.get('/api/produccion/observaciones/:operacionId', requireAuth, async (req, res) => {
+    try {
+        const { operacionId } = req.params;
+        
+        const observaciones = await produccionOps.obtenerObservacionesOperacion(operacionId);
+        
+        res.status(200).json({
+            success: true,
+            observaciones,
+            count: observaciones.length
+        });
+        
+    } catch (error) {
+        console.error('Error obteniendo observaciones:', error);
+        res.status(500).json({ 
+            success: false,
+            message: error.message || 'Error al obtener observaciones'
+        });
+    }
+});
+
+// GET /api/produccion/metraje/:pedidoId - Obtener historial de metraje de un pedido
+app.get('/api/produccion/metraje/:pedidoId', requireAuth, async (req, res) => {
+    try {
+        const { pedidoId } = req.params;
+        
+        const metraje = await produccionOps.obtenerHistorialMetraje(pedidoId);
+        
+        res.status(200).json({
+            success: true,
+            metraje,
+            count: metraje.length
+        });
+        
+    } catch (error) {
+        console.error('Error obteniendo metraje:', error);
+        res.status(500).json({ 
+            success: false,
+            message: error.message || 'Error al obtener metraje'
+        });
+    }
+});
+
 // === RUTAS DE CLIENTES ===
+
 
 // GET /api/clientes - Get all clientes with pagination, sorting, and filtering
 app.get('/api/clientes', requirePermission('clientes.view'), async (req, res) => {

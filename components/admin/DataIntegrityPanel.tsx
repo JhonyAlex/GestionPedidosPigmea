@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Wrench, AlertTriangle, CheckCircle } from 'lucide-react';
 
 interface IntegrityCheckResults {
   pedidos_sin_cliente_id: { count: number; items: { id: string; cliente: string }[] };
@@ -82,7 +81,7 @@ const DataIntegrityPanel: React.FC = () => {
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
       <h3 className="text-lg font-semibold mb-4 flex items-center">
-        <ShieldCheck className="mr-2 text-blue-500" />
+        <span className="mr-2 text-2xl">🛡️</span>
         Panel de Integridad de Datos
       </h3>
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
@@ -104,7 +103,7 @@ const DataIntegrityPanel: React.FC = () => {
         <div className="space-y-4">
           {!hasIssues ? (
             <div className="flex items-center p-3 bg-green-50 dark:bg-green-900/50 border border-green-200 dark:border-green-700 rounded-lg">
-              <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+              <span className="text-2xl mr-3">✅</span>
               <span className="text-sm text-green-800 dark:text-green-200">¡Excelente! No se encontraron problemas de integridad.</span>
             </div>
           ) : (
@@ -118,7 +117,7 @@ const DataIntegrityPanel: React.FC = () => {
                     disabled={isFixing}
                     className="px-3 py-1 bg-green-600 text-white text-xs font-semibold rounded-md hover:bg-green-700 flex items-center disabled:bg-green-400"
                   >
-                    <Wrench className="mr-1 h-4 w-4" />
+                    <span className="mr-1">🔧</span>
                     {isFixing ? 'Reparando...' : 'Intentar Reparación Automática'}
                   </button>
                 }
@@ -141,7 +140,7 @@ const IntegrityIssue: React.FC<{ title: string; issue: { count: number; items: a
     <div className="p-3 bg-yellow-50 dark:bg-yellow-900/50 border border-yellow-200 dark:border-yellow-700 rounded-lg">
       <div className="flex justify-between items-center">
         <div className="flex items-center">
-          <AlertTriangle className="h-5 w-5 text-yellow-500 mr-3" />
+          <span className="text-2xl mr-3">⚠️</span>
           <span className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">{title} ({issue.count} encontrados)</span>
         </div>
         {actionButton}

@@ -54,6 +54,12 @@ export const PERMISSION_CONFIG: PermissionConfig = {
                     name: 'Archivar Pedidos',
                     description: 'Permite archivar y desarchivar pedidos',
                     category: 'pedidos'
+                },
+                {
+                    id: 'pedidos.operate',
+                    name: 'Operar Producción',
+                    description: 'Permite trabajar en modo operador de producción',
+                    category: 'pedidos'
                 }
             ]
         },
