@@ -252,7 +252,7 @@ SELECT
     p.numero_pedido_cliente,
     p.cliente,
     p.etapa_actual,
-    p.sub_etapa_actual,
+    p.data->>'subEtapaActual' AS sub_etapa_actual,
     -- Extraer metros del campo JSONB data, no hay columna 'metros' directa
     CAST(p.data->>'metros' AS NUMERIC(10,2)) AS metros,
     p.metros_producidos,
@@ -268,7 +268,7 @@ FROM pedidos p
 WHERE 
     p.etapa_actual IN ('IMPRESION', 'POST_IMPRESION', 'PREPARACION')
     AND p.operador_actual_id IS NULL
-    AND p.estado_pedido = 'activo'
+    AND (p.estado IS NULL OR UPPER(p.estado) = 'ACTIVO')
 ORDER BY 
     CASE p.prioridad 
         WHEN 'ALTA' THEN 1
