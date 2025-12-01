@@ -64,29 +64,6 @@ const PreparacionView: React.FC<PreparacionViewProps> = ({
                     ))}
                  </div>
              </div>
-
-             {/* FILA 2: Listos para Fabricación - 1 columna */}
-             <div className="mb-6">
-                 <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3 uppercase tracking-wide">Listos para Fabricación</h3>
-                 <div className="grid grid-cols-1 gap-6">
-                    {PREPARACION_COLUMNS.slice(3, 4).map(columna => (
-                        <PreparacionColumn
-                            key={columna.id}
-                            columna={columna}
-                            pedidos={pedidosPorColumna[columna.id] || []}
-                            onSelectPedido={onSelectPedido}
-                            onArchiveToggle={onArchiveToggle}
-                            currentUserRole={currentUserRole}
-                            onSendToPrint={onSendToPrint}
-                            highlightedPedidoId={highlightedPedidoId}
-                            onUpdatePedido={onUpdatePedido}
-                            selectedIds={selectedIds}
-                            isSelectionActive={isSelectionActive}
-                            onToggleSelection={onToggleSelection}
-                        />
-                    ))}
-                 </div>
-             </div>
         </main>
     );
 };

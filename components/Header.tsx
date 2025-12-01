@@ -210,6 +210,7 @@ const Header: React.FC<HeaderProps> = ({
 
     const viewOptions: { id: ViewType; label: string, adminOnly: boolean, permission?: () => boolean }[] = [
         { id: 'preparacion', label: 'Preparación', adminOnly: false },
+        { id: 'listoProduccion', label: 'Listo Prod.', adminOnly: false },
         { id: 'clientes', label: 'Clientes', adminOnly: false, permission: canViewClientes },
         { id: 'vendedores', label: 'Vendedores', adminOnly: false, permission: canViewClientes },
         { id: 'kanban', label: 'Producción', adminOnly: false },

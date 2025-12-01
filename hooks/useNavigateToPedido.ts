@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { Pedido, Etapa, ViewType } from '../types';
-import { KANBAN_FUNNELS } from '../constants';
+import { KANBAN_FUNNELS, PREPARACION_SUB_ETAPAS_IDS } from '../constants';
 
 interface UseNavigateToPedidoProps {
     setView: (view: ViewType) => void;
@@ -20,7 +20,12 @@ export const useNavigateToPedido = ({
         
         // Si está en preparación
         if (pedido.etapaActual === Etapa.PREPARACION) {
-            targetView = 'preparacion';
+            // Si está en "Listo para Producción", ir a esa vista específica
+            if (pedido.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION) {
+                targetView = 'listoProduccion';
+            } else {
+                targetView = 'preparacion';
+            }
         }
         // Si está en etapas de kanban (impresión o post-impresión)
         else if (

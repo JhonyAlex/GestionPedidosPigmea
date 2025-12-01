@@ -17,6 +17,7 @@ import VendedoresList from './components/VendedoresList';
 import ThemeSwitcher from './components/ThemeSwitcher';
 import CompletedPedidosList from './components/CompletedPedidosList';
 import PreparacionView from './components/PreparacionView';
+import ListoProduccionView from './components/ListoProduccionView';
 import EnviarAImpresionModal from './components/EnviarAImpresionModal';
 import SequenceReorderModal from './components/SequenceReorderModal';
 import NotificationCenter from './components/NotificationCenter';
@@ -219,7 +220,7 @@ const AppContent: React.FC = () => {
 
     // Resetear filtros de etapa cuando se cambia entre vistas con diferentes sistemas de filtro
     useEffect(() => {
-        const viewsThatNeedStageReset = ['preparacion', 'archived', 'report'];
+        const viewsThatNeedStageReset = ['preparacion', 'listoProduccion', 'archived', 'report'];
         
         if (viewsThatNeedStageReset.includes(view)) {
             // Resetear completamente para vistas que no usan filtros de etapa
@@ -263,7 +264,8 @@ const AppContent: React.FC = () => {
         loadAuditLog();
     }, []);
 
-    const preparacionPedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual === Etapa.PREPARACION), [processedPedidos]);
+    const preparacionPedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual === Etapa.PREPARACION && p.subEtapaActual !== PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION), [processedPedidos]);
+    const listoProduccionPedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual === Etapa.PREPARACION && p.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION), [processedPedidos]);
     const activePedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual !== Etapa.ARCHIVADO && p.etapaActual !== Etapa.PREPARACION), [processedPedidos]);
     const archivedPedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual === Etapa.ARCHIVADO), [processedPedidos]);
 
@@ -692,6 +694,21 @@ const AppContent: React.FC = () => {
                 return (
                     <PreparacionView
                         pedidos={preparacionPedidos}
+                        onSelectPedido={setSelectedPedido}
+                        onArchiveToggle={handleArchiveToggle}
+                        currentUserRole={currentUserRole}
+                        onSendToPrint={setPedidoToSend}
+                        highlightedPedidoId={highlightedPedidoId}
+                        onUpdatePedido={handleSavePedido}
+                        selectedIds={selectedIds}
+                        isSelectionActive={isSelectionActive}
+                        onToggleSelection={toggleSelection}
+                    />
+                );
+            case 'listoProduccion':
+                return (
+                    <ListoProduccionView
+                        pedidos={listoProduccionPedidos}
                         onSelectPedido={setSelectedPedido}
                         onArchiveToggle={handleArchiveToggle}
                         currentUserRole={currentUserRole}
