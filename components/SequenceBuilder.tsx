@@ -38,10 +38,16 @@ const SequenceBuilder: React.FC<SequenceBuilderProps> = ({ sequence, onChange, i
     };
 
     const StageButton = ({ stage, onClick, icon, disabled, title }: { stage: Etapa, onClick: () => void, icon: React.ReactNode, disabled: boolean, title: string }) => (
-        <li key={stage} className="flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-700 rounded-md">
+        <li 
+            key={stage} 
+            className={`flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-700 rounded-md ${
+                !isReadOnly && title === 'Añadir a secuencia' ? 'cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600' : ''
+            }`}
+            onClick={title === 'Añadir a secuencia' && !isReadOnly ? onClick : undefined}
+        >
             <span className="text-sm font-medium">{ETAPAS[stage].title}</span>
             {!isReadOnly && (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1" onClick={(e) => title === 'Añadir a secuencia' && e.stopPropagation()}>
                     {title === 'reorder' && (
                         <>
                             <button type="button" onClick={() => handleMove(sequence.indexOf(stage), 'up')} disabled={sequence.indexOf(stage) === 0} className="p-1 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Mover arriba"><UpIcon/></button>
