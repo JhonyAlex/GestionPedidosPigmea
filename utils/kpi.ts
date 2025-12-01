@@ -210,18 +210,15 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
         "Capa",
         "Camisa",
         "Antiv.",
+        "Láser",
         "Et. Actual",
         "Sig. Etapa",
         "Observaciones",
         "Creación",
-        "F. Entrega",
         "N.F. Entrega"
     ];
     
     const tableRows = pedidos.map(p => {
-        const fechaEntregaParts = p.fechaEntrega.split('-');
-        const formattedFechaEntrega = fechaEntregaParts.length === 3 ? `${fechaEntregaParts[2]}/${fechaEntregaParts[1]}/${fechaEntregaParts[0]}` : p.fechaEntrega;
-        
         const nuevaFechaEntregaParts = p.nuevaFechaEntrega ? p.nuevaFechaEntrega.split('-') : null;
         const formattedNuevaFechaEntrega = nuevaFechaEntregaParts && nuevaFechaEntregaParts.length === 3 
             ? `${nuevaFechaEntregaParts[2]}/${nuevaFechaEntregaParts[1]}/${nuevaFechaEntregaParts[0]}` 
@@ -235,11 +232,11 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             p.capa,
             p.camisa || '-',
             p.antivaho ? 'Sí' : 'No',
+            p.microperforado ? 'Sí' : 'No',
             ETAPAS[p.etapaActual].title,
             getNextStageTitle(p),
             p.observaciones,
             formatDateDDMMYYYY(p.fechaCreacion),
-            formattedFechaEntrega,
             formattedNuevaFechaEntrega,
         ];
     });
@@ -274,11 +271,11 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             4: { cellWidth: 25 }, // Capa
             5: { cellWidth: 32 }, // Camisa
             6: { cellWidth: 25 }, // Antiv.
-            7: { cellWidth: 58 }, // Et. Actual
-            8: { cellWidth: 58 }, // Sig. Etapa
-            9: { cellWidth: 100, halign: 'left' }, // Observaciones
-            10: { cellWidth: 38 }, // Creación
-            11: { cellWidth: 42 }, // F. Entrega
+            7: { cellWidth: 25 }, // Láser
+            8: { cellWidth: 58 }, // Et. Actual
+            9: { cellWidth: 58 }, // Sig. Etapa
+            10: { cellWidth: 137, halign: 'left' }, // Observaciones
+            11: { cellWidth: 38 }, // Creación
             12: { cellWidth: 48 }, // N.F. Entrega
         },
         didParseCell: (data) => {
@@ -296,6 +293,13 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
                     if (!isNaN(numericCapa) && numericCapa >= 3) {
                         data.cell.styles.fillColor = [254, 202, 202]; // light red (red-200)
                     }
+                }
+
+                // Highlight 'Láser' cell if microperforado is active
+                if (data.column.index === 7 && pedido.microperforado) { // "Láser" column
+                    data.cell.styles.fillColor = [196, 181, 253]; // light purple (purple-300)
+                    data.cell.styles.fontStyle = 'bold';
+                    data.cell.styles.textColor = [76, 29, 149]; // dark purple (purple-900)
                 }
             }
         },

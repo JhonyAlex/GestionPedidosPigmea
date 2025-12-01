@@ -1164,6 +1164,11 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                         </div>
 
                                         <div>
+                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">🔰 Desarrollo</label>
+                                            <input type="text" name="desarrollo" value={formData.desarrollo} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50" placeholder="Desarrollo"/>
+                                        </div>
+
+                                        <div>
                                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Fecha de Creación</label>
                                             <div className="w-full bg-gray-100 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm">
                                                 {formatDateTimeDDMMYYYY(formData.fechaCreacion)}

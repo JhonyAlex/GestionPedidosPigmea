@@ -421,6 +421,11 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                     <CalendarIcon /> {formatDateDDMMYYYY(pedido.fechaEntrega)}
                 </span>
                 <div className="flex flex-col items-end gap-0.5">
+                    {pedido.desarrollo && (
+                        <span className="flex items-center text-xs" title="Desarrollo">
+                            <span className="font-medium mr-1">Desarr:</span> {pedido.desarrollo}
+                        </span>
+                    )}
                     {pedido.tiempoProduccionPlanificado && (
                         <span className="flex items-center text-xs" title="Tiempo de Producción Planificado">
                             <ClockIcon /> {pedido.tiempoProduccionPlanificado}
