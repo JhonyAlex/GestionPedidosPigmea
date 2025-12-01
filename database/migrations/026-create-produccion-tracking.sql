@@ -118,32 +118,36 @@ BEGIN
     -- Los datos están en el campo JSONB 'data'. Creamos columnas simples y las calculamos en el backend.
     
     -- Manejar metros_restantes (eliminar si existe como GENERATED y recrear como columna normal)
+    -- Usamos DROP COLUMN IF EXISTS para mayor robustez
+    RAISE NOTICE '🔄 Verificando columna metros_restantes...';
     BEGIN
-        -- Intentar eliminar la columna si existe (especialmente si es GENERATED)
-        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pedidos' AND column_name = 'metros_restantes') THEN
-            RAISE NOTICE '🔄 Eliminando columna metros_restantes existente...';
-            ALTER TABLE pedidos DROP COLUMN metros_restantes;
-        END IF;
-        -- Crear la columna como normal (no GENERATED)
-        ALTER TABLE pedidos ADD COLUMN metros_restantes NUMERIC(10, 2) DEFAULT 0;
-        RAISE NOTICE '✅ Columna metros_restantes creada correctamente';
+        EXECUTE 'ALTER TABLE pedidos DROP COLUMN IF EXISTS metros_restantes';
+        RAISE NOTICE '✓ Columna metros_restantes eliminada (si existía)';
     EXCEPTION WHEN OTHERS THEN
-        RAISE NOTICE '⚠️ Error al manejar metros_restantes: %', SQLERRM;
+        RAISE NOTICE '⚠️ Error al eliminar metros_restantes: % - Continuando...', SQLERRM;
     END;
     
+    -- Crear la columna metros_restantes como normal (no GENERATED)
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pedidos' AND column_name = 'metros_restantes') THEN
+        ALTER TABLE pedidos ADD COLUMN metros_restantes NUMERIC(10, 2) DEFAULT 0;
+        RAISE NOTICE '✅ Columna metros_restantes creada correctamente';
+    END IF;
+    
     -- Manejar porcentaje_completado (eliminar si existe como GENERATED y recrear como columna normal)
+    -- Usamos DROP COLUMN IF EXISTS para mayor robustez
+    RAISE NOTICE '🔄 Verificando columna porcentaje_completado...';
     BEGIN
-        -- Intentar eliminar la columna si existe (especialmente si es GENERATED)
-        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pedidos' AND column_name = 'porcentaje_completado') THEN
-            RAISE NOTICE '🔄 Eliminando columna porcentaje_completado existente...';
-            ALTER TABLE pedidos DROP COLUMN porcentaje_completado;
-        END IF;
-        -- Crear la columna como normal (no GENERATED)
+        EXECUTE 'ALTER TABLE pedidos DROP COLUMN IF EXISTS porcentaje_completado';
+        RAISE NOTICE '✓ Columna porcentaje_completado eliminada (si existía)';
+    EXCEPTION WHEN OTHERS THEN
+        RAISE NOTICE '⚠️ Error al eliminar porcentaje_completado: % - Continuando...', SQLERRM;
+    END;
+    
+    -- Crear la columna porcentaje_completado como normal (no GENERATED)
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pedidos' AND column_name = 'porcentaje_completado') THEN
         ALTER TABLE pedidos ADD COLUMN porcentaje_completado NUMERIC(5, 2) DEFAULT 0;
         RAISE NOTICE '✅ Columna porcentaje_completado creada correctamente';
-    EXCEPTION WHEN OTHERS THEN
-        RAISE NOTICE '⚠️ Error al manejar porcentaje_completado: %', SQLERRM;
-    END;
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pedidos' AND column_name = 'tiempo_real_produccion_segundos') THEN
         ALTER TABLE pedidos ADD COLUMN tiempo_real_produccion_segundos INTEGER DEFAULT 0;
     END IF;
