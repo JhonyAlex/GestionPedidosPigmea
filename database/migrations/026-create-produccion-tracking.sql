@@ -113,17 +113,37 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pedidos' AND column_name = 'metros_producidos') THEN
         ALTER TABLE pedidos ADD COLUMN metros_producidos NUMERIC(10, 2) DEFAULT 0;
     END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pedidos' AND column_name = 'metros_restantes') THEN
-        ALTER TABLE pedidos ADD COLUMN metros_restantes NUMERIC(10, 2) GENERATED ALWAYS AS (
-            CASE WHEN metros IS NOT NULL AND metros_producidos IS NOT NULL THEN metros - metros_producidos ELSE metros END
-        ) STORED;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pedidos' AND column_name = 'porcentaje_completado') THEN
-        ALTER TABLE pedidos ADD COLUMN porcentaje_completado NUMERIC(5, 2) GENERATED ALWAYS AS (
-            CASE WHEN metros IS NOT NULL AND metros > 0 AND metros_producidos IS NOT NULL
-            THEN ROUND((metros_producidos / metros) * 100, 2) ELSE 0 END
-        ) STORED;
-    END IF;
+    
+    -- ⚠️ IMPORTANTE: No podemos crear columnas calculadas que referencien 'metros' porque no existe como columna
+    -- Los datos están en el campo JSONB 'data'. Creamos columnas simples y las calculamos en el backend.
+    
+    -- Manejar metros_restantes (eliminar si existe como GENERATED y recrear como columna normal)
+    BEGIN
+        -- Intentar eliminar la columna si existe (especialmente si es GENERATED)
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pedidos' AND column_name = 'metros_restantes') THEN
+            RAISE NOTICE '🔄 Eliminando columna metros_restantes existente...';
+            ALTER TABLE pedidos DROP COLUMN metros_restantes;
+        END IF;
+        -- Crear la columna como normal (no GENERATED)
+        ALTER TABLE pedidos ADD COLUMN metros_restantes NUMERIC(10, 2) DEFAULT 0;
+        RAISE NOTICE '✅ Columna metros_restantes creada correctamente';
+    EXCEPTION WHEN OTHERS THEN
+        RAISE NOTICE '⚠️ Error al manejar metros_restantes: %', SQLERRM;
+    END;
+    
+    -- Manejar porcentaje_completado (eliminar si existe como GENERATED y recrear como columna normal)
+    BEGIN
+        -- Intentar eliminar la columna si existe (especialmente si es GENERATED)
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pedidos' AND column_name = 'porcentaje_completado') THEN
+            RAISE NOTICE '🔄 Eliminando columna porcentaje_completado existente...';
+            ALTER TABLE pedidos DROP COLUMN porcentaje_completado;
+        END IF;
+        -- Crear la columna como normal (no GENERATED)
+        ALTER TABLE pedidos ADD COLUMN porcentaje_completado NUMERIC(5, 2) DEFAULT 0;
+        RAISE NOTICE '✅ Columna porcentaje_completado creada correctamente';
+    EXCEPTION WHEN OTHERS THEN
+        RAISE NOTICE '⚠️ Error al manejar porcentaje_completado: %', SQLERRM;
+    END;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pedidos' AND column_name = 'tiempo_real_produccion_segundos') THEN
         ALTER TABLE pedidos ADD COLUMN tiempo_real_produccion_segundos INTEGER DEFAULT 0;
     END IF;
@@ -196,9 +216,9 @@ SELECT
     op.*,
     p.numero_pedido_cliente,
     p.cliente,
-    p.metros AS metros_totales_pedido,
-    p.producto,
-    p.colores,
+    CAST(p.data->>'metros' AS NUMERIC(10,2)) AS metros_totales_pedido,
+    p.data->>'producto' AS producto,
+    p.data->>'colores' AS colores,
     p.prioridad,
     p.fecha_entrega,
     p.observaciones AS observaciones_pedido,
@@ -229,16 +249,17 @@ SELECT
     p.cliente,
     p.etapa_actual,
     p.sub_etapa_actual,
-    p.metros,
+    -- Extraer metros del campo JSONB data, no hay columna 'metros' directa
+    CAST(p.data->>'metros' AS NUMERIC(10,2)) AS metros,
     p.metros_producidos,
     p.metros_restantes,
     p.porcentaje_completado,
-    p.producto,
-    p.colores,
+    p.data->>'producto' AS producto,
+    p.data->>'colores' AS colores,
     p.fecha_entrega,
     p.prioridad,
     p.observaciones,
-    p.tiempo_produccion_planificado
+    p.data->>'tiempoProduccionPlanificado' AS tiempo_produccion_planificado
 FROM pedidos p
 WHERE 
     p.etapa_actual IN ('IMPRESION', 'POST_IMPRESION', 'PREPARACION')
