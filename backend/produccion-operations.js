@@ -361,9 +361,9 @@ class ProduccionOperations {
                     op.*,
                     p.numero_pedido_cliente,
                     p.cliente,
-                    p.metros AS metros_totales_pedido,
-                    p.producto,
-                    p.colores,
+                    CAST(p.data->>'metros' AS NUMERIC(10,2)) AS metros_totales_pedido,
+                    p.data->>'producto' AS producto,
+                    p.data->>'colores' AS colores,
                     p.prioridad,
                     p.fecha_entrega,
                     p.observaciones AS observaciones_pedido,
@@ -570,9 +570,11 @@ class ProduccionOperations {
         const client = await this.db.pool.connect();
         
         try {
+            // Convertir operadorId a UUID si es necesario
+            // La vista usa UUID pero puede llegar un ID numérico del frontend
             const result = await client.query(
-                `SELECT * FROM v_estadisticas_operador_hoy WHERE operador_id = $1`,
-                [operadorId]
+                `SELECT * FROM v_estadisticas_operador_hoy WHERE operador_id::TEXT = $1::TEXT`,
+                [String(operadorId)]
             );
             
             return result.rowCount > 0 ? this._mapEstadisticasFromDb(result.rows[0]) : null;
