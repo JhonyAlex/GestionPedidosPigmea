@@ -123,7 +123,9 @@ const Header: React.FC<HeaderProps> = ({
     const currentUserRole = user?.role || 'Operador';
     const [isStageFiltersCollapsed, setIsStageFiltersCollapsed] = useState(false);
     const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+    const [showBurgerMenu, setShowBurgerMenu] = useState(false);
     const searchContainerRef = useRef<HTMLDivElement>(null);
+    const burgerMenuRef = useRef<HTMLDivElement>(null);
 
     // Resetear el estado cuando cambie la vista
     useEffect(() => {
@@ -132,7 +134,7 @@ const Header: React.FC<HeaderProps> = ({
         }
     }, [currentView]);
 
-    // Cerrar dropdown al hacer click fuera
+    // Cerrar dropdown y menú hamburguesa al hacer click fuera
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
@@ -144,6 +146,11 @@ const Header: React.FC<HeaderProps> = ({
             
             if (searchContainerRef.current && !searchContainerRef.current.contains(target)) {
                 setShowSearchDropdown(false);
+            }
+            
+            // Cerrar menú hamburguesa
+            if (burgerMenuRef.current && !burgerMenuRef.current.contains(target)) {
+                setShowBurgerMenu(false);
             }
         };
 
@@ -208,17 +215,26 @@ const Header: React.FC<HeaderProps> = ({
     
     const { canViewClientes } = usePermissions();
 
-    const viewOptions: { id: ViewType; label: string, adminOnly: boolean, permission?: () => boolean }[] = [
-        { id: 'preparacion', label: 'Preparación', adminOnly: false },
-        { id: 'listoProduccion', label: 'Listo Prod.', adminOnly: false },
-        { id: 'operador', label: '🔧 Operador', adminOnly: false },
-        { id: 'clientes', label: 'Clientes', adminOnly: false, permission: canViewClientes },
-        { id: 'vendedores', label: 'Vendedores', adminOnly: false, permission: canViewClientes },
-        { id: 'kanban', label: 'Producción', adminOnly: false },
-        { id: 'list', label: 'Lista', adminOnly: false },
-        { id: 'archived', label: 'Archivados', adminOnly: false },
-        { id: 'report', label: 'Reportes', adminOnly: false, permission: canViewReports },
-        { id: 'permissions-debug', label: '🔍 Debug Permisos', adminOnly: true, permission: canAccessAdmin },
+    // Vistas principales (etapas de trabajo)
+    const workViews: { id: ViewType; label: string }[] = [
+        { id: 'preparacion', label: 'Preparación' },
+        { id: 'listoProduccion', label: 'Listo Prod.' },
+        { id: 'kanban', label: 'Producción' },
+    ];
+
+    // Vistas secundarias (operación)
+    const operationViews: { id: ViewType; label: string }[] = [
+        { id: 'operador', label: 'Operador' },
+        { id: 'list', label: 'Lista' },
+        { id: 'archived', label: 'Archivados' },
+    ];
+
+    // Vistas de gestión (requieren permisos)
+    const managementViews: { id: ViewType; label: string, permission?: () => boolean }[] = [
+        { id: 'clientes', label: 'Clientes', permission: canViewClientes },
+        { id: 'vendedores', label: 'Vendedores', permission: canViewClientes },
+        { id: 'report', label: 'Reportes', permission: canViewReports },
+        { id: 'permissions-debug', label: '🔍 Debug Permisos', permission: canAccessAdmin },
     ];
 
     const dateFieldOptions: { value: keyof Pedido, label: string }[] = [
@@ -246,126 +262,191 @@ const Header: React.FC<HeaderProps> = ({
     const inactiveButtonClass = "text-gray-600 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/10";
 
     return (
-        <header className="bg-white dark:bg-gray-800 shadow-md p-4 sticky top-0 z-40">
-            <div className="container mx-auto">
-                {/* Primera fila: título, navegación y botones de acción */}
-                <div className="flex flex-wrap justify-between items-center gap-4 mb-3">
-                    <div className="flex items-center gap-4">
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Planning Pigmea</h1>
+        <header className="bg-white dark:bg-gray-800 shadow-md sticky top-0 z-40">
+            <div className="container mx-auto px-4 py-3">
+                {/* Primera fila: Logo + Navegación Principal */}
+                <div className="flex items-center justify-between gap-4 mb-3">
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Planning Pigmea</h1>
                         <UserInfo />
                     </div>
 
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <div className="flex items-center gap-1 bg-gray-200 dark:bg-gray-700 rounded-lg p-1">
-                            {viewOptions.map(opt => {
-                                // Renderizado condicional basado en permisos
-                                if (opt.permission && !opt.permission()) return null;
-                                if (opt.adminOnly && !canAccessAdmin()) return null; // Fallback para adminOnly
-                                return (
-                                     <button
-                                        key={opt.id}
-                                        onClick={() => onViewChange(opt.id)}
-                                        className={`${baseButtonClass} ${currentView === opt.id ? activeButtonClass : inactiveButtonClass}`}
-                                    >
-                                        {opt.label}
-                                    </button>
-                                )
-                            })}
+                    <div className="flex items-center gap-2">
+                        {/* Navegación Principal - Etapas de Trabajo */}
+                        <div className="hidden lg:flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                            {workViews.map(view => (
+                                <button
+                                    key={view.id}
+                                    onClick={() => onViewChange(view.id)}
+                                    className={`${baseButtonClass} ${currentView === view.id ? activeButtonClass : inactiveButtonClass}`}
+                                >
+                                    {view.label}
+                                </button>
+                            ))}
                         </div>
-                        
-                        {/* Botón de Resetear Filtros */}
-                        {onResetAllFilters && (
+
+                        {/* Vistas Secundarias */}
+                        <div className="hidden md:flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                            {operationViews.map(view => (
+                                <button
+                                    key={view.id}
+                                    onClick={() => onViewChange(view.id)}
+                                    className={`px-2 py-1 text-xs font-medium rounded transition-colors ${currentView === view.id ? 'bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/10'}`}
+                                >
+                                    {view.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Botón Añadir Pedido */}
+                        {canCreatePedidos() && (
                             <button 
-                                onClick={() => {
-                                    if (confirm('¿Desea resetear todos los filtros y ordenamientos a sus valores por defecto?')) {
-                                        onResetAllFilters();
-                                    }
-                                }}
-                                className="flex items-center gap-2 px-3 py-1.5 bg-amber-600 text-white rounded-md font-semibold hover:bg-amber-700 transition-colors duration-200"
-                                title="Resetear todos los filtros guardados"
+                                onClick={onAddPedido}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 transition-colors"
+                                title="Añadir nuevo pedido"
                             >
-                                <ResetFiltersIcon />
-                                <span className="hidden sm:inline">Resetear Filtros</span>
+                                <PlusIcon />
+                                <span className="hidden md:inline">Añadir</span>
                             </button>
                         )}
-                        
-                        {(currentView === 'list' || currentView === 'archived') && (
-                             <button 
-                                onClick={onExportPDF}
-                                className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-md font-semibold hover:bg-green-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 dark:focus:ring-offset-gray-800 focus:ring-green-500"
-                                aria-label="Exportar a PDF"
-                                title="Exportar a PDF"
+
+                        {/* Menú Hamburguesa */}
+                        <div className="relative" ref={burgerMenuRef}>
+                            <button
+                                onClick={() => setShowBurgerMenu(!showBurgerMenu)}
+                                className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                                title="Más opciones"
                             >
-                                <DownloadIcon />
-                                <span className="hidden sm:inline">Exportar PDF</span>
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
                             </button>
-                        )}
-                         {canCreatePedidos() && (
-                            <>
-                                <button 
-                                    onClick={onAddPedido}
-                                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 dark:focus:ring-offset-gray-800 focus:ring-blue-500"
-                                    aria-label="Añadir nuevo pedido"
-                                    title="Añadir nuevo pedido"
-                                >
-                                    <PlusIcon />
-                                    <span className="hidden sm:inline">Añadir Pedido</span>
-                                </button>
-                            </>
-                        )}
-                        {canAccessAdmin() && onUserManagement && (
-                            <button 
-                                onClick={onUserManagement}
-                                className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white rounded-md font-semibold hover:bg-purple-700 transition-colors duration-200"
-                                title="Gestionar usuarios del sistema"
-                            >
-                                <UsersIcon />
-                                <span className="hidden sm:inline">Usuarios</span>
-                            </button>
-                        )}
-                        {canViewConfig() && (
-                            <>
-                                <button 
-                                    onClick={onImportData}
-                                    className="flex items-center gap-2 px-3 py-1.5 bg-teal-600 text-white rounded-md font-semibold hover:bg-teal-700 transition-colors duration-200"
-                                    title="Importar datos desde archivo JSON"
-                                >
-                                    <UploadIcon />
-                                    <span className="hidden sm:inline">Importar</span>
-                                </button>
-                                <button 
-                                    onClick={onExportData}
-                                    className="flex items-center gap-2 px-3 py-1.5 bg-gray-600 text-white rounded-md font-semibold hover:bg-gray-700 transition-colors duration-200"
-                                    title="Exportar todos los datos a un archivo JSON"
-                                >
-                                    <DownloadIcon />
-                                    <span className="hidden sm:inline">Exportar</span>
-                                </button>
-                            </>
-                        )}
+
+                            {/* Dropdown del Menú */}
+                            {showBurgerMenu && (
+                                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
+                                    {/* Vistas de Gestión */}
+                                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Gestión</div>
+                                    {managementViews.map(view => {
+                                        if (view.permission && !view.permission()) return null;
+                                        return (
+                                            <button
+                                                key={view.id}
+                                                onClick={() => {
+                                                    onViewChange(view.id);
+                                                    setShowBurgerMenu(false);
+                                                }}
+                                                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                                                    currentView === view.id ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                                }`}
+                                            >
+                                                {view.label}
+                                            </button>
+                                        );
+                                    })}
+
+                                    <div className="my-2 border-t border-gray-200 dark:border-gray-700"></div>
+
+                                    {/* Opciones de Admin */}
+                                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Acciones</div>
+                                    
+                                    {(currentView === 'list' || currentView === 'archived') && (
+                                        <button 
+                                            onClick={() => {
+                                                onExportPDF();
+                                                setShowBurgerMenu(false);
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                        >
+                                            <DownloadIcon />
+                                            Exportar PDF
+                                        </button>
+                                    )}
+
+                                    {canAccessAdmin() && onUserManagement && (
+                                        <button 
+                                            onClick={() => {
+                                                onUserManagement();
+                                                setShowBurgerMenu(false);
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                        >
+                                            <UsersIcon />
+                                            Gestión de Usuarios
+                                        </button>
+                                    )}
+
+                                    {canViewConfig() && (
+                                        <>
+                                            <button 
+                                                onClick={() => {
+                                                    onImportData();
+                                                    setShowBurgerMenu(false);
+                                                }}
+                                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                            >
+                                                <UploadIcon />
+                                                Importar Datos
+                                            </button>
+                                            <button 
+                                                onClick={() => {
+                                                    onExportData();
+                                                    setShowBurgerMenu(false);
+                                                }}
+                                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                            >
+                                                <DownloadIcon />
+                                                Exportar Datos
+                                            </button>
+                                        </>
+                                    )}
+
+                                    {onResetAllFilters && (
+                                        <>
+                                            <div className="my-2 border-t border-gray-200 dark:border-gray-700"></div>
+                                            <button 
+                                                onClick={() => {
+                                                    if (confirm('¿Desea resetear todos los filtros y ordenamientos a sus valores por defecto?')) {
+                                                        onResetAllFilters();
+                                                        setShowBurgerMenu(false);
+                                                    }
+                                                }}
+                                                className="w-full text-left px-4 py-2 text-sm text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors flex items-center gap-2"
+                                            >
+                                                <ResetFiltersIcon />
+                                                Resetear Filtros
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
-                {/* Segunda fila: filtros generales */}
-                {(currentView !== 'report' && currentView !== 'permissions-debug') && (
-                    <div className="flex flex-wrap items-center gap-2 mb-3">
-                        <select
-                            name="dateField"
-                            value={activeFilters.dateField}
-                            onChange={(e) => onFilterChange(e.target.name, e.target.value)}
-                            className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        >
-                            {dateFieldOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                        </select>
-
-                        <select
-                            name="date"
-                            value={activeDateFilter}
-                            onChange={(e) => onDateFilterChange(e.target.value as DateFilterOption)}
-                            className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        >
-                            {dateFilterOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                        </select>
+                {/* Segunda fila: Filtros y Búsqueda */}
+                {(currentView !== 'report' && currentView !== 'permissions-debug' && currentView !== 'clientes' && currentView !== 'vendedores') && (
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                        {/* Grupo de Filtros de Fecha */}
+                        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-md p-1">
+                            <select
+                                name="dateField"
+                                value={activeFilters.dateField}
+                                onChange={(e) => onFilterChange(e.target.name, e.target.value)}
+                                className="px-2 py-1 text-sm bg-transparent text-gray-900 dark:text-white border-0 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded"
+                            >
+                                {dateFieldOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                            </select>
+                            <span className="text-gray-400">|</span>
+                            <select
+                                name="date"
+                                value={activeDateFilter}
+                                onChange={(e) => onDateFilterChange(e.target.value as DateFilterOption)}
+                                className="px-2 py-1 text-sm bg-transparent text-gray-900 dark:text-white border-0 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded"
+                            >
+                                {dateFilterOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                            </select>
+                        </div>
                         
                          {activeDateFilter === 'custom' && (
                             <div className="flex items-center gap-1 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-1">
@@ -397,13 +478,14 @@ const Header: React.FC<HeaderProps> = ({
                             onDateFieldChange={onWeekDateFieldChange}
                         />
 
+                        {/* Filtros Adicionales */}
                         <select
                             name="priority"
                             value={activeFilters.priority}
                             onChange={(e) => onFilterChange(e.target.name, e.target.value)}
-                            className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         >
-                            <option value="all">Toda Prioridad</option>
+                            <option value="all">🎯 Prioridad</option>
                             {Object.values(Prioridad).map(p => <option key={p} value={p}>{p}</option>)}
                         </select>
 
@@ -411,12 +493,12 @@ const Header: React.FC<HeaderProps> = ({
                             name="antivaho"
                             value={antivahoFilter}
                             onChange={(e) => onAntivahoFilterChange(e.target.value as 'all' | 'con' | 'sin' | 'hecho')}
-                            className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         >
-                            <option value="all">Antivaho (Todos)</option>
+                            <option value="all">💨 Antivaho</option>
                             <option value="con">Con Antivaho</option>
                             <option value="sin">Sin Antivaho</option>
-                            <option value="hecho">Antivaho Hecho</option>
+                            <option value="hecho">Hecho</option>
                         </select>
 
                         {/* Filtro de Anónimo */}
@@ -425,11 +507,11 @@ const Header: React.FC<HeaderProps> = ({
                                 name="anonimo"
                                 value={anonimoFilter}
                                 onChange={(e) => onAnonimoFilterChange(e.target.value as 'all' | 'si' | 'no')}
-                                className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             >
-                                <option value="all">Anónimo (Todos)</option>
-                                <option value="si">Sí Anónimo</option>
-                                <option value="no">No Anónimo</option>
+                                <option value="all">👤 Anónimo</option>
+                                <option value="si">Sí</option>
+                                <option value="no">No</option>
                             </select>
                         )}
 
@@ -439,9 +521,9 @@ const Header: React.FC<HeaderProps> = ({
                                 name="estadoCliche"
                                 value={estadoClicheFilter}
                                 onChange={(e) => onEstadoClicheFilterChange(e.target.value as EstadoCliché | 'all')}
-                                className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             >
-                                <option value="all">Estado Cliché (Todos)</option>
+                                <option value="all">🎨 Estado Cliché</option>
                                 {Object.values(EstadoCliché).map(estado => (
                                     <option key={estado} value={estado}>{estado}</option>
                                 ))}
@@ -454,12 +536,12 @@ const Header: React.FC<HeaderProps> = ({
                                 name="preparacion"
                                 value={preparacionFilter}
                                 onChange={(e) => onPreparacionFilterChange(e.target.value as 'all' | 'sin-material' | 'sin-cliche' | 'listo')}
-                                className="px-3 py-2 bg-yellow-100 dark:bg-yellow-900/30 text-gray-900 dark:text-yellow-200 border border-yellow-400 dark:border-yellow-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 font-medium"
+                                className="px-2 py-1 text-sm bg-yellow-100 dark:bg-yellow-900/30 text-gray-900 dark:text-yellow-200 border border-yellow-400 dark:border-yellow-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 font-medium"
                             >
-                                <option value="all">Estado Preparación (Todos)</option>
+                                <option value="all">📋 Estado</option>
                                 <option value="sin-material">❌ Sin Material</option>
                                 <option value="sin-cliche">⚠️ Sin Cliché</option>
-                                <option value="listo">✅ Listo para Producción</option>
+                                <option value="listo">✅ Listo</option>
                             </select>
                         )}
                         
@@ -469,22 +551,24 @@ const Header: React.FC<HeaderProps> = ({
                                 name="stage"
                                 value={activeFilters.stage}
                                 onChange={(e) => onFilterChange(e.target.name, e.target.value)}
-                                className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             >
-                                <option value="all">Toda Etapa</option>
+                                <option value="all">🏭 Etapa</option>
                                 {ETAPAS_KANBAN.map(etapaId => <option key={etapaId} value={etapaId}>{ETAPAS[etapaId].title}</option>)}
                             </select>
                         )}
 
-                        <div ref={searchContainerRef} className="relative">
-                            <input
-                                type="text"
-                                placeholder="Buscar en todo..."
-                                value={searchTerm}
-                                className="w-48 sm:w-64 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                                onChange={handleSearchChange}
-                                onFocus={() => searchTerm.trim().length > 0 && setShowSearchDropdown(true)}
-                            />
+                        <div ref={searchContainerRef} className="relative flex-grow max-w-xs">
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="🔍 Buscar..."
+                                    value={searchTerm}
+                                    className="w-full px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                    onChange={handleSearchChange}
+                                    onFocus={() => searchTerm.trim().length > 0 && setShowSearchDropdown(true)}
+                                />
+                            </div>
                         </div>
                         {showSearchDropdown && (
                             <GlobalSearchDropdown
@@ -503,8 +587,8 @@ const Header: React.FC<HeaderProps> = ({
 
                 {/* Tercera fila: Grid de botones de etapas solo para vista de lista */}
                 {currentView === 'list' && (
-                    <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
-                        <div className="flex flex-col gap-3">
+                    <div className="border-t border-gray-200 dark:border-gray-600 pt-2">
+                        <div className="flex flex-col gap-2">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
