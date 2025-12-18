@@ -1,9 +1,11 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Pedido, Etapa, UserRole, EstadoCliché, Prioridad } from '../types';
+import { Material } from '../types/material';
 import { PRIORIDAD_COLORS, KANBAN_FUNNELS } from '../constants';
 import { puedeAvanzarSecuencia, estaFueraDeSecuencia } from '../utils/etapaLogic';
 import { SparklesIcon } from './Icons';
 import { usePermissions } from '../hooks/usePermissions';
+import { useMaterialesManager } from '../hooks/useMaterialesManager';
 import { formatDateDDMMYYYY } from '../utils/date';
 import LockIndicator from './LockIndicator';
 
@@ -13,6 +15,94 @@ const RulerIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" view
 const ArchiveBoxIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" /></svg>;
 const ArrowRightCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M12.75 15l3-3m0 0l-3-3m3 3h-7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>;
 const PaperClipIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1 inline-block"><path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3.375 3.375 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.122 2.122l7.81-7.81" /></svg>;
+
+/**
+ * 🎨 FUNCIÓN DE TEMA: Determina el color del badge de material según su estado
+ * 
+ * Jerarquía de Estados (Especificación del Usuario):
+ * 1. VERDE: Material recibido (pendienteRecibir = false)
+ * 2. AZUL: Pendiente de gestión (pendienteGestion = true && pendienteRecibir = true)
+ * 3. ROJO: Gestionado pero no recibido (pendienteGestion = false && pendienteRecibir = true)
+ * 
+ * COMPATIBILIDAD: También soporta el sistema antiguo usando materialConsumo[].recibido
+ */
+const getMaterialTheme = (material: Material | { recibido?: boolean }, legacyMode: boolean = false) => {
+    // Modo legacy: usar el campo recibido del sistema antiguo
+    if (legacyMode && 'recibido' in material) {
+        if (material.recibido === true) {
+            return {
+                bg: 'bg-green-100 dark:bg-green-900',
+                text: 'text-green-800 dark:text-green-200',
+                border: 'border-green-400',
+                icon: '✅',
+                label: 'Material Recibido',
+                weight: 'font-medium'
+            };
+        }
+        // Si recibido es false o undefined, mostrar como pendiente (rojo por defecto)
+        return {
+            bg: 'bg-red-100 dark:bg-red-900',
+            text: 'text-red-800 dark:text-red-200',
+            border: 'border-red-400',
+            icon: '⏳',
+            label: 'Pendiente de Recibir',
+            weight: 'font-semibold border-2'
+        };
+    }
+    
+    // Modo nuevo: usar campos pendienteRecibir y pendienteGestion
+    if ('pendienteRecibir' in material && 'pendienteGestion' in material) {
+        const isRecibido = material.pendienteRecibir === false;
+        const isGestionado = material.pendienteGestion === false;
+        const isPendienteRecibir = material.pendienteRecibir === true;
+        
+        // ESTADO 1: VERDE (Finalizado - Material recibido)
+        if (isRecibido) {
+            return {
+                bg: 'bg-green-100 dark:bg-green-900',
+                text: 'text-green-800 dark:text-green-200',
+                border: 'border-green-400',
+                icon: '✅',
+                label: 'Material Recibido',
+                weight: 'font-medium'
+            };
+        }
+        
+        // ESTADO 2: AZUL (Inicial - Pendiente de gestionar)
+        if (!isGestionado && isPendienteRecibir) {
+            return {
+                bg: 'bg-blue-100 dark:bg-blue-900',
+                text: 'text-blue-800 dark:text-blue-200',
+                border: 'border-blue-400',
+                icon: '🕑',
+                label: 'Pendiente Gestión',
+                weight: 'font-semibold border-2'
+            };
+        }
+        
+        // ESTADO 3: ROJO (En camino - Gestionado pero no recibido)
+        if (isGestionado && isPendienteRecibir) {
+            return {
+                bg: 'bg-red-100 dark:bg-red-900',
+                text: 'text-red-800 dark:text-red-200',
+                border: 'border-red-400',
+                icon: '⏳',
+                label: 'Pendiente de Recibir',
+                weight: 'font-semibold border-2'
+            };
+        }
+    }
+    
+    // FALLBACK (Azul por defecto para estado indeterminado)
+    return {
+        bg: 'bg-blue-100 dark:bg-blue-900',
+        text: 'text-blue-800 dark:text-blue-200',
+        border: 'border-blue-300',
+        icon: '❓',
+        label: 'Estado Desconocido',
+        weight: 'font-normal'
+    };
+};
 
 
 interface PedidoCardProps {
@@ -51,6 +141,7 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
     lockInfo
 }) => {
     const { canMovePedidos, canArchivePedidos } = usePermissions();
+    const { getMaterialesByPedidoId } = useMaterialesManager();
     const [isEditingFecha, setIsEditingFecha] = useState(false);
     const [tempFecha, setTempFecha] = useState(pedido.nuevaFechaEntrega || '');
     const dateInputRef = useRef<HTMLInputElement>(null);
@@ -58,11 +149,34 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
     const [isHovered, setIsHovered] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     
+    // 🆕 Estado para materiales de la nueva tabla
+    const [materialesNuevos, setMaterialesNuevos] = useState<Material[]>([]);
+    const [loadingMateriales, setLoadingMateriales] = useState(false);
+    
     // Usar valor por defecto si la prioridad no existe en PRIORIDAD_COLORS
     const priorityColor = PRIORIDAD_COLORS[pedido.prioridad] || PRIORIDAD_COLORS[Prioridad.NORMAL] || 'border-blue-500';
 
     // Detectar si es móvil
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    
+    // 🆕 Cargar materiales de la nueva tabla (si existen)
+    useEffect(() => {
+        const loadMateriales = async () => {
+            try {
+                setLoadingMateriales(true);
+                const mats = await getMaterialesByPedidoId(pedido.id);
+                setMaterialesNuevos(mats);
+            } catch (error) {
+                // Si falla (ej: tabla no existe aún), usar sistema legacy
+                console.log('Usando sistema legacy de materiales para pedido', pedido.id);
+                setMaterialesNuevos([]);
+            } finally {
+                setLoadingMateriales(false);
+            }
+        };
+        
+        loadMateriales();
+    }, [pedido.id, getMaterialesByPedidoId]);
 
     // Cerrar el editor al hacer click fuera del contenedor completo
     useEffect(() => {
@@ -376,42 +490,54 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                 )}
             </div>
             
-            {pedido.numerosCompra && pedido.numerosCompra.length > 0 && pedido.numerosCompra.some(n => n && n.trim()) && (
+            {/* 🆕 SECCIÓN DE MATERIALES - Soporte para nuevo sistema y legacy */}
+            {(materialesNuevos.length > 0 || (pedido.numerosCompra && pedido.numerosCompra.length > 0 && pedido.numerosCompra.some(n => n && n.trim()))) && (
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                    <span className="font-medium">Nº Compra:</span>{' '}
+                    <span className="font-medium">Materiales:</span>{' '}
                     <span className="inline-flex flex-wrap gap-1">
-                        {pedido.numerosCompra
-                            .map((numero, index) => {
-                                // ✅ Filtrar números vacíos o null/undefined
-                                if (!numero || !numero.trim()) return null;
-                                
-                                // ✅ CORREGIDO: Usar materialDisponible que está sincronizado automáticamente
-                                // en lugar de recalcular todosDisponibles manualmente
-                                const materialItem = pedido.materialConsumo?.[index];
-                                const recibido = materialItem?.recibido;
-                                
-                                let bgColor = 'bg-blue-100 dark:bg-blue-900'; // Azul por defecto (sin estado)
-                                let textColor = 'text-blue-800 dark:text-blue-200';
-                                
-                                // Verde: TODOS los materiales están disponibles (usa el flag sincronizado)
-                                if (pedido.materialDisponible === true) {
-                                    bgColor = 'bg-green-100 dark:bg-green-900';
-                                    textColor = 'text-green-800 dark:text-green-200';
-                                } 
-                                // Rojo: Este material específico NO está disponible
-                                else if (recibido === false) {
-                                    bgColor = 'bg-red-100 dark:bg-red-900';
-                                    textColor = 'text-red-800 dark:text-red-200';
-                                }
-                                // Azul: Estado indeterminado (recibido === null/undefined o true pero no todos)
+                        {/* PRIORIDAD 1: Usar materiales de la nueva tabla si existen */}
+                        {materialesNuevos.length > 0 ? (
+                            materialesNuevos.map((material) => {
+                                const theme = getMaterialTheme(material, false);
                                 
                                 return (
-                                    <span key={`${pedido.id}-compra-${index}`} className={`${bgColor} ${textColor} px-2 py-0.5 rounded`}>
-                                        {pedido.numerosCompra.filter(n => n && n.trim()).length === 1 ? numero : `#${pedido.numerosCompra.filter((n, i) => i <= index && n && n.trim()).length}: ${numero}`}
+                                    <span 
+                                        key={material.id}
+                                        className={`${theme.bg} ${theme.text} ${theme.border} px-2 py-0.5 rounded border ${theme.weight}`}
+                                        title={`${material.numero} - ${theme.label}`}
+                                    >
+                                        <span className="mr-1">{theme.icon}</span>
+                                        {material.numero}
                                     </span>
                                 );
                             })
-                            .filter(Boolean)}
+                        ) : (
+                            /* FALLBACK: Usar sistema legacy (numerosCompra + materialConsumo) */
+                            pedido.numerosCompra
+                                ?.map((numero, index) => {
+                                    // Filtrar números vacíos
+                                    if (!numero || !numero.trim()) return null;
+                                    
+                                    // Usar el campo recibido del sistema antiguo
+                                    const materialItem = pedido.materialConsumo?.[index];
+                                    const theme = getMaterialTheme({ recibido: materialItem?.recibido }, true);
+                                    
+                                    return (
+                                        <span 
+                                            key={`${pedido.id}-compra-${index}`} 
+                                            className={`${theme.bg} ${theme.text} ${theme.border} px-2 py-0.5 rounded border ${theme.weight}`}
+                                            title={`${numero} - ${theme.label} (Sistema Legacy)`}
+                                        >
+                                            <span className="mr-1">{theme.icon}</span>
+                                            {pedido.numerosCompra!.filter(n => n && n.trim()).length === 1 
+                                                ? numero 
+                                                : `#${pedido.numerosCompra!.filter((n, i) => i <= index && n && n.trim()).length}: ${numero}`
+                                            }
+                                        </span>
+                                    );
+                                })
+                                .filter(Boolean)
+                        )}
                     </span>
                 </div>
             )}

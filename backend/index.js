@@ -3254,6 +3254,188 @@ app.get('/api/vendedores/:id/history', requireAuth, async (req, res) => {
 
 
 // =================================================================
+// RUTAS DE MATERIALES
+// =================================================================
+
+// GET /api/materiales - Obtener todos los materiales
+app.get('/api/materiales', authenticateUser, async (req, res) => {
+    try {
+        const materiales = await dbClient.getAllMateriales();
+        res.status(200).json(materiales);
+    } catch (error) {
+        console.error('Error in GET /api/materiales:', error);
+        res.status(500).json({ 
+            message: "Error al obtener materiales",
+            error: error.message 
+        });
+    }
+});
+
+// GET /api/materiales/:id - Obtener un material específico
+app.get('/api/materiales/:id', authenticateUser, async (req, res) => {
+    try {
+        const material = await dbClient.getMaterialById(parseInt(req.params.id));
+        res.status(200).json(material);
+    } catch (error) {
+        console.error(`Error in GET /api/materiales/${req.params.id}:`, error);
+        const statusCode = error.message.includes('no encontrado') ? 404 : 500;
+        res.status(statusCode).json({ 
+            message: error.message 
+        });
+    }
+});
+
+// POST /api/materiales - Crear un nuevo material
+app.post('/api/materiales', authenticateUser, requirePermission('pedidos.create'), async (req, res) => {
+    try {
+        const { numero, descripcion, pendienteRecibir, pendienteGestion } = req.body;
+        
+        // Validación
+        if (!numero || numero.trim() === '') {
+            return res.status(400).json({ 
+                message: 'El número de material es requerido' 
+            });
+        }
+        
+        const materialData = {
+            numero: numero.trim(),
+            descripcion: descripcion?.trim(),
+            pendienteRecibir: pendienteRecibir !== undefined ? Boolean(pendienteRecibir) : true,
+            pendienteGestion: pendienteGestion !== undefined ? Boolean(pendienteGestion) : true
+        };
+        
+        const newMaterial = await dbClient.createMaterial(materialData);
+        
+        // 🔥 EVENTO WEBSOCKET: Material creado
+        io.emit('material-created', newMaterial);
+        
+        res.status(201).json(newMaterial);
+    } catch (error) {
+        console.error('Error in POST /api/materiales:', error);
+        const statusCode = error.message.includes('ya existe') ? 409 : 500;
+        res.status(statusCode).json({ 
+            message: error.message 
+        });
+    }
+});
+
+// PUT /api/materiales/:id - Actualizar un material
+app.put('/api/materiales/:id', authenticateUser, requirePermission('pedidos.edit'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { numero, descripcion, pendienteRecibir, pendienteGestion } = req.body;
+        
+        const updates = {
+            numero: numero?.trim(),
+            descripcion: descripcion?.trim(),
+            pendienteRecibir,
+            pendienteGestion
+        };
+        
+        // 🔄 LÓGICA DE TRANSICIÓN: Si se marca como recibido, forzar gestionado
+        if (updates.pendienteRecibir === false) {
+            updates.pendienteGestion = false;
+        }
+        
+        const updatedMaterial = await dbClient.updateMaterial(parseInt(id), updates);
+        
+        // 🔥 EVENTO WEBSOCKET: Material actualizado
+        io.emit('material-updated', updatedMaterial);
+        
+        res.status(200).json(updatedMaterial);
+    } catch (error) {
+        console.error(`Error in PUT /api/materiales/${req.params.id}:`, error);
+        const statusCode = error.message.includes('no encontrado') ? 404 
+                         : error.message.includes('ya existe') ? 409 
+                         : 500;
+        res.status(statusCode).json({ 
+            message: error.message 
+        });
+    }
+});
+
+// DELETE /api/materiales/:id - Eliminar un material
+app.delete('/api/materiales/:id', authenticateUser, requirePermission('pedidos.delete'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        await dbClient.deleteMaterial(parseInt(id));
+        
+        // 🔥 EVENTO WEBSOCKET: Material eliminado
+        io.emit('material-deleted', { materialId: parseInt(id) });
+        
+        res.status(204).send();
+    } catch (error) {
+        console.error(`Error in DELETE /api/materiales/${req.params.id}:`, error);
+        const statusCode = error.message.includes('no encontrado') ? 404 : 500;
+        res.status(statusCode).json({ 
+            message: error.message 
+        });
+    }
+});
+
+// GET /api/pedidos/:id/materiales - Obtener materiales de un pedido
+app.get('/api/pedidos/:id/materiales', authenticateUser, async (req, res) => {
+    try {
+        const materiales = await dbClient.getMaterialesByPedidoId(req.params.id);
+        res.status(200).json(materiales);
+    } catch (error) {
+        console.error(`Error in GET /api/pedidos/${req.params.id}/materiales:`, error);
+        res.status(500).json({ 
+            message: "Error al obtener materiales del pedido",
+            error: error.message 
+        });
+    }
+});
+
+// POST /api/pedidos/:pedidoId/materiales/:materialId - Asignar material a pedido
+app.post('/api/pedidos/:pedidoId/materiales/:materialId', authenticateUser, requirePermission('pedidos.edit'), async (req, res) => {
+    try {
+        const { pedidoId, materialId } = req.params;
+        
+        await dbClient.assignMaterialToPedido(pedidoId, parseInt(materialId));
+        
+        // 🔥 EVENTO WEBSOCKET: Material asignado
+        io.emit('material-assigned', { 
+            pedidoId, 
+            materialId: parseInt(materialId) 
+        });
+        
+        res.status(204).send();
+    } catch (error) {
+        console.error(`Error in POST /api/pedidos/${req.params.pedidoId}/materiales/${req.params.materialId}:`, error);
+        res.status(500).json({ 
+            message: "Error al asignar material al pedido",
+            error: error.message 
+        });
+    }
+});
+
+// DELETE /api/pedidos/:pedidoId/materiales/:materialId - Desasignar material de pedido
+app.delete('/api/pedidos/:pedidoId/materiales/:materialId', authenticateUser, requirePermission('pedidos.edit'), async (req, res) => {
+    try {
+        const { pedidoId, materialId } = req.params;
+        
+        await dbClient.unassignMaterialFromPedido(pedidoId, parseInt(materialId));
+        
+        // 🔥 EVENTO WEBSOCKET: Material desasignado
+        io.emit('material-unassigned', { 
+            pedidoId, 
+            materialId: parseInt(materialId) 
+        });
+        
+        res.status(204).send();
+    } catch (error) {
+        console.error(`Error in DELETE /api/pedidos/${req.params.pedidoId}/materiales/${req.params.materialId}:`, error);
+        res.status(500).json({ 
+            message: "Error al desasignar material del pedido",
+            error: error.message 
+        });
+    }
+});
+
+
+// =================================================================
 // RUTAS ADMINISTRATIVAS
 // =================================================================
 

@@ -12,6 +12,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useVendedoresManager } from '../hooks/useVendedoresManager';
 import { useClientesManager, type Cliente } from '../hooks/useClientesManager';
 import { usePedidoLock } from '../hooks/usePedidoLock';
+import { useMaterialesManager } from '../hooks/useMaterialesManager';
+import type { Material } from '../types/material';
 import ClienteModalMejorado from './ClienteModalMejorado';
 
 const DuplicateIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m9.75 0h-3.375c-.621 0-1.125.504-1.125 1.125v6.75c0 .621.504 1.125 1.125 1.125h3.375c.621 0 1.125-.504 1.125-1.125v-6.75a1.125 1.125 0 0 0-1.125-1.125Z" /></svg>;
@@ -99,10 +101,12 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     const [showLockWarning, setShowLockWarning] = useState(false);
     const [lockWarningMessage, setLockWarningMessage] = useState('');
     const [isEtapaDropdownOpen, setIsEtapaDropdownOpen] = useState(false);
+    const [pedidoMateriales, setPedidoMateriales] = useState<Material[]>([]);
     
     const { user } = useAuth();
     const { vendedores, addVendedor, fetchVendedores } = useVendedoresManager();
     const { clientes, addCliente, fetchClientes, isLoading: isLoadingClientes } = useClientesManager();
+    const { materiales, updateMaterial, getMaterialesByPedidoId } = useMaterialesManager();
     const { 
         canEditPedidos, 
         canDeletePedidos, 
@@ -243,6 +247,15 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         // Solo ejecutar al montar, NO agregar lockPedido a las dependencias
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // ✅ Array vacío = solo al montar
+
+    // Cargar materiales asociados al pedido
+    useEffect(() => {
+        const loadMateriales = async () => {
+            const mats = await getMaterialesByPedidoId(pedido.id);
+            setPedidoMateriales(mats);
+        };
+        loadMateriales();
+    }, [pedido.id, getMaterialesByPedidoId]);
 
     // Limpiar el warning cuando el pedido se desbloquea
     useEffect(() => {
@@ -452,6 +465,67 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
 
     const handleDataChange = (field: keyof Pedido, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    // Manejar cambios en el estado de los materiales
+    const handleMaterialStateChange = async (materialId: number, field: 'pendienteRecibir' | 'pendienteGestion', value: boolean) => {
+        try {
+            const material = pedidoMateriales.find(m => m.id === materialId);
+            if (!material) return;
+
+            const updates: Partial<Material> = { [field]: value };
+
+            // Aplicar regla de transición: Si marcan pendienteRecibir=false, automáticamente pendienteGestion=false
+            if (field === 'pendienteRecibir' && value === false) {
+                updates.pendienteGestion = false;
+            }
+
+            await updateMaterial(materialId, updates);
+            
+            // Actualizar estado local
+            setPedidoMateriales(prev => prev.map(m => 
+                m.id === materialId ? { ...m, ...updates } : m
+            ));
+        } catch (error) {
+            console.error('Error actualizando estado del material:', error);
+            alert('Error al actualizar el estado del material');
+        }
+    };
+
+    // Determinar el tema visual del material según su estado
+    const getMaterialTheme = (material: Material) => {
+        const { pendienteRecibir, pendienteGestion } = material;
+
+        // VERDE: Material recibido (pendienteRecibir = false)
+        if (!pendienteRecibir) {
+            return {
+                bg: 'bg-green-100 dark:bg-green-900/30',
+                text: 'text-green-800 dark:text-green-200',
+                border: 'border-green-300 dark:border-green-700',
+                icon: '✅',
+                label: 'Material Recibido'
+            };
+        }
+
+        // AZUL: Pendiente de gestión (ambos true)
+        if (pendienteGestion && pendienteRecibir) {
+            return {
+                bg: 'bg-blue-100 dark:bg-blue-900/30',
+                text: 'text-blue-800 dark:text-blue-200',
+                border: 'border-blue-300 dark:border-blue-700',
+                icon: '🕑',
+                label: 'Pendiente Gestión'
+            };
+        }
+
+        // ROJO: Gestionado pero no recibido (pendienteGestion=false, pendienteRecibir=true)
+        return {
+            bg: 'bg-red-100 dark:bg-red-900/30',
+            text: 'text-red-800 dark:text-red-200',
+            border: 'border-red-300 dark:border-red-700',
+            icon: '⏳',
+            label: 'Pendiente Recibir'
+        };
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -1377,6 +1451,110 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                     handleChange={handleChange}
                                     onAutoSave={handleAutoSave}
                                 />
+
+                                {/* Nueva Sección: Gestión de Estados de Materiales */}
+                                {pedidoMateriales.length > 0 && (
+                                    <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
+                                        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+                                            📦 Gestión de Estados de Materiales
+                                        </h3>
+                                        
+                                        {/* Leyenda de colores */}
+                                        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                            <p className="text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Flujo de Estados:</p>
+                                            <div className="flex flex-wrap gap-4 text-xs">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="inline-block w-4 h-4 rounded bg-blue-500"></span>
+                                                    <span className="text-gray-600 dark:text-gray-400">🕑 Pendiente Gestión</span>
+                                                </div>
+                                                <span className="text-gray-400">→</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="inline-block w-4 h-4 rounded bg-red-500"></span>
+                                                    <span className="text-gray-600 dark:text-gray-400">⏳ Pendiente Recibir</span>
+                                                </div>
+                                                <span className="text-gray-400">→</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="inline-block w-4 h-4 rounded bg-green-500"></span>
+                                                    <span className="text-gray-600 dark:text-gray-400">✅ Recibido</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Lista de materiales */}
+                                        <div className="space-y-3">
+                                            {pedidoMateriales.map((material) => {
+                                                const theme = getMaterialTheme(material);
+                                                return (
+                                                    <div
+                                                        key={material.id}
+                                                        className={`p-4 rounded-lg border-2 ${theme.bg} ${theme.border} ${theme.text}`}
+                                                    >
+                                                        <div className="flex items-start justify-between mb-3">
+                                                            <div>
+                                                                <p className="font-semibold text-sm flex items-center gap-2">
+                                                                    <span>{theme.icon}</span>
+                                                                    <span>N° {material.numero}</span>
+                                                                    <span className={`text-xs px-2 py-0.5 rounded ${theme.bg} ${theme.border} border`}>
+                                                                        {theme.label}
+                                                                    </span>
+                                                                </p>
+                                                                {material.descripcion && (
+                                                                    <p className="text-xs mt-1 opacity-80">{material.descripcion}</p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Controles de estado */}
+                                                        {!isReadOnly && (
+                                                            <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-current/20">
+                                                                {/* Checkbox: Pendiente Gestión */}
+                                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={material.pendienteGestion}
+                                                                        onChange={(e) => handleMaterialStateChange(material.id, 'pendienteGestion', e.target.checked)}
+                                                                        disabled={!material.pendienteRecibir} // Solo se puede desmarcar si ya fue recibido
+                                                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                                                                    />
+                                                                    <span className="text-sm">
+                                                                        {material.pendienteGestion ? '🕑 Pendiente Gestión' : '✅ Gestionado'}
+                                                                    </span>
+                                                                </label>
+
+                                                                {/* Checkbox: Pendiente Recibir */}
+                                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={material.pendienteRecibir}
+                                                                        onChange={(e) => handleMaterialStateChange(material.id, 'pendienteRecibir', e.target.checked)}
+                                                                        className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                                                                    />
+                                                                    <span className="text-sm">
+                                                                        {material.pendienteRecibir ? '⏳ Pendiente Recibir' : '✅ Material Recibido'}
+                                                                    </span>
+                                                                </label>
+
+                                                                {material.pendienteRecibir && (
+                                                                    <p className="text-xs mt-1 opacity-70 italic">
+                                                                        💡 Al marcar como "Recibido", se marcará automáticamente como "Gestionado"
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        )}
+
+                                                        {/* Vista readonly */}
+                                                        {isReadOnly && (
+                                                            <div className="flex flex-col gap-1 mt-3 pt-3 border-t border-current/20 text-xs">
+                                                                <p>Estado Gestión: {material.pendienteGestion ? '🕑 Pendiente' : '✅ Gestionado'}</p>
+                                                                <p>Estado Recepción: {material.pendienteRecibir ? '⏳ Pendiente' : '✅ Recibido'}</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Observaciones */}
                                 <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">

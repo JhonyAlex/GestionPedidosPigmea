@@ -3140,6 +3140,327 @@ class PostgreSQLClient {
         };
     }
 
+    // === GESTIÓN DE MATERIALES ===
+    
+    /**
+     * Obtener todos los materiales
+     * @returns {Promise<Array>} - Lista de materiales
+     */
+    async getAllMateriales() {
+        if (!this.isInitialized) {
+            throw new Error('PostgreSQL no está inicializado');
+        }
+
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                SELECT 
+                    id,
+                    numero,
+                    descripcion,
+                    pendiente_recibir AS "pendienteRecibir",
+                    pendiente_gestion AS "pendienteGestion",
+                    created_at AS "createdAt",
+                    updated_at AS "updatedAt"
+                FROM materiales
+                ORDER BY created_at DESC
+            `;
+            
+            const result = await client.query(query);
+            console.log(`✅ Materiales obtenidos: ${result.rows.length}`);
+            return result.rows;
+        } catch (error) {
+            console.error('❌ Error al obtener materiales:', error);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Obtener un material por ID
+     * @param {number} id - ID del material
+     * @returns {Promise<Object>} - Material encontrado
+     */
+    async getMaterialById(id) {
+        if (!this.isInitialized) {
+            throw new Error('PostgreSQL no está inicializado');
+        }
+
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                SELECT 
+                    id,
+                    numero,
+                    descripcion,
+                    pendiente_recibir AS "pendienteRecibir",
+                    pendiente_gestion AS "pendienteGestion",
+                    created_at AS "createdAt",
+                    updated_at AS "updatedAt"
+                FROM materiales
+                WHERE id = $1
+            `;
+            
+            const result = await client.query(query, [id]);
+            
+            if (result.rowCount === 0) {
+                throw new Error(`Material con ID ${id} no encontrado`);
+            }
+            
+            return result.rows[0];
+        } catch (error) {
+            console.error(`❌ Error al obtener material ${id}:`, error);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Crear un nuevo material
+     * @param {Object} materialData - Datos del material
+     * @returns {Promise<Object>} - Material creado
+     */
+    async createMaterial(materialData) {
+        if (!this.isInitialized) {
+            throw new Error('PostgreSQL no está inicializado');
+        }
+
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                INSERT INTO materiales (
+                    numero, 
+                    descripcion, 
+                    pendiente_recibir,
+                    pendiente_gestion
+                )
+                VALUES ($1, $2, $3, $4)
+                RETURNING 
+                    id,
+                    numero,
+                    descripcion,
+                    pendiente_recibir AS "pendienteRecibir",
+                    pendiente_gestion AS "pendienteGestion",
+                    created_at AS "createdAt",
+                    updated_at AS "updatedAt"
+            `;
+            
+            const values = [
+                materialData.numero,
+                materialData.descripcion || null,
+                materialData.pendienteRecibir !== undefined ? materialData.pendienteRecibir : true,
+                materialData.pendienteGestion !== undefined ? materialData.pendienteGestion : true
+            ];
+            
+            const result = await client.query(query, values);
+            console.log(`✅ Material creado: ${result.rows[0].numero}`);
+            return result.rows[0];
+        } catch (error) {
+            if (error.code === '23505') { // Unique violation
+                throw new Error(`El número de material "${materialData.numero}" ya existe`);
+            }
+            console.error('❌ Error al crear material:', error);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Actualizar un material existente
+     * @param {number} id - ID del material
+     * @param {Object} updates - Datos a actualizar
+     * @returns {Promise<Object>} - Material actualizado
+     */
+    async updateMaterial(id, updates) {
+        if (!this.isInitialized) {
+            throw new Error('PostgreSQL no está inicializado');
+        }
+
+        const client = await this.pool.connect();
+        try {
+            // 🔄 LÓGICA DE TRANSICIÓN: Si se marca como recibido, forzar gestionado
+            if (updates.pendienteRecibir === false) {
+                updates.pendienteGestion = false;
+            }
+            
+            const query = `
+                UPDATE materiales
+                SET 
+                    numero = COALESCE($1, numero),
+                    descripcion = COALESCE($2, descripcion),
+                    pendiente_recibir = COALESCE($3, pendiente_recibir),
+                    pendiente_gestion = COALESCE($4, pendiente_gestion),
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = $5
+                RETURNING 
+                    id,
+                    numero,
+                    descripcion,
+                    pendiente_recibir AS "pendienteRecibir",
+                    pendiente_gestion AS "pendienteGestion",
+                    created_at AS "createdAt",
+                    updated_at AS "updatedAt"
+            `;
+            
+            const values = [
+                updates.numero,
+                updates.descripcion,
+                updates.pendienteRecibir,
+                updates.pendienteGestion,
+                id
+            ];
+            
+            const result = await client.query(query, values);
+            
+            if (result.rowCount === 0) {
+                throw new Error(`Material con ID ${id} no encontrado`);
+            }
+            
+            console.log(`✅ Material actualizado: ${result.rows[0].numero}`);
+            return result.rows[0];
+        } catch (error) {
+            if (error.code === '23505') { // Unique violation
+                throw new Error(`El número de material "${updates.numero}" ya existe`);
+            }
+            console.error(`❌ Error al actualizar material ${id}:`, error);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Eliminar un material
+     * @param {number} id - ID del material
+     * @returns {Promise<void>}
+     */
+    async deleteMaterial(id) {
+        if (!this.isInitialized) {
+            throw new Error('PostgreSQL no está inicializado');
+        }
+
+        const client = await this.pool.connect();
+        try {
+            await client.query('BEGIN');
+
+            // Primero eliminar relaciones con pedidos
+            await client.query('DELETE FROM pedidos_materiales WHERE material_id = $1', [id]);
+            
+            // Luego eliminar el material
+            const result = await client.query('DELETE FROM materiales WHERE id = $1 RETURNING numero', [id]);
+            
+            if (result.rowCount === 0) {
+                throw new Error(`Material con ID ${id} no encontrado`);
+            }
+            
+            await client.query('COMMIT');
+            console.log(`✅ Material eliminado: ${result.rows[0].numero}`);
+        } catch (error) {
+            await client.query('ROLLBACK');
+            console.error(`❌ Error al eliminar material ${id}:`, error);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Obtener materiales de un pedido específico
+     * @param {string} pedidoId - UUID del pedido
+     * @returns {Promise<Array>} - Lista de materiales del pedido
+     */
+    async getMaterialesByPedidoId(pedidoId) {
+        if (!this.isInitialized) {
+            throw new Error('PostgreSQL no está inicializado');
+        }
+
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                SELECT 
+                    m.id,
+                    m.numero,
+                    m.descripcion,
+                    m.pendiente_recibir AS "pendienteRecibir",
+                    m.pendiente_gestion AS "pendienteGestion",
+                    m.created_at AS "createdAt",
+                    m.updated_at AS "updatedAt"
+                FROM materiales m
+                INNER JOIN pedidos_materiales pm ON m.id = pm.material_id
+                WHERE pm.pedido_id = $1
+                ORDER BY m.created_at ASC
+            `;
+            
+            const result = await client.query(query, [pedidoId]);
+            return result.rows;
+        } catch (error) {
+            console.error(`❌ Error al obtener materiales del pedido ${pedidoId}:`, error);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Asignar material a un pedido
+     * @param {string} pedidoId - UUID del pedido
+     * @param {number} materialId - ID del material
+     * @returns {Promise<void>}
+     */
+    async assignMaterialToPedido(pedidoId, materialId) {
+        if (!this.isInitialized) {
+            throw new Error('PostgreSQL no está inicializado');
+        }
+
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                INSERT INTO pedidos_materiales (pedido_id, material_id)
+                VALUES ($1, $2)
+                ON CONFLICT (pedido_id, material_id) DO NOTHING
+            `;
+            
+            await client.query(query, [pedidoId, materialId]);
+            console.log(`✅ Material ${materialId} asignado al pedido ${pedidoId}`);
+        } catch (error) {
+            console.error(`❌ Error al asignar material ${materialId} al pedido ${pedidoId}:`, error);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Desasignar material de un pedido
+     * @param {string} pedidoId - UUID del pedido
+     * @param {number} materialId - ID del material
+     * @returns {Promise<void>}
+     */
+    async unassignMaterialFromPedido(pedidoId, materialId) {
+        if (!this.isInitialized) {
+            throw new Error('PostgreSQL no está inicializado');
+        }
+
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                DELETE FROM pedidos_materiales 
+                WHERE pedido_id = $1 AND material_id = $2
+            `;
+            
+            await client.query(query, [pedidoId, materialId]);
+            console.log(`✅ Material ${materialId} desasignado del pedido ${pedidoId}`);
+        } catch (error) {
+            console.error(`❌ Error al desasignar material ${materialId} del pedido ${pedidoId}:`, error);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
     // === MÉTODO DE CIERRE ===
     async close() {
         // Detener health checks antes de cerrar

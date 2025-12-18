@@ -1,6 +1,25 @@
 # **📋 Instrucciones de IA \- Proyecto "Gestión Pedidos Pigmea"**
 
-Soy el asistente de IA para el proyecto "Gestión Pedidos Pigmea". Sigue estas reglas y flujos de trabajo para evitar errores comunes.
+Sistema full-stack de gestión de pedidos con React/TypeScript (frontend), Node.js/Express (backend), PostgreSQL (base de datos), y Socket.IO (comunicación en tiempo real).
+
+## **🏗️ Arquitectura del Sistema**
+
+**Stack Tecnológico:**
+- **Frontend:** React 18 + TypeScript + Vite + TailwindCSS
+- **Backend:** Node.js 18 + Express + Socket.IO
+- **Base de Datos:** PostgreSQL con migraciones SQL idempotentes
+- **Despliegue:** Docker (multi-stage build) + Dokploy
+- **Autenticación:** Header-based (x-user-id, x-user-role) con sistema de permisos granulares
+
+**Flujo de Datos:**
+1. Frontend hooks (ej. `usePedidosManager.ts`) → Fetch API con headers auth → Backend endpoints
+2. Backend valida permisos → Ejecuta operaciones DB (con fallback en memoria) → Emite eventos Socket.IO
+3. Frontend listeners (WebSocket) → Actualiza estado local React → Re-render automático
+
+**Comunicación en Tiempo Real:**
+- El backend emite eventos Socket.IO después de cada operación CRUD (ej. `io.emit('pedido-created', pedido)`)
+- Los hooks del frontend se suscriben a estos eventos para sincronización en tiempo real
+- Ver [backend/index.js](backend/index.js) líneas 2360+ para patrones de emisión de eventos
 
 ## **🛑 REGLAS DE ORO (¡Leer Siempre\!)**
 
@@ -93,6 +112,23 @@ EL PROBLEMA: La IA asume que la BBDD siempre está conectada.
 LA SOLUCIÓN: El backend (backend/index.js) está programado para funcionar sin conexión a PostgreSQL usando almacenamiento en memoria (ej. vendedoresMemory, clientesMemory).
 
 * **Regla:** Al crear nuevos endpoints, **DEBES** replicar este patrón: intentar la operación de BBDD y, si falla, usar el *store* en memoria.
+
+### **5\. 🔄 Comunicación Tiempo Real: WebSocket Obligatorio**
+
+EL PROBLEMA: La IA olvida emitir eventos Socket.IO, causando que otros usuarios no vean cambios en tiempo real.  
+LA SOLUCIÓN: **CADA** endpoint CRUD debe emitir el evento Socket.IO correspondiente.
+
+* **Patrón Obligatorio en backend/index.js:**
+  ```javascript
+  // ✅ CORRECTO: Después de crear/actualizar/eliminar
+  app.post('/api/pedidos', async (req, res) => {
+      const newPedido = await dbClient.createPedido(data);
+      io.emit('pedido-created', newPedido); // ← ¡CRÍTICO!
+      res.json(newPedido);
+  });
+  ```
+* **Eventos Estándar:** `{entity}-created`, `{entity}-updated`, `{entity}-deleted`
+* **Regla:** En el frontend, los hooks **DEBEN** suscribirse a estos eventos (ver patrón en [hooks/usePedidosManager.ts](hooks/usePedidosManager.ts) líneas 47-90).
 
 ## **🚨 Errores Comunes y Soluciones**
 
@@ -201,3 +237,178 @@ Usa este formato para asegurar que sigo las reglas.
 * En useMaterialesManager.ts, copia el patrón de useVendedoresManager.ts para los headers de auth x-user-id (Regla 2).  
 * En index.js, añade un fallback en memoria para 'materiales' (Regla 4).  
 * En index.js, emite eventos de socket.io para material-created/updated/deleted."
+
+---
+
+## **🔧 Comandos y Scripts Clave**
+
+### **Desarrollo Local:**
+```bash
+# Frontend (ejecutar en raíz del proyecto)
+npm run dev              # Inicia Vite dev server en :5173
+
+# Backend (ejecutar en /backend)
+cd backend && npm start  # Inicia Express server en :8080
+
+# Base de Datos
+cd backend && sh run-migrations.sh  # Aplicar migraciones (requiere PostgreSQL)
+```
+
+### **Docker (Producción/Testing):**
+```bash
+# Build y deploy
+docker build -t gestor-pedidos .
+docker run -p 8080:8080 --env-file .env gestor-pedidos
+
+# Ver logs
+docker logs -f <container-id>
+```
+
+### **Debugging:**
+- **Health Check:** `curl http://localhost:8080/health` (muestra estado DB + WebSocket)
+- **Debug Users:** `curl http://localhost:8080/api/debug/users` (lista usuarios en DB)
+- **Ver migraciones aplicadas:** Verifica logs del backend al iniciar
+
+---
+
+## **📁 Estructura de Archivos Críticos**
+
+```
+/
+├── types.ts                        # ⭐ Tipos TypeScript compartidos (Pedido, Cliente, etc.)
+├── constants.ts                    # Enums de etapas, estados, permisos
+├── vite.config.ts                  # Proxy /api → localhost:8080
+├── Dockerfile                      # Multi-stage: build React + run Node + migrations
+│
+├── backend/
+│   ├── index.js                    # ⭐ Servidor Express principal (endpoints + Socket.IO)
+│   ├── postgres-client.js          # ⭐ Cliente PostgreSQL con fallback en memoria
+│   ├── run-migrations.sh           # ⭐ Script que ejecuta todas las migraciones SQL
+│   ├── middleware/
+│   │   ├── auth.js                 # Autenticación header-based (x-user-id)
+│   │   └── permissions.js          # Middleware requirePermission()
+│   └── permissions-map.json        # Mapeo de permisos por rol
+│
+├── hooks/
+│   ├── usePedidosManager.ts        # ⭐ Patrón de referencia para hooks CRUD
+│   ├── useVendedoresManager.ts     # ⭐ Ejemplo completo de auth headers + WebSocket
+│   └── useClientesManager.ts
+│
+├── contexts/
+│   └── AuthContext.tsx             # Context de autenticación con sincronización de permisos
+│
+├── services/
+│   ├── storage.ts                  # Capa de abstracción API (fetch con reintentos)
+│   └── websocket.ts                # Cliente Socket.IO con subscriptores
+│
+└── database/migrations/
+    ├── 000-create-pedidos-table.sql
+    ├── 001-add-clientes-system.sql
+    └── 0XX-*.sql                   # Migraciones idempotentes (IF NOT EXISTS)
+```
+
+---
+
+## **🎯 Patrones Específicos del Proyecto**
+
+### **1. Arquitectura de Permisos:**
+- **Backend:** Middleware `requirePermission('pedidos.create')` en cada endpoint
+- **Frontend:** Context `useAuth()` provee `user.permissions[]`
+- **Mapeo:** Ver [backend/permissions-map.json](backend/permissions-map.json) para permisos por rol
+- **Ejemplo:** Admin tiene `usuarios.admin`, Operador tiene `pedidos.create`
+
+### **2. Flujo de Autenticación (Header-Based):**
+```typescript
+// Frontend (hooks/useVendedoresManager.ts)
+const getAuthHeaders = () => ({
+    'x-user-id': String(user.id),
+    'x-user-role': user.role || 'OPERATOR',
+    'x-user-permissions': JSON.stringify(user.permissions),
+    'Content-Type': 'application/json'
+});
+
+fetch(`${API_URL}/vendedores`, { headers: getAuthHeaders() });
+```
+
+```javascript
+// Backend (middleware/auth.js)
+const authenticateUser = async (req, res, next) => {
+    const userId = req.headers['x-user-id'];
+    const user = await db.getAdminUserById(userId);
+    req.user = user; // Adjunta al request
+    next();
+};
+```
+
+### **3. Patrón de Migraciones Idempotentes:**
+Todas las migraciones en `database/migrations/` **DEBEN** ser ejecutables múltiples veces:
+```sql
+-- ✅ CORRECTO
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS mi_campo VARCHAR(255);
+CREATE INDEX IF NOT EXISTS idx_mi_campo ON pedidos(mi_campo);
+
+-- ✅ CORRECTO (renombrado condicional)
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns 
+               WHERE table_name = 'pedidos' AND column_name = 'campo_viejo') THEN
+        ALTER TABLE pedidos RENAME COLUMN campo_viejo TO campo_nuevo;
+    END IF;
+END $$;
+```
+
+### **4. Patrón de Hook Manager (CRUD + WebSocket):**
+Ver [hooks/usePedidosManager.ts](hooks/usePedidosManager.ts) como referencia completa:
+1. Estado local con `useState<Pedido[]>`
+2. `useEffect` inicial para fetch de datos
+3. Funciones CRUD que llaman a `/api/*` con `getAuthHeaders()`
+4. `useEffect` para suscribirse a eventos WebSocket (`pedido-created`, etc.)
+5. Actualización optimista del estado local
+
+### **5. Proxy Vite (Development):**
+[vite.config.ts](vite.config.ts) configura proxy para evitar CORS:
+```typescript
+server: {
+    proxy: {
+        '/api': {
+            target: 'http://localhost:8080',
+            changeOrigin: true
+        }
+    }
+}
+```
+Por eso **SIEMPRE** usamos `const API_URL = '/api'` en hooks, no `localhost:8080`.
+
+---
+
+## **⚠️ Anti-Patrones Comunes**
+
+| ❌ **NO HACER** | ✅ **HACER** |
+|----------------|-------------|
+| `fetch('http://localhost:8080/api/pedidos')` | `fetch(\`${API_URL}/pedidos\`)` donde `API_URL = '/api'` |
+| Crear endpoint sin `requirePermission()` | `app.post('/api/pedidos', requirePermission('pedidos.create'), ...)` |
+| Modificar DB schema directamente | Crear migración SQL en `database/migrations/` |
+| Olvidar `io.emit()` después de CRUD | Siempre emitir evento después de operación |
+| Migración sin `IF NOT EXISTS` | Usar `IF NOT EXISTS` en ALTER/CREATE |
+| Foreign key sin validar existencia | Verificar que el registro relacionado existe antes |
+| Hook sin `getAuthHeaders()` | Copiar patrón de `useVendedoresManager.ts` |
+
+---
+
+## **🐛 Debugging Tips**
+
+1. **Frontend no recibe datos:** Verifica headers en DevTools Network → Debe tener `x-user-id` y `x-user-role`
+2. **Error 503 "Database not available":** Verifica `docker logs` del contenedor PostgreSQL
+3. **Cambios no se sincronizan:** Abre DevTools → Network → WS → Verifica que Socket.IO está conectado
+4. **Migración falla:** Verifica que el archivo está en `backend/run-migrations.sh` y es idempotente
+5. **Foreign key constraint error:** Verifica que el registro relacionado existe (ver Regla 3.1)
+
+---
+
+## **📚 Referencias Rápidas**
+
+- **Tipos principales:** [types.ts](types.ts) - `Pedido`, `Cliente`, `Vendedor`, `Etapa`, etc.
+- **Permisos disponibles:** [constants/permissions.ts](constants/permissions.ts)
+- **Ejemplo completo de hook:** [hooks/useVendedoresManager.ts](hooks/useVendedoresManager.ts)
+- **Ejemplo completo de endpoint:** [backend/index.js](backend/index.js) líneas 2900-3050 (CRUD clientes)
+- **Documentación adicional:** [docs/README.md](docs/README.md)
