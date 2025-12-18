@@ -45,7 +45,7 @@ CREATE TRIGGER trigger_update_materiales_updated_at
 -- Crear tabla de relación pedidos-materiales (muchos a muchos)
 CREATE TABLE IF NOT EXISTS pedidos_materiales (
     id SERIAL PRIMARY KEY,
-    pedido_id UUID NOT NULL,
+    pedido_id VARCHAR(255) NOT NULL,
     material_id INTEGER NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (pedido_id) REFERENCES pedidos(id) ON DELETE CASCADE,

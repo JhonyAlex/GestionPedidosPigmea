@@ -3369,7 +3369,7 @@ class PostgreSQLClient {
 
     /**
      * Obtener materiales de un pedido específico
-     * @param {string} pedidoId - UUID del pedido
+     * @param {string} pedidoId - ID del pedido (VARCHAR)
      * @returns {Promise<Array>} - Lista de materiales del pedido
      */
     async getMaterialesByPedidoId(pedidoId) {
@@ -3406,7 +3406,7 @@ class PostgreSQLClient {
 
     /**
      * Asignar material a un pedido
-     * @param {string} pedidoId - UUID del pedido
+     * @param {string} pedidoId - ID del pedido (VARCHAR)
      * @param {number} materialId - ID del material
      * @returns {Promise<void>}
      */
@@ -3435,7 +3435,7 @@ class PostgreSQLClient {
 
     /**
      * Desasignar material de un pedido
-     * @param {string} pedidoId - UUID del pedido
+     * @param {string} pedidoId - ID del pedido (VARCHAR)
      * @param {number} materialId - ID del material
      * @returns {Promise<void>}
      */
