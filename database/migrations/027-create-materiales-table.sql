@@ -60,12 +60,13 @@ COMMENT ON TABLE pedidos_materiales IS 'Relación muchos a muchos entre pedidos 
 CREATE INDEX IF NOT EXISTS idx_pedidos_materiales_pedido ON pedidos_materiales(pedido_id);
 CREATE INDEX IF NOT EXISTS idx_pedidos_materiales_material ON pedidos_materiales(material_id);
 
--- Migrar datos existentes de numerosCompra a la tabla de materiales
+-- Migrar datos existentes de numerosCompra (JSONB) a la tabla de materiales
 -- (Solo si no se han migrado antes)
 DO $$
 DECLARE
     pedido_record RECORD;
-    numero_compra TEXT;
+    numero_compra_item JSONB;
+    numero_compra_text TEXT;
     material_id INTEGER;
 BEGIN
     -- Iterar sobre todos los pedidos que tienen números de compra
@@ -73,25 +74,30 @@ BEGIN
         SELECT id, numeros_compra 
         FROM pedidos 
         WHERE numeros_compra IS NOT NULL 
-          AND array_length(numeros_compra, 1) > 0
+          AND jsonb_typeof(numeros_compra) = 'array'
+          AND jsonb_array_length(numeros_compra) > 0
     LOOP
-        -- Iterar sobre cada número de compra del pedido
-        FOREACH numero_compra IN ARRAY pedido_record.numeros_compra
+        -- Iterar sobre cada elemento del array JSONB
+        FOR numero_compra_item IN 
+            SELECT * FROM jsonb_array_elements(pedido_record.numeros_compra)
         LOOP
+            -- Convertir JSONB a TEXT (remover comillas si es un string)
+            numero_compra_text := numero_compra_item #>> '{}';
+            
             -- Omitir si el número está vacío
-            IF numero_compra IS NULL OR TRIM(numero_compra) = '' THEN
+            IF numero_compra_text IS NULL OR TRIM(numero_compra_text) = '' THEN
                 CONTINUE;
             END IF;
             
             -- Insertar el material si no existe (INSERT ... ON CONFLICT DO NOTHING)
             INSERT INTO materiales (numero, pendiente_recibir, pendiente_gestion)
-            VALUES (TRIM(numero_compra), true, true)
+            VALUES (TRIM(numero_compra_text), true, true)
             ON CONFLICT (numero) DO NOTHING
             RETURNING id INTO material_id;
             
             -- Si no se insertó (ya existía), obtener el ID
             IF material_id IS NULL THEN
-                SELECT id INTO material_id FROM materiales WHERE numero = TRIM(numero_compra);
+                SELECT id INTO material_id FROM materiales WHERE numero = TRIM(numero_compra_text);
             END IF;
             
             -- Crear la relación pedido-material si no existe
