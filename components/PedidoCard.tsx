@@ -54,7 +54,6 @@ const getMaterialTheme = (material: Material | { recibido?: boolean }, legacyMod
     if ('pendienteRecibir' in material && 'pendienteGestion' in material) {
         const isRecibido = material.pendienteRecibir === false;
         const isGestionado = material.pendienteGestion === false;
-        const isPendienteRecibir = material.pendienteRecibir === true;
         
         // ESTADO 1: VERDE (Finalizado - Material recibido)
         if (isRecibido) {
@@ -69,7 +68,7 @@ const getMaterialTheme = (material: Material | { recibido?: boolean }, legacyMod
         }
         
         // ESTADO 2: AZUL (Inicial - Pendiente de gestionar)
-        if (!isGestionado && isPendienteRecibir) {
+        if (material.pendienteGestion === true) {
             return {
                 bg: 'bg-blue-100 dark:bg-blue-900',
                 text: 'text-blue-800 dark:text-blue-200',
@@ -81,13 +80,16 @@ const getMaterialTheme = (material: Material | { recibido?: boolean }, legacyMod
         }
         
         // ESTADO 3: ROJO (En camino - Gestionado pero no recibido)
-        if (isGestionado && isPendienteRecibir) {
-            return {
-                bg: 'bg-red-100 dark:bg-red-900',
-                text: 'text-red-800 dark:text-red-200',
-                border: 'border-red-400',
-                icon: '⏳',
-                label: 'Pendiente de Recibir',
+        // Esto ocurre cuando isGestionado === true && material.pendienteRecibir === true
+        return {
+            bg: 'bg-red-100 dark:bg-red-900',
+            text: 'text-red-800 dark:text-red-200',
+            border: 'border-red-400',
+            icon: '⏳',
+            label: 'Pendiente de Recibir',
+            weight: 'font-semibold border-2'
+        };
+    }
                 weight: 'font-semibold border-2'
             };
         }
