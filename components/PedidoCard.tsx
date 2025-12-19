@@ -77,10 +77,15 @@ const getMaterialTheme = (material: Material | { recibido?: boolean; gestionado?
     }
     
     // CASO 2: Sistema integrado en materialConsumo (con gestionado y recibido)
-    if (hasRecibidoField && hasGestionadoField) {
+    if (hasRecibidoField || hasGestionadoField) {
         const mat = material as { recibido?: boolean; gestionado?: boolean };
+        
+        // Normalizar valores null/undefined a valores por defecto del estado inicial (AZUL)
+        // Por defecto: gestionado=false (no gestionado), recibido=false (no recibido)
         const isRecibido = mat.recibido === true;
         const isGestionado = mat.gestionado === true;
+        const hasExplicitValues = mat.recibido !== null && mat.recibido !== undefined && 
+                                  mat.gestionado !== null && mat.gestionado !== undefined;
         
         // ESTADO 1: VERDE (Material recibido)
         if (isRecibido) {
@@ -94,7 +99,8 @@ const getMaterialTheme = (material: Material | { recibido?: boolean; gestionado?
             };
         }
         
-        // ESTADO 2: AZUL (Pendiente de gestionar)
+        // ESTADO 2: AZUL (Pendiente de gestionar o valores null/undefined)
+        // Incluye: gestionado=false, gestionado=null, gestionado=undefined
         if (!isGestionado) {
             return {
                 bg: 'bg-blue-100 dark:bg-blue-900',
@@ -107,6 +113,7 @@ const getMaterialTheme = (material: Material | { recibido?: boolean; gestionado?
         }
         
         // ESTADO 3: ROJO (Gestionado pero no recibido)
+        // Solo llega aquí si gestionado=true y recibido=false/null/undefined
         if (isGestionado && !isRecibido) {
             return {
                 bg: 'bg-red-100 dark:bg-red-900',
