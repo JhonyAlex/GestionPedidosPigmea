@@ -56,54 +56,63 @@ const ListoProduccionView: React.FC<ListoProduccionViewProps> = ({
     const pedidosColumna1 = pedidosListos.slice(0, mitad);
     const pedidosColumna2 = pedidosListos.slice(mitad);
 
-    // Crear configuraciones para ambas columnas
+    // Crear configuraciones para ambas columnas (sin modificar el título)
     const columnaListo1 = {
         ...columnaListo,
         id: `${columnaListo.id}_col1`,
-        title: `${columnaListo.title} - Columna 1`
     };
     
     const columnaListo2 = {
         ...columnaListo,
         id: `${columnaListo.id}_col2`,
-        title: `${columnaListo.title} - Columna 2`
     };
 
     return (
         <main className="flex-grow p-4 md:p-8">
-            <h2 className="text-3xl font-extrabold text-gray-800 dark:text-white mb-6 border-l-4 border-green-500 pl-4">
-                Listos para Producción
-            </h2>
+            {/* Título principal único de la etapa */}
+            <div className="mb-6">
+                <h2 className="text-3xl font-extrabold text-gray-800 dark:text-white border-l-4 border-green-500 pl-4 mb-2">
+                    {columnaListo.title}
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 pl-4">
+                    Pedidos distribuidos en 2 columnas para mejor visualización
+                </p>
+            </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <PreparacionColumn
-                    key={columnaListo1.id}
-                    columna={columnaListo1}
-                    pedidos={pedidosColumna1}
-                    onSelectPedido={onSelectPedido}
-                    onArchiveToggle={onArchiveToggle}
-                    currentUserRole={currentUserRole}
-                    onSendToPrint={onSendToPrint}
-                    highlightedPedidoId={highlightedPedidoId}
-                    onUpdatePedido={onUpdatePedido}
-                    selectedIds={selectedIds}
-                    isSelectionActive={isSelectionActive}
-                    onToggleSelection={onToggleSelection}
-                />
-                <PreparacionColumn
-                    key={columnaListo2.id}
-                    columna={columnaListo2}
-                    pedidos={pedidosColumna2}
-                    onSelectPedido={onSelectPedido}
-                    onArchiveToggle={onArchiveToggle}
-                    currentUserRole={currentUserRole}
-                    onSendToPrint={onSendToPrint}
-                    highlightedPedidoId={highlightedPedidoId}
-                    onUpdatePedido={onUpdatePedido}
-                    selectedIds={selectedIds}
-                    isSelectionActive={isSelectionActive}
-                    onToggleSelection={onToggleSelection}
-                />
+            {/* Contenedor con borde para agrupar visualmente ambas columnas */}
+            <div className="border-2 border-green-200 dark:border-green-700 rounded-lg p-4 bg-green-50/30 dark:bg-green-900/10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <PreparacionColumn
+                        key={columnaListo1.id}
+                        columna={columnaListo1}
+                        pedidos={pedidosColumna1}
+                        onSelectPedido={onSelectPedido}
+                        onArchiveToggle={onArchiveToggle}
+                        currentUserRole={currentUserRole}
+                        onSendToPrint={onSendToPrint}
+                        highlightedPedidoId={highlightedPedidoId}
+                        onUpdatePedido={onUpdatePedido}
+                        hideTitle={true}
+                        selectedIds={selectedIds}
+                        isSelectionActive={isSelectionActive}
+                        onToggleSelection={onToggleSelection}
+                    />
+                    <PreparacionColumn
+                        key={columnaListo2.id}
+                        columna={columnaListo2}
+                        pedidos={pedidosColumna2}
+                        onSelectPedido={onSelectPedido}
+                        onArchiveToggle={onArchiveToggle}
+                        currentUserRole={currentUserRole}
+                        onSendToPrint={onSendToPrint}
+                        highlightedPedidoId={highlightedPedidoId}
+                        onUpdatePedido={onUpdatePedido}
+                        hideTitle={true}
+                        selectedIds={selectedIds}
+                        isSelectionActive={isSelectionActive}
+                        onToggleSelection={onToggleSelection}
+                    />
+                </div>
             </div>
         </main>
     );

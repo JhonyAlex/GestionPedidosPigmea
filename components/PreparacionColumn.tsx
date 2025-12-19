@@ -14,6 +14,7 @@ interface PreparacionColumnProps {
     onSendToPrint: (pedido: Pedido) => void;
     highlightedPedidoId?: string | null;
     onUpdatePedido?: (updatedPedido: Pedido) => Promise<void>;
+    hideTitle?: boolean; // Ocultar el título de la columna
     // Bulk selection props
     selectedIds?: string[];
     isSelectionActive?: boolean;
@@ -29,6 +30,7 @@ const PreparacionColumn: React.FC<PreparacionColumnProps> = ({
     onSendToPrint, 
     highlightedPedidoId, 
     onUpdatePedido,
+    hideTitle = false,
     selectedIds = [],
     isSelectionActive = false,
     onToggleSelection
@@ -43,14 +45,25 @@ const PreparacionColumn: React.FC<PreparacionColumnProps> = ({
 
     return (
         <div className="flex flex-col bg-gray-200 dark:bg-gray-800 rounded-xl shadow-lg h-full">
-            <div className={`px-4 py-2 rounded-t-xl ${columna.color}`}>
-                <div className="flex justify-center items-center gap-2">
-                    <h2 className="text-lg font-bold text-white">{columna.title}</h2>
-                    <span className="bg-black bg-opacity-25 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                        {pedidos.length}
-                    </span>
+            {!hideTitle && (
+                <div className={`px-4 py-2 rounded-t-xl ${columna.color}`}>
+                    <div className="flex justify-center items-center gap-2">
+                        <h2 className="text-lg font-bold text-white">{columna.title}</h2>
+                        <span className="bg-black bg-opacity-25 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                            {pedidos.length}
+                        </span>
+                    </div>
                 </div>
-            </div>
+            )}
+            {hideTitle && (
+                <div className="px-4 py-2 bg-gray-300 dark:bg-gray-700 rounded-t-xl">
+                    <div className="flex justify-center items-center">
+                        <span className="bg-gray-500 dark:bg-gray-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                            {pedidos.length} pedidos
+                        </span>
+                    </div>
+                </div>
+            )}
             {isMounted && (
                 <Droppable droppableId={`PREP_${columna.id}`}>
                     {(provided, snapshot) => (
