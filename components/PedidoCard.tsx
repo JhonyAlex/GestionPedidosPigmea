@@ -29,8 +29,19 @@ const PaperClipIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" 
  * toma como referencia materialDisponible del pedido para evitar que pedidos antiguos muestren colores incorrectos.
  */
 const normalizeBoolean = (value: any, defaultValue: boolean) => {
-    if (value === true || value === 'true' || value === 1 || value === '1') return true;
-    if (value === false || value === 'false' || value === 0 || value === '0') return false;
+    if (value === true || value === 1) return true;
+    if (value === false || value === 0) return false;
+
+    if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+
+        // Verdaderos comunes (incluye Postgres "t" y entradas humanas)
+        if (['true', '1', 't', 'yes', 'y', 'si', 'sí', 's', 'on'].includes(normalized)) return true;
+
+        // Falsos comunes (incluye Postgres "f")
+        if (['false', '0', 'f', 'no', 'n', 'off'].includes(normalized)) return false;
+    }
+
     return defaultValue;
 };
 
@@ -584,39 +595,53 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                             })
                         ) : (
                             /* FALLBACK: Usar sistema legacy (numerosCompra + materialConsumo) */
-                            pedido.numerosCompra
-                                ?.map((numero, index) => {
-                                    // Filtrar números vacíos
-                                    if (!numero || !numero.trim()) return null;
-                                    
-                                    // Usar los campos recibido y gestionado del materialConsumo
-                                    const materialItem = pedido.materialConsumo?.[index];
-                                    // ✅ Compatibilidad con pedidos antiguos:
-                                    // - Muchos pedidos pre-implementación no tienen 'gestionado' poblado.
-                                    // - Si existe número de compra, inferimos gestionado=true.
-                                    // - Si no hay recibido explícito, inferimos recibido desde materialDisponible (si existe).
-                                    const inferredGestionado = materialItem?.gestionado ?? true;
-                                    const inferredRecibido = materialItem?.recibido ?? (pedido.materialDisponible === true);
-                                    const theme = getMaterialTheme({ 
-                                        recibido: inferredRecibido,
-                                        gestionado: inferredGestionado
-                                    }, pedido.materialDisponible);
-                                    
-                                    return (
-                                        <span 
-                                            key={`${pedido.id}-compra-${index}`} 
-                                            className={`${theme.bg} ${theme.text} ${theme.border} px-2 py-0.5 rounded border ${theme.weight}`}
-                                            title={`${numero} - ${theme.label} (Sistema Legacy)`}
-                                        >
-                                            <span className="mr-1">{theme.icon}</span>
-                                            {pedido.numerosCompra!.filter(n => n && n.trim()).length === 1 
-                                                ? numero 
-                                                : `#${pedido.numerosCompra!.filter((n, i) => i <= index && n && n.trim()).length}: ${numero}`
-                                            }
-                                        </span>
-                                    );
-                                })
-                                .filter(Boolean)
+                            (() => {
+                                const numerosCompra = (pedido.numerosCompra || []).map(n => (n ?? ''));
+                                const visibles = numerosCompra
+                                    .map((numero, originalIndex) => ({ numero: String(numero), originalIndex }))
+                                    .filter(x => x.numero.trim().length > 0);
+
+                                return visibles
+                                    .map(({ numero, originalIndex }, visibleIndex) => {
+                                        // Intento 1: usar el mismo índice (nuevo sistema / datos consistentes)
+                                        const byOriginalIndex = pedido.materialConsumo?.[originalIndex];
+                                        const hasUsefulOriginal =
+                                            byOriginalIndex &&
+                                            (byOriginalIndex.recibido !== null && byOriginalIndex.recibido !== undefined ||
+                                                byOriginalIndex.gestionado !== null && byOriginalIndex.gestionado !== undefined);
+
+                                        // Intento 2: fallback por “posición visible” (corrige pedidos antiguos con arrays compactados)
+                                        const byVisibleIndex = pedido.materialConsumo?.[visibleIndex];
+
+                                        const materialItem = hasUsefulOriginal ? byOriginalIndex : byVisibleIndex;
+
+                                        // ✅ Compatibilidad legacy:
+                                        // - Si hay N° de compra, asumir gestionado=true si falta.
+                                        // - Si falta recibido, usar materialDisponible como fallback.
+                                        const inferredGestionado = materialItem?.gestionado ?? true;
+                                        const inferredRecibido = materialItem?.recibido ?? (pedido.materialDisponible === true);
+
+                                        const theme = getMaterialTheme(
+                                            {
+                                                recibido: inferredRecibido,
+                                                gestionado: inferredGestionado
+                                            },
+                                            pedido.materialDisponible
+                                        );
+
+                                        return (
+                                            <span
+                                                key={`${pedido.id}-compra-${originalIndex}`}
+                                                className={`${theme.bg} ${theme.text} ${theme.border} px-2 py-0.5 rounded border ${theme.weight}`}
+                                                title={`${numero} - ${theme.label} (Sistema Legacy)`}
+                                            >
+                                                <span className="mr-1">{theme.icon}</span>
+                                                {visibles.length === 1 ? numero : `#${visibleIndex + 1}: ${numero}`}
+                                            </span>
+                                        );
+                                    })
+                                    .filter(Boolean);
+                            })()
                         )}
                     </span>
                 </div>
