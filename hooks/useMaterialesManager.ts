@@ -248,7 +248,8 @@ export function useMaterialesManager() {
     // Cargar materiales al montar el componente
     useEffect(() => {
         fetchMateriales();
-    }, [fetchMateriales]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Solo cargar una vez al montar, evitamos loop infinito
 
     // 🔥 Socket.IO: Sincronización en tiempo real para materiales
     useEffect(() => {

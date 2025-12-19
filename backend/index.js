@@ -2315,7 +2315,7 @@ app.post('/api/admin/migrate', requirePermission('usuarios.admin'), async (req, 
 // === RUTAS DE NOTIFICACIONES ===
 
 // GET /api/notifications - Obtener notificaciones del usuario (últimas 50)
-app.get('/api/notifications', authenticateUser, async (req, res) => {
+app.get('/api/notifications', async (req, res) => {
     try {
         const userId = req.headers['x-user-id'];
         
@@ -2341,7 +2341,7 @@ app.get('/api/notifications', authenticateUser, async (req, res) => {
 });
 
 // POST /api/notifications/:id/read - Marcar una notificación como leída
-app.post('/api/notifications/:id/read', authenticateUser, async (req, res) => {
+app.post('/api/notifications/:id/read', async (req, res) => {
     try {
         const notificationId = req.params.id;
         const userId = req.headers['x-user-id'];
@@ -2371,7 +2371,7 @@ app.post('/api/notifications/:id/read', authenticateUser, async (req, res) => {
 });
 
 // POST /api/notifications/read-all - Marcar todas las notificaciones como leídas
-app.post('/api/notifications/read-all', authenticateUser, async (req, res) => {
+app.post('/api/notifications/read-all', async (req, res) => {
     try {
         const userId = req.headers['x-user-id'];
         
@@ -2403,7 +2403,7 @@ app.post('/api/notifications/read-all', authenticateUser, async (req, res) => {
 });
 
 // DELETE /api/notifications/:id - Eliminar una notificación
-app.delete('/api/notifications/:id', authenticateUser, async (req, res) => {
+app.delete('/api/notifications/:id', async (req, res) => {
     try {
         const notificationId = req.params.id;
         const userId = req.headers['x-user-id'];
@@ -2897,7 +2897,7 @@ app.get('/api/clientes/:id/historial', requirePermission('clientes.view'), async
 });
 
 // GET /api/clientes/:id/pedidos - Get all orders for a client with optional filtering
-app.get('/api/clientes/:id/pedidos', authenticateUser, async (req, res) => {
+app.get('/api/clientes/:id/pedidos', async (req, res) => {
     try {
         const { estado } = req.query; // activo, completado, archivado, produccion
         const pedidos = await dbClient.getClientePedidos(req.params.id, estado);
@@ -2909,7 +2909,7 @@ app.get('/api/clientes/:id/pedidos', authenticateUser, async (req, res) => {
 });
 
 // GET /api/clientes/:id/estadisticas - Get statistics for a client
-app.get('/api/clientes/:id/estadisticas', authenticateUser, async (req, res) => {
+app.get('/api/clientes/:id/estadisticas', async (req, res) => {
     try {
         const estadisticas = await dbClient.getClienteEstadisticas(req.params.id);
         res.status(200).json(estadisticas);
@@ -3215,7 +3215,7 @@ app.delete('/api/vendedores/:id', requirePermission('pedidos.delete'), async (re
 });
 
 // GET /api/vendedores/:id/pedidos - Obtener pedidos de un vendedor con filtros opcionales
-app.get('/api/vendedores/:id/pedidos', authenticateUser, async (req, res) => {
+app.get('/api/vendedores/:id/pedidos', async (req, res) => {
     try {
         const { estado } = req.query; // activo, completado, archivado, produccion
         const pedidos = await dbClient.getVendedorPedidos(req.params.id, estado);
@@ -3227,7 +3227,7 @@ app.get('/api/vendedores/:id/pedidos', authenticateUser, async (req, res) => {
 });
 
 // GET /api/vendedores/:id/estadisticas - Obtener estadísticas de un vendedor
-app.get('/api/vendedores/:id/estadisticas', authenticateUser, async (req, res) => {
+app.get('/api/vendedores/:id/estadisticas', async (req, res) => {
     try {
         const estadisticas = await dbClient.getVendedorEstadisticas(req.params.id);
         res.status(200).json(estadisticas);
@@ -3258,7 +3258,7 @@ app.get('/api/vendedores/:id/history', requireAuth, async (req, res) => {
 // =================================================================
 
 // GET /api/materiales - Obtener todos los materiales
-app.get('/api/materiales', authenticateUser, async (req, res) => {
+app.get('/api/materiales', async (req, res) => {
     try {
         const materiales = await dbClient.getAllMateriales();
         res.status(200).json(materiales);
@@ -3272,7 +3272,7 @@ app.get('/api/materiales', authenticateUser, async (req, res) => {
 });
 
 // GET /api/materiales/:id - Obtener un material específico
-app.get('/api/materiales/:id', authenticateUser, async (req, res) => {
+app.get('/api/materiales/:id', async (req, res) => {
     try {
         const material = await dbClient.getMaterialById(parseInt(req.params.id));
         res.status(200).json(material);
@@ -3286,7 +3286,7 @@ app.get('/api/materiales/:id', authenticateUser, async (req, res) => {
 });
 
 // POST /api/materiales - Crear un nuevo material
-app.post('/api/materiales', authenticateUser, requirePermission('pedidos.create'), async (req, res) => {
+app.post('/api/materiales', requirePermission('pedidos.create'), async (req, res) => {
     try {
         const { numero, descripcion, pendienteRecibir, pendienteGestion } = req.body;
         
@@ -3320,7 +3320,7 @@ app.post('/api/materiales', authenticateUser, requirePermission('pedidos.create'
 });
 
 // PUT /api/materiales/:id - Actualizar un material
-app.put('/api/materiales/:id', authenticateUser, requirePermission('pedidos.edit'), async (req, res) => {
+app.put('/api/materiales/:id', requirePermission('pedidos.edit'), async (req, res) => {
     try {
         const { id } = req.params;
         const { numero, descripcion, pendienteRecibir, pendienteGestion } = req.body;
@@ -3355,7 +3355,7 @@ app.put('/api/materiales/:id', authenticateUser, requirePermission('pedidos.edit
 });
 
 // DELETE /api/materiales/:id - Eliminar un material
-app.delete('/api/materiales/:id', authenticateUser, requirePermission('pedidos.delete'), async (req, res) => {
+app.delete('/api/materiales/:id', requirePermission('pedidos.delete'), async (req, res) => {
     try {
         const { id } = req.params;
         
@@ -3375,7 +3375,7 @@ app.delete('/api/materiales/:id', authenticateUser, requirePermission('pedidos.d
 });
 
 // GET /api/pedidos/:id/materiales - Obtener materiales de un pedido
-app.get('/api/pedidos/:id/materiales', authenticateUser, async (req, res) => {
+app.get('/api/pedidos/:id/materiales', async (req, res) => {
     try {
         const materiales = await dbClient.getMaterialesByPedidoId(req.params.id);
         res.status(200).json(materiales);
@@ -3389,7 +3389,7 @@ app.get('/api/pedidos/:id/materiales', authenticateUser, async (req, res) => {
 });
 
 // POST /api/pedidos/:pedidoId/materiales/:materialId - Asignar material a pedido
-app.post('/api/pedidos/:pedidoId/materiales/:materialId', authenticateUser, requirePermission('pedidos.edit'), async (req, res) => {
+app.post('/api/pedidos/:pedidoId/materiales/:materialId', requirePermission('pedidos.edit'), async (req, res) => {
     try {
         const { pedidoId, materialId } = req.params;
         
@@ -3412,7 +3412,7 @@ app.post('/api/pedidos/:pedidoId/materiales/:materialId', authenticateUser, requ
 });
 
 // DELETE /api/pedidos/:pedidoId/materiales/:materialId - Desasignar material de pedido
-app.delete('/api/pedidos/:pedidoId/materiales/:materialId', authenticateUser, requirePermission('pedidos.edit'), async (req, res) => {
+app.delete('/api/pedidos/:pedidoId/materiales/:materialId', requirePermission('pedidos.edit'), async (req, res) => {
     try {
         const { pedidoId, materialId } = req.params;
         
