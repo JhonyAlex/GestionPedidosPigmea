@@ -149,9 +149,14 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
         if (!array[index]) array[index] = {};
         array[index][field] = parsedValue;
 
-        // Regla de negocio: Si se marca "Material Recibido", automáticamente marcar "Gestionado"
+        // Regla de negocio 1: Si se marca "Material Recibido", automáticamente marcar "Gestionado"
         if (field === 'recibido' && parsedValue === true) {
             array[index]['gestionado'] = true;
+        }
+
+        // Regla de negocio 2: Si se desmarca "Gestionado", automáticamente desmarcar "Material Recibido"
+        if (field === 'gestionado' && parsedValue === false) {
+            array[index]['recibido'] = false;
         }
 
         // Notificar el cambio del array completo
@@ -443,7 +448,7 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                                             : 'text-gray-600 dark:text-gray-400'
                                                     }`}
                                                 >
-                                                    {gestionado ? '✅ Gestionado' : '🕑 Pendiente Gestión'}
+                                                    {gestionado ? 'Gestionado' : '🕑 Pendiente Gestión'}
                                                 </label>
                                             </div>
                                         </div>
