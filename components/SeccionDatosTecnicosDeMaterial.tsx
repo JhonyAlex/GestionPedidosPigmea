@@ -368,7 +368,9 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                                 placeholder="Ej: 1000"
                                                 value={formData.materialConsumo?.[index]?.necesario || ''}
                                                 onChange={(e) => handleNestedArrayChange('materialConsumo', index, 'necesario', e.target.value)}
+                                                onWheel={(e) => e.preventDefault()}
                                                 disabled={isReadOnly}
+                                                style={{ appearance: 'textfield', MozAppearance: 'textfield' }}
                                                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
                                             />
                                             {renderValidationMessage(formData.materialConsumo?.[index]?.necesario)}
@@ -384,7 +386,9 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                                 placeholder="Ej: 12"
                                                 value={formData.materialConsumo?.[index]?.micras || ''}
                                                 onChange={(e) => handleNestedArrayChange('materialConsumo', index, 'micras', e.target.value)}
+                                                onWheel={(e) => e.preventDefault()}
                                                 disabled={isReadOnly}
+                                                style={{ appearance: 'textfield', MozAppearance: 'textfield' }}
                                                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
                                             />
                                             {renderValidationMessage(formData.materialConsumo?.[index]?.micras)}
@@ -569,7 +573,9 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                 placeholder="Ej: 1350"
                                 value={formData.bobinaMadre || ''} 
                                 onChange={handleInputChange} 
+                                onWheel={(e) => e.preventDefault()}
                                 disabled={isReadOnly} 
+                                style={{ appearance: 'textfield', MozAppearance: 'textfield' }}
                                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
                             />
                             {renderValidationMessage(formData.bobinaMadre)}
@@ -602,8 +608,10 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                 placeholder="Ej: 5"
                                 value={formData.minColor || ''} 
                                 onChange={handleInputChange} 
+                                onWheel={(e) => e.preventDefault()}
                                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
                                 disabled={isReadOnly} 
+                                style={{ appearance: 'textfield', MozAppearance: 'textfield' }}
                             />
                         </div>
                         
@@ -618,7 +626,9 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                 placeholder="Ej: 450"
                                 value={formData.bobinaFinal || ''} 
                                 onChange={handleInputChange} 
+                                onWheel={(e) => e.preventDefault()}
                                 disabled={isReadOnly} 
+                                style={{ appearance: 'textfield', MozAppearance: 'textfield' }}
                                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
                             />
                             {renderValidationMessage(formData.bobinaFinal)}
@@ -635,7 +645,9 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                 placeholder="Ej: 15"
                                 value={formData.minAdap || ''} 
                                 onChange={handleInputChange} 
+                                onWheel={(e) => e.preventDefault()}
                                 disabled={isReadOnly} 
+                                style={{ appearance: 'textfield', MozAppearance: 'textfield' }}
                                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
                             />
                             {renderValidationMessage(formData.minAdap)}
@@ -652,7 +664,9 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                 placeholder="Ej: 4"
                                 value={formData.colores || ''} 
                                 onChange={handleInputChange} 
+                                onWheel={(e) => e.preventDefault()}
                                 disabled={isReadOnly} 
+                                style={{ appearance: 'textfield', MozAppearance: 'textfield' }}
                                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
                             />
                             {renderValidationMessage(formData.colores)}
