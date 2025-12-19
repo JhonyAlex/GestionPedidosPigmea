@@ -596,7 +596,8 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                 value={formData.bobinaMadre || ''} 
                                 onChange={handleInputChange}
                                 onWheel={handleNumberInputWheel}
-                                disabled={isReadOnly} 
+                                disabled={isReadOnly}
+                                tabIndex={1}
                                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
                             />
                             {renderValidationMessage(formData.bobinaMadre)}
@@ -613,7 +614,8 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                 placeholder="Ej: 300x200"
                                 value={formData.desarrollo || ''} 
                                 onChange={handleInputChange} 
-                                disabled={isReadOnly} 
+                                disabled={isReadOnly}
+                                tabIndex={3}
                                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
                             />
                         </div>
@@ -630,8 +632,9 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                 value={formData.minColor || ''} 
                                 onChange={handleInputChange}
                                 onWheel={handleNumberInputWheel}
+                                disabled={isReadOnly}
+                                tabIndex={5}
                                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
-                                disabled={isReadOnly} 
                             />
                         </div>
                         
@@ -647,7 +650,8 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                 value={formData.bobinaFinal || ''} 
                                 onChange={handleInputChange}
                                 onWheel={handleNumberInputWheel}
-                                disabled={isReadOnly} 
+                                disabled={isReadOnly}
+                                tabIndex={2}
                                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
                             />
                             {renderValidationMessage(formData.bobinaFinal)}
@@ -665,7 +669,8 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                 value={formData.minAdap || ''} 
                                 onChange={handleInputChange}
                                 onWheel={handleNumberInputWheel}
-                                disabled={isReadOnly} 
+                                disabled={isReadOnly}
+                                tabIndex={4}
                                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
                             />
                             {renderValidationMessage(formData.minAdap)}
@@ -683,7 +688,8 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                 value={formData.colores || ''} 
                                 onChange={handleInputChange}
                                 onWheel={handleNumberInputWheel}
-                                disabled={isReadOnly} 
+                                disabled={isReadOnly}
+                                tabIndex={6}
                                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
                             />
                             {renderValidationMessage(formData.colores)}
