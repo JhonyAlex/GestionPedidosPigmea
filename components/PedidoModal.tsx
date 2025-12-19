@@ -833,6 +833,17 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         if (isCurrentlyInPrinting) {
             return formData.etapaActual;
         }
+        
+        // Si está en PREPARACION, buscar la etapa que corresponde a maquinaImpresion
+        if (formData.etapaActual === Etapa.PREPARACION && formData.maquinaImpresion) {
+            const matchingStage = printingStages.find(stage => 
+                ETAPAS[stage]?.title === formData.maquinaImpresion
+            );
+            if (matchingStage) {
+                return matchingStage;
+            }
+        }
+        
         const lastPrintingStageInHistory = formData.etapasSecuencia
             .slice()
             .reverse()
