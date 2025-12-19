@@ -598,7 +598,8 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
             </div>
             
             {/* 🆕 SECCIÓN DE MATERIALES - Soporte para nuevo sistema y legacy */}
-            {(materialesNuevos.length > 0 || (pedido.numerosCompra && pedido.numerosCompra.length > 0 && pedido.numerosCompra.some(n => n && n.trim()))) && (
+            {/* ⚠️ No mostrar materiales cuando el pedido está en etapas de impresión/producción */}
+            {!KANBAN_FUNNELS.IMPRESION.stages.includes(pedido.etapaActual) && (materialesNuevos.length > 0 || (pedido.numerosCompra && pedido.numerosCompra.length > 0 && pedido.numerosCompra.some(n => n && n.trim()))) && (
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                     <span className="font-medium">Materiales:</span>{' '}
                     <span className="inline-flex flex-wrap gap-1">
