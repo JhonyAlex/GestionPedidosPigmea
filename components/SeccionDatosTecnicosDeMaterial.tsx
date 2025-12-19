@@ -9,6 +9,21 @@ interface SeccionDatosTecnicosProps {
     onAutoSave?: () => void; // ✅ NUEVO: Callback para guardar automáticamente
 }
 
+// ✅ Estilos CSS para eliminar spinners de inputs tipo número
+const numberInputStyles = `
+    /* Chrome, Safari, Edge, Opera */
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    /* Firefox */
+    input[type="number"] {
+        -moz-appearance: textfield;
+        appearance: textfield;
+    }
+`;
+
 const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({ 
     formData, 
     onDataChange, 
@@ -18,6 +33,12 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
 }) => {
     // Estado local para mantener el texto de densidad mientras se edita
     const [densidadTexts, setDensidadTexts] = useState<{ [key: number]: string }>({});
+    
+    // ✅ Handler para desactivar scroll wheel en inputs tipo número
+    const handleNumberInputWheel = (e: React.WheelEvent<HTMLInputElement>) => {
+        // Prevenir cambio de valor al hacer scroll
+        e.currentTarget.blur();
+    };
     // ✅ Ref para evitar llamadas múltiples al autoguardado
     const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const previousMaterialDisponibleRef = useRef<boolean | undefined>(formData.materialDisponible);
@@ -275,6 +296,9 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
 
     return (
         <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
+            {/* ✅ Estilos para ocultar spinners de inputs número */}
+            <style>{numberInputStyles}</style>
+            
             {/* Título de la sección - siempre visible */}
             <h3 className="text-xl font-semibold mb-6 text-gray-800 dark:text-gray-200">
                 📦 Datos Técnicos de Material
@@ -368,9 +392,8 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                                 placeholder="Ej: 1000"
                                                 value={formData.materialConsumo?.[index]?.necesario || ''}
                                                 onChange={(e) => handleNestedArrayChange('materialConsumo', index, 'necesario', e.target.value)}
-                                                onWheel={(e) => e.preventDefault()}
+                                                onWheel={handleNumberInputWheel}
                                                 disabled={isReadOnly}
-                                                style={{ appearance: 'textfield', MozAppearance: 'textfield' }}
                                                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
                                             />
                                             {renderValidationMessage(formData.materialConsumo?.[index]?.necesario)}
@@ -386,9 +409,8 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                                 placeholder="Ej: 12"
                                                 value={formData.materialConsumo?.[index]?.micras || ''}
                                                 onChange={(e) => handleNestedArrayChange('materialConsumo', index, 'micras', e.target.value)}
-                                                onWheel={(e) => e.preventDefault()}
+                                                onWheel={handleNumberInputWheel}
                                                 disabled={isReadOnly}
-                                                style={{ appearance: 'textfield', MozAppearance: 'textfield' }}
                                                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
                                             />
                                             {renderValidationMessage(formData.materialConsumo?.[index]?.micras)}
@@ -572,10 +594,9 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                 name="bobinaMadre" 
                                 placeholder="Ej: 1350"
                                 value={formData.bobinaMadre || ''} 
-                                onChange={handleInputChange} 
-                                onWheel={(e) => e.preventDefault()}
+                                onChange={handleInputChange}
+                                onWheel={handleNumberInputWheel}
                                 disabled={isReadOnly} 
-                                style={{ appearance: 'textfield', MozAppearance: 'textfield' }}
                                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
                             />
                             {renderValidationMessage(formData.bobinaMadre)}
@@ -607,11 +628,10 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                 name="minColor" 
                                 placeholder="Ej: 5"
                                 value={formData.minColor || ''} 
-                                onChange={handleInputChange} 
-                                onWheel={(e) => e.preventDefault()}
+                                onChange={handleInputChange}
+                                onWheel={handleNumberInputWheel}
                                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
                                 disabled={isReadOnly} 
-                                style={{ appearance: 'textfield', MozAppearance: 'textfield' }}
                             />
                         </div>
                         
@@ -625,10 +645,9 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                 name="bobinaFinal" 
                                 placeholder="Ej: 450"
                                 value={formData.bobinaFinal || ''} 
-                                onChange={handleInputChange} 
-                                onWheel={(e) => e.preventDefault()}
+                                onChange={handleInputChange}
+                                onWheel={handleNumberInputWheel}
                                 disabled={isReadOnly} 
-                                style={{ appearance: 'textfield', MozAppearance: 'textfield' }}
                                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
                             />
                             {renderValidationMessage(formData.bobinaFinal)}
@@ -644,10 +663,9 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                 name="minAdap" 
                                 placeholder="Ej: 15"
                                 value={formData.minAdap || ''} 
-                                onChange={handleInputChange} 
-                                onWheel={(e) => e.preventDefault()}
+                                onChange={handleInputChange}
+                                onWheel={handleNumberInputWheel}
                                 disabled={isReadOnly} 
-                                style={{ appearance: 'textfield', MozAppearance: 'textfield' }}
                                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
                             />
                             {renderValidationMessage(formData.minAdap)}
@@ -663,10 +681,9 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                 name="colores" 
                                 placeholder="Ej: 4"
                                 value={formData.colores || ''} 
-                                onChange={handleInputChange} 
-                                onWheel={(e) => e.preventDefault()}
+                                onChange={handleInputChange}
+                                onWheel={handleNumberInputWheel}
                                 disabled={isReadOnly} 
-                                style={{ appearance: 'textfield', MozAppearance: 'textfield' }}
                                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500 disabled:opacity-50" 
                             />
                             {renderValidationMessage(formData.colores)}
