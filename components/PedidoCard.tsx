@@ -675,9 +675,28 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                 </div>
             )}
             
-            <div className="flex items-start justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                {/* Fechas alineadas verticalmente en la esquina inferior izquierda */}
-                <div className="flex flex-col gap-1">
+            {/* Información del pedido - Desarrollo, Tiempo, Metros */}
+            {(pedido.desarrollo || pedido.tiempoProduccionPlanificado || pedido.metros) && (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600 dark:text-gray-400 mb-3">
+                    {pedido.desarrollo && (
+                        <span className="flex items-center" title="Desarrollo">
+                            <span className="font-medium mr-1">Desarr:</span> {pedido.desarrollo}
+                        </span>
+                    )}
+                    {pedido.tiempoProduccionPlanificado && (
+                        <span className="flex items-center" title="Tiempo de Producción Planificado">
+                            <ClockIcon /> {pedido.tiempoProduccionPlanificado}
+                        </span>
+                    )}
+                    <span className="flex items-center" title="Metros">
+                        <RulerIcon /> {pedido.metros} m
+                    </span>
+                </div>
+            )}
+            
+            {/* Fechas en la esquina inferior izquierda con botones a la derecha */}
+            <div className="flex items-end justify-between mt-auto">
+                <div className="flex flex-col gap-1 text-sm text-gray-600 dark:text-gray-400">
                     <span className="flex items-center text-sm" title="Fecha Entrega">
                         <CalendarIcon /> {formatDateDDMMYYYY(pedido.fechaEntrega)}
                     </span>
@@ -732,25 +751,8 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                     )}
                 </div>
                 
-                {/* Información del pedido en la derecha */}
-                <div className="flex flex-col items-end gap-0.5">
-                    {pedido.desarrollo && (
-                        <span className="flex items-center text-xs" title="Desarrollo">
-                            <span className="font-medium mr-1">Desarr:</span> {pedido.desarrollo}
-                        </span>
-                    )}
-                    {pedido.tiempoProduccionPlanificado && (
-                        <span className="flex items-center text-xs" title="Tiempo de Producción Planificado">
-                            <ClockIcon /> {pedido.tiempoProduccionPlanificado}
-                        </span>
-                    )}
-                    <span className="flex items-center" title="Metros">
-                        <RulerIcon /> {pedido.metros} m
-                    </span>
-                </div>
-            </div>
-            
-            <div className="flex items-center justify-end gap-1">
+                {/* Botones de acción */}
+                <div className="flex items-center gap-1">
                      {canAdvance && canMovePedidos() && (
                         <button 
                             onClick={handleAdvanceClick} 
@@ -772,6 +774,7 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                         </button>
                     )}
                 </div>
+            </div>
         </div>
     );
 };
