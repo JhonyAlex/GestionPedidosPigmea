@@ -75,7 +75,7 @@ const SortableHeaderTh = ({
     const isSorting = sortConfig.key === sortKey;
     const direction = isSorting ? sortConfig.direction : null;
     return (
-        <th className={`px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${width} ${className}`}>
+        <th className={`px-2 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${width} ${className}`}>
             <button onClick={() => onSort(sortKey)} className="flex items-center gap-2 group w-full justify-start">
                 {label}
                 <SortIcon direction={direction} />
@@ -152,9 +152,9 @@ const PedidoRow: React.FC<{
             {...provided.dragHandleProps}
             className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''}`}
         >
-            <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap w-32">{pedido.numeroPedidoCliente}</td>
-            <td className="px-6 py-4 text-gray-900 dark:text-white w-36">{pedido.cliente}</td>
-            <td className="px-6 py-4 text-gray-900 dark:text-white w-28">
+            <td className="px-2 py-2 font-medium text-gray-900 dark:text-white whitespace-nowrap text-sm w-24">{pedido.numeroPedidoCliente}</td>
+            <td className="px-2 py-2 text-gray-900 dark:text-white text-sm w-28 truncate" title={pedido.cliente}>{pedido.cliente}</td>
+            <td className="px-2 py-2 text-gray-900 dark:text-white text-sm w-24">
                 {pedido.numerosCompra && pedido.numerosCompra.length > 0 ? (
                     pedido.numerosCompra.length === 1 ? (
                         pedido.numerosCompra[0]
@@ -171,10 +171,10 @@ const PedidoRow: React.FC<{
                     )
                 ) : '-'}
             </td>
-            <td className="px-6 py-4 text-gray-900 dark:text-white w-32">{pedido.desarrollo}</td>
-            <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-20">{pedido.capa || '-'}</td>
-            <td className="px-6 py-4 text-gray-900 dark:text-white w-28">{pedido.camisa || '-'}</td>
-            <td className="px-6 py-4 text-center w-24">
+            <td className="px-2 py-2 text-gray-900 dark:text-white text-sm w-28 truncate" title={pedido.desarrollo}>{pedido.desarrollo}</td>
+            <td className="px-2 py-2 text-center text-gray-900 dark:text-white text-sm w-16">{pedido.capa || '-'}</td>
+            <td className="px-2 py-2 text-gray-900 dark:text-white text-sm w-24 truncate" title={pedido.camisa}>{pedido.camisa || '-'}</td>
+            <td className="px-2 py-2 text-center w-16">
                 {pedido.antivaho && <SparklesIcon className="w-5 h-5 text-blue-500 mx-auto" />}
             </td>
             <td className="px-6 py-4 w-28">
@@ -188,7 +188,7 @@ const PedidoRow: React.FC<{
             <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-28">{formatDateDDMMYYYY(pedido.fechaEntrega)}</td>
             <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-32">{pedido.nuevaFechaEntrega ? formatDateDDMMYYYY(pedido.nuevaFechaEntrega) : '-'}</td>
             <td className="px-6 py-4 text-center w-28">
-                <div className="flex justify-center items-center space-x-3">
+                <div className="flex justify-center items-center space-x-2">
                     <button onClick={() => onSelectPedido(pedido)} className="text-blue-500 hover:text-blue-400 dark:text-blue-400 dark:hover:text-blue-300" title="Ver/Editar">
                         <EditIcon />
                     </button>
@@ -226,26 +226,26 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
     }, []);
 
     return (
-        <main className="flex-grow p-4 md:p-8">
+        <main className="flex-grow p-2 md:p-4">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="min-w-full table-fixed">
                         <thead className="bg-gray-50 dark:bg-gray-700">
                             <tr>
-                                <SortableHeaderTh label="N° Pedido" sortKey="numeroPedidoCliente" onSort={onSort} sortConfig={sortConfig} width="w-32" />
-                                <SortableHeaderTh label="Cliente" sortKey="cliente" onSort={onSort} sortConfig={sortConfig} width="w-36" />
-                                <SortableHeaderTh label="Nº Compra" sortKey="numerosCompra" onSort={onSort} sortConfig={sortConfig} width="w-28" />
-                                <SortableHeaderTh label="Desarrollo" sortKey="desarrollo" onSort={onSort} sortConfig={sortConfig} width="w-32" />
-                                <SortableHeaderTh label="Capa" sortKey="capa" onSort={onSort} sortConfig={sortConfig} width="w-20" className="text-center" />
-                                <SortableHeaderTh label="Camisa" sortKey="camisa" onSort={onSort} sortConfig={sortConfig} width="w-28" />
-                                <SortableHeaderTh label="Antivaho" sortKey="antivaho" onSort={onSort} sortConfig={sortConfig} width="w-24" className="text-center" />
-                                <SortableHeaderTh label="Prioridad" sortKey="prioridad" onSort={onSort} sortConfig={sortConfig} width="w-28" />
-                                <SortableHeaderTh label="Etapa Actual" sortKey="etapaActual" onSort={onSort} sortConfig={sortConfig} width="w-36" />
-                                <SortableHeaderTh label="Metros" sortKey="metros" onSort={onSort} sortConfig={sortConfig} width="w-24" className="text-right" />
-                                <SortableHeaderTh label="T. Planificado" sortKey="tiempoProduccionPlanificado" onSort={onSort} sortConfig={sortConfig} width="w-28" className="text-center" />
-                                <SortableHeaderTh label="F. Entrega" sortKey="fechaEntrega" onSort={onSort} sortConfig={sortConfig} width="w-28" className="text-center" />
-                                <SortableHeaderTh label="Nueva F. Entrega" sortKey="nuevaFechaEntrega" onSort={onSort} sortConfig={sortConfig} width="w-32" className="text-center" />
-                                <th className="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center w-28">
+                                <SortableHeaderTh label="N° Pedido" sortKey="numeroPedidoCliente" onSort={onSort} sortConfig={sortConfig} width="w-24" />
+                                <SortableHeaderTh label="Cliente" sortKey="cliente" onSort={onSort} sortConfig={sortConfig} width="w-28" />
+                                <SortableHeaderTh label="Nº Compra" sortKey="numerosCompra" onSort={onSort} sortConfig={sortConfig} width="w-24" />
+                                <SortableHeaderTh label="Desarrollo" sortKey="desarrollo" onSort={onSort} sortConfig={sortConfig} width="w-28" />
+                                <SortableHeaderTh label="Capa" sortKey="capa" onSort={onSort} sortConfig={sortConfig} width="w-16" className="text-center" />
+                                <SortableHeaderTh label="Camisa" sortKey="camisa" onSort={onSort} sortConfig={sortConfig} width="w-24" />
+                                <SortableHeaderTh label="Antivaho" sortKey="antivaho" onSort={onSort} sortConfig={sortConfig} width="w-16" className="text-center" />
+                                <SortableHeaderTh label="Prioridad" sortKey="prioridad" onSort={onSort} sortConfig={sortConfig} width="w-24" />
+                                <SortableHeaderTh label="Etapa Actual" sortKey="etapaActual" onSort={onSort} sortConfig={sortConfig} width="w-32" />
+                                <SortableHeaderTh label="Metros" sortKey="metros" onSort={onSort} sortConfig={sortConfig} width="w-20" className="text-right" />
+                                <SortableHeaderTh label="T. Planificado" sortKey="tiempoProduccionPlanificado" onSort={onSort} sortConfig={sortConfig} width="w-24" className="text-center" />
+                                <SortableHeaderTh label="F. Entrega" sortKey="fechaEntrega" onSort={onSort} sortConfig={sortConfig} width="w-24" className="text-center" />
+                                <SortableHeaderTh label="Nueva F. Entrega" sortKey="nuevaFechaEntrega" onSort={onSort} sortConfig={sortConfig} width="w-28" className="text-center" />
+                                <th className="px-2 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center w-24">
                                     Acciones
                                 </th>
                             </tr>
