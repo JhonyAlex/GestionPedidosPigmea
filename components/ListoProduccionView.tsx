@@ -103,14 +103,14 @@ const ListoProduccionView: React.FC<ListoProduccionViewProps> = ({
     }
 
     return (
-        <main className="flex-grow p-4 md:p-8">
+        <main className="flex-grow p-4 md:p-8 flex flex-col">
             <h2 className="text-3xl font-extrabold text-gray-800 dark:text-white mb-6 border-l-4 border-green-500 pl-4">
                 Listos para Producción
             </h2>
             
-            <div className="flex gap-6">
+            <div className="flex gap-6 flex-1 min-h-0">
                 {/* Columna de Pedidos */}
-                <div className="flex-1">
+                <div className="flex-1 flex flex-col">
                     <PreparacionColumn
                         key={columnaListo.id}
                         columna={columnaListo}
