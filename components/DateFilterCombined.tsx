@@ -100,17 +100,17 @@ const DateFilterCombined: React.FC<DateFilterCombinedProps> = ({
             {/* Botón Principal */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`flex items-center gap-2 px-2 py-1 text-sm rounded-md transition-all duration-200 border ${
+                className={`flex items-center gap-1.5 px-2 py-1 text-sm rounded-md transition-all duration-200 border ${
                     isActive
                         ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
                 title="Filtrar por fecha"
             >
-                <span className="text-base leading-none">{currentFieldIcon}</span>
-                <div className="flex flex-col items-start leading-tight">
-                    <span className="text-[10px] opacity-75 leading-none">{currentFieldLabel}</span>
-                    <span className="text-xs font-medium leading-none mt-0.5">{currentFilterLabel}</span>
+                <span className="text-sm leading-none">{currentFieldIcon}</span>
+                <div className="flex flex-col items-start leading-tight min-w-0">
+                    <span className="text-[9px] opacity-75 leading-none">{currentFieldLabel}</span>
+                    <span className="text-[11px] font-medium leading-none mt-0.5">{currentFilterLabel}</span>
                 </div>
                 <ChevronDownIcon />
             </button>
