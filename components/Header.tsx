@@ -6,6 +6,7 @@ import { ETAPAS_KANBAN, ETAPAS, STAGE_GROUPS } from '../constants';
 import { DateFilterOption } from '../utils/date';
 import UserInfo from './UserInfo';
 import WeekFilter from './WeekFilter';
+import DateFilterCombined from './DateFilterCombined';
 import GlobalSearchDropdown from './GlobalSearchDropdown';
 import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
@@ -237,26 +238,6 @@ const Header: React.FC<HeaderProps> = ({
         { id: 'permissions-debug', label: '🔍 Debug Permisos', permission: canAccessAdmin },
     ];
 
-    const dateFieldOptions: { value: keyof Pedido, label: string }[] = [
-        { value: 'fechaCreacion', label: 'F. Creación' },
-        { value: 'fechaEntrega', label: 'F. Entrega' },
-        { value: 'nuevaFechaEntrega', label: 'Nueva F. Entrega' },
-        { value: 'fechaFinalizacion', label: 'F. Finalización' },
-        { value: 'compraCliche', label: 'Compra Cliché' },
-        { value: 'recepcionCliche', label: 'Recepción Cliché' },
-    ];
-
-    const dateFilterOptions: { value: DateFilterOption, label: string }[] = [
-        { value: 'all', label: 'Todas las Fechas' },
-        { value: 'this-week', label: 'Esta Semana' },
-        { value: 'last-week', label: 'Semana Pasada' },
-        { value: 'next-week', label: 'Próxima Semana' },
-        { value: 'this-month', label: 'Este Mes' },
-        { value: 'last-month', label: 'Mes Pasado' },
-        { value: 'next-month', label: 'Próximo Mes' },
-        { value: 'custom', label: 'Personalizado' },
-    ];
-
     const baseButtonClass = "px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-200 dark:focus:ring-offset-gray-700 focus:ring-indigo-500";
     const activeButtonClass = "bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm";
     const inactiveButtonClass = "text-gray-600 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/10";
@@ -427,48 +408,15 @@ const Header: React.FC<HeaderProps> = ({
                 {/* Segunda fila: Filtros y Búsqueda */}
                 {(currentView !== 'report' && currentView !== 'permissions-debug' && currentView !== 'clientes' && currentView !== 'vendedores') && (
                     <div className="flex flex-wrap items-center gap-2 mb-2">
-                        {/* Grupo de Filtros de Fecha */}
-                        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-md p-1">
-                            <select
-                                name="dateField"
-                                value={activeFilters.dateField}
-                                onChange={(e) => onFilterChange(e.target.name, e.target.value)}
-                                className="px-2 py-1 text-sm bg-transparent text-gray-900 dark:text-white border-0 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded"
-                            >
-                                {dateFieldOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                            </select>
-                            <span className="text-gray-400">|</span>
-                            <select
-                                name="date"
-                                value={activeDateFilter}
-                                onChange={(e) => onDateFilterChange(e.target.value as DateFilterOption)}
-                                className="px-2 py-1 text-sm bg-transparent text-gray-900 dark:text-white border-0 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded"
-                            >
-                                {dateFilterOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                            </select>
-                        </div>
-                        
-                         {activeDateFilter === 'custom' && (
-                            <div className="flex items-center gap-1 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-1">
-                                <input
-                                    type="date"
-                                    name="start"
-                                    aria-label="Fecha de inicio"
-                                    value={customDateRange.start}
-                                    onChange={onCustomDateChange}
-                                    className="px-2 py-1 bg-transparent text-sm w-32 focus:outline-none"
-                                />
-                                <span className="text-gray-500 dark:text-gray-400">-</span>
-                                <input
-                                    type="date"
-                                    name="end"
-                                    aria-label="Fecha de fin"
-                                    value={customDateRange.end}
-                                    onChange={onCustomDateChange}
-                                    className="px-2 py-1 bg-transparent text-sm w-32 focus:outline-none"
-                                />
-                            </div>
-                        )}
+                        {/* Filtro de Fecha Combinado */}
+                        <DateFilterCombined
+                            dateField={activeFilters.dateField}
+                            dateFilter={activeDateFilter}
+                            customDateRange={customDateRange}
+                            onDateFieldChange={(field) => onFilterChange('dateField', field)}
+                            onDateFilterChange={onDateFilterChange}
+                            onCustomDateChange={onCustomDateChange}
+                        />
 
                         {/* Filtro de Semana */}
                         <WeekFilter
