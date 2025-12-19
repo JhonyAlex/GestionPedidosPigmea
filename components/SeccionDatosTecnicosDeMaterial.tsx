@@ -326,9 +326,12 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                         <div className="space-y-4">
                             {Array.from({ length: formData.materialConsumoCantidad }).map((_, index) => {
                                 // Inicializar valores por defecto si no existen
+                                // Importante: en pedidos antiguos estos campos pueden venir undefined/null.
+                                // Por especificación, undefined/null debe tratarse como FALSE (pendiente),
+                                // para evitar mostrar estados "recibido/gestionado" que no están persistidos.
                                 const materialItem = formData.materialConsumo?.[index] || {};
-                                const gestionado = materialItem.gestionado !== undefined ? materialItem.gestionado : true;
-                                const recibido = materialItem.recibido !== undefined ? materialItem.recibido : true;
+                                const gestionado = materialItem.gestionado === true;
+                                const recibido = materialItem.recibido === true;
                                 
                                 return (
                                 <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700 shadow-sm">

@@ -618,7 +618,10 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                                         // ✅ Compatibilidad legacy:
                                         // - Si hay N° de compra, asumir gestionado=true si falta.
                                         // - Si falta recibido, usar materialDisponible como fallback.
-                                        const inferredGestionado = materialItem?.gestionado ?? true;
+                                        // Importante: si 'gestionado' no existe (pedidos antiguos), por especificación
+                                        // debe comportarse como NO gestionado (AZUL), especialmente en "Sin Gestión Iniciada".
+                                        // La corrección de datos históricos debe hacerse vía normalización/backfill, no por inferencia en UI.
+                                        const inferredGestionado = materialItem?.gestionado ?? false;
                                         const inferredRecibido = materialItem?.recibido ?? (pedido.materialDisponible === true);
 
                                         const theme = getMaterialTheme(
