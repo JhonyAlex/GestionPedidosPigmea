@@ -18,28 +18,39 @@ const PaperClipIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" 
 
 /**
  * 🎨 FUNCIÓN DE TEMA: Determina el color del badge de material según su estado
- * 
+ *
  * Jerarquía de Estados (Especificación del Usuario):
  * 1. VERDE: Material recibido (recibido = true O pendienteRecibir = false)
  * 2. AZUL: Pendiente de gestión (gestionado = false/undefined Y recibido = false/undefined)
  * 3. ROJO: Gestionado pero no recibido (gestionado = true Y recibido = false/undefined)
- * 
- * COMPATIBILIDAD: Soporta tanto Material de la tabla independiente como items de materialConsumo
+ *
+ * COMPATIBILIDAD: Soporta tanto Material de la tabla independiente como items de materialConsumo.
+ * Además, normaliza valores heredados (strings/0/1/null) y, si no hay datos por material,
+ * toma como referencia materialDisponible del pedido para evitar que pedidos antiguos muestren colores incorrectos.
  */
-const getMaterialTheme = (material: Material | { recibido?: boolean; gestionado?: boolean }, legacyMode: boolean = false) => {
-    // Determinar si es del sistema antiguo (solo tiene recibido) o nuevo (tiene gestionado)
+const normalizeBoolean = (value: any, defaultValue: boolean) => {
+    if (value === true || value === 'true' || value === 1 || value === '1') return true;
+    if (value === false || value === 'false' || value === 0 || value === '0') return false;
+    return defaultValue;
+};
+
+const getMaterialTheme = (
+    material: Material | { recibido?: any; gestionado?: any; materialDisponible?: boolean; pendienteRecibir?: any; pendienteGestion?: any },
+    materialDisponibleFallback?: boolean
+) => {
     const hasRecibidoField = 'recibido' in material;
     const hasGestionadoField = 'gestionado' in material;
-    const hasPendienteFields = 'pendienteRecibir' in material && 'pendienteGestion' in material;
-    
+    const hasPendienteFields = 'pendienteRecibir' in material || 'pendienteGestion' in material;
+
     // CASO 1: Sistema de tabla independiente (Material con pendienteRecibir/pendienteGestion)
     if (hasPendienteFields) {
         const mat = material as Material;
-        const isRecibido = mat.pendienteRecibir === false;
-        const isGestionado = mat.pendienteGestion === false;
-        const isPendienteRecibir = mat.pendienteRecibir === true;
-        
-        // ESTADO 1: VERDE (Finalizado - Material recibido)
+        const pendienteRecibir = normalizeBoolean(mat.pendienteRecibir, true);
+        const pendienteGestion = normalizeBoolean(mat.pendienteGestion, true);
+        const isRecibido = pendienteRecibir === false;
+        const isGestionado = pendienteGestion === false;
+        const isPendienteRecibir = pendienteRecibir !== false;
+
         if (isRecibido) {
             return {
                 bg: 'bg-green-100 dark:bg-green-900',
@@ -50,8 +61,7 @@ const getMaterialTheme = (material: Material | { recibido?: boolean; gestionado?
                 weight: 'font-medium'
             };
         }
-        
-        // ESTADO 2: AZUL (Inicial - Pendiente de gestionar)
+
         if (!isGestionado && isPendienteRecibir) {
             return {
                 bg: 'bg-blue-100 dark:bg-blue-900',
@@ -62,8 +72,7 @@ const getMaterialTheme = (material: Material | { recibido?: boolean; gestionado?
                 weight: 'font-semibold border-2'
             };
         }
-        
-        // ESTADO 3: ROJO (En camino - Gestionado pero no recibido)
+
         if (isGestionado && isPendienteRecibir) {
             return {
                 bg: 'bg-red-100 dark:bg-red-900',
@@ -75,19 +84,14 @@ const getMaterialTheme = (material: Material | { recibido?: boolean; gestionado?
             };
         }
     }
-    
+
     // CASO 2: Sistema integrado en materialConsumo (con gestionado y recibido)
     if (hasRecibidoField || hasGestionadoField) {
-        const mat = material as { recibido?: boolean; gestionado?: boolean };
-        
-        // Normalizar valores null/undefined a valores por defecto del estado inicial (AZUL)
-        // Por defecto: gestionado=false (no gestionado), recibido=false (no recibido)
-        const isRecibido = mat.recibido === true;
-        const isGestionado = mat.gestionado === true;
-        const hasExplicitValues = mat.recibido !== null && mat.recibido !== undefined && 
-                                  mat.gestionado !== null && mat.gestionado !== undefined;
-        
-        // ESTADO 1: VERDE (Material recibido)
+        const mat = material as { recibido?: any; gestionado?: any };
+
+        const isRecibido = normalizeBoolean(mat.recibido, materialDisponibleFallback === true);
+        const isGestionado = normalizeBoolean(mat.gestionado, isRecibido);
+
         if (isRecibido) {
             return {
                 bg: 'bg-green-100 dark:bg-green-900',
@@ -98,9 +102,7 @@ const getMaterialTheme = (material: Material | { recibido?: boolean; gestionado?
                 weight: 'font-medium'
             };
         }
-        
-        // ESTADO 2: AZUL (Pendiente de gestionar o valores null/undefined)
-        // Incluye: gestionado=false, gestionado=null, gestionado=undefined
+
         if (!isGestionado) {
             return {
                 bg: 'bg-blue-100 dark:bg-blue-900',
@@ -111,9 +113,7 @@ const getMaterialTheme = (material: Material | { recibido?: boolean; gestionado?
                 weight: 'font-semibold border-2'
             };
         }
-        
-        // ESTADO 3: ROJO (Gestionado pero no recibido)
-        // Solo llega aquí si gestionado=true y recibido=false/null/undefined
+
         if (isGestionado && !isRecibido) {
             return {
                 bg: 'bg-red-100 dark:bg-red-900',
@@ -125,11 +125,13 @@ const getMaterialTheme = (material: Material | { recibido?: boolean; gestionado?
             };
         }
     }
-    
+
     // CASO 3: Sistema antiguo (solo recibido, sin gestionado) - FALLBACK
     if (hasRecibidoField && !hasGestionadoField) {
-        const mat = material as { recibido?: boolean };
-        if (mat.recibido === true) {
+        const mat = material as { recibido?: any };
+        const isRecibido = normalizeBoolean(mat.recibido, materialDisponibleFallback === true);
+
+        if (isRecibido) {
             return {
                 bg: 'bg-green-100 dark:bg-green-900',
                 text: 'text-green-800 dark:text-green-200',
@@ -139,7 +141,7 @@ const getMaterialTheme = (material: Material | { recibido?: boolean; gestionado?
                 weight: 'font-medium'
             };
         }
-        // Si recibido es false o undefined, mostrar como pendiente (AZUL por defecto)
+
         return {
             bg: 'bg-blue-100 dark:bg-blue-900',
             text: 'text-blue-800 dark:text-blue-200',
@@ -149,8 +151,20 @@ const getMaterialTheme = (material: Material | { recibido?: boolean; gestionado?
             weight: 'font-semibold border-2'
         };
     }
-    
+
     // FALLBACK (Azul por defecto para estado indeterminado)
+    const fallbackToGreen = materialDisponibleFallback === true;
+    if (fallbackToGreen) {
+        return {
+            bg: 'bg-green-100 dark:bg-green-900',
+            text: 'text-green-800 dark:text-green-200',
+            border: 'border-green-400',
+            icon: '✅',
+            label: 'Material Recibido',
+            weight: 'font-medium'
+        };
+    }
+
     return {
         bg: 'bg-blue-100 dark:bg-blue-900',
         text: 'text-blue-800 dark:text-blue-200',
@@ -555,7 +569,7 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                         {/* PRIORIDAD 1: Usar materiales de la nueva tabla si existen */}
                         {materialesNuevos.length > 0 ? (
                             materialesNuevos.map((material) => {
-                                const theme = getMaterialTheme(material, false);
+                                const theme = getMaterialTheme(material, pedido.materialDisponible);
                                 
                                 return (
                                     <span 
@@ -580,7 +594,7 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                                     const theme = getMaterialTheme({ 
                                         recibido: materialItem?.recibido, 
                                         gestionado: materialItem?.gestionado 
-                                    }, false);
+                                    }, pedido.materialDisponible);
                                     
                                     return (
                                         <span 
