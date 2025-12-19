@@ -400,51 +400,52 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                         </div>
                                     </div>
                                     
-                                    {/* Material Gestionado y Recibido - Checkboxes separados */}
-                                    <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-900/30 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 space-y-3">
-                                        
-                                        {/* Estado de Gestión (Pedido al Proveedor) */}
-                                        <div className="flex items-center">
-                                            <input
-                                                type="checkbox"
-                                                id={`material-gestionado-${index}`}
-                                                checked={gestionado}
-                                                onChange={(e) => handleNestedArrayChange('materialConsumo', index, 'gestionado', e.target.checked)}
-                                                disabled={isReadOnly}
-                                                className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50 cursor-pointer"
-                                            />
-                                            <label 
-                                                htmlFor={`material-gestionado-${index}`}
-                                                className={`ml-3 text-sm font-semibold cursor-pointer transition-colors ${
-                                                    gestionado
-                                                        ? 'text-blue-600 dark:text-blue-400'
-                                                        : 'text-gray-600 dark:text-gray-400'
-                                                }`}
-                                            >
-                                                {gestionado ? '✅ Gestionado' : '🕑 Pendiente Gestión'}
-                                            </label>
-                                        </div>
+                                    {/* Material Gestionado y Recibido - Checkboxes horizontales */}
+                                    <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-900/30 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {/* Estado de Recepción - PRIMERO */}
+                                            <div className="flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    id={`material-recibido-${index}`}
+                                                    checked={recibido}
+                                                    onChange={(e) => handleNestedArrayChange('materialConsumo', index, 'recibido', e.target.checked)}
+                                                    disabled={isReadOnly}
+                                                    className="h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50 cursor-pointer"
+                                                />
+                                                <label 
+                                                    htmlFor={`material-recibido-${index}`}
+                                                    className={`ml-3 text-sm font-semibold cursor-pointer transition-colors ${
+                                                        recibido
+                                                            ? 'text-green-600 dark:text-green-400'
+                                                            : 'text-gray-600 dark:text-gray-400'
+                                                    }`}
+                                                >
+                                                    {recibido ? '✅ Material Recibido' : '⏳ Pendiente de Recibir'}
+                                                </label>
+                                            </div>
 
-                                        {/* Estado de Recepción */}
-                                        <div className="flex items-center">
-                                            <input
-                                                type="checkbox"
-                                                id={`material-recibido-${index}`}
-                                                checked={recibido}
-                                                onChange={(e) => handleNestedArrayChange('materialConsumo', index, 'recibido', e.target.checked)}
-                                                disabled={isReadOnly}
-                                                className="h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50 cursor-pointer"
-                                            />
-                                            <label 
-                                                htmlFor={`material-recibido-${index}`}
-                                                className={`ml-3 text-sm font-semibold cursor-pointer transition-colors ${
-                                                    recibido
-                                                        ? 'text-green-600 dark:text-green-400'
-                                                        : 'text-gray-600 dark:text-gray-400'
-                                                }`}
-                                            >
-                                                {recibido ? '✅ Material Recibido' : '⏳ Pendiente de Recibir'}
-                                            </label>
+                                            {/* Estado de Gestión - SEGUNDO */}
+                                            <div className="flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    id={`material-gestionado-${index}`}
+                                                    checked={gestionado}
+                                                    onChange={(e) => handleNestedArrayChange('materialConsumo', index, 'gestionado', e.target.checked)}
+                                                    disabled={isReadOnly}
+                                                    className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50 cursor-pointer"
+                                                />
+                                                <label 
+                                                    htmlFor={`material-gestionado-${index}`}
+                                                    className={`ml-3 text-sm font-semibold cursor-pointer transition-colors ${
+                                                        gestionado
+                                                            ? 'text-blue-600 dark:text-blue-400'
+                                                            : 'text-gray-600 dark:text-gray-400'
+                                                    }`}
+                                                >
+                                                    {gestionado ? '✅ Gestionado' : '🕑 Pendiente Gestión'}
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

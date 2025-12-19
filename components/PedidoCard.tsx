@@ -568,9 +568,12 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                                     // Filtrar números vacíos
                                     if (!numero || !numero.trim()) return null;
                                     
-                                    // Usar el campo recibido del sistema antiguo
+                                    // Usar los campos recibido y gestionado del materialConsumo
                                     const materialItem = pedido.materialConsumo?.[index];
-                                    const theme = getMaterialTheme({ recibido: materialItem?.recibido }, true);
+                                    const theme = getMaterialTheme({ 
+                                        recibido: materialItem?.recibido, 
+                                        gestionado: materialItem?.gestionado 
+                                    }, false);
                                     
                                     return (
                                         <span 
