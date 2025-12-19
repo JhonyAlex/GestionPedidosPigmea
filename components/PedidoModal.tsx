@@ -468,19 +468,15 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     };
 
     // Manejar cambios en el estado de los materiales
-    const handleMaterialStateChange = async (materialId: number, field: 'pendienteRecibir' | 'pendienteGestion', isChecked: boolean) => {
+    const handleMaterialStateChange = async (materialId: number, field: 'pendienteRecibir' | 'pendienteGestion', value: boolean) => {
         try {
             const material = pedidoMateriales.find(m => m.id === materialId);
             if (!material) return;
 
-            // Los checkboxes representan el estado COMPLETADO, por lo que invertimos el valor
-            // isChecked = true -> pendiente = false (completado)
-            // isChecked = false -> pendiente = true (no completado)
-            const updates: Partial<Material> = { [field]: !isChecked };
+            const updates: Partial<Material> = { [field]: value };
 
-            // REGLA DE RECEPCIÓN: Si marcan como "Material Recibido" (pendienteRecibir=false),
-            // automáticamente marcar como "Gestionado" (pendienteGestion=false)
-            if (field === 'pendienteRecibir' && isChecked === true) {
+            // Aplicar regla de transición: Si marcan pendienteRecibir=false, automáticamente pendienteGestion=false
+            if (field === 'pendienteRecibir' && value === false) {
                 updates.pendienteGestion = false;
             }
 
@@ -1511,41 +1507,36 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                         {/* Controles de estado */}
                                                         {!isReadOnly && (
                                                             <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-current/20">
-                                                                {/* Checkbox: Gestionado (completado) */}
+                                                                {/* Checkbox: Pendiente Gestión */}
                                                                 <label className="flex items-center gap-2 cursor-pointer">
                                                                     <input
                                                                         type="checkbox"
-                                                                        checked={!material.pendienteGestion}
+                                                                        checked={material.pendienteGestion}
                                                                         onChange={(e) => handleMaterialStateChange(material.id, 'pendienteGestion', e.target.checked)}
-                                                                        disabled={!material.pendienteRecibir}
+                                                                        disabled={!material.pendienteRecibir} // Solo se puede desmarcar si ya fue recibido
                                                                         className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
                                                                     />
-                                                                    <span className="text-sm font-medium">
-                                                                        {!material.pendienteGestion ? '✅ Gestionado' : '🕑 Pendiente Gestión'}
+                                                                    <span className="text-sm">
+                                                                        {material.pendienteGestion ? '🕑 Pendiente Gestión' : '✅ Gestionado'}
                                                                     </span>
                                                                 </label>
 
-                                                                {/* Checkbox: Material Recibido (completado) */}
+                                                                {/* Checkbox: Pendiente Recibir */}
                                                                 <label className="flex items-center gap-2 cursor-pointer">
                                                                     <input
                                                                         type="checkbox"
-                                                                        checked={!material.pendienteRecibir}
+                                                                        checked={material.pendienteRecibir}
                                                                         onChange={(e) => handleMaterialStateChange(material.id, 'pendienteRecibir', e.target.checked)}
                                                                         className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
                                                                     />
-                                                                    <span className="text-sm font-medium">
-                                                                        {!material.pendienteRecibir ? '✅ Material Recibido' : '⏳ Pendiente de Recibir'}
+                                                                    <span className="text-sm">
+                                                                        {material.pendienteRecibir ? '⏳ Pendiente Recibir' : '✅ Material Recibido'}
                                                                     </span>
                                                                 </label>
 
-                                                                {!material.pendienteRecibir && (
-                                                                    <p className="text-xs mt-1 opacity-70 italic text-green-700 dark:text-green-300">
-                                                                        💡 Material recibido y marcado automáticamente como gestionado
-                                                                    </p>
-                                                                )}
-                                                                {material.pendienteRecibir && !material.pendienteGestion && (
-                                                                    <p className="text-xs mt-1 opacity-70 italic text-red-700 dark:text-red-300">
-                                                                        ⏳ Pedido realizado al proveedor - En espera de recepción
+                                                                {material.pendienteRecibir && (
+                                                                    <p className="text-xs mt-1 opacity-70 italic">
+                                                                        💡 Al marcar como "Recibido", se marcará automáticamente como "Gestionado"
                                                                     </p>
                                                                 )}
                                                             </div>

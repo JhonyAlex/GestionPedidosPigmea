@@ -111,6 +111,7 @@ export interface Pedido {
     materialConsumo?: Array<{ 
         necesario?: number | null; 
         recibido?: boolean | null;
+        gestionado?: boolean | null;  // Estado de gestión (pedido al proveedor)
         micras?: number | null;
         densidad?: number | null;
     }> | null;

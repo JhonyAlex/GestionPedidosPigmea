@@ -107,9 +107,9 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
         const array = formData[arrayName] ? [...(formData[arrayName] as any[])] : [];
         let parsedValue: string | number | boolean | null;
 
-        if (field === 'recibido' && typeof value === 'boolean') {
+        if ((field === 'recibido' || field === 'gestionado') && typeof value === 'boolean') {
             parsedValue = value;
-        } else if (field === 'recibido') {
+        } else if (field === 'recibido' || field === 'gestionado') {
             parsedValue = value === 'true' || value === true;
         } else if (field === 'densidad') {
             // Para densidad, permitir entrada libre con decimales
@@ -148,6 +148,11 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
 
         if (!array[index]) array[index] = {};
         array[index][field] = parsedValue;
+
+        // Regla de negocio: Si se marca "Material Recibido", automáticamente marcar "Gestionado"
+        if (field === 'recibido' && parsedValue === true) {
+            array[index]['gestionado'] = true;
+        }
 
         // Notificar el cambio del array completo
         onDataChange(arrayName, array);
@@ -314,7 +319,13 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                     
                     {formData.materialConsumoCantidad && formData.materialConsumoCantidad > 0 ? (
                         <div className="space-y-4">
-                            {Array.from({ length: formData.materialConsumoCantidad }).map((_, index) => (
+                            {Array.from({ length: formData.materialConsumoCantidad }).map((_, index) => {
+                                // Inicializar valores por defecto si no existen
+                                const materialItem = formData.materialConsumo?.[index] || {};
+                                const gestionado = materialItem.gestionado !== undefined ? materialItem.gestionado : true;
+                                const recibido = materialItem.recibido !== undefined ? materialItem.recibido : true;
+                                
+                                return (
                                 <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700 shadow-sm">
                                     <div className="flex items-center gap-2 mb-3">
                                         <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded">
@@ -389,15 +400,37 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                         </div>
                                     </div>
                                     
-                                    {/* Material Recibido - Checkbox separado con mejor visibilidad */}
-                                    <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-900/30 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+                                    {/* Material Gestionado y Recibido - Checkboxes separados */}
+                                    <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-900/30 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 space-y-3">
                                         
-                                        {/* Cantidad Recibida - Ahora es un checkbox */}
+                                        {/* Estado de Gestión (Pedido al Proveedor) */}
+                                        <div className="flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                id={`material-gestionado-${index}`}
+                                                checked={gestionado}
+                                                onChange={(e) => handleNestedArrayChange('materialConsumo', index, 'gestionado', e.target.checked)}
+                                                disabled={isReadOnly}
+                                                className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50 cursor-pointer"
+                                            />
+                                            <label 
+                                                htmlFor={`material-gestionado-${index}`}
+                                                className={`ml-3 text-sm font-semibold cursor-pointer transition-colors ${
+                                                    gestionado
+                                                        ? 'text-blue-600 dark:text-blue-400'
+                                                        : 'text-gray-600 dark:text-gray-400'
+                                                }`}
+                                            >
+                                                {gestionado ? '✅ Gestionado' : '🕑 Pendiente Gestión'}
+                                            </label>
+                                        </div>
+
+                                        {/* Estado de Recepción */}
                                         <div className="flex items-center">
                                             <input
                                                 type="checkbox"
                                                 id={`material-recibido-${index}`}
-                                                checked={!!formData.materialConsumo?.[index]?.recibido}
+                                                checked={recibido}
                                                 onChange={(e) => handleNestedArrayChange('materialConsumo', index, 'recibido', e.target.checked)}
                                                 disabled={isReadOnly}
                                                 className="h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50 cursor-pointer"
@@ -405,17 +438,17 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
                                             <label 
                                                 htmlFor={`material-recibido-${index}`}
                                                 className={`ml-3 text-sm font-semibold cursor-pointer transition-colors ${
-                                                    formData.materialConsumo?.[index]?.recibido
+                                                    recibido
                                                         ? 'text-green-600 dark:text-green-400'
                                                         : 'text-gray-600 dark:text-gray-400'
                                                 }`}
                                             >
-                                                {formData.materialConsumo?.[index]?.recibido ? '✅ Material Recibido' : '⏳ Pendiente de Recibir'}
+                                                {recibido ? '✅ Material Recibido' : '⏳ Pendiente de Recibir'}
                                             </label>
                                         </div>
                                     </div>
                                 </div>
-                            ))}
+                            )})}
                         </div>
                     ) : (
                         <div className="text-center py-6 text-gray-500 dark:text-gray-400 text-sm">

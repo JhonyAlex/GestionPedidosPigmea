@@ -20,40 +20,24 @@ const PaperClipIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" 
  * 🎨 FUNCIÓN DE TEMA: Determina el color del badge de material según su estado
  * 
  * Jerarquía de Estados (Especificación del Usuario):
- * 1. VERDE: Material recibido (pendienteRecibir = false)
- * 2. AZUL: Pendiente de gestión (pendienteGestion = true && pendienteRecibir = true)
- * 3. ROJO: Gestionado pero no recibido (pendienteGestion = false && pendienteRecibir = true)
+ * 1. VERDE: Material recibido (recibido = true O pendienteRecibir = false)
+ * 2. AZUL: Pendiente de gestión (gestionado = false/undefined Y recibido = false/undefined)
+ * 3. ROJO: Gestionado pero no recibido (gestionado = true Y recibido = false/undefined)
  * 
- * COMPATIBILIDAD: También soporta el sistema antiguo usando materialConsumo[].recibido
+ * COMPATIBILIDAD: Soporta tanto Material de la tabla independiente como items de materialConsumo
  */
-const getMaterialTheme = (material: Material | { recibido?: boolean }, legacyMode: boolean = false) => {
-    // Modo legacy: usar el campo recibido del sistema antiguo
-    if (legacyMode && 'recibido' in material) {
-        if (material.recibido === true) {
-            return {
-                bg: 'bg-green-100 dark:bg-green-900',
-                text: 'text-green-800 dark:text-green-200',
-                border: 'border-green-400',
-                icon: '✅',
-                label: 'Material Recibido',
-                weight: 'font-medium'
-            };
-        }
-        // Si recibido es false o undefined, mostrar como pendiente (rojo por defecto)
-        return {
-            bg: 'bg-red-100 dark:bg-red-900',
-            text: 'text-red-800 dark:text-red-200',
-            border: 'border-red-400',
-            icon: '⏳',
-            label: 'Pendiente de Recibir',
-            weight: 'font-semibold border-2'
-        };
-    }
+const getMaterialTheme = (material: Material | { recibido?: boolean; gestionado?: boolean }, legacyMode: boolean = false) => {
+    // Determinar si es del sistema antiguo (solo tiene recibido) o nuevo (tiene gestionado)
+    const hasRecibidoField = 'recibido' in material;
+    const hasGestionadoField = 'gestionado' in material;
+    const hasPendienteFields = 'pendienteRecibir' in material && 'pendienteGestion' in material;
     
-    // Modo nuevo: usar campos pendienteRecibir y pendienteGestion
-    if ('pendienteRecibir' in material && 'pendienteGestion' in material) {
-        const isRecibido = material.pendienteRecibir === false;
-        const isGestionado = material.pendienteGestion === false;
+    // CASO 1: Sistema de tabla independiente (Material con pendienteRecibir/pendienteGestion)
+    if (hasPendienteFields) {
+        const mat = material as Material;
+        const isRecibido = mat.pendienteRecibir === false;
+        const isGestionado = mat.pendienteGestion === false;
+        const isPendienteRecibir = mat.pendienteRecibir === true;
         
         // ESTADO 1: VERDE (Finalizado - Material recibido)
         if (isRecibido) {
@@ -68,7 +52,7 @@ const getMaterialTheme = (material: Material | { recibido?: boolean }, legacyMod
         }
         
         // ESTADO 2: AZUL (Inicial - Pendiente de gestionar)
-        if (material.pendienteGestion === true) {
+        if (!isGestionado && isPendienteRecibir) {
             return {
                 bg: 'bg-blue-100 dark:bg-blue-900',
                 text: 'text-blue-800 dark:text-blue-200',
@@ -80,19 +64,83 @@ const getMaterialTheme = (material: Material | { recibido?: boolean }, legacyMod
         }
         
         // ESTADO 3: ROJO (En camino - Gestionado pero no recibido)
-        // Esto ocurre cuando isGestionado === true && material.pendienteRecibir === true
+        if (isGestionado && isPendienteRecibir) {
+            return {
+                bg: 'bg-red-100 dark:bg-red-900',
+                text: 'text-red-800 dark:text-red-200',
+                border: 'border-red-400',
+                icon: '⏳',
+                label: 'Pendiente de Recibir',
+                weight: 'font-semibold border-2'
+            };
+        }
+    }
+    
+    // CASO 2: Sistema integrado en materialConsumo (con gestionado y recibido)
+    if (hasRecibidoField && hasGestionadoField) {
+        const mat = material as { recibido?: boolean; gestionado?: boolean };
+        const isRecibido = mat.recibido === true;
+        const isGestionado = mat.gestionado === true;
+        
+        // ESTADO 1: VERDE (Material recibido)
+        if (isRecibido) {
+            return {
+                bg: 'bg-green-100 dark:bg-green-900',
+                text: 'text-green-800 dark:text-green-200',
+                border: 'border-green-400',
+                icon: '✅',
+                label: 'Material Recibido',
+                weight: 'font-medium'
+            };
+        }
+        
+        // ESTADO 2: AZUL (Pendiente de gestionar)
+        if (!isGestionado) {
+            return {
+                bg: 'bg-blue-100 dark:bg-blue-900',
+                text: 'text-blue-800 dark:text-blue-200',
+                border: 'border-blue-400',
+                icon: '🕑',
+                label: 'Pendiente Gestión',
+                weight: 'font-semibold border-2'
+            };
+        }
+        
+        // ESTADO 3: ROJO (Gestionado pero no recibido)
+        if (isGestionado && !isRecibido) {
+            return {
+                bg: 'bg-red-100 dark:bg-red-900',
+                text: 'text-red-800 dark:text-red-200',
+                border: 'border-red-400',
+                icon: '⏳',
+                label: 'Pendiente de Recibir',
+                weight: 'font-semibold border-2'
+            };
+        }
+    }
+    
+    // CASO 3: Sistema antiguo (solo recibido, sin gestionado) - FALLBACK
+    if (hasRecibidoField && !hasGestionadoField) {
+        const mat = material as { recibido?: boolean };
+        if (mat.recibido === true) {
+            return {
+                bg: 'bg-green-100 dark:bg-green-900',
+                text: 'text-green-800 dark:text-green-200',
+                border: 'border-green-400',
+                icon: '✅',
+                label: 'Material Recibido',
+                weight: 'font-medium'
+            };
+        }
+        // Si recibido es false o undefined, mostrar como pendiente (AZUL por defecto)
         return {
-            bg: 'bg-red-100 dark:bg-red-900',
-            text: 'text-red-800 dark:text-red-200',
-            border: 'border-red-400',
+            bg: 'bg-blue-100 dark:bg-blue-900',
+            text: 'text-blue-800 dark:text-blue-200',
+            border: 'border-blue-400',
             icon: '⏳',
             label: 'Pendiente de Recibir',
             weight: 'font-semibold border-2'
         };
-    }
-                weight: 'font-semibold border-2'
-            };
-        }
     }
     
     // FALLBACK (Azul por defecto para estado indeterminado)
