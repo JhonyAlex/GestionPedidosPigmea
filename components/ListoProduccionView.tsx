@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { Pedido, UserRole, Etapa, EstadoCliché } from '../types';
 import { PREPARACION_COLUMNS, PREPARACION_SUB_ETAPAS_IDS } from '../constants';
 import PreparacionColumn from './PreparacionColumn';
-import { BarChart } from './BarChart';
 
 interface ListoProduccionViewProps {
     pedidos: Pedido[];
@@ -222,15 +221,31 @@ const ListoProduccionView: React.FC<ListoProduccionViewProps> = ({
 
                         {/* Gráfico de Distribución */}
                         <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                            <h4 className="font-semibold text-gray-800 dark:text-white mb-3">📈 Distribución</h4>
-                            <BarChart
-                                data={Object.entries(metricas.tiemposPorMaquina).map(([label, value]) => ({
-                                    label,
-                                    value
-                                }))}
-                                color="#10b981"
-                                height={150}
-                            />
+                            <h4 className="font-semibold text-gray-800 dark:text-white mb-3">📈 Distribución de Tiempo</h4>
+                            <div className="space-y-2">
+                                {Object.entries(metricas.tiemposPorMaquina)
+                                    .sort((a, b) => b[1] - a[1])
+                                    .map(([maquina, tiempo]) => {
+                                        const maxTiempo = Math.max(...Object.values(metricas.tiemposPorMaquina));
+                                        const porcentaje = (tiempo / maxTiempo) * 100;
+                                        return (
+                                            <div key={maquina} className="space-y-1">
+                                                <div className="flex justify-between text-xs">
+                                                    <span className="text-gray-600 dark:text-gray-400">{maquina}</span>
+                                                    <span className="font-semibold text-gray-900 dark:text-white">{formatearTiempo(tiempo)}</span>
+                                                </div>
+                                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                                                    <div 
+                                                        className="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full transition-all duration-500 flex items-center justify-end px-2"
+                                                        style={{ width: `${porcentaje}%` }}
+                                                    >
+                                                        <span className="text-[10px] text-white font-bold">{porcentaje.toFixed(0)}%</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                            </div>
                         </div>
                     </div>
                 </div>
