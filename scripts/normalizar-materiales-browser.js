@@ -59,20 +59,26 @@
                     let cambios = [];
                     
                     // Normalizar campo 'gestionado'
+                    // Regla: si existe número de compra, inferir gestionado=true (pedido al proveedor)
                     if (itemModificado.gestionado === null || itemModificado.gestionado === undefined) {
-                        // Si tiene número de compra asociado, asumimos que está gestionado
-                        const tieneNumeroCompra = pedido.numerosCompra && 
-                                                 pedido.numerosCompra[index] && 
-                                                 pedido.numerosCompra[index].trim() !== '';
-                        
-                        itemModificado.gestionado = tieneNumeroCompra ? true : true;
+                        const tieneNumeroCompra = pedido.numerosCompra &&
+                                                 pedido.numerosCompra[index] &&
+                                                 String(pedido.numerosCompra[index]).trim() !== '';
+                        itemModificado.gestionado = !!tieneNumeroCompra;
                         cambios.push(`gestionado: null → ${itemModificado.gestionado}`);
                     }
-                    
+
                     // Normalizar campo 'recibido'
+                    // Regla: si no hay dato, por defecto NO recibido (pendiente de recibir)
                     if (itemModificado.recibido === null || itemModificado.recibido === undefined) {
-                        itemModificado.recibido = true;
-                        cambios.push(`recibido: null → true`);
+                        itemModificado.recibido = false;
+                        cambios.push(`recibido: null → false`);
+                    }
+
+                    // Regla de consistencia: si recibido=true entonces gestionado=true
+                    if (itemModificado.recibido === true && itemModificado.gestionado !== true) {
+                        itemModificado.gestionado = true;
+                        cambios.push(`gestionado: forzado → true (porque recibido=true)`);
                     }
                     
                     if (cambios.length > 0) {

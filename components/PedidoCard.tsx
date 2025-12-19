@@ -591,9 +591,15 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                                     
                                     // Usar los campos recibido y gestionado del materialConsumo
                                     const materialItem = pedido.materialConsumo?.[index];
+                                    // ✅ Compatibilidad con pedidos antiguos:
+                                    // - Muchos pedidos pre-implementación no tienen 'gestionado' poblado.
+                                    // - Si existe número de compra, inferimos gestionado=true.
+                                    // - Si no hay recibido explícito, inferimos recibido desde materialDisponible (si existe).
+                                    const inferredGestionado = materialItem?.gestionado ?? true;
+                                    const inferredRecibido = materialItem?.recibido ?? (pedido.materialDisponible === true);
                                     const theme = getMaterialTheme({ 
-                                        recibido: materialItem?.recibido, 
-                                        gestionado: materialItem?.gestionado 
+                                        recibido: inferredRecibido,
+                                        gestionado: inferredGestionado
                                     }, pedido.materialDisponible);
                                     
                                     return (
