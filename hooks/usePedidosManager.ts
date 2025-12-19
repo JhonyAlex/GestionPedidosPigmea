@@ -195,7 +195,7 @@ export const usePedidosManager = (
                     // Verificar cada campo del objeto
                     const fieldsToCheck = arrayName === 'materialCapas' 
                         ? ['micras', 'densidad'] 
-                        : ['necesario', 'recibido'];
+                        : ['necesario', 'recibido', 'gestionado', 'micras', 'densidad'];
                     
                     fieldsToCheck.forEach(field => {
                         const originalValue = originalItem[field];
@@ -206,7 +206,9 @@ export const usePedidosManager = (
                             const fieldDisplayName = field === 'micras' ? 'Micras' 
                                 : field === 'densidad' ? 'Densidad'
                                 : field === 'necesario' ? 'Necesario' 
-                                : 'Recibido';
+                                : field === 'recibido' ? 'Recibido'
+                                : field === 'gestionado' ? 'Gestionado'
+                                : field;
                             
                             const formatNestedValue = (val: any) => {
                                 if (val === null || val === undefined || val === '') return 'N/A';
@@ -282,7 +284,7 @@ export const usePedidosManager = (
                                 ).join('; ') || 'Vacía';
                             } else if (fieldName.includes('materialConsumo')) {
                                 return val.map((item, idx) => 
-                                    `Material ${idx + 1}: ${item.necesario || 'N/A'} necesario, ${item.recibido || 'N/A'} recibido`
+                                    `Material ${idx + 1}: ${item.necesario || 'N/A'} necesario, ${item.recibido ? 'Recibido' : 'Pendiente'}, ${item.gestionado ? 'Gestionado' : 'No gestionado'}`
                                 ).join('; ') || 'Vacía';
                             } else if (fieldName === 'etapasSecuencia') {
                                 return val.map(v => ETAPAS[v]?.title || v).join(', ') || 'Vacía';
@@ -322,7 +324,7 @@ export const usePedidosManager = (
                     if (val === null || val === undefined) return 'N/A';
                     if (Array.isArray(val)) {
                         return val.map((item, idx) => 
-                            `Material ${idx + 1}: ${item.necesario || 'N/A'} necesario, ${item.recibido || 'N/A'} recibido`
+                            `Material ${idx + 1}: ${item.necesario || 'N/A'} necesario, ${item.recibido ? 'Recibido' : 'Pendiente'}, ${item.gestionado ? 'Gestionado' : 'No gestionado'}`
                         ).join('; ') || 'Vacía';
                     }
                     return val.toString();
