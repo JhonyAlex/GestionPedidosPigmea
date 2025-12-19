@@ -675,10 +675,64 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                 </div>
             )}
             
-            <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                <span className="flex items-center" title="Fecha Entrega">
-                    <CalendarIcon /> {formatDateDDMMYYYY(pedido.fechaEntrega)}
-                </span>
+            <div className="flex items-start justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+                {/* Fechas alineadas verticalmente en la esquina inferior izquierda */}
+                <div className="flex flex-col gap-1">
+                    <span className="flex items-center text-sm" title="Fecha Entrega">
+                        <CalendarIcon /> {formatDateDDMMYYYY(pedido.fechaEntrega)}
+                    </span>
+                    {pedido.nuevaFechaEntrega && (
+                        <div className="flex items-center text-xs text-blue-600 dark:text-blue-400" ref={dateContainerRef}>
+                            <CalendarIcon />
+                            {isEditingFecha ? (
+                                <div className="flex items-center gap-1 flex-1">
+                                    <input
+                                        ref={dateInputRef}
+                                        type="date"
+                                        value={tempFecha}
+                                        onChange={handleFechaInputChange}
+                                        onKeyDown={handleKeyDown}
+                                        onClick={(e) => e.stopPropagation()}
+                                        disabled={isSaving}
+                                        className="flex-1 font-semibold bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-600 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    />
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleSaveFecha();
+                                        }}
+                                        disabled={isSaving || !tempFecha || tempFecha === pedido.nuevaFechaEntrega}
+                                        className="px-2 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        title="Guardar (Enter)"
+                                    >
+                                        {isSaving ? '...' : '✓'}
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleCancelEdit();
+                                        }}
+                                        disabled={isSaving}
+                                        className="px-2 py-1 bg-gray-400 hover:bg-gray-500 text-white rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        title="Cancelar (Esc)"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            ) : (
+                                <span 
+                                    className="font-semibold cursor-pointer hover:underline hover:bg-blue-100 dark:hover:bg-blue-900/50 px-1 py-0.5 rounded transition-colors"
+                                    onClick={handleFechaClick}
+                                    title="Click para editar la fecha"
+                                >
+                                    Nueva: {formatDateDDMMYYYY(pedido.nuevaFechaEntrega)}
+                                </span>
+                            )}
+                        </div>
+                    )}
+                </div>
+                
+                {/* Información del pedido en la derecha */}
                 <div className="flex flex-col items-end gap-0.5">
                     {pedido.desarrollo && (
                         <span className="flex items-center text-xs" title="Desarrollo">
@@ -695,56 +749,6 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                     </span>
                 </div>
             </div>
-            
-            {pedido.nuevaFechaEntrega && (
-                <div className="flex items-center text-xs text-blue-600 dark:text-blue-400 mb-2" ref={dateContainerRef}>
-                    <CalendarIcon />
-                    {isEditingFecha ? (
-                        <div className="flex items-center gap-1 flex-1">
-                            <input
-                                ref={dateInputRef}
-                                type="date"
-                                value={tempFecha}
-                                onChange={handleFechaInputChange}
-                                onKeyDown={handleKeyDown}
-                                onClick={(e) => e.stopPropagation()}
-                                disabled={isSaving}
-                                className="flex-1 font-semibold bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-600 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                            />
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleSaveFecha();
-                                }}
-                                disabled={isSaving || !tempFecha || tempFecha === pedido.nuevaFechaEntrega}
-                                className="px-2 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                title="Guardar (Enter)"
-                            >
-                                {isSaving ? '...' : '✓'}
-                            </button>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleCancelEdit();
-                                }}
-                                disabled={isSaving}
-                                className="px-2 py-1 bg-gray-400 hover:bg-gray-500 text-white rounded text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                title="Cancelar (Esc)"
-                            >
-                                ✕
-                            </button>
-                        </div>
-                    ) : (
-                        <span 
-                            className="font-semibold cursor-pointer hover:underline hover:bg-blue-100 dark:hover:bg-blue-900/50 px-1 py-0.5 rounded transition-colors"
-                            onClick={handleFechaClick}
-                            title="Click para editar la fecha"
-                        >
-                            Nueva: {formatDateDDMMYYYY(pedido.nuevaFechaEntrega)}
-                        </span>
-                    )}
-                </div>
-            )}
             
             <div className="flex items-center justify-end gap-1">
                      {canAdvance && canMovePedidos() && (
