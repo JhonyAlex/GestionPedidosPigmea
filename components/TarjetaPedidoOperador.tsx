@@ -1,5 +1,5 @@
 import React from 'react';
-import { PedidoConProduccion, Prioridad } from '../types';
+import { PedidoConProduccion, Prioridad, EstadoCliché } from '../types';
 
 interface TarjetaPedidoOperadorProps {
     pedido: PedidoConProduccion;
@@ -8,6 +8,20 @@ interface TarjetaPedidoOperadorProps {
 }
 
 export function TarjetaPedidoOperador({ pedido, onIniciar, disabled }: TarjetaPedidoOperadorProps) {
+    const getEstadoClicheCorto = (estado?: EstadoCliché): string | null => {
+        if (!estado) return null;
+        switch (estado) {
+            case EstadoCliché.PENDIENTE_CLIENTE:
+                return 'REP';
+            case EstadoCliché.REPETICION_CAMBIO:
+                return 'REP+C';
+            case EstadoCliché.NUEVO:
+                return 'NUEVO';
+            default:
+                return null;
+        }
+    };
+
     const getPrioridadColor = (prioridad: Prioridad) => {
         switch (prioridad) {
             case 'Urgente':
@@ -38,9 +52,19 @@ export function TarjetaPedidoOperador({ pedido, onIniciar, disabled }: TarjetaPe
                         {pedido.cliente}
                     </p>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getPrioridadColor(pedido.prioridad)}`}>
-                    {pedido.prioridad}
-                </span>
+                <div className="flex flex-col items-end gap-1">
+                    {pedido.estadoCliché && (
+                        <span 
+                            className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700"
+                            title={pedido.estadoCliché}
+                        >
+                            {getEstadoClicheCorto(pedido.estadoCliché)}
+                        </span>
+                    )}
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getPrioridadColor(pedido.prioridad)}`}>
+                        {pedido.prioridad}
+                    </span>
+                </div>
             </div>
 
             {/* Información clave del pedido */}

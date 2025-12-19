@@ -238,6 +238,21 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
     // Usar valor por defecto si la prioridad no existe en PRIORIDAD_COLORS
     const priorityColor = PRIORIDAD_COLORS[pedido.prioridad] || PRIORIDAD_COLORS[Prioridad.NORMAL] || 'border-blue-500';
 
+    // Función para obtener etiqueta corta del estado del cliché
+    const getEstadoClicheCorto = (estado?: EstadoCliché): string | null => {
+        if (!estado) return null;
+        switch (estado) {
+            case EstadoCliché.PENDIENTE_CLIENTE:
+                return 'REP';
+            case EstadoCliché.REPETICION_CAMBIO:
+                return 'REP+C';
+            case EstadoCliché.NUEVO:
+                return 'NUEVO';
+            default:
+                return null;
+        }
+    };
+
     // Detectar si es móvil
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
     
@@ -554,9 +569,19 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                             {pedido.antivahoRealizado && <span className="ml-1 text-xs">✓</span>}
                         </span>
                     )}
-                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${priorityColor.replace('border', 'bg').replace('-500','-900')} text-white`}>
-                        {pedido.prioridad}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                        {pedido.estadoCliché && (
+                            <span 
+                                className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700"
+                                title={pedido.estadoCliché}
+                            >
+                                {getEstadoClicheCorto(pedido.estadoCliché)}
+                            </span>
+                        )}
+                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${priorityColor.replace('border', 'bg').replace('-500','-900')} text-white`}>
+                            {pedido.prioridad}
+                        </span>
+                    </div>
                 </div>
             </div>
             
