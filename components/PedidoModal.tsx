@@ -844,11 +844,20 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     const handlePrintingStageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newStage = e.target.value as Etapa;
         if (newStage) {
-             setFormData(prev => ({
-                ...prev,
-                etapaActual: newStage,
-                maquinaImpresion: ETAPAS[newStage]?.title || prev.maquinaImpresion,
-            }));
+            // Si está en PREPARACION, solo actualizar maquinaImpresion sin cambiar la etapa
+            if (formData.etapaActual === Etapa.PREPARACION) {
+                setFormData(prev => ({
+                    ...prev,
+                    maquinaImpresion: ETAPAS[newStage]?.title || prev.maquinaImpresion,
+                }));
+            } else {
+                // Si está en impresión, cambiar tanto la etapa como la máquina
+                setFormData(prev => ({
+                    ...prev,
+                    etapaActual: newStage,
+                    maquinaImpresion: ETAPAS[newStage]?.title || prev.maquinaImpresion,
+                }));
+            }
         }
     };
     
@@ -1117,7 +1126,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                 value={printingStageValue}
                                                 onChange={handlePrintingStageChange}
                                                 className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
-                                                disabled={isReadOnly || !isCurrentlyInPrinting}
+                                                disabled={isReadOnly || (!isCurrentlyInPrinting && formData.etapaActual !== Etapa.PREPARACION)}
                                             >
                                                 <option value="" disabled>Seleccione una máquina</option>
                                                 {printingStages.map(stageId => (
