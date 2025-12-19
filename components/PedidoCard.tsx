@@ -598,8 +598,11 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
             </div>
             
             {/* 🆕 SECCIÓN DE MATERIALES - Soporte para nuevo sistema y legacy */}
-            {/* ⚠️ No mostrar materiales cuando el pedido está en etapas de impresión/producción */}
-            {!KANBAN_FUNNELS.IMPRESION.stages.includes(pedido.etapaActual) && (materialesNuevos.length > 0 || (pedido.numerosCompra && pedido.numerosCompra.length > 0 && pedido.numerosCompra.some(n => n && n.trim()))) && (
+            {/* ⚠️ No mostrar materiales en PRODUCCIÓN (Impresión, Post-Impresión y Finalizado) */}
+            {!KANBAN_FUNNELS.IMPRESION.stages.includes(pedido.etapaActual) && 
+             !KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual) && 
+             pedido.etapaActual !== Etapa.COMPLETADO && 
+             (materialesNuevos.length > 0 || (pedido.numerosCompra && pedido.numerosCompra.length > 0 && pedido.numerosCompra.some(n => n && n.trim()))) ? (
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                     <span className="font-medium">Materiales:</span>{' '}
                     <span className="inline-flex flex-wrap gap-1">
@@ -674,7 +677,7 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                         )}
                     </span>
                 </div>
-            )}
+            ) : null}
             
             <div className="flex items-start justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
                 {/* Fechas alineadas verticalmente en la esquina inferior izquierda */}
