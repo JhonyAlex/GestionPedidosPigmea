@@ -104,8 +104,27 @@ class PostgreSQLClient {
         try {
             const result = await client.query('SELECT * FROM admin_users WHERE username = $1', [username]);
             return result.rows[0];
+        } catch (error) {
+            // Si la tabla no existe, intentar recrearla
+            if (error.code === '42P01' && error.message.includes('admin_users')) {
+                console.warn('⚠️ Tabla admin_users no existe - intentando recrear tablas...');
+                client.release(); // Liberar cliente antes de recrear
+                await this.createTables();
+                // Reintentar la consulta
+                const newClient = await this.pool.connect();
+                try {
+                    const result = await newClient.query('SELECT * FROM admin_users WHERE username = $1', [username]);
+                    return result.rows[0];
+                } finally {
+                    newClient.release();
+                }
+            }
+            throw error;
         } finally {
-            client.release();
+            // Solo liberar si no fue liberado antes
+            if (!client._ended) {
+                client.release();
+            }
         }
     }
 
@@ -120,8 +139,31 @@ class PostgreSQLClient {
             }
             const result = await client.query('SELECT * FROM admin_users WHERE id = $1', [userId]);
             return result.rows[0];
+        } catch (error) {
+            // Si la tabla no existe, intentar recrearla
+            if (error.code === '42P01' && error.message.includes('admin_users')) {
+                console.warn('⚠️ Tabla admin_users no existe - intentando recrear tablas...');
+                client.release(); // Liberar cliente antes de recrear
+                await this.createTables();
+                // Reintentar la consulta
+                const newClient = await this.pool.connect();
+                try {
+                    const userId = parseInt(id, 10);
+                    if (isNaN(userId)) {
+                        throw new Error(`Invalid user ID: ${id}`);
+                    }
+                    const result = await newClient.query('SELECT * FROM admin_users WHERE id = $1', [userId]);
+                    return result.rows[0];
+                } finally {
+                    newClient.release();
+                }
+            }
+            throw error;
         } finally {
-            client.release();
+            // Solo liberar si no fue liberado antes
+            if (!client._ended) {
+                client.release();
+            }
         }
     }
 
@@ -2803,6 +2845,51 @@ class PostgreSQLClient {
     // === HEALTH CHECKS PERIÓDICOS ===
     
     // 🔴 NUEVO: Configurar listeners de eventos del pool
+    // 🔴 NUEVO: Verificar si las tablas críticas existen
+    async verifyTablesExist() {
+        if (!this.isInitialized || !this.pool) {
+            return false;
+        }
+        
+        const client = await this.pool.connect();
+        try {
+            // Verificar que la tabla admin_users existe
+            const result = await client.query(`
+                SELECT EXISTS (
+                    SELECT 1 FROM information_schema.tables 
+                    WHERE table_schema = 'public' 
+                    AND table_name = 'admin_users'
+                ) as table_exists;
+            `);
+            
+            return result.rows[0].table_exists;
+        } catch (error) {
+            console.error('❌ Error verificando existencia de tablas:', error.message);
+            return false;
+        } finally {
+            client.release();
+        }
+    }
+
+    // 🔴 NUEVO: Método de autocuración - verifica y recrea tablas si es necesario
+    async ensureTablesExist() {
+        try {
+            const tablesExist = await this.verifyTablesExist();
+            
+            if (!tablesExist) {
+                console.warn('⚠️ Tablas críticas no existen - iniciando recreación automática...');
+                await this.createTables();
+                console.log('✅ Tablas recreadas exitosamente');
+                return true;
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('❌ Error en autocuración de tablas:', error.message);
+            return false;
+        }
+    }
+
     setupPoolEventListeners() {
         if (!this.pool) return;
         

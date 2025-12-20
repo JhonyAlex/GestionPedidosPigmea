@@ -15,6 +15,7 @@ const PostgreSQLClient = require('./postgres-client');
 const ProduccionOperations = require('./produccion-operations');
 const { requirePermission, requireAnyPermission, setDbClient: setPermissionsDbClient } = require('./middleware/permissions');
 const { authenticateUser, requireAuth, extractUserFromRequest, setDbClient: setAuthDbClient } = require('./middleware/auth');
+const { setDbClient: setDbHealthClient, ensureDatabaseHealth } = require('./middleware/db-health');
 
 // Mapeo de roles entre frontend y base de datos
 const ROLE_MAPPING = {
@@ -117,7 +118,10 @@ app.use(express.static(path.join(__dirname, '..', 'dist')));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// 🔍 MIDDLEWARE DE LOGGING: Registrar todas las peticiones
+// � NUEVO: Middleware de autocuración de base de datos
+app.use(ensureDatabaseHealth);
+
+// �🔍 MIDDLEWARE DE LOGGING: Registrar todas las peticiones
 let requestCounter = 0;
 app.use((req, res, next) => {
     const requestId = ++requestCounter;
@@ -3921,6 +3925,7 @@ async function startServer() {
             // 🔴 CRÍTICO: Configurar el dbClient en los middlewares
             setAuthDbClient(dbClient);
             setPermissionsDbClient(dbClient);
+            setDbHealthClient(dbClient);
             console.log('✅ dbClient compartido con middlewares');
         } else {
             console.log('⚠️ No se encontró configuración de base de datos');
