@@ -136,6 +136,17 @@ class PostgreSQLClient {
         }
     }
 
+    async findUserByUsername(username) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query('SELECT * FROM admin_users WHERE username = $1', [username]);
+            return result.rows[0];
+        } finally {
+            client.release();
+        }
+    }
+
     async createAdminUser(userData) {
         if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
