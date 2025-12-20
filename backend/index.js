@@ -117,6 +117,21 @@ app.use(express.static(path.join(__dirname, '..', 'dist')));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// 🔍 MIDDLEWARE DE LOGGING: Registrar todas las peticiones
+let requestCounter = 0;
+app.use((req, res, next) => {
+    const requestId = ++requestCounter;
+    const timestamp = new Date().toISOString();
+    const userId = req.headers['x-user-id'] || 'anonymous';
+    
+    // Solo loguear peticiones a /api (ignorar archivos estáticos)
+    if (req.path.startsWith('/api')) {
+        console.log(`📨 [${requestId}] ${req.method} ${req.path} - User: ${userId} - ${timestamp}`);
+    }
+    
+    next();
+});
+
 // Middleware de autenticación global (extrae usuario si está disponible)
 app.use(authenticateUser);
 
