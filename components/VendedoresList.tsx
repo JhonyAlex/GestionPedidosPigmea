@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useVendedoresManager } from '../hooks/useVendedoresManager';
 import { Vendedor, VendedorCreateRequest, VendedorUpdateRequest } from '../types/vendedor';
 import VendedorCard from './VendedorCard';
@@ -19,12 +19,38 @@ const VendedoresList: React.FC<VendedoresListProps> = ({ onCrearPedido, onNaviga
         addVendedor,
         updateVendedor,
         deleteVendedor,
+        fetchVendedoresStatsBatch, // 🚀 NUEVO
     } = useVendedoresManager();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingVendedor, setEditingVendedor] = useState<Vendedor | null>(null);
     const [selectedVendedor, setSelectedVendedor] = useState<Vendedor | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    
+    // 🚀 NUEVO: Estado para estadísticas en batch
+    const [vendedoresStats, setVendedoresStats] = useState<Record<string, any>>({});
+    const [isLoadingStats, setIsLoadingStats] = useState(false);
+
+    // 🚀 NUEVO: Cargar estadísticas de todos los vendedores en batch
+    useEffect(() => {
+        if (vendedores.length > 0) {
+            loadVendedoresStats();
+        }
+    }, [vendedores]);
+
+    const loadVendedoresStats = async () => {
+        setIsLoadingStats(true);
+        try {
+            const vendedorIds = vendedores.map(v => v.id);
+            const stats = await fetchVendedoresStatsBatch(vendedorIds);
+            setVendedoresStats(stats);
+            console.log('✅ Estadísticas batch cargadas para', vendedorIds.length, 'vendedores');
+        } catch (error) {
+            console.error('Error al cargar estadísticas en batch:', error);
+        } finally {
+            setIsLoadingStats(false);
+        }
+    };
 
     const handleOpenModal = (vendedor: Vendedor | null = null) => {
         setEditingVendedor(vendedor);
@@ -132,6 +158,8 @@ const VendedoresList: React.FC<VendedoresListProps> = ({ onCrearPedido, onNaviga
                         onEdit={handleOpenModal}
                         onDelete={handleDelete}
                         onClick={handleVendedorClick}
+                        stats={vendedoresStats[vendedor.id]}
+                        isLoadingStats={isLoadingStats}
                     />
                 ))}
             </div>

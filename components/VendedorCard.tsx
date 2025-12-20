@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Vendedor } from '../types/vendedor';
 import { Icons } from './Icons';
 import { formatDateDDMMYYYY } from '../utils/date';
-import { useAuth } from '../contexts/AuthContext';
 
 interface VendedorCardProps {
   vendedor: Vendedor;
   onEdit: (vendedor: Vendedor) => void;
   onDelete: (vendedor: Vendedor) => void;
   onClick?: (vendedor: Vendedor) => void;
+  stats?: VendedorStats | null; // 🚀 NUEVO: Recibir stats como prop
+  isLoadingStats?: boolean; // 🚀 NUEVO: Estado de carga externo
 }
 
 interface VendedorStats {
@@ -17,44 +18,17 @@ interface VendedorStats {
   total_pedidos: number;
 }
 
-const VendedorCard: React.FC<VendedorCardProps> = ({ vendedor, onEdit, onDelete, onClick }) => {
-  const [stats, setStats] = useState<VendedorStats | null>(null);
-  const [isLoadingStats, setIsLoadingStats] = useState(false);
-  const { user } = useAuth();
-
-  const API_URL = import.meta.env.VITE_API_URL || '/api';
-
-  useEffect(() => {
-    fetchVendedorStats();
-  }, [vendedor.id]);
-
-  const fetchVendedorStats = async () => {
-    setIsLoadingStats(true);
-    try {
-      const response = await fetch(`${API_URL}/vendedores/${vendedor.id}/estadisticas`, {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': String(user?.id || ''),
-          'x-user-role': user?.role || 'OPERATOR'
-        }
-      });
-      
-      if (!response.ok) throw new Error('Error al cargar estadísticas');
-      
-      const data = await response.json();
-      setStats({
-        pedidos_en_produccion: parseInt(data.pedidos_en_produccion || 0),
-        pedidos_completados: parseInt(data.pedidos_completados || 0),
-        total_pedidos: parseInt(data.total_pedidos || 0)
-      });
-    } catch (error) {
-      console.error('Error al cargar estadísticas del vendedor:', error);
-      setStats(null);
-    } finally {
-      setIsLoadingStats(false);
-    }
-  };
+const VendedorCard: React.FC<VendedorCardProps> = ({ 
+  vendedor, 
+  onEdit, 
+  onDelete, 
+  onClick,
+  stats: externalStats,
+  isLoadingStats: externalLoading
+}) => {
+  // ⚠️ Ya no necesitamos estado local ni useEffect para stats
+  const stats = externalStats || null;
+  const isLoadingStats = externalLoading || false;
 
   const getStatusChipColor = (activo: boolean) => {
     return activo

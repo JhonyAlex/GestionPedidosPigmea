@@ -2195,6 +2195,61 @@ class PostgreSQLClient {
         }
     }
 
+    // 🚀 NUEVO: Obtener estadísticas de múltiples clientes en una sola query
+    async getClientesEstadisticasBatch(clienteIds) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                SELECT 
+                    COALESCE(cliente_id, data->>'clienteId') as cliente_id,
+                    COUNT(*) FILTER (WHERE etapa_actual IN (
+                        'PREPARACION', 'PENDIENTE',
+                        'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
+                        'POST_LAMINACION_SL2', 'POST_LAMINACION_NEXUS',
+                        'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',
+                        'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_REBOBINADO_TEMAC'
+                    )) as pedidos_en_produccion,
+                    COUNT(*) FILTER (WHERE etapa_actual NOT IN ('COMPLETADO', 'ARCHIVADO', 'CANCELADO')) as pedidos_activos,
+                    COUNT(*) FILTER (WHERE etapa_actual = 'COMPLETADO') as pedidos_completados,
+                    COUNT(*) as total_pedidos
+                FROM pedidos
+                WHERE cliente_id = ANY($1) OR data->>'clienteId' = ANY($1)
+                GROUP BY COALESCE(cliente_id, data->>'clienteId')
+            `;
+
+            const result = await client.query(query, [clienteIds]);
+            
+            // Crear un mapa con los resultados
+            const statsMap = {};
+            result.rows.forEach(row => {
+                statsMap[row.cliente_id] = {
+                    pedidos_en_produccion: parseInt(row.pedidos_en_produccion || 0),
+                    pedidos_activos: parseInt(row.pedidos_activos || 0),
+                    pedidos_completados: parseInt(row.pedidos_completados || 0),
+                    total_pedidos: parseInt(row.total_pedidos || 0)
+                };
+            });
+
+            // Rellenar con valores en 0 para clientes sin pedidos
+            clienteIds.forEach(id => {
+                if (!statsMap[id]) {
+                    statsMap[id] = {
+                        pedidos_en_produccion: 0,
+                        pedidos_activos: 0,
+                        pedidos_completados: 0,
+                        total_pedidos: 0
+                    };
+                }
+            });
+
+            console.log(`📊 Estadísticas batch cargadas para ${clienteIds.length} clientes`);
+            return statsMap;
+        } finally {
+            client.release();
+        }
+    }
+
     async getClienteStats() {
         if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
@@ -2546,6 +2601,61 @@ class PostgreSQLClient {
                 metros_producidos: 0,
                 ultimo_pedido_fecha: null
             };
+        } finally {
+            client.release();
+        }
+    }
+
+    // 🚀 NUEVO: Obtener estadísticas de múltiples vendedores en una sola query
+    async getVendedoresEstadisticasBatch(vendedorIds) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                SELECT 
+                    COALESCE(vendedor_id, data->>'vendedorId') as vendedor_id,
+                    COUNT(*) FILTER (WHERE etapa_actual IN (
+                        'PREPARACION', 'PENDIENTE',
+                        'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
+                        'POST_LAMINACION_SL2', 'POST_LAMINACION_NEXUS',
+                        'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',
+                        'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_REBOBINADO_TEMAC'
+                    )) as pedidos_en_produccion,
+                    COUNT(*) FILTER (WHERE etapa_actual NOT IN ('COMPLETADO', 'ARCHIVADO', 'CANCELADO')) as pedidos_activos,
+                    COUNT(*) FILTER (WHERE etapa_actual = 'COMPLETADO') as pedidos_completados,
+                    COUNT(*) as total_pedidos
+                FROM pedidos
+                WHERE vendedor_id = ANY($1) OR data->>'vendedorId' = ANY($1)
+                GROUP BY COALESCE(vendedor_id, data->>'vendedorId')
+            `;
+
+            const result = await client.query(query, [vendedorIds]);
+            
+            // Crear un mapa con los resultados
+            const statsMap = {};
+            result.rows.forEach(row => {
+                statsMap[row.vendedor_id] = {
+                    pedidos_en_produccion: parseInt(row.pedidos_en_produccion || 0),
+                    pedidos_activos: parseInt(row.pedidos_activos || 0),
+                    pedidos_completados: parseInt(row.pedidos_completados || 0),
+                    total_pedidos: parseInt(row.total_pedidos || 0)
+                };
+            });
+
+            // Rellenar con valores en 0 para vendedores sin pedidos
+            vendedorIds.forEach(id => {
+                if (!statsMap[id]) {
+                    statsMap[id] = {
+                        pedidos_en_produccion: 0,
+                        pedidos_activos: 0,
+                        pedidos_completados: 0,
+                        total_pedidos: 0
+                    };
+                }
+            });
+
+            console.log(`📊 Estadísticas batch cargadas para ${vendedorIds.length} vendedores`);
+            return statsMap;
         } finally {
             client.release();
         }

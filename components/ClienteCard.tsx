@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Cliente } from '../hooks/useClientesManager';
 import { Icons } from './Icons';
-import { clienteService } from '../services/clienteService';
 
 interface ClienteCardProps {
   cliente: Cliente;
   onEdit: (cliente: Cliente) => void;
   onDelete: (cliente: Cliente) => void;
   onClick?: (cliente: Cliente) => void;
+  stats?: ClienteStats | null; // 🚀 NUEVO: Recibir stats como prop
+  isLoadingStats?: boolean; // 🚀 NUEVO: Estado de carga externo
 }
 
 interface ClienteStats {
@@ -16,31 +17,17 @@ interface ClienteStats {
   total_pedidos: number;
 }
 
-const ClienteCard: React.FC<ClienteCardProps> = ({ cliente, onEdit, onDelete, onClick }) => {
-  const [stats, setStats] = useState<ClienteStats | null>(null);
-  const [isLoadingStats, setIsLoadingStats] = useState(false);
-
-  useEffect(() => {
-    fetchClienteStats();
-  }, [cliente.id]);
-
-  const fetchClienteStats = async () => {
-    setIsLoadingStats(true);
-    try {
-      // ✅ Usar el servicio en lugar de fetch directo
-      const data = await clienteService.obtenerEstadisticasCliente(cliente.id);
-      setStats({
-        pedidos_en_produccion: parseInt(data.pedidos_en_produccion || 0),
-        pedidos_completados: parseInt(data.pedidos_completados || 0),
-        total_pedidos: parseInt(data.total_pedidos || 0)
-      });
-    } catch (error) {
-      console.error('Error al cargar estadísticas del cliente:', error);
-      setStats(null);
-    } finally {
-      setIsLoadingStats(false);
-    }
-  };
+const ClienteCard: React.FC<ClienteCardProps> = ({ 
+  cliente, 
+  onEdit, 
+  onDelete, 
+  onClick, 
+  stats: externalStats, 
+  isLoadingStats: externalLoading 
+}) => {
+  // ⚠️ Ya no necesitamos estado local ni useEffect para stats
+  const stats = externalStats || null;
+  const isLoadingStats = externalLoading || false;
 
   const getStatusChipColor = (status: string) => {
     switch (status.toLowerCase()) {

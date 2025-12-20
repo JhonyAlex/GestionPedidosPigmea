@@ -249,6 +249,34 @@ export function useVendedoresManager() {
         };
     }, []);
 
+    // 🚀 NUEVO: Función para obtener estadísticas en batch
+    const fetchVendedoresStatsBatch = useCallback(async (vendedorIds: string[]): Promise<Record<string, any>> => {
+        if (!vendedorIds || vendedorIds.length === 0) {
+            return {};
+        }
+
+        try {
+            const ids = vendedorIds.join(',');
+            const response = await fetch(`${API_URL}/vendedores/stats/batch?ids=${ids}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeaders()
+                },
+                credentials: 'include',
+            });
+
+            if (!response.ok) {
+                throw new Error(`Error al obtener estadísticas: ${response.statusText}`);
+            }
+
+            return await response.json();
+        } catch (err) {
+            console.error('Error fetching vendedores stats batch:', err);
+            return {};
+        }
+    }, [getAuthHeaders]);
+
     return {
         vendedores,
         loading,
@@ -257,5 +285,6 @@ export function useVendedoresManager() {
         addVendedor,
         updateVendedor,
         deleteVendedor,
+        fetchVendedoresStatsBatch, // 🚀 NUEVO
     };
 }

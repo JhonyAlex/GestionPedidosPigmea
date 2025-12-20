@@ -153,6 +153,15 @@ class ClienteService {
     return apiRetryFetch<any>(`/clientes/${clienteId}/estadisticas`);
   }
 
+  // 🚀 NUEVO: Obtener estadísticas de múltiples clientes en una sola petición
+  async obtenerEstadisticasClientesBatch(clienteIds: string[]): Promise<Record<string, any>> {
+    if (!clienteIds || clienteIds.length === 0) {
+      return {};
+    }
+    const ids = clienteIds.join(',');
+    return apiRetryFetch<Record<string, any>>(`/clientes/stats/batch?ids=${ids}`);
+  }
+
   async obtenerPedidosCliente(clienteId: string, estado?: string): Promise<any[]> {
     if (!clienteId) throw new Error("El ID del cliente es requerido.");
     const queryString = estado ? `?estado=${estado}` : '';

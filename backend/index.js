@@ -2884,6 +2884,27 @@ app.get('/api/clientes/stats', requirePermission('clientes.view'), async (req, r
     }
 });
 
+// 🚀 NUEVO: GET /api/clientes/stats/batch - Get statistics for multiple clients in one query
+app.get('/api/clientes/stats/batch', requirePermission('clientes.view'), async (req, res) => {
+    try {
+        const { ids } = req.query;
+        if (!ids) {
+            return res.status(400).json({ message: "Se requiere el parámetro 'ids'" });
+        }
+        
+        const clienteIds = ids.split(',').filter(id => id.trim());
+        if (clienteIds.length === 0) {
+            return res.status(400).json({ message: "No se proporcionaron IDs válidos" });
+        }
+
+        const batchStats = await dbClient.getClientesEstadisticasBatch(clienteIds);
+        res.status(200).json(batchStats);
+    } catch (error) {
+        console.error("Error in GET /api/clientes/stats/batch:", error);
+        res.status(500).json({ message: "Error interno del servidor al obtener estadísticas en lote." });
+    }
+});
+
 // GET /api/clientes/:id - Get a single cliente by ID
 app.get('/api/clientes/:id', requirePermission('clientes.view'), async (req, res) => {
     try {
@@ -3253,6 +3274,27 @@ app.get('/api/vendedores/:id/estadisticas', async (req, res) => {
     } catch (error) {
         console.error(`Error in GET /api/vendedores/${req.params.id}/estadisticas:`, error);
         res.status(500).json({ message: "Error interno del servidor al obtener las estadísticas del vendedor." });
+    }
+});
+
+// 🚀 NUEVO: GET /api/vendedores/stats/batch - Get statistics for multiple vendedores in one query
+app.get('/api/vendedores/stats/batch', requirePermission('vendedores.view'), async (req, res) => {
+    try {
+        const { ids } = req.query;
+        if (!ids) {
+            return res.status(400).json({ message: "Se requiere el parámetro 'ids'" });
+        }
+        
+        const vendedorIds = ids.split(',').filter(id => id.trim());
+        if (vendedorIds.length === 0) {
+            return res.status(400).json({ message: "No se proporcionaron IDs válidos" });
+        }
+
+        const batchStats = await dbClient.getVendedoresEstadisticasBatch(vendedorIds);
+        res.status(200).json(batchStats);
+    } catch (error) {
+        console.error("Error in GET /api/vendedores/stats/batch:", error);
+        res.status(500).json({ message: "Error interno del servidor al obtener estadísticas en lote." });
     }
 });
 

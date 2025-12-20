@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useClientesManager, Cliente, ClienteCreateRequest, ClienteUpdateRequest } from '../hooks/useClientesManager';
 import ClienteCard from './ClienteCard';
 import ClienteModalMejorado from './ClienteModalMejorado';
 import ClienteDetailModal from './ClienteDetailModal';
 import DeleteClienteModal from './DeleteClienteModal';
 import { Icons } from './Icons';
+import { clienteService } from '../services/clienteService';
 
 interface ClientesListProps {
     onCrearPedido?: (cliente: { id: string; nombre: string }) => void; // ✅ Prop opcional para crear pedido
@@ -28,6 +29,31 @@ const ClientesList: React.FC<ClientesListProps> = ({ onCrearPedido, onNavigateTo
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [clienteToDelete, setClienteToDelete] = useState<Cliente | null>(null);
+    
+    // 🚀 NUEVO: Estado para estadísticas en batch
+    const [clientesStats, setClientesStats] = useState<Record<string, any>>({});
+    const [isLoadingStats, setIsLoadingStats] = useState(false);
+
+    // 🚀 NUEVO: Cargar estadísticas de todos los clientes en batch
+    useEffect(() => {
+        if (clientes.length > 0) {
+            loadClientesStats();
+        }
+    }, [clientes]);
+
+    const loadClientesStats = async () => {
+        setIsLoadingStats(true);
+        try {
+            const clienteIds = clientes.map(c => c.id);
+            const stats = await clienteService.obtenerEstadisticasClientesBatch(clienteIds);
+            setClientesStats(stats);
+            console.log('✅ Estadísticas batch cargadas para', clienteIds.length, 'clientes');
+        } catch (error) {
+            console.error('Error al cargar estadísticas en batch:', error);
+        } finally {
+            setIsLoadingStats(false);
+        }
+    };
 
     const handleOpenModal = (cliente: Cliente | null = null) => {
         setEditingCliente(cliente);
@@ -151,6 +177,8 @@ const ClientesList: React.FC<ClientesListProps> = ({ onCrearPedido, onNavigateTo
                         onEdit={handleOpenModal}
                         onDelete={handleDelete}
                         onClick={handleClienteClick}
+                        stats={clientesStats[cliente.id]}
+                        isLoadingStats={isLoadingStats}
                     />
                 ))}
             </div>
