@@ -9,24 +9,37 @@
 DO $$
 DECLARE
     column_count INTEGER;
+    row_count INTEGER;
 BEGIN
+    -- Contar columnas
     SELECT COUNT(*) 
     INTO column_count
     FROM information_schema.columns 
     WHERE table_name = 'pedidos' AND table_schema = 'public';
     
+    -- Contar filas (datos)
+    SELECT COUNT(*) INTO row_count FROM pedidos;
+    
     RAISE NOTICE '========================================';
     RAISE NOTICE 'DIAGNÓSTICO DE TABLA PEDIDOS';
     RAISE NOTICE '========================================';
     RAISE NOTICE 'Total de columnas: %', column_count;
+    RAISE NOTICE 'Total de registros (datos): %', row_count;
     RAISE NOTICE 'Límite de PostgreSQL: 1600 columnas';
+    RAISE NOTICE '';
     
     IF column_count >= 1600 THEN
         RAISE NOTICE '⚠️ CRÍTICO: La tabla ha alcanzado el límite de columnas';
     ELSIF column_count > 100 THEN
-        RAISE NOTICE '⚠️ ADVERTENCIA: Número inusualmente alto de columnas (esperado: ~50)';
+        RAISE NOTICE '⚠️ ADVERTENCIA: Número inusualmente alto de columnas (esperado: ~60)';
     ELSE
         RAISE NOTICE '✅ Número de columnas dentro de rangos normales';
+    END IF;
+    
+    IF row_count = 0 THEN
+        RAISE NOTICE '📊 La tabla está vacía (sin datos)';
+    ELSE
+        RAISE NOTICE '📊 La tabla contiene % pedidos', row_count;
     END IF;
 END $$;
 
