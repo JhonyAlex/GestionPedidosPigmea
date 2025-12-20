@@ -3183,7 +3183,6 @@ class PostgreSQLClient {
             `;
             
             const result = await client.query(query);
-            console.log(`✅ Materiales obtenidos: ${result.rows.length}`);
             return result.rows;
         } catch (error) {
             console.error('❌ Error al obtener materiales:', error);

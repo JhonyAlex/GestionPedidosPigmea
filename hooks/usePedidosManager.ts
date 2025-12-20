@@ -38,7 +38,6 @@ export const usePedidosManager = (
                 console.log(`✅ [${new Date().toISOString()}] Pedidos cargados exitosamente:`);
                 console.log(`   - Total: ${currentPedidos.length} pedidos`);
                 console.log(`   - Tiempo de carga: ${loadTime}ms`);
-                console.log(`   - Usuario: ${typeof window !== 'undefined' ? localStorage.getItem('pigmea_user') : 'N/A'}`);
                 
             } catch (error) {
                 console.error("❌ Failed to fetch data from backend:", error);
@@ -411,11 +410,6 @@ export const usePedidosManager = (
         const initialStage = Etapa.PREPARACION; // ✅ Los pedidos nuevos van a "Preparación" con sub-etapa "Sin Gestión Iniciada"
         const maxOrder = Math.max(...pedidos.map(p => p.orden), 0);
 
-        // 🐛 DEBUG: Log para verificar clienteId
-        console.log('📦 Preparando nuevo pedido en frontend:');
-        console.log('  - Cliente:', pedidoData.cliente);
-        console.log('  - ClienteId:', pedidoData.clienteId);
-
         // ✅ Determinar la sub-etapa inicial basándose en los datos del pedido
         const initialSubEtapa = PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA; // Por defecto, todos los pedidos nuevos van a "Sin Gestión Iniciada"
 
@@ -437,11 +431,8 @@ export const usePedidosManager = (
             anonimo: pedidoData.anonimo || false,
         };
 
-        console.log('  - ClienteId en newPedido final:', newPedido.clienteId);
-
         // ✅ Marcar este ID como "en proceso de creación" ANTES de añadirlo localmente
         creatingPedidoIds.add(newId);
-        console.log('🔒 Marcando pedido como "en creación":', newId);
 
         const createdPedido = await store.create(newPedido);
         setPedidos(prev => [createdPedido, ...prev]);
@@ -449,7 +440,6 @@ export const usePedidosManager = (
         // ✅ Remover del Set después de un pequeño delay para dar tiempo a que llegue el evento WebSocket
         setTimeout(() => {
             creatingPedidoIds.delete(newId);
-            console.log('🔓 Removiendo pedido del Set de creación:', newId);
         }, 2000); // 2 segundos debería ser suficiente
         
         return createdPedido;
@@ -556,7 +546,6 @@ export const usePedidosManager = (
     
         // ✅ Marcar este ID como "en proceso de creación" ANTES de añadirlo localmente
         creatingPedidoIds.add(newId);
-        console.log('🔒 Marcando pedido duplicado como "en creación":', newId);
     
         const createdPedido = await store.create(newPedido);
         setPedidos(prev => [createdPedido, ...prev]);
@@ -564,7 +553,6 @@ export const usePedidosManager = (
         // ✅ Remover del Set después de un pequeño delay para dar tiempo a que llegue el evento WebSocket
         setTimeout(() => {
             creatingPedidoIds.delete(newId);
-            console.log('🔓 Removiendo pedido duplicado del Set de creación:', newId);
         }, 2000); // 2 segundos debería ser suficiente
         
         return createdPedido;
