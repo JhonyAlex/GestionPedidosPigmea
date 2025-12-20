@@ -26,13 +26,13 @@ ON pedidos(secuencia_pedido DESC);
 CREATE INDEX IF NOT EXISTS idx_pedidos_numeros_compra_gin 
 ON pedidos USING gin((data->'numerosCompra'));
 
--- 7. Índice para clienteId (foreign key)
-CREATE INDEX IF NOT EXISTS idx_pedidos_cliente_id 
-ON pedidos(cliente_id);
+-- 7. Índice para clienteId (comentado - la columna cliente_id no existe, datos en JSONB)
+-- CREATE INDEX IF NOT EXISTS idx_pedidos_cliente_id 
+-- ON pedidos(cliente_id);
 
--- 8. Índice para vendedorId (foreign key)
-CREATE INDEX IF NOT EXISTS idx_pedidos_vendedor_id 
-ON pedidos(vendedor_id);
+-- 8. Índice para vendedorId (comentado - la columna vendedor_id no existe, datos en JSONB)
+-- CREATE INDEX IF NOT EXISTS idx_pedidos_vendedor_id 
+-- ON pedidos(vendedor_id);
 
 -- 9. Índice para fechas de entrega (consultas de rangos)
 CREATE INDEX IF NOT EXISTS idx_pedidos_fecha_entrega 
