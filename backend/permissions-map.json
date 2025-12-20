@@ -76,5 +76,53 @@
     "category": "pedidos",
     "action": "operate",
     "description": "Permite trabajar en modo operador de producción"
+  },
+  "clientes.view": {
+    "id": "clientes.view",
+    "category": "clientes",
+    "action": "view",
+    "description": "Permite visualizar la lista de clientes"
+  },
+  "clientes.create": {
+    "id": "clientes.create",
+    "category": "clientes",
+    "action": "create",
+    "description": "Permite crear nuevos clientes"
+  },
+  "clientes.edit": {
+    "id": "clientes.edit",
+    "category": "clientes",
+    "action": "edit",
+    "description": "Permite modificar clientes existentes"
+  },
+  "clientes.delete": {
+    "id": "clientes.delete",
+    "category": "clientes",
+    "action": "delete",
+    "description": "Permite eliminar clientes"
+  },
+  "vendedores.view": {
+    "id": "vendedores.view",
+    "category": "vendedores",
+    "action": "view",
+    "description": "Permite visualizar la lista de vendedores"
+  },
+  "vendedores.create": {
+    "id": "vendedores.create",
+    "category": "vendedores",
+    "action": "create",
+    "description": "Permite crear nuevos vendedores"
+  },
+  "vendedores.edit": {
+    "id": "vendedores.edit",
+    "category": "vendedores",
+    "action": "edit",
+    "description": "Permite modificar vendedores existentes"
+  },
+  "vendedores.delete": {
+    "id": "vendedores.delete",
+    "category": "vendedores",
+    "action": "delete",
+    "description": "Permite eliminar vendedores"
   }
 }

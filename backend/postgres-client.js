@@ -2777,6 +2777,7 @@ class PostgreSQLClient {
         const allPermissions = [
             'pedidos.create', 'pedidos.view', 'pedidos.edit', 'pedidos.delete',
             'clientes.view', 'clientes.create', 'clientes.edit', 'clientes.delete',
+            'vendedores.view', 'vendedores.create', 'vendedores.edit', 'vendedores.delete',
             'usuarios.admin', 'usuarios.view', 'usuarios.create', 'usuarios.delete', 
             'reportes.view', 'reportes.export', 'datos.import',
             'configuracion.admin', 'configuracion.view',
@@ -2812,6 +2813,7 @@ class PostgreSQLClient {
                 const operatorPermissions = [
                     'pedidos.create', 'pedidos.view', 'pedidos.edit',
                     'pedidos.process', 'pedidos.complete',
+                    'clientes.view', 'vendedores.view',
                     'dashboard.view', 'inventario.view',
                     'antivaho.admin', 'antivaho.view',
                     'secuencias.admin', 'secuencias.edit'
@@ -2824,7 +2826,7 @@ class PostgreSQLClient {
             case 'Visualizador':
                 const viewerPermissions = [
                     'pedidos.view', 'dashboard.view', 'inventario.view',
-                    'reportes.view', 'antivaho.view', 'clientes.view'
+                    'reportes.view', 'antivaho.view', 'clientes.view', 'vendedores.view'
                 ];
                 viewerPermissions.forEach(permission => {
                     defaultPermissions.push({ permissionId: permission, enabled: true });

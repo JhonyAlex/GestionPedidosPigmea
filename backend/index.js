@@ -2863,7 +2863,7 @@ app.get('/api/clientes', requirePermission('clientes.view'), async (req, res) =>
 });
 
 // GET /api/clientes/simple - Get a simple list of all active clients (for selectors)
-app.get('/api/clientes/simple', requirePermission('pedidos.create' || 'pedidos.edit'), async (req, res) => {
+app.get('/api/clientes/simple', requireAnyPermission(['clientes.view', 'pedidos.create', 'pedidos.edit']), async (req, res) => {
     try {
         const clientes = await dbClient.getAllClientesSimple();
         res.status(200).json(clientes);
@@ -3075,7 +3075,7 @@ app.get('/api/clientes/:id/history', requireAuth, async (req, res) => {
 // =================================================================
 
 // GET /api/vendedores - Obtener todos los vendedores activos
-app.get('/api/vendedores', async (req, res) => {
+app.get('/api/vendedores', requireAnyPermission(['vendedores.view', 'pedidos.create', 'pedidos.edit']), async (req, res) => {
     try {
         if (!dbClient.isInitialized) {
             return res.status(503).json({ 
@@ -3092,7 +3092,7 @@ app.get('/api/vendedores', async (req, res) => {
 });
 
 // GET /api/vendedores/:id - Obtener un vendedor por ID
-app.get('/api/vendedores/:id', async (req, res) => {
+app.get('/api/vendedores/:id', requirePermission('vendedores.view'), async (req, res) => {
     try {
         if (!dbClient.isInitialized) {
             return res.status(503).json({ 
@@ -3112,7 +3112,7 @@ app.get('/api/vendedores/:id', async (req, res) => {
 });
 
 // POST /api/vendedores - Crear un nuevo vendedor
-app.post('/api/vendedores', requirePermission('pedidos.create'), async (req, res) => {
+app.post('/api/vendedores', requirePermission('vendedores.create'), async (req, res) => {
     try {
         const { nombre, email, telefono, activo } = req.body;
         
@@ -3155,7 +3155,7 @@ app.post('/api/vendedores', requirePermission('pedidos.create'), async (req, res
 });
 
 // PUT /api/vendedores/:id - Actualizar un vendedor
-app.put('/api/vendedores/:id', requirePermission('pedidos.edit'), async (req, res) => {
+app.put('/api/vendedores/:id', requirePermission('vendedores.edit'), async (req, res) => {
     try {
         const { nombre, email, telefono, activo } = req.body;
         const vendedorId = req.params.id;
@@ -3199,7 +3199,7 @@ app.put('/api/vendedores/:id', requirePermission('pedidos.edit'), async (req, re
 });
 
 // DELETE /api/vendedores/:id - Eliminar/desactivar un vendedor
-app.delete('/api/vendedores/:id', requirePermission('pedidos.delete'), async (req, res) => {
+app.delete('/api/vendedores/:id', requirePermission('vendedores.delete'), async (req, res) => {
     try {
         const vendedorId = req.params.id;
 
