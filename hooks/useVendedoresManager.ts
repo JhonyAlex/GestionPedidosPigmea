@@ -5,10 +5,22 @@ import webSocketService from '../services/websocket';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
+// 🔥 SINGLETON: Estado global compartido
+let globalVendedores: Vendedor[] = [];
+let globalLoading = false;
+let globalError: string | null = null;
+let isInitialized = false;
+let initializationPromise: Promise<void> | null = null;
+const stateListeners: Set<() => void> = new Set();
+
+const notifyListeners = () => {
+    stateListeners.forEach(listener => listener());
+};
+
 export function useVendedoresManager() {
-    const [vendedores, setVendedores] = useState<Vendedor[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [vendedores, setVendedores] = useState<Vendedor[]>(globalVendedores);
+    const [loading, setLoading] = useState(globalLoading);
+    const [error, setError] = useState<string | null>(globalError);
     const { user } = useAuth();
 
     // Helper para obtener headers de autenticación
@@ -30,9 +42,13 @@ export function useVendedoresManager() {
 
     // Función para obtener todos los vendedores
     const fetchVendedores = useCallback(async () => {
+        if (globalLoading) return;
+        
         try {
+            globalLoading = true;
             setLoading(true);
             setError(null);
+            globalError = null;
             
             const response = await fetch(`${API_URL}/vendedores`, {
                 method: 'GET',
@@ -48,11 +64,16 @@ export function useVendedoresManager() {
             }
 
             const data = await response.json();
-            setVendedores(data);
+            globalVendedores = data;
+            setVendedores(globalVendedores);
+            notifyListeners();
         } catch (err) {
             console.error('Error fetching vendedores:', err);
-            setError(err instanceof Error ? err.message : 'Error desconocido');
+            const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+            globalError = errorMessage;
+            setError(errorMessage);
         } finally {
+            globalLoading = false;
             setLoading(false);
         }
     }, [getAuthHeaders]);
@@ -154,10 +175,33 @@ export function useVendedoresManager() {
         }
     }, [getAuthHeaders]);
 
-    // Cargar vendedores al montar el componente
+    // Cargar vendedores al montar el componente (SINGLETON)
     useEffect(() => {
-        fetchVendedores();
-    }, [fetchVendedores]);
+        const updateState = () => {
+            setVendedores(globalVendedores);
+            setLoading(globalLoading);
+            setError(globalError);
+        };
+        
+        stateListeners.add(updateState);
+        
+        if (!isInitialized && user?.id) {
+            isInitialized = true;
+            if (!initializationPromise) {
+                console.log('🚀 Iniciando carga de vendedores (singleton)...');
+                initializationPromise = fetchVendedores().finally(() => {
+                    initializationPromise = null;
+                });
+            }
+        } else {
+            updateState();
+        }
+        
+        return () => {
+            stateListeners.delete(updateState);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id]);
 
     // 🔥 Socket.IO: Sincronización en tiempo real para vendedores
     useEffect(() => {

@@ -35,17 +35,35 @@ export interface ClienteListResponse {
 export type ClienteCreateRequest = Omit<Cliente, 'id' | 'estado' | 'fecha_creacion' | 'fecha_actualizacion'>;
 export type ClienteUpdateRequest = Partial<ClienteCreateRequest>;
 
+// 🔥 SINGLETON: Estado global compartido
+let globalClientes: Cliente[] = [];
+let globalLoading = true;
+let globalError: Error | null = null;
+let globalTotal = 0;
+let isInitialized = false;
+let initializationPromise: Promise<void> | null = null;
+const stateListeners: Set<() => void> = new Set();
+
+const notifyListeners = () => {
+    stateListeners.forEach(listener => listener());
+};
+
 // --- Custom Hook ---
 
 export const useClientesManager = () => {
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [totalClientes, setTotalClientes] = useState(0);
+  const [clientes, setClientes] = useState<Cliente[]>(globalClientes);
+  const [isLoading, setIsLoading] = useState(globalLoading);
+  const [error, setError] = useState<Error | null>(globalError);
+  const [totalClientes, setTotalClientes] = useState(globalTotal);
 
   const fetchClientes = useCallback(async () => {
+    if (globalLoading && isInitialized) return;
+    
+    globalLoading = true;
     setIsLoading(true);
     setError(null);
+    globalError = null;
+    
     try {
       const clientesData = await clienteService.obtenerClientesSimple();
       
@@ -53,12 +71,40 @@ export const useClientesManager = () => {
         console.warn('⚠️ No se encontraron clientes activos.');
       }
       
-      setClientes(clientesData);
-      setTotalClientes(clientesData.length);
+      globalClientes = clientesData;
+      globalTotal = clientesData.length;
+      setClientes(globalClientes);
+      setTotalClientes(globalTotal);
+      notifyListeners();
     } catch (err) {
-      setError(err as Error);
+    const updateState = () => {
+      setClientes(globalClientes);
+      setIsLoading(globalLoading);
+      setError(globalError);
+      setTotalClientes(globalTotal);
+    };
+    
+    stateListeners.add(updateState);
+    
+    if (!isInitialized) {
+      isInitialized = true;
+      if (!initializationPromise) {
+        initializationPromise = fetchClientes().finally(() => {
+          initializationPromise = null;
+        });
+      }
+    } else {
+      updateState();
+    }
+    
+    return () => {
+      stateListeners.delete(updateState);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [as Error);
       console.error("❌ Error fetching clients:", err);
     } finally {
+      globalLoading = false;
       setIsLoading(false);
     }
   }, []);

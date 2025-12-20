@@ -2839,7 +2839,15 @@ class PostgreSQLClient {
         
         // Evento: Nuevo cliente conectado
         this.pool.on('connect', () => {
-            console.log('🔗 Nueva conexión al pool establecida');
+            const isDev = process.env.NODE_ENV !== 'production';
+            if (isDev) {
+                // En desarrollo, mostrar stack trace para debugging
+                const stack = new Error().stack;
+                const caller = stack.split('\n')[2]?.trim() || 'unknown';
+                console.log('🔗 Nueva conexión al pool -', caller);
+            } else {
+                console.log('🔗 Nueva conexión al pool establecida');
+            }
         });
         
         console.log('👂 Event listeners del pool configurados');
