@@ -113,7 +113,12 @@ class PostgreSQLClient {
         if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
         try {
-            const result = await client.query('SELECT * FROM admin_users WHERE id = $1', [id]);
+            // Convertir ID a entero para evitar errores de UUID
+            const userId = parseInt(id, 10);
+            if (isNaN(userId)) {
+                throw new Error(`Invalid user ID: ${id}`);
+            }
+            const result = await client.query('SELECT * FROM admin_users WHERE id = $1', [userId]);
             return result.rows[0];
         } finally {
             client.release();
