@@ -745,7 +745,7 @@ class PostgreSQLClient {
                 CREATE INDEX IF NOT EXISTS idx_pedidos_cliente ON pedidos(cliente);
                 CREATE INDEX IF NOT EXISTS idx_pedidos_fecha_entrega ON pedidos(fecha_entrega);
                 CREATE INDEX IF NOT EXISTS idx_pedidos_secuencia ON pedidos(secuencia_pedido);
-                CREATE INDEX IF NOT EXISTS idx_pedidos_numeros_compra_gin ON pedidos USING gin(numeros_compra);
+                CREATE INDEX IF NOT EXISTS idx_pedidos_numeros_compra_gin ON pedidos USING gin((data->'numerosCompra'));
                 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
                 CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp);
                 CREATE INDEX IF NOT EXISTS idx_audit_user_role ON audit_log(user_role);
