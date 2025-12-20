@@ -5,10 +5,22 @@ import webSocketService from '../services/websocket';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
+// 🔥 SINGLETON: Estado global compartido para evitar múltiples fetches
+let globalMateriales: Material[] = [];
+let globalLoading = false;
+let globalError: string | null = null;
+let isInitialized = false;
+let initializationPromise: Promise<void> | null = null; // ← Promesa compartida
+const stateListeners: Set<() => void> = new Set();
+
+const notifyListeners = () => {
+    stateListeners.forEach(listener => listener());
+};
+
 export function useMaterialesManager() {
-    const [materiales, setMateriales] = useState<Material[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [materiales, setMateriales] = useState<Material[]>(globalMateriales);
+    const [loading, setLoading] = useState(globalLoading);
+    const [error, setError] = useState<string | null>(globalError);
     const { user } = useAuth();
 
     // Helper para obtener headers de autenticación
@@ -30,9 +42,17 @@ export function useMaterialesManager() {
 
     // Función para obtener todos los materiales
     const fetchMateriales = useCallback(async () => {
+        // Si ya se está cargando, no hacer otra petición
+        if (globalLoading) {
+            console.log('⏳ Fetch de materiales ya en progreso, saltando...');
+            return;
+        }
+
         try {
+            globalLoading = true;
             setLoading(true);
             setError(null);
+            globalError = null;
             
             const response = await fetch(`${API_URL}/materiales`, {
                 method: 'GET',
@@ -48,11 +68,16 @@ export function useMaterialesManager() {
             }
 
             const data = await response.json();
+            globalMateriales = data;
             setMateriales(data);
+            notifyListeners();
         } catch (err) {
             console.error('Error fetching materiales:', err);
-            setError(err instanceof Error ? err.message : 'Error desconocido');
+            const errorMsg = err instanceof Error ? err.message : 'Error desconocido';
+            globalError = errorMsg;
+            setError(errorMsg);
         } finally {
+            globalLoading = false;
             setLoading(false);
         }
     }, [getAuthHeaders]);
@@ -61,6 +86,7 @@ export function useMaterialesManager() {
     const addMaterial = useCallback(async (materialData: MaterialCreateRequest): Promise<Material> => {
         try {
             setError(null);
+            globalError = null;
             
             const response = await fetch(`${API_URL}/materiales`, {
                 method: 'POST',
@@ -83,13 +109,16 @@ export function useMaterialesManager() {
 
             const nuevoMaterial = await response.json();
             
-            // Actualizar la lista local
-            setMateriales(prev => [...prev, nuevoMaterial]);
+            // Actualizar estado global
+            globalMateriales = [...globalMateriales, nuevoMaterial];
+            setMateriales(globalMateriales);
+            notifyListeners();
             
             return nuevoMaterial;
         } catch (err) {
             console.error('Error creating material:', err);
             const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+            globalError = errorMessage;
             setError(errorMessage);
             throw err;
         }
@@ -125,8 +154,10 @@ export function useMaterialesManager() {
 
             const materialActualizado = await response.json();
             
-            // Actualizar la lista local
-            setMateriales(prev => prev.map(m => m.id === id ? materialActualizado : m));
+            // Actualizar estado global
+            globalMateriales = globalMateriales.map(m => m.id === id ? materialActualizado : m);
+            setMateriales(globalMateriales);
+            notifyListeners();
             
             return materialActualizado;
         } catch (err) {
@@ -156,8 +187,10 @@ export function useMaterialesManager() {
                 throw new Error(errorData.message || `Error al eliminar material: ${response.statusText}`);
             }
 
-            // Actualizar la lista local
-            setMateriales(prev => prev.filter(m => m.id !== id));
+            // Actualizar estado global
+            globalMateriales = globalMateriales.filter(m => m.id !== id);
+            setMateriales(globalMateriales);
+            notifyListeners();
         } catch (err) {
             console.error('Error deleting material:', err);
             const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
@@ -245,23 +278,41 @@ export function useMaterialesManager() {
         }
     }, [getAuthHeaders]);
 
-    // Cargar materiales al montar el componente (SOLO UNA VEZ)
+    // Cargar materiales al montar el componente (SOLO UNA VEZ GLOBALMENTE)
     useEffect(() => {
-        let isMounted = true;
-        
-        const loadMateriales = async () => {
-            if (isMounted) {
-                await fetchMateriales();
-            }
+        // Registrar listener para actualizaciones de estado
+        const updateState = () => {
+            setMateriales(globalMateriales);
+            setLoading(globalLoading);
+            setError(globalError);
         };
         
-        loadMateriales();
+        stateListeners.add(updateState);
+        
+        // Solo hacer fetch si no se ha inicializado
+        if (!isInitialized && user?.id) {
+            isInitialized = true;
+            
+            // Crear promesa de inicialización si no existe
+            if (!initializationPromise) {
+                console.log('🚀 Iniciando carga de materiales (singleton)...');
+                initializationPromise = fetchMateriales().finally(() => {
+                    // Limpiar la promesa después de completar
+                    initializationPromise = null;
+                });
+            } else {
+                console.log('⏳ Ya hay una carga de materiales en progreso, esperando...');
+            }
+        } else {
+            // Si ya está inicializado, solo actualizar el estado local
+            updateState();
+        }
         
         return () => {
-            isMounted = false;
+            stateListeners.delete(updateState);
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Array vacío: ejecutar SOLO al montar
+    }, [user?.id]); // Solo re-ejecutar si cambia el usuario
 
     // 🔥 Socket.IO: Sincronización en tiempo real para materiales
     useEffect(() => {
