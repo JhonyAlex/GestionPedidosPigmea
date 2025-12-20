@@ -67,7 +67,7 @@ DECLARE
     pedido_record RECORD;
     numero_compra_item JSONB;
     numero_compra_text TEXT;
-    material_id INTEGER;
+    v_material_id INTEGER;  -- Prefijo 'v_' para evitar conflicto con nombre de columna
 BEGIN
     -- Iterar sobre todos los pedidos que tienen números de compra
     FOR pedido_record IN 
@@ -93,16 +93,16 @@ BEGIN
             INSERT INTO materiales (numero, pendiente_recibir, pendiente_gestion)
             VALUES (TRIM(numero_compra_text), true, true)
             ON CONFLICT (numero) DO NOTHING
-            RETURNING id INTO material_id;
+            RETURNING id INTO v_material_id;
             
             -- Si no se insertó (ya existía), obtener el ID
-            IF material_id IS NULL THEN
-                SELECT id INTO material_id FROM materiales WHERE numero = TRIM(numero_compra_text);
+            IF v_material_id IS NULL THEN
+                SELECT id INTO v_material_id FROM materiales WHERE numero = TRIM(numero_compra_text);
             END IF;
             
             -- Crear la relación pedido-material si no existe
             INSERT INTO pedidos_materiales (pedido_id, material_id)
-            VALUES (pedido_record.id, material_id)
+            VALUES (pedido_record.id, v_material_id)
             ON CONFLICT (pedido_id, material_id) DO NOTHING;
         END LOOP;
     END LOOP;
