@@ -245,11 +245,23 @@ export function useMaterialesManager() {
         }
     }, [getAuthHeaders]);
 
-    // Cargar materiales al montar el componente
+    // Cargar materiales al montar el componente (SOLO UNA VEZ)
     useEffect(() => {
-        fetchMateriales();
+        let isMounted = true;
+        
+        const loadMateriales = async () => {
+            if (isMounted) {
+                await fetchMateriales();
+            }
+        };
+        
+        loadMateriales();
+        
+        return () => {
+            isMounted = false;
+        };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Solo cargar una vez al montar, evitamos loop infinito
+    }, []); // Array vacío: ejecutar SOLO al montar
 
     // 🔥 Socket.IO: Sincronización en tiempo real para materiales
     useEffect(() => {
@@ -281,14 +293,17 @@ export function useMaterialesManager() {
             setMateriales(current => current.filter(m => m.id !== data.materialId));
         };
 
-        // TODO: Activar cuando se implementen los métodos subscribe en webSocketService
-        // webSocketService.subscribeToMaterialCreated(handleMaterialCreated);
-        // webSocketService.subscribeToMaterialUpdated(handleMaterialUpdated);
-        // webSocketService.subscribeToMaterialDeleted(handleMaterialDeleted);
+        // Suscribirse a eventos Socket.IO
+        const socket = webSocketService.getSocket();
+        socket.on('material-created', handleMaterialCreated);
+        socket.on('material-updated', handleMaterialUpdated);
+        socket.on('material-deleted', handleMaterialDeleted);
 
         // Cleanup al desmontar
         return () => {
-            // TODO: Cleanup de subscripciones cuando se implementen
+            socket.off('material-created', handleMaterialCreated);
+            socket.off('material-updated', handleMaterialUpdated);
+            socket.off('material-deleted', handleMaterialDeleted);
         };
     }, []);
 

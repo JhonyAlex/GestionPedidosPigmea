@@ -32,6 +32,7 @@ import DeleteConfirmationModal from './components/DeleteConfirmationModal';
 import BulkDateUpdateModal from './components/BulkDateUpdateModal';
 import { ToastContainer } from './components/Toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { MaterialesProvider } from './contexts/MaterialesContext';
 import { calcularSiguienteEtapa, estaFueraDeSecuencia } from './utils/etapaLogic';
 import { procesarDragEnd } from './utils/dragLogic';
 import { usePedidosManager } from './hooks/usePedidosManager';
@@ -1002,7 +1003,9 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
     return (
         <AuthProvider>
-            <AppContent />
+            <MaterialesProvider>
+                <AppContent />
+            </MaterialesProvider>
         </AuthProvider>
     );
 };
