@@ -3407,7 +3407,7 @@ class PostgreSQLClient {
                     m.id,
                     m.numero,
                     m.descripcion,
-                    m.pedido_id AS "pedidoId",
+                    pm.pedido_id AS "pedidoId",
                     m.pendiente_recibir AS "pendienteRecibir",
                     m.pendiente_gestion AS "pendienteGestion",
                     m.created_at AS "createdAt",
