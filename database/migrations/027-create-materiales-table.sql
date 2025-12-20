@@ -69,13 +69,13 @@ DECLARE
     numero_compra_text TEXT;
     v_material_id INTEGER;  -- Prefijo 'v_' para evitar conflicto con nombre de columna
 BEGIN
-    -- Iterar sobre todos los pedidos que tienen números de compra
+    -- Iterar sobre todos los pedidos que tienen números de compra en el campo JSONB 'data'
     FOR pedido_record IN 
-        SELECT id, numeros_compra 
+        SELECT id, data->'numerosCompra' as numeros_compra 
         FROM pedidos 
-        WHERE numeros_compra IS NOT NULL 
-          AND jsonb_typeof(numeros_compra) = 'array'
-          AND jsonb_array_length(numeros_compra) > 0
+        WHERE data->'numerosCompra' IS NOT NULL 
+          AND jsonb_typeof(data->'numerosCompra') = 'array'
+          AND jsonb_array_length(data->'numerosCompra') > 0
     LOOP
         -- Iterar sobre cada elemento del array JSONB
         FOR numero_compra_item IN 
