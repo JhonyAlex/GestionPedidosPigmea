@@ -3403,6 +3403,7 @@ app.delete('/api/materiales/:id', requirePermission('pedidos.delete'), async (re
 app.get('/api/pedidos/:id/materiales', async (req, res) => {
     try {
         const materiales = await dbClient.getMaterialesByPedidoId(req.params.id);
+        console.log(`📦 GET /api/pedidos/${req.params.id}/materiales → ${materiales.length} materiales encontrados`);
         res.status(200).json(materiales);
     } catch (error) {
         console.error(`Error in GET /api/pedidos/${req.params.id}/materiales:`, error);

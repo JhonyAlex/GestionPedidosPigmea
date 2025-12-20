@@ -266,6 +266,13 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
             return;
         }
         
+        // 🚫 DESACTIVADO: Sistema nuevo de materiales no tiene datos aún
+        // Comentar esta línea cuando se haya migrado la data
+        console.log(`⏭️ [PedidoCard ${pedido.numeroPedidoCliente}] Sistema nuevo desactivado (sin datos)`);
+        materialesLoadedRef.current.add(pedido.id);
+        return;
+        
+        /* DESCOMENTAR CUANDO HAYA DATOS EN pedidos_materiales
         let isMounted = true;
         
         const loadMateriales = async () => {
@@ -312,10 +319,15 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
         return () => {
             isMounted = false;
         };
+        */
     }, [pedido.id, pedido.numeroPedidoCliente]); // Solo dependencias inmutables
 
     // 🔄 Suscribirse a eventos de WebSocket para actualizar materiales en tiempo real
     useEffect(() => {
+        // 🚫 DESACTIVADO: Sistema nuevo de materiales no tiene datos aún
+        return; // No suscribirse a WebSocket hasta que haya datos
+        
+        /* DESCOMENTAR CUANDO HAYA DATOS EN pedidos_materiales
         const handleMaterialUpdated = (updatedMaterial: any) => {
             if (updatedMaterial.pedidoId === pedido.id) {
                 console.log(`🔄 [PedidoCard ${pedido.numeroPedidoCliente}] Material actualizado vía WebSocket:`, {
@@ -361,6 +373,7 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
             (socket as any).off('material-assigned', handleMaterialAssigned);
             (socket as any).off('material-unassigned', handleMaterialUnassigned);
         };
+        */
     }, [pedido.id, pedido.numeroPedidoCliente, getMaterialesByPedidoId]);
 
     // Cerrar el editor al hacer click fuera del contenedor completo
@@ -699,15 +712,6 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                             materialesNuevos.map((material) => {
                                 const theme = getMaterialTheme(material, pedido.materialDisponible);
                                 
-                                // 🔍 DEBUG: Log del color asignado
-                                console.log(`🎨 [${pedido.numeroPedidoCliente}] Material ${material.numero}:`, {
-                                    pendienteRecibir: material.pendienteRecibir,
-                                    pendienteGestion: material.pendienteGestion,
-                                    materialDisponible: pedido.materialDisponible,
-                                    color: theme.label,
-                                    sistema: 'NUEVO'
-                                });
-                                
                                 return (
                                     <span 
                                         key={material.id}
@@ -757,15 +761,6 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                                             },
                                             pedido.materialDisponible
                                         );
-
-                                        // 🔍 DEBUG: Log del color asignado (sistema legacy)
-                                        console.log(`🎨 [${pedido.numeroPedidoCliente}] Material ${numero}:`, {
-                                            recibido: inferredRecibido,
-                                            gestionado: inferredGestionado,
-                                            materialDisponible: pedido.materialDisponible,
-                                            color: theme.label,
-                                            sistema: 'LEGACY'
-                                        });
 
                                         return (
                                             <span
