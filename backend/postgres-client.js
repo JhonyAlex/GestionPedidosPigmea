@@ -2202,7 +2202,7 @@ class PostgreSQLClient {
         try {
             const query = `
                 SELECT 
-                    COALESCE(cliente_id, data->>'clienteId') as cliente_id,
+                    COALESCE(cliente_id::text, data->>'clienteId') as cliente_id,
                     COUNT(*) FILTER (WHERE etapa_actual IN (
                         'PREPARACION', 'PENDIENTE',
                         'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
@@ -2214,8 +2214,8 @@ class PostgreSQLClient {
                     COUNT(*) FILTER (WHERE etapa_actual = 'COMPLETADO') as pedidos_completados,
                     COUNT(*) as total_pedidos
                 FROM pedidos
-                WHERE cliente_id = ANY($1) OR data->>'clienteId' = ANY($1)
-                GROUP BY COALESCE(cliente_id, data->>'clienteId')
+                WHERE cliente_id::text = ANY($1) OR data->>'clienteId' = ANY($1)
+                GROUP BY COALESCE(cliente_id::text, data->>'clienteId')
             `;
 
             const result = await client.query(query, [clienteIds]);
@@ -2613,7 +2613,7 @@ class PostgreSQLClient {
         try {
             const query = `
                 SELECT 
-                    COALESCE(vendedor_id, data->>'vendedorId') as vendedor_id,
+                    COALESCE(vendedor_id::text, data->>'vendedorId') as vendedor_id,
                     COUNT(*) FILTER (WHERE etapa_actual IN (
                         'PREPARACION', 'PENDIENTE',
                         'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
@@ -2625,8 +2625,8 @@ class PostgreSQLClient {
                     COUNT(*) FILTER (WHERE etapa_actual = 'COMPLETADO') as pedidos_completados,
                     COUNT(*) as total_pedidos
                 FROM pedidos
-                WHERE vendedor_id = ANY($1) OR data->>'vendedorId' = ANY($1)
-                GROUP BY COALESCE(vendedor_id, data->>'vendedorId')
+                WHERE vendedor_id::text = ANY($1) OR data->>'vendedorId' = ANY($1)
+                GROUP BY COALESCE(vendedor_id::text, data->>'vendedorId')
             `;
 
             const result = await client.query(query, [vendedorIds]);
