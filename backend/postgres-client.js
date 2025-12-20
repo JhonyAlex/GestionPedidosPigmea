@@ -2796,11 +2796,16 @@ class PostgreSQLClient {
             const idleCount = this.pool.idleCount;
             const waitingCount = this.pool.waitingCount;
             
-            // Solo loguear si estamos cerca del límite
-            if (totalCount >= this.config.max * 0.8) {
-                console.warn(`⚠️ Pool de conexiones al ${Math.round((totalCount/this.config.max)*100)}% de capacidad`);
+            // Solo loguear si hay verdadero problema:
+            // - Menos del 20% de conexiones idle, o
+            // - Hay peticiones esperando en cola
+            const idlePercentage = (idleCount / totalCount) * 100;
+            const shouldWarn = idlePercentage < 20 || waitingCount > 0;
+            
+            if (shouldWarn) {
+                console.warn(`⚠️ Pool de conexiones bajo presión`);
                 console.warn(`   - Total: ${totalCount}/${this.config.max}`);
-                console.warn(`   - Idle: ${idleCount}`);
+                console.warn(`   - Idle: ${idleCount} (${idlePercentage.toFixed(1)}%)`);
                 console.warn(`   - Waiting: ${waitingCount}`);
             }
         });
