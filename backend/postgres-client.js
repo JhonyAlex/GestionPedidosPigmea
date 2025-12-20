@@ -2796,15 +2796,18 @@ class PostgreSQLClient {
             const idleCount = this.pool.idleCount;
             const waitingCount = this.pool.waitingCount;
             
-            // Solo loguear si hay verdadero problema:
-            // - Menos del 20% de conexiones idle, o
-            // - Hay peticiones esperando en cola
-            const idlePercentage = (idleCount / totalCount) * 100;
-            const shouldWarn = idlePercentage < 20 || waitingCount > 0;
+            // Solo loguear si hay VERDADERO problema:
+            // - Hay peticiones esperando en cola (presión inmediata), O
+            // - Más del 60% del pool está en uso Y menos del 20% está idle
+            const poolUsagePercentage = (totalCount / this.config.max) * 100;
+            const idlePercentage = totalCount > 0 ? (idleCount / totalCount) * 100 : 100;
             
-            if (shouldWarn) {
+            const highUsage = poolUsagePercentage > 60 && idlePercentage < 20;
+            const hasQueue = waitingCount > 0;
+            
+            if (hasQueue || highUsage) {
                 console.warn(`⚠️ Pool de conexiones bajo presión`);
-                console.warn(`   - Total: ${totalCount}/${this.config.max}`);
+                console.warn(`   - Total: ${totalCount}/${this.config.max} (${poolUsagePercentage.toFixed(1)}% uso)`);
                 console.warn(`   - Idle: ${idleCount} (${idlePercentage.toFixed(1)}%)`);
                 console.warn(`   - Waiting: ${waitingCount}`);
             }
