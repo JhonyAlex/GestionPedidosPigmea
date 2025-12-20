@@ -1,97 +1,95 @@
-2025-12-20T17:50:20.722Z psql:../database/migrations/026-create-produccion-tracking.sql:92: NOTICE:  relation "observaciones_produccion" already exists, skipping
-2025-12-20T17:50:20.722Z CREATE TABLE
-2025-12-20T17:50:20.723Z CREATE INDEX
-2025-12-20T17:50:20.723Z psql:../database/migrations/026-create-produccion-tracking.sql:94: NOTICE:  relation "idx_observaciones_operacion_id" already exists, skipping
-2025-12-20T17:50:20.723Z psql:../database/migrations/026-create-produccion-tracking.sql:95: NOTICE:  relation "idx_observaciones_pedido_id" already exists, skipping
-2025-12-20T17:50:20.723Z CREATE INDEX
-2025-12-20T17:50:20.724Z psql:../database/migrations/026-create-produccion-tracking.sql:96: NOTICE:  relation "idx_observaciones_fecha" already exists, skipping
-2025-12-20T17:50:20.724Z CREATE INDEX
-2025-12-20T17:50:20.725Z psql:../database/migrations/026-create-produccion-tracking.sql:97: NOTICE:  relation "idx_observaciones_tipo" already exists, skipping
-2025-12-20T17:50:20.725Z CREATE INDEX
-2025-12-20T17:50:20.758Z psql:../database/migrations/026-create-produccion-tracking.sql:154: NOTICE:  🔄 Verificando columna metros_restantes...
-2025-12-20T17:50:20.758Z psql:../database/migrations/026-create-produccion-tracking.sql:154: NOTICE:  ⚠️ Error al eliminar metros_restantes: cannot drop column metros_restantes of table pedidos because other objects depend on it - Continuando...
-2025-12-20T17:50:20.761Z psql:../database/migrations/026-create-produccion-tracking.sql:154: NOTICE:  🔄 Verificando columna porcentaje_completado...
-2025-12-20T17:50:20.762Z psql:../database/migrations/026-create-produccion-tracking.sql:154: NOTICE:  ⚠️ Error al eliminar porcentaje_completado: cannot drop column porcentaje_completado of table pedidos because other objects depend on it - Continuando...
-2025-12-20T17:50:20.778Z DO
-2025-12-20T17:50:20.779Z psql:../database/migrations/026-create-produccion-tracking.sql:156: NOTICE:  relation "idx_pedidos_operador_actual" already exists, skipping
-2025-12-20T17:50:20.779Z CREATE INDEX
-2025-12-20T17:50:20.779Z psql:../database/migrations/026-create-produccion-tracking.sql:157: NOTICE:  relation "idx_pedidos_operacion_curso" already exists, skipping
-2025-12-20T17:50:20.779Z CREATE INDEX
-2025-12-20T17:50:20.780Z CREATE INDEX
-2025-12-20T17:50:20.781Z psql:../database/migrations/026-create-produccion-tracking.sql:158: NOTICE:  relation "idx_pedidos_metros_producidos" already exists, skipping
-2025-12-20T17:50:20.781Z CREATE FUNCTION
-2025-12-20T17:50:20.783Z DROP TRIGGER
-2025-12-20T17:50:20.784Z CREATE TRIGGER
-2025-12-20T17:50:20.786Z CREATE FUNCTION
-2025-12-20T17:50:20.786Z DROP TRIGGER
-2025-12-20T17:50:20.787Z CREATE TRIGGER
-2025-12-20T17:50:20.792Z CREATE VIEW
-2025-12-20T17:50:20.795Z CREATE VIEW
-2025-12-20T17:50:20.799Z CREATE VIEW
-2025-12-20T17:50:20.802Z ✅ Migración 'Crear Sistema de Tracking de Producción' aplicada exitosamente.
-2025-12-20T17:50:20.803Z 🔄 Aplicando migración: Crear Sistema de Gestión de Materiales...
-2025-12-20T17:50:20.842Z CREATE TABLE
-2025-12-20T17:50:20.842Z psql:../database/migrations/027-create-materiales-table.sql:15: NOTICE:  relation "materiales" already exists, skipping
-2025-12-20T17:50:20.845Z COMMENT
-2025-12-20T17:50:20.846Z COMMENT
-2025-12-20T17:50:20.847Z COMMENT
-2025-12-20T17:50:20.847Z COMMENT
-2025-12-20T17:50:20.849Z COMMENT
-2025-12-20T17:50:20.849Z psql:../database/migrations/027-create-materiales-table.sql:25: NOTICE:  relation "idx_materiales_numero" already exists, skipping
-2025-12-20T17:50:20.850Z CREATE INDEX
-2025-12-20T17:50:20.850Z psql:../database/migrations/027-create-materiales-table.sql:28: NOTICE:  relation "idx_materiales_estados" already exists, skipping
-2025-12-20T17:50:20.850Z CREATE INDEX
-2025-12-20T17:50:20.853Z CREATE FUNCTION
-2025-12-20T17:50:20.854Z DROP TRIGGER
-2025-12-20T17:50:20.856Z CREATE TRIGGER
-2025-12-20T17:50:20.856Z CREATE TABLE
-2025-12-20T17:50:20.856Z psql:../database/migrations/027-create-materiales-table.sql:54: NOTICE:  relation "pedidos_materiales" already exists, skipping
-2025-12-20T17:50:20.857Z COMMENT
-2025-12-20T17:50:20.857Z psql:../database/migrations/027-create-materiales-table.sql:60: NOTICE:  relation "idx_pedidos_materiales_pedido" already exists, skipping
-2025-12-20T17:50:20.858Z CREATE INDEX
-2025-12-20T17:50:20.858Z CREATE INDEX
-2025-12-20T17:50:20.858Z psql:../database/migrations/027-create-materiales-table.sql:61: NOTICE:  relation "idx_pedidos_materiales_material" already exists, skipping
-2025-12-20T17:50:20.870Z psql:../database/migrations/027-create-materiales-table.sql:111: NOTICE:  Migración de números de compra a materiales completada
-2025-12-20T17:50:20.870Z DO
-2025-12-20T17:50:20.872Z ✅ Migración 'Crear Sistema de Gestión de Materiales' aplicada exitosamente.
-2025-12-20T17:50:20.874Z === SCRIPT DE MIGRACIÓN COMPLETADO ===
-2025-12-20T17:50:20.874Z 🚀 Migraciones completadas. Iniciando servidor Node.js...
-2025-12-20T17:50:20.987Z [dotenv@17.2.2] injecting env (5) from .env -- tip: ⚙️  override existing env vars with { override: true }
-2025-12-20T17:50:21.674Z 🔄 Intentando conectar a PostgreSQL...
-2025-12-20T17:50:21.675Z 👂 Event listeners del pool configurados
-2025-12-20T17:50:21.753Z 🔗 Nueva conexión al pool establecida
-2025-12-20T17:50:21.754Z ✅ PostgreSQL conectado correctamente
-2025-12-20T17:50:21.755Z - Host: control-produccin-pigmea-gestionpedidosdb-vcfcjc:5432
-2025-12-20T17:50:21.756Z - Database: desde DATABASE_URL
-2025-12-20T17:50:21.758Z - Max connections: 50
-2025-12-20T17:50:21.760Z 🔧 Iniciando creación/verificación de tablas...
-2025-12-20T17:50:21.765Z ✅ Extensión uuid-ossp verificada
-2025-12-20T17:50:21.768Z ✅ Tabla admin_users verificada
-2025-12-20T17:50:21.796Z 📋 Columnas existentes en admin_users: id, username, password_hash, role, is_active, created_at, updated_at, last_login_at, email, first_name, last_name, permissions, last_login, last_activity, ip_address, user_agent
-2025-12-20T17:50:21.804Z ✅ Constraint de rol actualizado
-2025-12-20T17:50:21.805Z 🔄 Verificando usuarios existentes...
-2025-12-20T17:50:21.807Z ✅ Todos los usuarios ya están actualizados
-2025-12-20T17:50:21.807Z ✅ Columnas de admin_users verificadas
-2025-12-20T17:50:21.816Z ✅ Tabla user_permissions verificada
-2025-12-20T17:50:21.816Z ✅ Tabla pedidos verificada (creada por migración)
-2025-12-20T17:50:21.817Z ✅ Tabla users verificada
-2025-12-20T17:50:21.818Z ✅ Tabla audit_log verificada
-2025-12-20T17:50:21.822Z ⚠️ Tabla audit_logs y clave foránea procesadas (puede haber avisos)
-2025-12-20T17:50:21.823Z ✅ Tabla pedido_comments creada
-2025-12-20T17:50:21.825Z ✅ Tabla vendedores creada
-2025-12-20T17:50:21.829Z ✅ Índices verificados
-2025-12-20T17:50:21.838Z ✅ Triggers configurados
-2025-12-20T17:50:21.860Z ✅ Columna vendedor_id verificada/creada
-2025-12-20T17:50:21.861Z 🎉 Todas las tablas han sido verificadas/creadas exitosamente
-2025-12-20T17:50:21.861Z 🔄 Health checks periódicos iniciados (cada 10s)
-2025-12-20T17:50:21.861Z 🐘 PostgreSQL conectado exitosamente
-2025-12-20T17:50:21.861Z ✅ dbClient compartido con middlewares
-2025-12-20T17:50:21.866Z 🚀 Servidor iniciado en puerto 8080
-2025-12-20T17:50:21.866Z ✅ PostgreSQL conectado - Sistema operativo
-2025-12-20T17:50:31.874Z 🔄 Cliente removido del pool de conexiones
-2025-12-20T17:50:31.895Z 🔗 Nueva conexión al pool establecida
-2025-12-20T17:50:33.661Z 📨 [1] GET /api/pedidos - User: 4 - 2025-12-20T17:50:33.660Z
-2025-12-20T17:50:33.707Z 📊 [2025-12-20T17:50:33.707Z] GET /api/pedidos (LEGACY) - Total: 213 pedidos
-2025-12-20T17:50:33.774Z 📨 [2] GET /api/audit - User: 4 - 2025-12-20T17:50:33.773Z
-2025-12-20T17:50:34.297Z 📨 [4] GET /api/materiales - User: 4 - 2025-12-20T17:50:34.295Z
-2025-12-20T17:50:34.306Z ✅ Materiales obtenidos: 4
+2025-12-20T17:58:56.569Z psql:../database/migrations/023-add-performance-indexes.sql:19: NOTICE:  relation "idx_pedidos_etapa_fecha" already exists, skipping
+2025-12-20T17:58:56.569Z CREATE INDEX
+2025-12-20T17:58:56.571Z psql:../database/migrations/023-add-performance-indexes.sql:23: NOTICE:  relation "idx_pedidos_secuencia" already exists, skipping
+2025-12-20T17:58:56.571Z CREATE INDEX
+2025-12-20T17:58:56.572Z psql:../database/migrations/023-add-performance-indexes.sql:27: NOTICE:  relation "idx_pedidos_numeros_compra_gin" already exists, skipping
+2025-12-20T17:58:56.572Z CREATE INDEX
+2025-12-20T17:58:56.574Z psql:../database/migrations/023-add-performance-indexes.sql:31: NOTICE:  relation "idx_pedidos_cliente_id" already exists, skipping
+2025-12-20T17:58:56.574Z CREATE INDEX
+2025-12-20T17:58:56.575Z psql:../database/migrations/023-add-performance-indexes.sql:35: NOTICE:  relation "idx_pedidos_vendedor_id" already exists, skipping
+2025-12-20T17:58:56.575Z CREATE INDEX
+2025-12-20T17:58:56.576Z psql:../database/migrations/023-add-performance-indexes.sql:39: NOTICE:  relation "idx_pedidos_fecha_entrega" already exists, skipping
+2025-12-20T17:58:56.576Z CREATE INDEX
+2025-12-20T17:58:56.578Z psql:../database/migrations/023-add-performance-indexes.sql:44: NOTICE:  ✅ Índices de rendimiento creados exitosamente.
+2025-12-20T17:58:56.579Z DO
+2025-12-20T17:58:56.583Z ✅ Migración 'Agregar Índices de Rendimiento' aplicada exitosamente.
+2025-12-20T17:58:56.583Z 🔄 Aplicando migración: Agregar Campo Tiempo Producción Decimal...
+2025-12-20T17:58:56.630Z psql:../database/migrations/024-add-tiempo-produccion-decimal.sql:7: NOTICE:  column "tiempo_produccion_decimal" of relation "pedidos" already exists, skipping
+2025-12-20T17:58:56.632Z ALTER TABLE
+2025-12-20T17:58:56.633Z COMMENT
+2025-12-20T17:58:56.634Z psql:../database/migrations/024-add-tiempo-produccion-decimal.sql:15: NOTICE:  relation "idx_pedidos_tiempo_produccion_decimal" already exists, skipping
+2025-12-20T17:58:56.634Z CREATE INDEX
+2025-12-20T17:58:56.637Z ✅ Migración 'Agregar Campo Tiempo Producción Decimal' aplicada exitosamente.
+2025-12-20T17:58:56.637Z 🔄 Aplicando migración: Crear Tabla de Notificaciones...
+2025-12-20T17:58:56.675Z psql:../database/migrations/025-create-notifications-table.sql:17: NOTICE:  relation "notifications" already exists, skipping
+2025-12-20T17:58:56.677Z psql:../database/migrations/025-create-notifications-table.sql:20: NOTICE:  relation "idx_notifications_user_id" already exists, skipping
+2025-12-20T17:58:56.677Z CREATE TABLE
+2025-12-20T17:58:56.677Z CREATE INDEX
+2025-12-20T17:58:56.677Z psql:../database/migrations/025-create-notifications-table.sql:21: NOTICE:  relation "idx_notifications_timestamp" already exists, skipping
+2025-12-20T17:58:56.677Z CREATE INDEX
+2025-12-20T17:58:56.678Z psql:../database/migrations/025-create-notifications-table.sql:22: NOTICE:  relation "idx_notifications_read" already exists, skipping
+2025-12-20T17:58:56.678Z CREATE INDEX
+2025-12-20T17:58:56.679Z psql:../database/migrations/025-create-notifications-table.sql:23: NOTICE:  relation "idx_notifications_pedido_id" already exists, skipping
+2025-12-20T17:58:56.679Z psql:../database/migrations/025-create-notifications-table.sql:24: NOTICE:  relation "idx_notifications_user_timestamp" already exists, skipping
+2025-12-20T17:58:56.679Z CREATE INDEX
+2025-12-20T17:58:56.679Z CREATE INDEX
+2025-12-20T17:58:56.681Z COMMENT
+2025-12-20T17:58:56.682Z COMMENT
+2025-12-20T17:58:56.684Z COMMENT
+2025-12-20T17:58:56.684Z COMMENT
+2025-12-20T17:58:56.685Z COMMENT
+2025-12-20T17:58:56.686Z COMMENT
+2025-12-20T17:58:56.687Z COMMENT
+2025-12-20T17:58:56.689Z COMMENT
+2025-12-20T17:58:56.690Z COMMENT
+2025-12-20T17:58:56.691Z COMMENT
+2025-12-20T17:58:56.692Z COMMENT
+2025-12-20T17:58:56.697Z ✅ Migración 'Crear Tabla de Notificaciones' aplicada exitosamente.
+2025-12-20T17:58:56.697Z 🔄 Aplicando migración: Crear Sistema de Tracking de Producción...
+2025-12-20T17:58:56.746Z psql:../database/migrations/026-create-produccion-tracking.sql:28: NOTICE:  relation "operaciones_produccion" already exists, skipping
+2025-12-20T17:58:56.746Z CREATE TABLE
+2025-12-20T17:58:56.748Z psql:../database/migrations/026-create-produccion-tracking.sql:30: NOTICE:  relation "idx_operaciones_pedido_id" already exists, skipping
+2025-12-20T17:58:56.749Z CREATE INDEX
+2025-12-20T17:58:56.749Z psql:../database/migrations/026-create-produccion-tracking.sql:31: NOTICE:  relation "idx_operaciones_operador_id" already exists, skipping
+2025-12-20T17:58:56.749Z CREATE INDEX
+2025-12-20T17:58:56.749Z psql:../database/migrations/026-create-produccion-tracking.sql:32: NOTICE:  relation "idx_operaciones_estado" already exists, skipping
+2025-12-20T17:58:56.749Z CREATE INDEX
+2025-12-20T17:58:56.750Z psql:../database/migrations/026-create-produccion-tracking.sql:33: NOTICE:  relation "idx_operaciones_maquina" already exists, skipping
+2025-12-20T17:58:56.750Z CREATE INDEX
+2025-12-20T17:58:56.751Z psql:../database/migrations/026-create-produccion-tracking.sql:34: NOTICE:  relation "idx_operaciones_fecha_inicio" already exists, skipping
+2025-12-20T17:58:56.751Z CREATE INDEX
+2025-12-20T17:58:56.753Z psql:../database/migrations/026-create-produccion-tracking.sql:35: NOTICE:  relation "idx_operaciones_activas" already exists, skipping
+2025-12-20T17:58:56.753Z CREATE INDEX
+2025-12-20T17:58:56.755Z COMMENT
+2025-12-20T17:58:56.755Z psql:../database/migrations/026-create-produccion-tracking.sql:51: NOTICE:  relation "pausas_operacion" already exists, skipping
+2025-12-20T17:58:56.755Z CREATE TABLE
+2025-12-20T17:58:56.756Z psql:../database/migrations/026-create-produccion-tracking.sql:53: NOTICE:  relation "idx_pausas_operacion_id" already exists, skipping
+2025-12-20T17:58:56.756Z CREATE INDEX
+2025-12-20T17:58:56.757Z CREATE INDEX
+2025-12-20T17:58:56.757Z psql:../database/migrations/026-create-produccion-tracking.sql:54: NOTICE:  relation "idx_pausas_fecha_inicio" already exists, skipping
+2025-12-20T17:58:56.759Z psql:../database/migrations/026-create-produccion-tracking.sql:72: NOTICE:  relation "metraje_produccion" already exists, skipping
+2025-12-20T17:58:56.759Z psql:../database/migrations/026-create-produccion-tracking.sql:74: NOTICE:  relation "idx_metraje_operacion_id" already exists, skipping
+2025-12-20T17:58:56.759Z CREATE TABLE
+2025-12-20T17:58:56.759Z CREATE INDEX
+2025-12-20T17:58:56.760Z psql:../database/migrations/026-create-produccion-tracking.sql:75: NOTICE:  relation "idx_metraje_pedido_id" already exists, skipping
+2025-12-20T17:58:56.760Z CREATE INDEX
+2025-12-20T17:58:56.760Z psql:../database/migrations/026-create-produccion-tracking.sql:76: NOTICE:  relation "idx_metraje_fecha" already exists, skipping
+2025-12-20T17:58:56.761Z CREATE INDEX
+2025-12-20T17:58:56.761Z CREATE TABLE
+2025-12-20T17:58:56.761Z psql:../database/migrations/026-create-produccion-tracking.sql:92: NOTICE:  relation "observaciones_produccion" already exists, skipping
+2025-12-20T17:58:56.762Z psql:../database/migrations/026-create-produccion-tracking.sql:94: NOTICE:  relation "idx_observaciones_operacion_id" already exists, skipping
+2025-12-20T17:58:56.762Z CREATE INDEX
+2025-12-20T17:58:56.762Z CREATE INDEX
+2025-12-20T17:58:56.762Z psql:../database/migrations/026-create-produccion-tracking.sql:95: NOTICE:  relation "idx_observaciones_pedido_id" already exists, skipping
+2025-12-20T17:58:56.762Z psql:../database/migrations/026-create-produccion-tracking.sql:96: NOTICE:  relation "idx_observaciones_fecha" already exists, skipping
+2025-12-20T17:58:56.763Z psql:../database/migrations/026-create-produccion-tracking.sql:97: NOTICE:  relation "idx_observaciones_tipo" already exists, skipping
+2025-12-20T17:58:56.763Z CREATE INDEX
+2025-12-20T17:58:56.763Z CREATE INDEX
+2025-12-20T17:58:56.763Z psql:../database/migrations/026-create-produccion-tracking.sql:104: NOTICE:  view "v_pedidos_disponibles_produccion" does not exist, skipping
+2025-12-20T17:58:56.764Z DROP VIEW
+2025-12-20T17:58:56.795Z psql:../database/migrations/026-create-produccion-tracking.sql:159: NOTICE:  🔄 Verificando columna metros_restantes...
+2025-12-20T17:58:56.799Z psql:../database/migrations/026-create-produccion-tracking.sql:159: NOTICE:  ✓ Columna metros_restantes eliminada (si existía)
+2025-12-20T17:58:56.802Z psql:../database/migrations/026-create-produccion-tracking.sql:159: ERROR:  tables can have at most 1600 columns
+2025-12-20T17:58:56.802Z CONTEXT:  SQL statement "ALTER TABLE pedidos ADD COLUMN metros_restantes NUMERIC(10, 2) DEFAULT 0"
+2025-12-20T17:58:56.802Z PL/pgSQL function inline_code_block line 30 at SQL statement
+2025-12-20T17:58:56.805Z ❌ LAS MIGRACIONES DE LA BASE DE DATOS FALLARON. EL SERVIDOR NO SE INICIARÁ.

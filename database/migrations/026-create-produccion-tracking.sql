@@ -97,14 +97,7 @@ CREATE INDEX IF NOT EXISTS idx_observaciones_fecha ON observaciones_produccion(f
 CREATE INDEX IF NOT EXISTS idx_observaciones_tipo ON observaciones_produccion(tipo);
 
 -- ============================================
--- PASO 1: ELIMINAR VISTAS QUE DEPENDEN DE LAS COLUMNAS
--- ============================================
--- Primero eliminamos las vistas que referencian metros_restantes y porcentaje_completado
--- para poder eliminar las columnas sin errores de dependencia
-DROP VIEW IF EXISTS v_pedidos_disponibles_produccion CASCADE;
-
--- ============================================
--- PASO 2: MODIFICACIONES A TABLA pedidos
+-- MODIFICACIONES A TABLA pedidos
 -- ============================================
 DO $$ 
 BEGIN
@@ -124,37 +117,28 @@ BEGIN
     -- ⚠️ IMPORTANTE: No podemos crear columnas calculadas que referencien 'metros' porque no existe como columna
     -- Los datos están en el campo JSONB 'data'. Creamos columnas simples y las calculamos en el backend.
     
-    -- Manejar metros_restantes (eliminar si existe como GENERATED y recrear como columna normal)
-    RAISE NOTICE '🔄 Verificando columna metros_restantes...';
-    BEGIN
-        EXECUTE 'ALTER TABLE pedidos DROP COLUMN IF EXISTS metros_restantes';
-        RAISE NOTICE '✓ Columna metros_restantes eliminada (si existía)';
-    EXCEPTION WHEN OTHERS THEN
-        RAISE NOTICE '⚠️ Error al eliminar metros_restantes: % - Continuando...', SQLERRM;
-    END;
-    
-    -- Crear la columna metros_restantes como normal (no GENERATED)
+    -- Manejar metros_restantes: SOLO si la columna NO existe, crearla
+    -- Si ya existe (incluso como GENERATED), la dejamos como está para evitar errores
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pedidos' AND column_name = 'metros_restantes') THEN
         ALTER TABLE pedidos ADD COLUMN metros_restantes NUMERIC(10, 2) DEFAULT 0;
         RAISE NOTICE '✅ Columna metros_restantes creada correctamente';
+    ELSE
+        RAISE NOTICE 'ℹ️ Columna metros_restantes ya existe, se mantiene';
     END IF;
     
-    -- Manejar porcentaje_completado (eliminar si existe como GENERATED y recrear como columna normal)
-    RAISE NOTICE '🔄 Verificando columna porcentaje_completado...';
-    BEGIN
-        EXECUTE 'ALTER TABLE pedidos DROP COLUMN IF EXISTS porcentaje_completado';
-        RAISE NOTICE '✓ Columna porcentaje_completado eliminada (si existía)';
-    EXCEPTION WHEN OTHERS THEN
-        RAISE NOTICE '⚠️ Error al eliminar porcentaje_completado: % - Continuando...', SQLERRM;
-    END;
-    
-    -- Crear la columna porcentaje_completado como normal (no GENERATED)
+    -- Manejar porcentaje_completado: SOLO si la columna NO existe, crearla
+    -- Si ya existe (incluso como GENERATED), la dejamos como está para evitar errores
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pedidos' AND column_name = 'porcentaje_completado') THEN
         ALTER TABLE pedidos ADD COLUMN porcentaje_completado NUMERIC(5, 2) DEFAULT 0;
         RAISE NOTICE '✅ Columna porcentaje_completado creada correctamente';
+    ELSE
+        RAISE NOTICE 'ℹ️ Columna porcentaje_completado ya existe, se mantiene';
     END IF;
+    
+    -- Tiempo real de producción
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pedidos' AND column_name = 'tiempo_real_produccion_segundos') THEN
         ALTER TABLE pedidos ADD COLUMN tiempo_real_produccion_segundos INTEGER DEFAULT 0;
+        RAISE NOTICE '✅ Columna tiempo_real_produccion_segundos creada correctamente';
     END IF;
 END $$;
 
@@ -218,11 +202,8 @@ CREATE TRIGGER trigger_calcular_duracion_pausa
     EXECUTE FUNCTION calcular_duracion_pausa();
 
 -- ============================================
--- PASO 3: RECREAR VISTAS (después de modificar las columnas)
+-- VISTAS
 -- ============================================
--- Ahora las vistas se pueden crear sin problemas porque las columnas ya existen
-
-CREATE OR REPLACE VIEW v_operaciones_activas AS
 SELECT 
     op.*,
     p.numero_pedido_cliente,
