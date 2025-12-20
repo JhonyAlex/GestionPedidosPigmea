@@ -250,12 +250,26 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
 
     // Cargar materiales asociados al pedido
     useEffect(() => {
+        let isMounted = true;
+        
         const loadMateriales = async () => {
-            const mats = await getMaterialesByPedidoId(pedido.id);
-            setPedidoMateriales(mats);
+            try {
+                const mats = await getMaterialesByPedidoId(pedido.id);
+                if (isMounted) {
+                    setPedidoMateriales(mats);
+                }
+            } catch (error) {
+                console.error('Error cargando materiales:', error);
+            }
         };
+        
         loadMateriales();
-    }, [pedido.id, getMaterialesByPedidoId]);
+        
+        return () => {
+            isMounted = false;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pedido.id]); // ⚠️ CRÍTICO: Solo depender de pedido.id
 
     // Limpiar el warning cuando el pedido se desbloquea
     useEffect(() => {
