@@ -258,15 +258,18 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
     
     // 🆕 Cargar materiales de la nueva tabla (si existen)
     useEffect(() => {
-        // ⚠️ OPTIMIZACIÓN: Cachear por pedidoId para evitar fetches duplicados
         let isMounted = true;
+        let loadAttempted = false; // Flag para evitar doble carga
         
         const loadMateriales = async () => {
-            // Si ya estamos cargando materiales, saltar
-            if (loadingMateriales) return;
+            // Si ya estamos cargando o ya intentamos cargar, saltar
+            if (loadingMateriales || loadAttempted) return;
+            
+            loadAttempted = true;
             
             try {
                 setLoadingMateriales(true);
+                // getMaterialesByPedidoId ahora tiene caché interno
                 const mats = await getMaterialesByPedidoId(pedido.id);
                 
                 if (isMounted) {
@@ -274,7 +277,6 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                 }
             } catch (error) {
                 // Si falla (ej: tabla no existe aún), usar sistema legacy
-                console.log('Usando sistema legacy de materiales para pedido', pedido.id);
                 if (isMounted) {
                     setMaterialesNuevos([]);
                 }
@@ -290,8 +292,7 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
         return () => {
             isMounted = false;
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pedido.id]); // ⚠️ CRÍTICO: Solo depender de pedido.id, NO de getMaterialesByPedidoId
+    }, [pedido.id, getMaterialesByPedidoId]); // Dependencias correctas
 
     // Cerrar el editor al hacer click fuera del contenedor completo
     useEffect(() => {

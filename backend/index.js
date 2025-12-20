@@ -3381,10 +3381,13 @@ app.delete('/api/materiales/:id', requirePermission('pedidos.delete'), async (re
     try {
         const { id } = req.params;
         
-        await dbClient.deleteMaterial(parseInt(id));
+        const deleteResult = await dbClient.deleteMaterial(parseInt(id));
         
-        // 🔥 EVENTO WEBSOCKET: Material eliminado
-        io.emit('material-deleted', { materialId: parseInt(id) });
+        // 🔥 EVENTO WEBSOCKET: Material eliminado (con pedidoId para sincronizar caché)
+        io.emit('material-deleted', { 
+            materialId: parseInt(id),
+            pedidoId: deleteResult?.pedidoId || null 
+        });
         
         res.status(204).send();
     } catch (error) {

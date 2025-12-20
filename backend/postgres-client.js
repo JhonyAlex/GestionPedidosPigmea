@@ -3362,6 +3362,10 @@ class PostgreSQLClient {
         try {
             await client.query('BEGIN');
 
+            // Obtener pedidoId ANTES de eliminar (para sincronización de caché)
+            const materialQuery = await client.query('SELECT pedido_id FROM materiales WHERE id = $1', [id]);
+            const pedidoId = materialQuery.rows[0]?.pedido_id || null;
+
             // Primero eliminar relaciones con pedidos
             await client.query('DELETE FROM pedidos_materiales WHERE material_id = $1', [id]);
             
@@ -3374,6 +3378,9 @@ class PostgreSQLClient {
             
             await client.query('COMMIT');
             console.log(`✅ Material eliminado: ${result.rows[0].numero}`);
+            
+            // Devolver pedidoId para sincronización de caché
+            return { pedidoId };
         } catch (error) {
             await client.query('ROLLBACK');
             console.error(`❌ Error al eliminar material ${id}:`, error);

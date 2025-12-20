@@ -13,6 +13,11 @@ let isInitialized = false;
 let initializationPromise: Promise<void> | null = null; // ← Promesa compartida
 const stateListeners: Set<() => void> = new Set();
 
+// 🔥 CACHÉ: Materiales por pedido (para evitar fetches redundantes en tarjetas)
+const materialesPorPedidoCache = new Map<string, Material[]>();
+const pedidoCacheTimestamps = new Map<string, number>();
+const CACHE_TTL = 30000; // 30 segundos de tiempo de vida del caché
+
 const notifyListeners = () => {
     stateListeners.forEach(listener => listener());
 };
@@ -202,6 +207,16 @@ export function useMaterialesManager() {
     // Función para obtener materiales de un pedido específico
     const getMaterialesByPedidoId = useCallback(async (pedidoId: string): Promise<Material[]> => {
         try {
+            // Verificar si hay datos en caché y si son recientes
+            const cachedData = materialesPorPedidoCache.get(pedidoId);
+            const cachedTimestamp = pedidoCacheTimestamps.get(pedidoId);
+            const now = Date.now();
+            
+            if (cachedData && cachedTimestamp && (now - cachedTimestamp) < CACHE_TTL) {
+                console.log(`✅ Usando caché para pedido ${pedidoId} (${Math.round((now - cachedTimestamp) / 1000)}s antiguo)`);
+                return cachedData;
+            }
+            
             setError(null);
             
             const response = await fetch(`${API_URL}/pedidos/${pedidoId}/materiales`, {
@@ -217,7 +232,13 @@ export function useMaterialesManager() {
                 throw new Error(`Error al obtener materiales del pedido: ${response.statusText}`);
             }
 
-            return await response.json();
+            const materialesData = await response.json();
+            
+            // Guardar en caché
+            materialesPorPedidoCache.set(pedidoId, materialesData);
+            pedidoCacheTimestamps.set(pedidoId, now);
+            
+            return materialesData;
         } catch (err) {
             console.error(`Error fetching materiales for pedido ${pedidoId}:`, err);
             const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
@@ -320,6 +341,18 @@ export function useMaterialesManager() {
         const handleMaterialCreated = (newMaterial: Material) => {
             console.log('🔄 Sincronizando nuevo material:', newMaterial.numero);
             
+            // Actualizar el caché del pedido afectado si existe
+            if (newMaterial.pedidoId) {
+                const cached = materialesPorPedidoCache.get(newMaterial.pedidoId);
+                if (cached) {
+                    const exists = cached.some(m => m.id === newMaterial.id);
+                    if (!exists) {
+                        materialesPorPedidoCache.set(newMaterial.pedidoId, [...cached, newMaterial]);
+                        pedidoCacheTimestamps.set(newMaterial.pedidoId, Date.now());
+                    }
+                }
+            }
+            
             setMateriales(current => {
                 // Verificar si el material ya existe para evitar duplicados
                 const exists = current.some(m => m.id === newMaterial.id);
@@ -333,15 +366,55 @@ export function useMaterialesManager() {
         const handleMaterialUpdated = (updatedMaterial: Material) => {
             console.log('🔄 Sincronizando material actualizado:', updatedMaterial.numero);
             
+            // Actualizar el caché del pedido afectado si existe
+            if (updatedMaterial.pedidoId) {
+                const cached = materialesPorPedidoCache.get(updatedMaterial.pedidoId);
+                if (cached) {
+                    materialesPorPedidoCache.set(
+                        updatedMaterial.pedidoId, 
+                        cached.map(m => m.id === updatedMaterial.id ? updatedMaterial : m)
+                    );
+                    pedidoCacheTimestamps.set(updatedMaterial.pedidoId, Date.now());
+                }
+            }
+            
             setMateriales(current => 
                 current.map(m => m.id === updatedMaterial.id ? updatedMaterial : m)
             );
         };
 
-        const handleMaterialDeleted = (data: { materialId: number }) => {
+        const handleMaterialDeleted = (data: { materialId: number; pedidoId?: string }) => {
             console.log('🔄 Sincronizando material eliminado:', data.materialId);
             
+            // Actualizar el caché del pedido afectado si existe
+            if (data.pedidoId) {
+                const cached = materialesPorPedidoCache.get(data.pedidoId);
+                if (cached) {
+                    materialesPorPedidoCache.set(
+                        data.pedidoId, 
+                        cached.filter(m => m.id !== data.materialId)
+                    );
+                    pedidoCacheTimestamps.set(data.pedidoId, Date.now());
+                }
+            }
+            
             setMateriales(current => current.filter(m => m.id !== data.materialId));
+        };
+
+        const handleMaterialAssigned = (data: { pedidoId: string; material: Material }) => {
+            console.log('🔄 Material asignado a pedido:', data.pedidoId, data.material.numero);
+            
+            // Invalidar caché del pedido para forzar refetch
+            materialesPorPedidoCache.delete(data.pedidoId);
+            pedidoCacheTimestamps.delete(data.pedidoId);
+        };
+
+        const handleMaterialUnassigned = (data: { pedidoId: string; materialId: number }) => {
+            console.log('🔄 Material desasignado de pedido:', data.pedidoId, data.materialId);
+            
+            // Invalidar caché del pedido para forzar refetch
+            materialesPorPedidoCache.delete(data.pedidoId);
+            pedidoCacheTimestamps.delete(data.pedidoId);
         };
 
         // Suscribirse a eventos Socket.IO
@@ -349,12 +422,16 @@ export function useMaterialesManager() {
         socket.on('material-created', handleMaterialCreated);
         socket.on('material-updated', handleMaterialUpdated);
         socket.on('material-deleted', handleMaterialDeleted);
+        socket.on('material-assigned', handleMaterialAssigned);
+        socket.on('material-unassigned', handleMaterialUnassigned);
 
         // Cleanup al desmontar
         return () => {
             socket.off('material-created', handleMaterialCreated);
             socket.off('material-updated', handleMaterialUpdated);
             socket.off('material-deleted', handleMaterialDeleted);
+            socket.off('material-assigned', handleMaterialAssigned);
+            socket.off('material-unassigned', handleMaterialUnassigned);
         };
     }, []);
 
