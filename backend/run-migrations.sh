@@ -81,8 +81,10 @@ apply_migration "Crear Tabla de Pedidos" "$PEDIDOS_MIGRATION"
 apply_migration "Crear Tabla de Permisos" "$PERMISSIONS_MIGRATION"
 apply_migration "Crear Tabla de Clientes" "$CLIENTES_MIGRATION"
 apply_migration "Agregar Nueva Fecha Entrega" "$NUEVA_FECHA_MIGRATION"
-apply_migration "Agregar Número de Compra" "$NUMERO_COMPRA_MIGRATION"
-apply_migration "Convertir Número Compra a Array" "$NUMEROS_COMPRA_ARRAY_MIGRATION"
+# TEMPORALMENTE DESHABILITADA - Tabla alcanzó límite de 1600 columnas
+# apply_migration "Agregar Número de Compra" "$NUMERO_COMPRA_MIGRATION"
+# TEMPORALMENTE DESHABILITADA - Depende de la anterior
+# apply_migration "Convertir Número Compra a Array" "$NUMEROS_COMPRA_ARRAY_MIGRATION"
 apply_migration "Agregar Info Adicional Cliché" "$CLICHE_INFO_MIGRATION"
 apply_migration "Agregar Observaciones de Material" "$OBSERVACIONES_MATERIAL_MIGRATION"
 apply_migration "Renombrar Dto Compra a Compra Cliché" "$RENAME_DTO_COMPRA_MIGRATION"
