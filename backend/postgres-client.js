@@ -13,9 +13,9 @@ class PostgreSQLClient {
             this.config = {
                 connectionString: process.env.DATABASE_URL,
                 ssl: false, // Deshabilitar SSL para conexiones internas de Docker
-                max: 20,
-                idleTimeoutMillis: 30000,
-                connectionTimeoutMillis: 2000,
+                max: 50, // Aumentado de 20 a 50 para manejar concurrencia
+                idleTimeoutMillis: 10000, // Reducido de 30s a 10s
+                connectionTimeoutMillis: 3000, // Aumentado de 2s a 3s
             };
         } else if (process.env.DB_HOST || process.env.POSTGRES_HOST) {
             // Configuración de conexión individual
@@ -26,9 +26,9 @@ class PostgreSQLClient {
                 user: process.env.POSTGRES_USER || process.env.DB_USER || 'pigmea_user',
                 password: process.env.POSTGRES_PASSWORD || process.env.DB_PASSWORD,
                 ssl: false, // Deshabilitar SSL para conexiones internas de Docker
-                max: 20,
-                idleTimeoutMillis: 30000,
-                connectionTimeoutMillis: 2000,
+                max: 50, // Aumentado de 20 a 50
+                idleTimeoutMillis: 10000, // Reducido de 30s a 10s
+                connectionTimeoutMillis: 3000,
             };
         } else {
             // Fallback a localhost para desarrollo
@@ -39,9 +39,9 @@ class PostgreSQLClient {
                 user: 'pigmea_user',
                 password: '',
                 ssl: false,
-                max: 20,
-                idleTimeoutMillis: 30000,
-                connectionTimeoutMillis: 2000,
+                max: 50, // Aumentado de 20 a 50
+                idleTimeoutMillis: 10000,
+                connectionTimeoutMillis: 3000,
             };
         }
     }
