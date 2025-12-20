@@ -77,6 +77,16 @@ export const useClientesManager = () => {
       setTotalClientes(globalTotal);
       notifyListeners();
     } catch (err) {
+      globalError = err as Error;
+      setError(err as Error);
+      console.error("❌ Error fetching clients:", err);
+    } finally {
+      globalLoading = false;
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
     const updateState = () => {
       setClientes(globalClientes);
       setIsLoading(globalLoading);
@@ -101,17 +111,7 @@ export const useClientesManager = () => {
       stateListeners.delete(updateState);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [as Error);
-      console.error("❌ Error fetching clients:", err);
-    } finally {
-      globalLoading = false;
-      setIsLoading(false);
-    }
   }, []);
-
-  useEffect(() => {
-    fetchClientes();
-  }, [fetchClientes]);
 
   // 🔥 Socket.IO: Sincronización en tiempo real para clientes
   useEffect(() => {
