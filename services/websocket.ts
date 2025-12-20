@@ -20,6 +20,11 @@ export interface WebSocketEvents {
   'vendedor-created': (data: { vendedor: any; message: string; timestamp: string }) => void;
   'vendedor-updated': (data: { vendedor: any; message: string; timestamp: string }) => void;
   'vendedor-deleted': (data: { vendedorId: string; vendedor?: any; message: string; timestamp: string }) => void;
+  'material-created': (material: any) => void;
+  'material-updated': (material: any) => void;
+  'material-deleted': (data: { materialId: number; pedidoId?: string }) => void;
+  'material-assigned': (data: { pedidoId: string; materialId: number }) => void;
+  'material-unassigned': (data: { pedidoId: string; materialId: number }) => void;
   
   // Eventos del cliente
   authenticate: (data: { userId: string; userRole: UserRole }) => void;

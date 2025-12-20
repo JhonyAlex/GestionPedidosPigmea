@@ -8,6 +8,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useMaterialesManager } from '../hooks/useMaterialesManager';
 import { formatDateDDMMYYYY } from '../utils/date';
 import LockIndicator from './LockIndicator';
+import webSocketService from '../services/websocket';
 
 const ClockIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1 inline-block"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>;
 const CalendarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1 inline-block"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18" /></svg>;
@@ -234,6 +235,7 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
     // 🆕 Estado para materiales de la nueva tabla
     const [materialesNuevos, setMaterialesNuevos] = useState<Material[]>([]);
     const [loadingMateriales, setLoadingMateriales] = useState(false);
+    const materialesLoadedRef = useRef<Set<string>>(new Set()); // Track loaded pedidos
     
     // Usar valor por defecto si la prioridad no existe en PRIORIDAD_COLORS
     const priorityColor = PRIORIDAD_COLORS[pedido.prioridad] || PRIORIDAD_COLORS[Prioridad.NORMAL] || 'border-blue-500';
@@ -258,27 +260,45 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
     
     // 🆕 Cargar materiales de la nueva tabla (si existen)
     useEffect(() => {
+        // ⚠️ CRÍTICO: Solo cargar UNA VEZ por pedido.id
+        if (materialesLoadedRef.current.has(pedido.id)) {
+            console.log(`⏭️ [PedidoCard ${pedido.numeroPedidoCliente}] Ya cargado, saltando...`);
+            return;
+        }
+        
         let isMounted = true;
-        let loadAttempted = false; // Flag para evitar doble carga
         
         const loadMateriales = async () => {
-            // Si ya estamos cargando o ya intentamos cargar, saltar
-            if (loadingMateriales || loadAttempted) return;
-            
-            loadAttempted = true;
+            // Si ya estamos cargando, saltar
+            if (loadingMateriales) return;
             
             try {
                 setLoadingMateriales(true);
+                console.log(`🔄 [PedidoCard ${pedido.numeroPedidoCliente}] Cargando materiales...`);
+                
                 // getMaterialesByPedidoId ahora tiene caché interno
                 const mats = await getMaterialesByPedidoId(pedido.id);
                 
+                // 🔍 DEBUG: Log para ver qué datos se reciben
+                if (mats.length > 0) {
+                    console.log(`🎨 [PedidoCard ${pedido.numeroPedidoCliente}] Materiales recibidos:`, mats.map(m => ({
+                        numero: m.numero,
+                        pendienteRecibir: m.pendienteRecibir,
+                        pendienteGestion: m.pendienteGestion,
+                        color: getMaterialTheme(m, pedido.materialDisponible).label
+                    })));
+                }
+                
                 if (isMounted) {
                     setMaterialesNuevos(mats);
+                    materialesLoadedRef.current.add(pedido.id); // Marcar como cargado
                 }
             } catch (error) {
                 // Si falla (ej: tabla no existe aún), usar sistema legacy
+                console.log(`⚠️ [PedidoCard ${pedido.numeroPedidoCliente}] Usando sistema legacy`);
                 if (isMounted) {
                     setMaterialesNuevos([]);
+                    materialesLoadedRef.current.add(pedido.id); // Marcar como cargado
                 }
             } finally {
                 if (isMounted) {
@@ -292,7 +312,56 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
         return () => {
             isMounted = false;
         };
-    }, [pedido.id, getMaterialesByPedidoId]); // Dependencias correctas
+    }, [pedido.id, pedido.numeroPedidoCliente]); // Solo dependencias inmutables
+
+    // 🔄 Suscribirse a eventos de WebSocket para actualizar materiales en tiempo real
+    useEffect(() => {
+        const handleMaterialUpdated = (updatedMaterial: any) => {
+            if (updatedMaterial.pedidoId === pedido.id) {
+                console.log(`🔄 [PedidoCard ${pedido.numeroPedidoCliente}] Material actualizado vía WebSocket:`, {
+                    numero: updatedMaterial.numero,
+                    pendienteRecibir: updatedMaterial.pendienteRecibir,
+                    pendienteGestion: updatedMaterial.pendienteGestion
+                });
+                
+                setMaterialesNuevos(current => 
+                    current.map(m => m.id === updatedMaterial.id ? updatedMaterial : m)
+                );
+            }
+        };
+        
+        const handleMaterialAssigned = (data: any) => {
+            if (data.pedidoId === pedido.id) {
+                console.log(`🔄 [PedidoCard ${pedido.numeroPedidoCliente}] Material asignado, invalidando caché...`);
+                // Invalidar y recargar
+                materialesLoadedRef.current.delete(pedido.id);
+                getMaterialesByPedidoId(pedido.id).then(mats => {
+                    setMaterialesNuevos(mats);
+                    materialesLoadedRef.current.add(pedido.id);
+                });
+            }
+        };
+        
+        const handleMaterialUnassigned = (data: any) => {
+            if (data.pedidoId === pedido.id) {
+                console.log(`🔄 [PedidoCard ${pedido.numeroPedidoCliente}] Material desasignado:`, data.materialId);
+                setMaterialesNuevos(current => current.filter(m => m.id !== data.materialId));
+            }
+        };
+
+        const socket = webSocketService.getSocket();
+        
+        // Usar 'as any' para evitar problemas de tipado temporal
+        (socket as any).on('material-updated', handleMaterialUpdated);
+        (socket as any).on('material-assigned', handleMaterialAssigned);
+        (socket as any).on('material-unassigned', handleMaterialUnassigned);
+        
+        return () => {
+            (socket as any).off('material-updated', handleMaterialUpdated);
+            (socket as any).off('material-assigned', handleMaterialAssigned);
+            (socket as any).off('material-unassigned', handleMaterialUnassigned);
+        };
+    }, [pedido.id, pedido.numeroPedidoCliente, getMaterialesByPedidoId]);
 
     // Cerrar el editor al hacer click fuera del contenedor completo
     useEffect(() => {

@@ -6,6 +6,7 @@ export interface Material {
     id: number;
     numero: string;
     descripcion?: string;
+    pedidoId?: string;             // 🔗 ID del pedido al que pertenece (opcional)
     pendienteRecibir: boolean;     // ⏳ Pendiente de Recibir / ✅ Material Recibido
     pendienteGestion: boolean;     // 🕑 Pendiente Gestión / ✅ Gestionado
     createdAt?: string;
