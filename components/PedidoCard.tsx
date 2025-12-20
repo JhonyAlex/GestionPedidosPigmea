@@ -699,6 +699,15 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                             materialesNuevos.map((material) => {
                                 const theme = getMaterialTheme(material, pedido.materialDisponible);
                                 
+                                // 🔍 DEBUG: Log del color asignado
+                                console.log(`🎨 [${pedido.numeroPedidoCliente}] Material ${material.numero}:`, {
+                                    pendienteRecibir: material.pendienteRecibir,
+                                    pendienteGestion: material.pendienteGestion,
+                                    materialDisponible: pedido.materialDisponible,
+                                    color: theme.label,
+                                    sistema: 'NUEVO'
+                                });
+                                
                                 return (
                                     <span 
                                         key={material.id}
@@ -748,6 +757,15 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                                             },
                                             pedido.materialDisponible
                                         );
+
+                                        // 🔍 DEBUG: Log del color asignado (sistema legacy)
+                                        console.log(`🎨 [${pedido.numeroPedidoCliente}] Material ${numero}:`, {
+                                            recibido: inferredRecibido,
+                                            gestionado: inferredGestionado,
+                                            materialDisponible: pedido.materialDisponible,
+                                            color: theme.label,
+                                            sistema: 'LEGACY'
+                                        });
 
                                         return (
                                             <span
