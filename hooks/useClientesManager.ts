@@ -37,7 +37,7 @@ export type ClienteUpdateRequest = Partial<ClienteCreateRequest>;
 
 // 🔥 SINGLETON: Estado global compartido
 let globalClientes: Cliente[] = [];
-let globalLoading = true;
+let globalLoading = false; // ⚠️ CAMBIO: Empezar en false para permitir primer fetch
 let globalError: Error | null = null;
 let globalTotal = 0;
 let isInitialized = false;
@@ -57,8 +57,15 @@ export const useClientesManager = () => {
   const [totalClientes, setTotalClientes] = useState(globalTotal);
 
   const fetchClientes = useCallback(async () => {
-    if (globalLoading && isInitialized) return;
+    console.log('🔍 fetchClientes llamado. globalLoading:', globalLoading, 'isInitialized:', isInitialized);
     
+    // Solo evitar fetch si ya hay una petición en curso
+    if (globalLoading && isInitialized && globalClientes.length > 0) {
+      console.log('⏭️ Fetch omitido - clientes ya cargados');
+      return;
+    }
+    
+    console.log('🚀 Iniciando fetch de clientes...');
     globalLoading = true;
     setIsLoading(true);
     setError(null);
@@ -66,6 +73,7 @@ export const useClientesManager = () => {
     
     try {
       const clientesData = await clienteService.obtenerClientesSimple();
+      console.log('✅ Clientes recibidos:', clientesData.length);
       
       if (clientesData.length === 0) {
         console.warn('⚠️ No se encontraron clientes activos.');
@@ -83,6 +91,7 @@ export const useClientesManager = () => {
     } finally {
       globalLoading = false;
       setIsLoading(false);
+      console.log('✅ Fetch completado. globalLoading:', false);
     }
   }, []);
 

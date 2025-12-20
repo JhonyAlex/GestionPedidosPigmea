@@ -1,97 +1,97 @@
-2025-12-20T22:14:42.940Z === SCRIPT DE MIGRACIÓN COMPLETADO ===
-2025-12-20T22:14:42.940Z 🚀 Migraciones completadas. Iniciando servidor Node.js...
-2025-12-20T22:14:43.066Z [dotenv@17.2.2] injecting env (5) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
-2025-12-20T22:14:43.447Z 🔄 Intentando conectar a PostgreSQL...
-2025-12-20T22:14:43.447Z 👂 Event listeners del pool configurados
-2025-12-20T22:14:43.513Z 🔗 Nueva conexión al pool establecida
-2025-12-20T22:14:43.514Z ✅ PostgreSQL conectado correctamente
-2025-12-20T22:14:43.514Z - Host: control-produccin-pigmea-gestionpedidosdb-vcfcjc:5432
-2025-12-20T22:14:43.514Z - Database: desde DATABASE_URL
-2025-12-20T22:14:43.514Z - Max connections: 50
-2025-12-20T22:14:43.516Z 🔧 Iniciando creación/verificación de tablas...
-2025-12-20T22:14:43.518Z ✅ Extensión uuid-ossp verificada
-2025-12-20T22:14:43.520Z ✅ Tabla admin_users verificada
-2025-12-20T22:14:43.533Z 📋 Columnas existentes en admin_users: id, username, email, first_name, last_name, password_hash, role, permissions, is_active, last_login, last_activity, ip_address, user_agent, created_at, updated_at
-2025-12-20T22:14:43.538Z ✅ Constraint de rol actualizado
-2025-12-20T22:14:43.538Z 🔄 Verificando usuarios existentes...
-2025-12-20T22:14:43.539Z ✅ Todos los usuarios ya están actualizados
-2025-12-20T22:14:43.539Z ✅ Columnas de admin_users verificadas
-2025-12-20T22:14:43.544Z ✅ Tabla user_permissions verificada
-2025-12-20T22:14:43.544Z ✅ Tabla pedidos verificada (creada por migración)
-2025-12-20T22:14:43.544Z ✅ Tabla users verificada
-2025-12-20T22:14:43.545Z ✅ Tabla audit_log verificada
-2025-12-20T22:14:43.548Z ⚠️ Tabla audit_logs y clave foránea procesadas (puede haber avisos)
-2025-12-20T22:14:43.549Z ✅ Tabla pedido_comments creada
-2025-12-20T22:14:43.550Z ✅ Tabla vendedores creada
-2025-12-20T22:14:43.554Z ✅ Índices verificados
-2025-12-20T22:14:43.559Z ✅ Triggers configurados
-2025-12-20T22:14:43.571Z ✅ Columna vendedor_id verificada/creada
-2025-12-20T22:14:43.571Z 🎉 Todas las tablas han sido verificadas/creadas exitosamente
-2025-12-20T22:14:43.571Z 🔄 Health checks periódicos iniciados (cada 10s)
-2025-12-20T22:14:43.571Z 🐘 PostgreSQL conectado exitosamente
-2025-12-20T22:14:43.572Z ✅ dbClient compartido con middlewares
-2025-12-20T22:14:43.577Z 🚀 Servidor iniciado en puerto 8080
-2025-12-20T22:14:43.577Z ✅ PostgreSQL conectado - Sistema operativo
-2025-12-20T22:14:47.050Z 📨 [1] GET /api/health - User: anonymous - 2025-12-20T22:14:47.049Z
-2025-12-20T22:14:53.589Z 🔄 Cliente removido del pool de conexiones
-2025-12-20T22:14:53.610Z 🔗 Nueva conexión al pool establecida
-2025-12-20T22:15:33.347Z 📨 [2] POST /api/auth/login - User: anonymous - 2025-12-20T22:15:33.346Z
-2025-12-20T22:15:33.871Z ✅ Login BD exitoso: admin (ADMIN)
-2025-12-20T22:15:43.611Z 📨 [3] POST /api/auth/login - User: anonymous - 2025-12-20T22:15:43.609Z
-2025-12-20T22:15:44.052Z ✅ Login BD exitoso: admin (ADMIN)
-2025-12-20T22:16:03.247Z 📨 [4] POST /api/auth/login - User: anonymous - 2025-12-20T22:16:03.247Z
-2025-12-20T22:16:03.744Z ✅ Login BD exitoso: admin (ADMIN)
-2025-12-20T22:48:20.181Z 📨 [5] GET /api/pedidos - User: 02b857f4-ce88-4dc0-9579-54d8688dbcaa - 2025-12-20T22:48:20.180Z
-2025-12-20T22:48:20.187Z - ❌ Error validando usuario: relation "admin_users" does not exist
-2025-12-20T22:48:20.244Z 📨 [6] GET /api/audit - User: 02b857f4-ce88-4dc0-9579-54d8688dbcaa - 2025-12-20T22:48:20.242Z
-2025-12-20T22:48:20.257Z - ❌ Error validando usuario: relation "admin_users" does not exist
-2025-12-20T22:48:20.314Z 🔗 Nueva conexión al pool establecida
-2025-12-20T22:48:30.269Z 🔄 Cliente removido del pool de conexiones
-2025-12-20T22:48:38.944Z 📨 [8] POST /api/auth/login - User: anonymous - 2025-12-20T22:48:38.944Z
-2025-12-20T22:48:38.951Z 💥 Error en login: error: relation "admin_users" does not exist
-2025-12-20T22:48:38.951Z at /app/backend/node_modules/pg/lib/client.js:545:17
-2025-12-20T22:48:38.951Z at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-2025-12-20T22:48:38.951Z at async PostgreSQLClient.getAdminUserByUsername (/app/backend/postgres-client.js:105:28)
-2025-12-20T22:48:38.951Z at async /app/backend/index.js:727:24 {
-2025-12-20T22:48:38.951Z length: 110,
-2025-12-20T22:48:38.951Z severity: 'ERROR',
-2025-12-20T22:48:38.951Z code: '42P01',
-2025-12-20T22:48:38.951Z detail: undefined,
-2025-12-20T22:48:38.951Z hint: undefined,
-2025-12-20T22:48:38.951Z position: '15',
-2025-12-20T22:48:38.951Z internalPosition: undefined,
-2025-12-20T22:48:38.951Z internalQuery: undefined,
-2025-12-20T22:48:38.951Z where: undefined,
-2025-12-20T22:48:38.951Z schema: undefined,
-2025-12-20T22:48:38.951Z table: undefined,
-2025-12-20T22:48:38.951Z column: undefined,
-2025-12-20T22:48:38.951Z dataType: undefined,
-2025-12-20T22:48:38.951Z constraint: undefined,
-2025-12-20T22:48:38.951Z file: 'parse_relation.c',
-2025-12-20T22:48:38.951Z line: '1392',
-2025-12-20T22:48:38.951Z routine: 'parserOpenTable'
-2025-12-20T22:48:38.951Z }
-2025-12-20T22:48:50.144Z 📨 [9] POST /api/auth/register - User: anonymous - 2025-12-20T22:48:50.143Z
-2025-12-20T22:48:50.154Z Error en registro: error: relation "admin_users" does not exist
-2025-12-20T22:48:50.154Z at /app/backend/node_modules/pg/lib/client.js:545:17
-2025-12-20T22:48:50.154Z at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-2025-12-20T22:48:50.154Z at async PostgreSQLClient.getAdminUserByUsername (/app/backend/postgres-client.js:105:28)
-2025-12-20T22:48:50.154Z at async /app/backend/index.js:887:31 {
-2025-12-20T22:48:50.154Z length: 110,
-2025-12-20T22:48:50.154Z severity: 'ERROR',
-2025-12-20T22:48:50.154Z code: '42P01',
-2025-12-20T22:48:50.154Z detail: undefined,
-2025-12-20T22:48:50.154Z hint: undefined,
-2025-12-20T22:48:50.154Z position: '15',
-2025-12-20T22:48:50.154Z internalPosition: undefined,
-2025-12-20T22:48:50.154Z internalQuery: undefined,
-2025-12-20T22:48:50.154Z where: undefined,
-2025-12-20T22:48:50.154Z schema: undefined,
-2025-12-20T22:48:50.154Z table: undefined,
-2025-12-20T22:48:50.154Z column: undefined,
-2025-12-20T22:48:50.154Z dataType: undefined,
-2025-12-20T22:48:50.154Z constraint: undefined,
-2025-12-20T22:48:50.154Z file: 'parse_relation.c',
-2025-12-20T22:48:50.154Z line: '1392',
-2025-12-20T22:48:50.154Z routine: 'parserOpenTable'
-2025-12-20T22:48:50.154Z }
+2025-12-20T23:09:13.292Z CREATE TABLE
+2025-12-20T23:09:13.292Z psql:../database/migrations/027-create-materiales-table.sql:15: NOTICE:  relation "materiales" already exists, skipping
+2025-12-20T23:09:13.294Z COMMENT
+2025-12-20T23:09:13.295Z COMMENT
+2025-12-20T23:09:13.296Z COMMENT
+2025-12-20T23:09:13.298Z COMMENT
+2025-12-20T23:09:13.302Z psql:../database/migrations/027-create-materiales-table.sql:25: NOTICE:  relation "idx_materiales_numero" already exists, skipping
+2025-12-20T23:09:13.302Z COMMENT
+2025-12-20T23:09:13.302Z CREATE INDEX
+2025-12-20T23:09:13.303Z CREATE INDEX
+2025-12-20T23:09:13.303Z psql:../database/migrations/027-create-materiales-table.sql:28: NOTICE:  relation "idx_materiales_estados" already exists, skipping
+2025-12-20T23:09:13.306Z CREATE FUNCTION
+2025-12-20T23:09:13.307Z DROP TRIGGER
+2025-12-20T23:09:13.309Z CREATE TRIGGER
+2025-12-20T23:09:13.309Z psql:../database/migrations/027-create-materiales-table.sql:54: NOTICE:  relation "pedidos_materiales" already exists, skipping
+2025-12-20T23:09:13.309Z CREATE TABLE
+2025-12-20T23:09:13.310Z COMMENT
+2025-12-20T23:09:13.310Z psql:../database/migrations/027-create-materiales-table.sql:60: NOTICE:  relation "idx_pedidos_materiales_pedido" already exists, skipping
+2025-12-20T23:09:13.311Z psql:../database/migrations/027-create-materiales-table.sql:61: NOTICE:  relation "idx_pedidos_materiales_material" already exists, skipping
+2025-12-20T23:09:13.311Z CREATE INDEX
+2025-12-20T23:09:13.311Z CREATE INDEX
+2025-12-20T23:09:13.375Z psql:../database/migrations/027-create-materiales-table.sql:111: NOTICE:  Migración de números de compra a materiales completada
+2025-12-20T23:09:13.377Z DO
+2025-12-20T23:09:13.379Z ✅ Migración 'Crear Sistema de Gestión de Materiales' aplicada exitosamente.
+2025-12-20T23:09:13.379Z === SCRIPT DE MIGRACIÓN COMPLETADO ===
+2025-12-20T23:09:13.379Z 🚀 Migraciones completadas. Iniciando servidor Node.js...
+2025-12-20T23:09:13.515Z [dotenv@17.2.2] injecting env (5) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+2025-12-20T23:09:13.992Z 🔄 Intentando conectar a PostgreSQL...
+2025-12-20T23:09:13.993Z 👂 Event listeners del pool configurados
+2025-12-20T23:09:14.060Z 🔗 Nueva conexión al pool establecida
+2025-12-20T23:09:14.061Z ✅ PostgreSQL conectado correctamente
+2025-12-20T23:09:14.061Z - Host: control-produccin-pigmea-gestionpedidosdb-vcfcjc:5432
+2025-12-20T23:09:14.061Z - Database: desde DATABASE_URL
+2025-12-20T23:09:14.061Z - Max connections: 50
+2025-12-20T23:09:14.063Z 🔧 Iniciando creación/verificación de tablas...
+2025-12-20T23:09:14.065Z ✅ Extensión uuid-ossp verificada
+2025-12-20T23:09:14.067Z ✅ Tabla admin_users verificada
+2025-12-20T23:09:14.079Z 📋 Columnas existentes en admin_users: id, username, password_hash, role, is_active, created_at, updated_at, last_login_at, email, first_name, last_name, permissions, last_login, last_activity, ip_address, user_agent
+2025-12-20T23:09:14.085Z ✅ Constraint de rol actualizado
+2025-12-20T23:09:14.086Z 🔄 Verificando usuarios existentes...
+2025-12-20T23:09:14.089Z ✅ Todos los usuarios ya están actualizados
+2025-12-20T23:09:14.089Z ✅ Columnas de admin_users verificadas
+2025-12-20T23:09:14.094Z ✅ Tabla user_permissions verificada
+2025-12-20T23:09:14.094Z ✅ Tabla pedidos verificada (creada por migración)
+2025-12-20T23:09:14.095Z ✅ Tabla users verificada
+2025-12-20T23:09:14.096Z ✅ Tabla audit_log verificada
+2025-12-20T23:09:14.099Z ⚠️ Tabla audit_logs y clave foránea procesadas (puede haber avisos)
+2025-12-20T23:09:14.100Z ✅ Tabla pedido_comments creada
+2025-12-20T23:09:14.101Z ✅ Tabla vendedores creada
+2025-12-20T23:09:14.107Z ✅ Índices verificados
+2025-12-20T23:09:14.116Z ✅ Triggers configurados
+2025-12-20T23:09:14.123Z ✅ Columna vendedor_id verificada/creada
+2025-12-20T23:09:14.124Z 🎉 Todas las tablas han sido verificadas/creadas exitosamente
+2025-12-20T23:09:14.124Z 🔄 Health checks periódicos iniciados (cada 10s)
+2025-12-20T23:09:14.125Z 🐘 PostgreSQL conectado exitosamente
+2025-12-20T23:09:14.125Z ✅ dbClient compartido con middlewares
+2025-12-20T23:09:14.136Z 🚀 Servidor iniciado en puerto 8080
+2025-12-20T23:09:14.136Z ✅ PostgreSQL conectado - Sistema operativo
+2025-12-20T23:09:24.135Z 🔄 Cliente removido del pool de conexiones
+2025-12-20T23:09:24.156Z 🔗 Nueva conexión al pool establecida
+2025-12-20T23:10:05.646Z 📨 [1] GET /api/pedidos - User: 4 - 2025-12-20T23:10:05.645Z
+2025-12-20T23:10:05.695Z 📊 [2025-12-20T23:10:05.695Z] GET /api/pedidos (LEGACY) - Total: 213 pedidos
+2025-12-20T23:10:05.734Z 📨 [2] GET /api/audit - User: 4 - 2025-12-20T23:10:05.734Z
+2025-12-20T23:10:06.116Z 📨 [4] GET /api/materiales - User: 4 - 2025-12-20T23:10:06.115Z
+2025-12-20T23:10:06.139Z ✅ Materiales obtenidos: 175
+2025-12-20T23:10:15.910Z 📨 [5] GET /api/comments/1763028177275 - User: 4 - 2025-12-20T23:10:15.910Z
+2025-12-20T23:10:15.930Z 📨 [6] GET /api/pedidos/1763028177275/materiales - User: 4 - 2025-12-20T23:10:15.930Z
+2025-12-20T23:10:15.933Z 📨 [7] GET /api/vendedores - User: 4 - 2025-12-20T23:10:15.932Z
+2025-12-20T23:10:15.934Z 🔍 Verificando permiso 'vendedores.view' para usuario ID: 4
+2025-12-20T23:10:15.934Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
+2025-12-20T23:10:15.946Z 📦 Materiales para pedido 1763028177275: [
+2025-12-20T23:10:15.946Z {
+2025-12-20T23:10:15.946Z id: 369,
+2025-12-20T23:10:15.946Z numero: '20 BIO PLV. EKP-33836',
+2025-12-20T23:10:15.946Z pendienteRecibir: true,
+2025-12-20T23:10:15.947Z pendienteGestion: true
+2025-12-20T23:10:15.947Z },
+2025-12-20T23:10:15.947Z {
+2025-12-20T23:10:15.947Z id: 370,
+2025-12-20T23:10:15.947Z numero: '20 MET PLV. EKP-33836',
+2025-12-20T23:10:15.947Z pendienteRecibir: true,
+2025-12-20T23:10:15.947Z pendienteGestion: true
+2025-12-20T23:10:15.947Z }
+2025-12-20T23:10:15.947Z ]
+2025-12-20T23:10:15.948Z 📦 GET /api/pedidos/1763028177275/materiales → 2 materiales encontrados
+2025-12-20T23:10:15.980Z 🔗 Nueva conexión al pool establecida
+2025-12-20T23:10:16.379Z 🔒 Pedido 1763028177275 bloqueado por admin (4)
+2025-12-20T23:10:22.843Z 🔓 Pedido 1763028177275 desbloqueado por admin
+2025-12-20T23:10:25.955Z 🔄 Cliente removido del pool de conexiones
+2025-12-20T23:16:40.369Z 📨 [8] GET /api/vendedores - User: 4 - 2025-12-20T23:16:40.368Z
+2025-12-20T23:16:40.376Z 🔍 Verificando permiso 'vendedores.view' para usuario ID: 4
+2025-12-20T23:16:40.376Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
+2025-12-20T23:16:48.668Z 📨 [9] GET /api/produccion/operaciones-activas - User: 4 - 2025-12-20T23:16:48.668Z
+2025-12-20T23:16:48.757Z 📨 [10] GET /api/produccion/estadisticas/4 - User: 4 - 2025-12-20T23:16:48.757Z
+2025-12-20T23:16:48.764Z 📨 [11] GET /api/produccion/pedidos-disponibles - User: 4 - 2025-12-20T23:16:48.761Z
+2025-12-20T23:16:48.792Z 🔗 Nueva conexión al pool establecida
+2025-12-20T23:16:58.780Z 🔄 Cliente removido del pool de conexiones
