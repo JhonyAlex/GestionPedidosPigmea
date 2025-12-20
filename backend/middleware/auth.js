@@ -8,6 +8,49 @@ const jwt = require('jsonwebtoken');
 // Cliente de base de datos compartido (se inyecta desde index.js)
 let sharedDbClient = null;
 
+// 🔥 CACHÉ DE USUARIOS: Evita consultas repetidas a la BD
+const userCache = new Map();
+const USER_CACHE_TTL = 30000; // 30 segundos
+const USER_CACHE_MAX_SIZE = 100; // Máximo 100 usuarios en caché
+
+/**
+ * Obtener usuario del caché o de la BD
+ */
+const getCachedUser = async (userId, db) => {
+    const now = Date.now();
+    const isDev = process.env.NODE_ENV !== 'production';
+    
+    // Verificar si está en caché y no ha expirado
+    if (userCache.has(userId)) {
+        const cached = userCache.get(userId);
+        if (now - cached.timestamp < USER_CACHE_TTL) {
+            if (isDev) console.log('   - ⚡ Usuario obtenido de caché');
+            return cached.user;
+        }
+        // Caché expirado, eliminar
+        userCache.delete(userId);
+    }
+    
+    // No está en caché o expiró, consultar BD
+    if (isDev) console.log('   - 🔍 Consultando usuario en BD...');
+    const user = await db.getAdminUserById(userId);
+    
+    if (user) {
+        // Agregar al caché
+        userCache.set(userId, { user, timestamp: now });
+        
+        // Limpiar caché si excede el tamaño máximo (FIFO simple)
+        if (userCache.size > USER_CACHE_MAX_SIZE) {
+            const firstKey = userCache.keys().next().value;
+            userCache.delete(firstKey);
+        }
+        
+        if (isDev) console.log('   - ✅ Usuario encontrado en BD:', user.username);
+    }
+    
+    return user;
+};
+
 /**
  * Configurar el cliente de base de datos compartido
  * Debe llamarse desde index.js después de inicializar el dbClient
@@ -41,13 +84,17 @@ const authenticateUser = async (req, res, next) => {
         const userRole = req.headers['x-user-role'];
         const userPermissions = req.headers['x-user-permissions'];
         
-        console.log('🔑 authenticateUser middleware');
-        console.log('   - Ruta:', req.method, req.path);
-        console.log('   - Headers recibidos:', {
-            userId: userId || 'NO PRESENTE',
-            userRole: userRole || 'NO PRESENTE',
-            hasPermissions: !!userPermissions
-        });
+        // Solo loguear en desarrollo o si falla
+        const isDev = process.env.NODE_ENV !== 'production';
+        if (isDev) {
+            console.log('🔑 authenticateUser middleware');
+            console.log('   - Ruta:', req.method, req.path);
+            console.log('   - Headers recibidos:', {
+                userId: userId || 'NO PRESENTE',
+                userRole: userRole || 'NO PRESENTE',
+                hasPermissions: !!userPermissions
+            });
+        }
         
         if (userId) {
             // 🔴 MODO PRODUCCIÓN: BD ES OBLIGATORIA
@@ -66,10 +113,8 @@ const authenticateUser = async (req, res, next) => {
             // Verificar que el usuario existe en la base de datos
             try {
                 if (db && db.isInitialized) {
-                    console.log('   - Buscando usuario en BD...');
-                    const user = await db.getAdminUserById(userId);
+                    const user = await getCachedUser(userId, db);
                     if (user) {
-                        console.log('   - ✅ Usuario encontrado en BD:', user.username);
                         req.user = {
                             id: user.id,
                             username: user.username,
@@ -111,11 +156,11 @@ const authenticateUser = async (req, res, next) => {
                 });
             }
             
-            if (req.user) {
+            if (req.user && isDev) {
                 console.log('   - ✅ Usuario autenticado:', req.user.id, `(${req.user.role})`);
             }
         } else {
-            console.log('   - ⚠️ No hay userId en headers - ruta pública o error de autenticación');
+            if (isDev) console.log('   - ⚠️ No hay userId en headers - ruta pública o error de autenticación');
         }
         
         next();
