@@ -97,7 +97,14 @@ CREATE INDEX IF NOT EXISTS idx_observaciones_fecha ON observaciones_produccion(f
 CREATE INDEX IF NOT EXISTS idx_observaciones_tipo ON observaciones_produccion(tipo);
 
 -- ============================================
--- MODIFICACIONES A TABLA pedidos
+-- PASO 1: ELIMINAR VISTAS QUE DEPENDEN DE LAS COLUMNAS
+-- ============================================
+-- Primero eliminamos las vistas que referencian metros_restantes y porcentaje_completado
+-- para poder eliminar las columnas sin errores de dependencia
+DROP VIEW IF EXISTS v_pedidos_disponibles_produccion CASCADE;
+
+-- ============================================
+-- PASO 2: MODIFICACIONES A TABLA pedidos
 -- ============================================
 DO $$ 
 BEGIN
@@ -118,7 +125,6 @@ BEGIN
     -- Los datos están en el campo JSONB 'data'. Creamos columnas simples y las calculamos en el backend.
     
     -- Manejar metros_restantes (eliminar si existe como GENERATED y recrear como columna normal)
-    -- Usamos DROP COLUMN IF EXISTS para mayor robustez
     RAISE NOTICE '🔄 Verificando columna metros_restantes...';
     BEGIN
         EXECUTE 'ALTER TABLE pedidos DROP COLUMN IF EXISTS metros_restantes';
@@ -134,7 +140,6 @@ BEGIN
     END IF;
     
     -- Manejar porcentaje_completado (eliminar si existe como GENERATED y recrear como columna normal)
-    -- Usamos DROP COLUMN IF EXISTS para mayor robustez
     RAISE NOTICE '🔄 Verificando columna porcentaje_completado...';
     BEGIN
         EXECUTE 'ALTER TABLE pedidos DROP COLUMN IF EXISTS porcentaje_completado';
@@ -213,8 +218,10 @@ CREATE TRIGGER trigger_calcular_duracion_pausa
     EXECUTE FUNCTION calcular_duracion_pausa();
 
 -- ============================================
--- VISTAS
+-- PASO 3: RECREAR VISTAS (después de modificar las columnas)
 -- ============================================
+-- Ahora las vistas se pueden crear sin problemas porque las columnas ya existen
+
 CREATE OR REPLACE VIEW v_operaciones_activas AS
 SELECT 
     op.*,
