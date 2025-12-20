@@ -1003,10 +1003,24 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
     return (
         <AuthProvider>
-            <MaterialesProvider>
-                <AppContent />
-            </MaterialesProvider>
+            <AppWithMateriales />
         </AuthProvider>
+    );
+};
+
+// Wrapper para MaterialesProvider que solo se carga después de autenticación
+const AppWithMateriales: React.FC = () => {
+    const { user, loading } = useAuth();
+    
+    // No cargar MaterialesProvider hasta que el usuario esté autenticado
+    if (loading || !user) {
+        return <AppContent />;
+    }
+    
+    return (
+        <MaterialesProvider>
+            <AppContent />
+        </MaterialesProvider>
     );
 };
 

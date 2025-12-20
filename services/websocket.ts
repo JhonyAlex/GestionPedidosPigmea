@@ -853,6 +853,14 @@ class WebSocketService {
       this.inactivityTimeout = null;
     }
   }
+
+  // Método público para obtener la instancia del socket
+  public getSocket(): Socket<WebSocketEvents> {
+    if (!this.socket) {
+      throw new Error('Socket no inicializado. Llama a connect() primero.');
+    }
+    return this.socket;
+  }
 }
 
 // Singleton instance
