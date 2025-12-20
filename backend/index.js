@@ -3274,15 +3274,9 @@ app.get('/api/vendedores/:id/history', requireAuth, async (req, res) => {
 
 // GET /api/materiales - Obtener todos los materiales
 app.get('/api/materiales', async (req, res) => {
-    const timestamp = new Date().toISOString();
-    const userId = req.headers['x-user-id'] || 'NO PRESENTE';
-    const userAgent = req.headers['user-agent'] || 'UNKNOWN';
-    
-    console.log(`🔍 [${timestamp}] GET /api/materiales - userId: ${userId} - User-Agent: ${userAgent.substring(0, 50)}`);
-    
     try {
         const materiales = await dbClient.getAllMateriales();
-        console.log(`✅ [${timestamp}] GET /api/materiales - Retornando ${materiales.length} materiales`);
+        console.log(`✅ Materiales obtenidos: ${materiales.length}`);
         res.status(200).json(materiales);
     } catch (error) {
         console.error('Error in GET /api/materiales:', error);

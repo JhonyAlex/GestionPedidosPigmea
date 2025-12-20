@@ -268,7 +268,6 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
         
         // 🚫 DESACTIVADO: Sistema nuevo de materiales no tiene datos aún
         // Comentar esta línea cuando se haya migrado la data
-        console.log(`⏭️ [PedidoCard ${pedido.numeroPedidoCliente}] Sistema nuevo desactivado (sin datos)`);
         materialesLoadedRef.current.add(pedido.id);
         return;
         

@@ -316,13 +316,10 @@ export function useMaterialesManager() {
             
             // Crear promesa de inicialización si no existe
             if (!initializationPromise) {
-                console.log('🚀 Iniciando carga de materiales (singleton)...');
                 initializationPromise = fetchMateriales().finally(() => {
                     // Limpiar la promesa después de completar
                     initializationPromise = null;
                 });
-            } else {
-                console.log('⏳ Ya hay una carga de materiales en progreso, esperando...');
             }
         } else {
             // Si ya está inicializado, solo actualizar el estado local
