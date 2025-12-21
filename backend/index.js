@@ -795,44 +795,11 @@ app.post('/api/auth/login', async (req, res) => {
             return;
         }
 
-        // 🔴 PRODUCCIÓN: Si llegamos aquí, la BD no está disponible
-        const isProduction = process.env.NODE_ENV === 'production';
-        if (isProduction) {
-            console.error('🚨 PRODUCCIÓN: BD no disponible - rechazando login');
-            return res.status(503).json({ 
-                error: 'Service Unavailable',
-                message: 'El sistema no está disponible. Por favor, contacte al administrador.' 
-            });
-        }
-
-        // SOLO EN DESARROLLO: usuarios hardcodeados
-        console.log('⚠️ DESARROLLO: Usando autenticación de desarrollo (sin BD)');
-        const devUsers = {
-            'admin': { password: 'admin123', role: 'Administrador', displayName: 'Administrador' },
-            'supervisor': { password: 'super123', role: 'Supervisor', displayName: 'Supervisor' },
-            'operador': { password: 'oper123', role: 'Operador', displayName: 'Operador' }
-        };
-
-        const user = devUsers[username.toLowerCase()];
-        
-        if (!user || user.password !== password) {
-            console.log(`❌ Credenciales incorrectas: ${username}/${password}`);
-            return res.status(401).json({ 
-                error: 'Credenciales incorrectas' 
-            });
-        }
-
-        console.log(`✅ Login dev exitoso: ${username}`);
-        
-        res.status(200).json({
-            success: true,
-            user: {
-                id: Math.random().toString(36).substr(2, 9),
-                username: username,
-                role: user.role,
-                displayName: user.displayName
-            },
-            message: 'Login exitoso (MODO DESARROLLO)'
+        // 🔴 Si llegamos aquí, la BD no está disponible - SIEMPRE rechazar
+        console.error('🚨 BD no disponible - rechazando login');
+        return res.status(503).json({ 
+            error: 'Service Unavailable',
+            message: 'El sistema no está disponible. Por favor, contacte al administrador.' 
         });
 
     } catch (error) {
@@ -866,27 +833,16 @@ app.post('/api/auth/register', async (req, res) => {
             });
         }
 
-        // En modo desarrollo sin base de datos, simular registro
+        // Verificar que la BD está disponible
         if (!dbClient.isInitialized) {
-            // En desarrollo, solo permitir registros únicos para esta sesión
-            console.log(`✅ Usuario registrado (dev mode): ${username} (${role})`);
-
-            const userData = {
-                id: Math.random().toString(36).substr(2, 9),
-                username: username.trim(),
-                role: role,
-                displayName: displayName?.trim() || username.trim()
-            };
-
-            res.status(201).json({
-                success: true,
-                user: userData,
-                message: 'Usuario creado exitosamente (modo desarrollo)'
+            console.error('🚨 BD no disponible - rechazando registro');
+            return res.status(503).json({ 
+                error: 'Service Unavailable',
+                message: 'El sistema no está disponible. Por favor, contacte al administrador.' 
             });
-            return;
         }
 
-        // Modo producción - usar base de datos
+        // Usar base de datos
         // Verificar si el usuario ya existe
         const existingAdmin = await dbClient.getAdminUserByUsername(username);
         
@@ -946,32 +902,12 @@ app.post('/api/auth/register', async (req, res) => {
 // GET /api/auth/users - Obtener lista de usuarios (solo para administradores)
 app.get('/api/auth/users', async (req, res) => {
     try {
+        // Verificar que la BD está disponible
         if (!dbClient.isInitialized) {
-            // Modo desarrollo sin base de datos - devolver usuarios de ejemplo
-            const now = new Date();
-            const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-            const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-            
-            return res.status(200).json({
-                success: true,
-                users: [
-                    {
-                        id: 'dev-admin-1',
-                        username: 'admin',
-                        role: 'Administrador',
-                        displayName: 'Usuario Administrador',
-                        createdAt: '2025-01-01T00:00:00.000Z',
-                        lastLogin: yesterday.toISOString()
-                    },
-                    {
-                        id: 'dev-user-1',
-                        username: 'operador1',
-                        role: 'Operador',
-                        displayName: 'Operador de Prueba',
-                        createdAt: '2025-01-15T00:00:00.000Z',
-                        lastLogin: lastWeek.toISOString()
-                    }
-                ]
+            console.error('🚨 BD no disponible - rechazando consulta de usuarios');
+            return res.status(503).json({ 
+                error: 'Service Unavailable',
+                message: 'El sistema no está disponible. Por favor, contacte al administrador.' 
             });
         }
 
@@ -1008,17 +944,12 @@ app.put('/api/auth/users/:id', async (req, res) => {
         const { id } = req.params;
         const { username, role, displayName, password } = req.body;
 
+        // Verificar que la BD está disponible
         if (!dbClient.isInitialized) {
-            // Modo desarrollo sin base de datos
-            return res.status(200).json({
-                success: true,
-                user: {
-                    id: id,
-                    username: username || 'usuario_actualizado',
-                    role: role || 'Operador',
-                    displayName: displayName || 'Usuario Actualizado'
-                },
-                message: 'Usuario actualizado exitosamente (modo desarrollo)'
+            console.error('🚨 BD no disponible - rechazando actualización de usuario');
+            return res.status(503).json({ 
+                error: 'Service Unavailable',
+                message: 'El sistema no está disponible. Por favor, contacte al administrador.' 
             });
         }
 
@@ -1080,11 +1011,12 @@ app.delete('/api/auth/users/:id', requirePermission('usuarios.admin'), async (re
     try {
         const { id } = req.params;
 
+        // Verificar que la BD está disponible
         if (!dbClient.isInitialized) {
-            // Modo desarrollo sin base de datos
-            return res.status(200).json({
-                success: true,
-                message: 'Usuario eliminado exitosamente (modo desarrollo)'
+            console.error('🚨 BD no disponible - rechazando eliminación de usuario');
+            return res.status(503).json({ 
+                error: 'Service Unavailable',
+                message: 'El sistema no está disponible. Por favor, contacte al administrador.' 
             });
         }
 
@@ -1114,30 +1046,23 @@ app.delete('/api/auth/users/:id', requirePermission('usuarios.admin'), async (re
 // GET /api/auth/permissions - Obtener configuración de permisos
 app.get('/api/auth/permissions', async (req, res) => {
     try {
-        // Configuración de permisos desde la base de datos
-        if (dbClient.isInitialized) {
-            // Obtener categorías de permisos de constants/permissions.ts
-            // pero con los datos actualizados de la BD
-            const allPermissions = await dbClient.getAllSystemPermissions();
-            
-            res.json({
-                success: true,
-                permissions: allPermissions
+        // Verificar que la BD está disponible
+        if (!dbClient.isInitialized) {
+            console.error('🚨 BD no disponible - rechazando consulta de permisos');
+            return res.status(503).json({ 
+                error: 'Service Unavailable',
+                message: 'El sistema no está disponible. Por favor, contacte al administrador.' 
             });
-            return;
         }
         
-        // Fallback para modo desarrollo sin base de datos
-        const permissions = {
-            categories: {
-                pedidos: {
-                    name: 'Gestión de Pedidos',
-                    permissions: [
-                        { id: 'pedidos.view', name: 'Ver Pedidos' },
-                        { id: 'pedidos.create', name: 'Crear Pedidos' },
-                        { id: 'pedidos.edit', name: 'Editar Pedidos' },
-                        { id: 'pedidos.delete', name: 'Eliminar Pedidos' },
-                        { id: 'pedidos.move', name: 'Mover Etapas' }
+        // Obtener categorías de permisos de constants/permissions.ts
+        // pero con los datos actualizados de la BD
+        const allPermissions = await dbClient.getAllSystemPermissions();
+        
+        res.json({
+            success: true,
+            permissions: allPermissions
+        });
                     ]
                 },
                 usuarios: {
@@ -1176,12 +1101,12 @@ app.put('/api/auth/users/:id/password', async (req, res) => {
             });
         }
 
+        // Verificar que la BD está disponible
         if (!dbClient.isInitialized) {
-            // Modo desarrollo sin base de datos - simular cambio exitoso
-            console.log(`🔄 Simulando cambio de contraseña para usuario ${id} (modo desarrollo)`);
-            return res.status(200).json({
-                success: true,
-                message: 'Contraseña actualizada exitosamente (modo desarrollo)'
+            console.error('🚨 BD no disponible - rechazando cambio de contraseña');
+            return res.status(503).json({ 
+                error: 'Service Unavailable',
+                message: 'El sistema no está disponible. Por favor, contacte al administrador.' 
             });
         }
 
@@ -1235,12 +1160,12 @@ app.put('/api/auth/admin/users/:id/password', async (req, res) => {
             });
         }
 
+        // Verificar que la BD está disponible
         if (!dbClient.isInitialized) {
-            // Modo desarrollo sin base de datos - simular cambio exitoso
-            console.log(`🔄 Simulando cambio de contraseña administrativo para usuario ${id} (modo desarrollo)`);
-            return res.status(200).json({
-                success: true,
-                message: 'Contraseña actualizada exitosamente (modo desarrollo)'
+            console.error('🚨 BD no disponible - rechazando cambio de contraseña administrativo');
+            return res.status(503).json({ 
+                error: 'Service Unavailable',
+                message: 'El sistema no está disponible. Por favor, contacte al administrador.' 
             });
         }
 
@@ -1298,11 +1223,12 @@ app.put('/api/auth/users/:id/permissions', requirePermission('permisos.admin'), 
             });
         }
 
+        // Verificar que la BD está disponible
         if (!dbClient.isInitialized) {
-            // Modo desarrollo sin base de datos
-            return res.status(200).json({
-                success: true,
-                message: 'Permisos de usuario actualizados exitosamente (modo desarrollo)'
+            console.error('🚨 BD no disponible - rechazando actualización de permisos');
+            return res.status(503).json({ 
+                error: 'Service Unavailable',
+                message: 'El sistema no está disponible. Por favor, contacte al administrador.' 
             });
         }
 
@@ -1350,11 +1276,12 @@ app.get('/api/auth/users/:id/permissions', async (req, res) => {
             });
         }
         
+        // Verificar que la BD está disponible
         if (!dbClient.isInitialized) {
-            // Modo desarrollo sin base de datos
-            return res.json({
-                success: true,
-                permissions: []
+            console.error('🚨 BD no disponible - rechazando consulta de permisos de usuario');
+            return res.status(503).json({ 
+                error: 'Service Unavailable',
+                message: 'El sistema no está disponible. Por favor, contacte al administrador.' 
             });
         }
         
@@ -1389,13 +1316,12 @@ app.post('/api/auth/users/:id/permissions/sync', async (req, res) => {
         console.log(`🔄 Sincronizando permisos para usuario ID: ${id}`);
         console.log(`📋 Permisos locales recibidos:`, localPermissions?.length || 0, 'permisos');
         
+        // Verificar que la BD está disponible
         if (!dbClient.isInitialized) {
-            console.log('⚠️ Base de datos no inicializada - modo desarrollo');
-            // Modo desarrollo sin base de datos
-            return res.json({
-                success: true,
-                permissions: localPermissions || [],
-                synced: true
+            console.error('🚨 BD no disponible - rechazando sincronización de permisos');
+            return res.status(503).json({ 
+                error: 'Service Unavailable',
+                message: 'El sistema no está disponible. Por favor, contacte al administrador.' 
             });
         }
         
@@ -1516,33 +1442,22 @@ app.post('/api/auth/users/:id/permissions/sync', async (req, res) => {
 // GET /api/permissions - Obtener lista de permisos disponibles
 app.get('/api/permissions', async (req, res) => {
     try {
-        if (dbClient.isInitialized) {
-            // Obtener permisos desde la base de datos
-            const permissions = await dbClient.getAllPermissions();
-            
-            return res.json({
-                success: true,
-                permissions
+        // Verificar que la BD está disponible
+        if (!dbClient.isInitialized) {
+            console.error('🚨 BD no disponible - rechazando consulta de permisos');
+            return res.status(503).json({ 
+                error: 'Service Unavailable',
+                message: 'El sistema no está disponible. Por favor, contacte al administrador.' 
             });
         }
         
-        // Fallback para desarrollo, devolver permisos estáticos
-        const permissions = [
-            { id: 'pedidos.view', name: 'Ver Pedidos', category: 'pedidos', enabled: true },
-            { id: 'pedidos.create', name: 'Crear Pedidos', category: 'pedidos', enabled: true },
-            { id: 'pedidos.edit', name: 'Editar Pedidos', category: 'pedidos', enabled: true },
-            { id: 'pedidos.delete', name: 'Eliminar Pedidos', category: 'pedidos', enabled: true },
-            { id: 'pedidos.stage', name: 'Cambiar Etapa', category: 'pedidos', enabled: true },
-            { id: 'users.view', name: 'Ver Usuarios', category: 'usuarios', enabled: true },
-            { id: 'users.create', name: 'Crear Usuarios', category: 'usuarios', enabled: true },
-            { id: 'users.edit', name: 'Editar Usuarios', category: 'usuarios', enabled: true },
-            { id: 'users.delete', name: 'Eliminar Usuarios', category: 'usuarios', enabled: true },
-            { id: 'users.permissions', name: 'Gestionar Permisos', category: 'usuarios', enabled: true },
-            { id: 'reports.view', name: 'Ver Reportes', category: 'reportes', enabled: true },
-            { id: 'reports.export', name: 'Exportar Reportes', category: 'reportes', enabled: true },
-            { id: 'system.settings', name: 'Configuración Sistema', category: 'sistema', enabled: true },
-            { id: 'system.audit', name: 'Auditoría Sistema', category: 'auditoria', enabled: true }
-        ];
+        // Obtener permisos desde la base de datos
+        const permissions = await dbClient.getAllPermissions();
+        
+        return res.json({
+            success: true,
+            permissions
+        });
 
         res.json({
             success: true,
@@ -1612,9 +1527,13 @@ app.get('/api/pedidos', async (req, res) => {
             'Surrogate-Control': 'no-store'
         });
 
+        // Verificar que la BD está disponible
         if (!dbClient.isInitialized) {
-            console.log('⚠️ BD no disponible - devolviendo datos mock');
-            return res.status(200).json({ pedidos: [], pagination: { page: 1, limit: 100, total: 0, totalPages: 0 } });
+            console.error('🚨 BD no disponible - rechazando consulta de pedidos');
+            return res.status(503).json({ 
+                error: 'Service Unavailable',
+                message: 'El sistema no está disponible. Por favor, contacte al administrador.' 
+            });
         }
 
         // Detectar si el cliente solicita paginación
@@ -3523,70 +3442,24 @@ app.use('/api/admin/auth/login', loginLimiter);
 // Ruta para obtener datos del dashboard administrativo
 app.get('/api/admin/dashboard', async (req, res) => {
     try {
-        // Verificar si las tablas admin existen antes de usarlas
-        let useDatabase = false;
-        if (dbClient.isInitialized && dbClient.pool) {
-            try {
-                // Intentar hacer una consulta simple para verificar si las tablas existen
-                await dbClient.pool.query("SELECT 1 FROM admin_users LIMIT 1");
-                useDatabase = true;
-            } catch (error) {
-                console.log('⚠️ Tablas de admin no disponibles, usando datos mock');
-                useDatabase = false;
-            }
+        // Verificar que la BD está disponible
+        if (!dbClient.isInitialized || !dbClient.pool) {
+            console.error('🚨 BD no disponible - rechazando consulta de dashboard');
+            return res.status(503).json({ 
+                error: 'Service Unavailable',
+                message: 'El sistema no está disponible. Por favor, contacte al administrador.' 
+            });
         }
 
-        if (!useDatabase) {
-            console.log('🔧 Usando datos mock de dashboard para modo desarrollo');
-            return res.json({
-                stats: {
-                    totalUsers: 5,
-                    activeUsers: 2,
-                    totalPedidos: 150,
-                    pedidosHoy: 12,
-                    pedidosCompletados: 140,
-                    promedioTiempoCompletado: 45,
-                    usuariosConectados: 2,
-                    sesionesActivas: 3
-                },
-                systemHealth: {
-                    status: 'healthy',
-                    uptime: '2 hours',
-                    memoryUsage: '256MB',
-                    cpuUsage: '15%',
-                    database: {
-                        status: 'healthy',
-                        connections: 5,
-                        responseTime: 42
-                    },
-                    server: {
-                        status: 'healthy',
-                        cpuUsage: 15,
-                        memoryUsage: 45
-                    },
-                    websocket: {
-                        status: 'healthy',
-                        connections: 2
-                    }
-                },
-                recentAuditLogs: [
-                    {
-                        id: '1',
-                        username: 'admin',
-                        action: 'LOGIN',
-                        module: 'auth',
-                        timestamp: new Date().toISOString(),
-                        details: 'Login exitoso'
-                    }
-                ],
-                activeUsers: [
-                    {
-                        userId: 'admin-1',
-                        username: 'admin',
-                        lastActivity: new Date().toISOString(),
-                        actionsToday: 5
-                    }
-                ]
+        // Verificar si las tablas admin existen antes de usarlas
+        try {
+            // Intentar hacer una consulta simple para verificar si las tablas existen
+            await dbClient.pool.query("SELECT 1 FROM admin_users LIMIT 1");
+        } catch (error) {
+            console.error('🚨 Tablas de admin no disponibles');
+            return res.status(503).json({ 
+                error: 'Service Unavailable',
+                message: 'El sistema no está disponible. Por favor, contacte al administrador.' 
             });
         }
 
@@ -3603,26 +3476,12 @@ app.get('/api/admin/dashboard', async (req, res) => {
         });
     } catch (error) {
         console.error('Error al obtener datos del dashboard:', error);
-        
-        // Si hay cualquier error, devolver datos mock como fallback
-        console.log('🔧 Error en dashboard, usando datos mock como fallback');
-        res.json({
-            stats: {
-                totalUsers: 5,
-                activeUsers: 2,
-                totalPedidos: 150,
-                pedidosHoy: 12,
-                pedidosCompletados: 140,
-                promedioTiempoCompletado: 45,
-                usuariosConectados: 2,
-                sesionesActivas: 3
-            },
-            systemHealth: {
-                status: 'healthy',
-                uptime: '2 hours',
-                memoryUsage: '256MB',
-                cpuUsage: '15%',
-                database: {
+        res.status(500).json({
+            error: 'Error interno del servidor',
+            message: error.message
+        });
+    }
+});
                     status: 'healthy',
                     connections: 5,
                     responseTime: 42
@@ -3744,12 +3603,12 @@ app.get('/api/comments/:pedidoId', requireAuth, async (req, res) => {
     try {
         const { pedidoId } = req.params;
         
-        // Verificar si la base de datos está disponible
+        // Verificar que la BD está disponible
         if (!dbClient.isInitialized || !dbClient.pool) {
-            return res.json({
-                success: true,
-                comments: [],
-                message: 'Base de datos no disponible - modo desarrollo'
+            console.error('🚨 BD no disponible - rechazando consulta de comentarios');
+            return res.status(503).json({
+                error: 'Service Unavailable',
+                message: 'El sistema no está disponible. Por favor, contacte al administrador.'
             });
         }
         
@@ -3797,11 +3656,12 @@ app.post('/api/comments', requireAuth, async (req, res) => {
             });
         }
 
-        // Verificar si la base de datos está disponible
+        // Verificar que la BD está disponible
         if (!dbClient.isInitialized || !dbClient.pool) {
+            console.error('🚨 BD no disponible - rechazando creación de comentario');
             return res.status(503).json({
-                success: false,
-                error: 'Base de datos no disponible - modo desarrollo'
+                error: 'Service Unavailable',
+                message: 'El sistema no está disponible. Por favor, contacte al administrador.'
             });
         }
 
@@ -3876,11 +3736,12 @@ app.delete('/api/comments/:commentId', requireAuth, async (req, res) => {
         const { commentId } = req.params;
         const userFromToken = req.user;
 
-        // Verificar si la base de datos está disponible
+        // Verificar que la BD está disponible
         if (!dbClient.isInitialized || !dbClient.pool) {
+            console.error('🚨 BD no disponible - rechazando eliminación de comentario');
             return res.status(503).json({
-                success: false,
-                error: 'Base de datos no disponible - modo desarrollo'
+                error: 'Service Unavailable',
+                message: 'El sistema no está disponible. Por favor, contacte al administrador.'
             });
         }
 
@@ -3975,24 +3836,14 @@ async function startServer() {
         
     } catch (error) {
         console.error('❌ Error al conectar a PostgreSQL:', error.message);
-        
-        if (process.env.NODE_ENV === 'production') {
-            console.error('🚨 El servidor no puede continuar sin base de datos en producción');
-            process.exit(1);
-        } else {
-            console.log('🔄 Continuando sin base de datos en modo desarrollo');
-            console.log('💡 Se usarán usuarios hardcodeados para autenticación');
-        }
+        console.error('🚨 El servidor no puede continuar sin base de datos');
+        process.exit(1);
     }
 
     // Iniciar el servidor HTTP
     server.listen(PORT, '0.0.0.0', () => {
         console.log(`🚀 Servidor iniciado en puerto ${PORT}`);
-        if (dbClient.isInitialized) {
-            console.log('✅ PostgreSQL conectado - Sistema operativo');
-        } else {
-            console.log('⚠️ Modo desarrollo - Base de datos no disponible');
-        }
+        console.log('✅ PostgreSQL conectado - Sistema operativo');
     });
 }
 

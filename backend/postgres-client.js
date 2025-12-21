@@ -2783,30 +2783,16 @@ class PostgreSQLClient {
         try {
             console.log(`🔍 Verificando permiso '${permissionId}' para usuario ID: ${userId}`);
             
+            // Verificar que la BD está disponible
+            if (!this.isInitialized) {
+                console.error(`🚨 BD no disponible - rechazando verificación de permisos`);
+                throw new Error('Base de datos no disponible');
+            }
+            
             const userRole = userFromRequest?.role || 'OPERATOR';
             if (userRole === 'Administrador' || userRole === 'ADMIN') {
                 console.log(`👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS`);
                 return true;
-            }
-            
-            if (!this.isInitialized) {
-                console.log(`🔧 BD no disponible, usando permisos del frontend en modo desarrollo`);
-                
-                if (userFromRequest && userFromRequest.permissions && Array.isArray(userFromRequest.permissions)) {
-                    const userPermission = userFromRequest.permissions.find(perm => perm.id === permissionId);
-                    const hasPermission = userPermission ? userPermission.enabled : false;
-                    
-                    console.log(`✅ Permiso '${permissionId}' ${hasPermission ? 'PERMITIDO' : 'DENEGADO'} según permisos del frontend`);
-                    return hasPermission;
-                }
-                
-                const rolePermissions = this.getDefaultPermissionsForRole(userRole);
-                const hasPermission = rolePermissions.some(perm => 
-                    perm.permissionId === permissionId && perm.enabled
-                );
-                
-                console.log(`✅ Permiso '${permissionId}' ${hasPermission ? 'PERMITIDO' : 'DENEGADO'} según rol ${userRole} en modo desarrollo`);
-                return hasPermission;
             }
             
             let user = await this.getAdminUserById(userId);
@@ -2831,14 +2817,8 @@ class PostgreSQLClient {
                     return hasPermission;
                 }
                 
-                console.log(`⚠️ Usuario ${userId} no encontrado, asignando permisos de administrador por seguridad`);
-                const fallbackPermissions = this.getDefaultPermissionsForRole('ADMIN');
-                const hasPermission = fallbackPermissions.some(perm => 
-                    perm.permissionId === permissionId && perm.enabled
-                );
-                
-                console.log(`✅ Permiso '${permissionId}' ${hasPermission ? 'PERMITIDO' : 'DENEGADO'} por fallback`);
-                return hasPermission;
+                console.error(`❌ Usuario ${userId} no encontrado en la base de datos`);
+                throw new Error('Usuario no encontrado');
             }
             
             console.log(`👤 Usuario encontrado: ${user.username}, rol: ${user.role}`);

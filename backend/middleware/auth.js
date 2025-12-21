@@ -122,7 +122,7 @@ const authenticateUser = async (req, res, next) => {
                             email: user.email
                         };
                     } else {
-                        console.log('   - ⚠️ Usuario no encontrado en BD');
+                        console.log('   - ❌ Usuario no encontrado en BD');
                         // Usuario no existe en BD - autenticación fallida
                         return res.status(401).json({
                             error: 'Unauthorized',
@@ -130,23 +130,12 @@ const authenticateUser = async (req, res, next) => {
                         });
                     }
                 } else {
-                    // Solo en desarrollo: permitir fallback a headers
-                    console.log('   - ⚠️ BD no inicializada - MODO DESARROLLO');
-                    console.log('   - ⚠️ Usando autenticación de headers (SOLO DESARROLLO)');
-                    req.user = {
-                        id: userId,
-                        role: userRole || 'OPERATOR'
-                    };
-                    
-                    // En modo desarrollo, incluir permisos del frontend si están disponibles
-                    if (userPermissions) {
-                        try {
-                            req.user.permissions = JSON.parse(userPermissions);
-                            console.log('   - ✅ Permisos incluidos desde header:', req.user.permissions?.length || 0);
-                        } catch (error) {
-                            console.warn('   - ⚠️ Error parsing user permissions from header:', error.message);
-                        }
-                    }
+                    // BD no inicializada - rechazar autenticación
+                    console.error('   - 🚨 BD no inicializada - rechazando autenticación');
+                    return res.status(503).json({
+                        error: 'Service Unavailable',
+                        message: 'El sistema no está disponible. Por favor, contacte al administrador.'
+                    });
                 }
             } catch (error) {
                 console.error('   - ❌ Error validando usuario:', error.message);
