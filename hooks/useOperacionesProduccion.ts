@@ -87,14 +87,6 @@ export function useOperacionesProduccion() {
 
         socket.on('operacion-iniciada', handleOperacionIniciada);
         socket.on('operacion-pausada', handleOperacionPausada);
-        socket.on('operacion-reanudada', handleOperacionReanudada);
-        socket.on('operacion-completada', handleOperacionCompletada);
-        socket.on('operacion-cancelada', handleOperacionCancelada);
-
-        return () => {
-            socket?.off('operacion-iniciada', handleOperacionIniciada);
-            socket?.off('operacion-pausada', handleOperacionPausada);
-            socket?.off('operacion-reanudada', handleOperacionReanudada);
         const handleOperacionCompletada = (operacion: OperacionProduccion) => {
             setOperacionesActivas(prev => prev.filter(op => op.id !== operacion.id));
             if (operacion.operadorId === user?.id) {
@@ -123,7 +115,41 @@ export function useOperacionesProduccion() {
             socket.off('operacion-pausada', handleOperacionPausada);
             socket.off('operacion-reanudada', handleOperacionReanudada);
             socket.off('operacion-completada', handleOperacionCompletada);
-            socket
+            socket.off('operacion-cancelada', handleOperacionCancelada);
+        };
+    }, [user?.id]);
+
+    // ============================================
+    // FUNCIONES DE API
+    // ============================================
+
+    const cargarOperacionesActivas = useCallback(async (filtros?: { operadorId?: string; maquina?: string; etapa?: string }) => {
+        setLoading(true);
+        setError(null);
+        
+        try {
+            const params = new URLSearchParams();
+            if (filtros?.operadorId) params.append('operadorId', filtros.operadorId);
+            if (filtros?.maquina) params.append('maquina', filtros.maquina);
+            if (filtros?.etapa) params.append('etapa', filtros.etapa);
+            
+            const response = await fetch(`${API_URL}/produccion/operaciones-activas?${params.toString()}`, {
+                headers: getAuthHeaders()
+            });
+            
+            if (!response.ok) throw new Error('Error al cargar operaciones activas');
+            
+            const data = await response.json();
+            setOperacionesActivas(data.operaciones || []);
+            
+            // Buscar mi operación actual
+            const miOperacion = data.operaciones?.find((op: OperacionActivaCompleta) => op.operadorId === user?.id);
+            setMiOperacionActual(miOperacion || null);
+            
+        } catch (err) {
+            console.error('Error cargando operaciones activas:', err);
+            setError(err instanceof Error ? err.message : 'Error desconocido');
+        } finally {
             setLoading(false);
         }
     }, [user?.id]);
