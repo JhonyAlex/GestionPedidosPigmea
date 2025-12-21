@@ -1,96 +1,280 @@
-2025-12-21T12:19:24.892Z CREATE INDEX
-2025-12-21T12:19:24.894Z CREATE INDEX
-2025-12-21T12:19:24.894Z psql:../database/migrations/026-create-produccion-tracking.sql:75: NOTICE:  relation "idx_metraje_pedido_id" already exists, skipping
-2025-12-21T12:19:24.894Z CREATE INDEX
-2025-12-21T12:19:24.894Z psql:../database/migrations/026-create-produccion-tracking.sql:76: NOTICE:  relation "idx_metraje_fecha" already exists, skipping
-2025-12-21T12:19:24.895Z CREATE TABLE
-2025-12-21T12:19:24.895Z psql:../database/migrations/026-create-produccion-tracking.sql:92: NOTICE:  relation "observaciones_produccion" already exists, skipping
-2025-12-21T12:19:24.895Z CREATE INDEX
-2025-12-21T12:19:24.895Z psql:../database/migrations/026-create-produccion-tracking.sql:94: NOTICE:  relation "idx_observaciones_operacion_id" already exists, skipping
-2025-12-21T12:19:24.896Z psql:../database/migrations/026-create-produccion-tracking.sql:95: NOTICE:  relation "idx_observaciones_pedido_id" already exists, skipping
-2025-12-21T12:19:24.896Z CREATE INDEX
-2025-12-21T12:19:24.896Z psql:../database/migrations/026-create-produccion-tracking.sql:96: NOTICE:  relation "idx_observaciones_fecha" already exists, skipping
-2025-12-21T12:19:24.896Z CREATE INDEX
-2025-12-21T12:19:24.899Z psql:../database/migrations/026-create-produccion-tracking.sql:97: NOTICE:  relation "idx_observaciones_tipo" already exists, skipping
-2025-12-21T12:19:24.899Z CREATE INDEX
-2025-12-21T12:19:24.941Z psql:../database/migrations/026-create-produccion-tracking.sql:143: NOTICE:  ℹ️ Columna metros_restantes ya existe, se mantiene
-2025-12-21T12:19:24.944Z psql:../database/migrations/026-create-produccion-tracking.sql:143: NOTICE:  ℹ️ Columna porcentaje_completado ya existe, se mantiene
-2025-12-21T12:19:24.949Z DO
-2025-12-21T12:19:24.950Z CREATE INDEX
-2025-12-21T12:19:24.950Z psql:../database/migrations/026-create-produccion-tracking.sql:145: NOTICE:  relation "idx_pedidos_operador_actual" already exists, skipping
-2025-12-21T12:19:24.950Z CREATE INDEX
-2025-12-21T12:19:24.950Z psql:../database/migrations/026-create-produccion-tracking.sql:146: NOTICE:  relation "idx_pedidos_operacion_curso" already exists, skipping
-2025-12-21T12:19:24.951Z psql:../database/migrations/026-create-produccion-tracking.sql:147: NOTICE:  relation "idx_pedidos_metros_producidos" already exists, skipping
-2025-12-21T12:19:24.951Z CREATE INDEX
-2025-12-21T12:19:24.953Z CREATE FUNCTION
-2025-12-21T12:19:24.954Z DROP TRIGGER
-2025-12-21T12:19:24.955Z CREATE TRIGGER
-2025-12-21T12:19:24.956Z CREATE FUNCTION
-2025-12-21T12:19:24.957Z DROP TRIGGER
-2025-12-21T12:19:24.958Z CREATE TRIGGER
-2025-12-21T12:19:24.962Z id | pedido_id | operador_id | operador_nombre | maquina | etapa | estado | fecha_inicio | fecha_fin | tiempo_total_segundos | tiempo_pausado_segundos | metros_producidos | metros_objetivo | observaciones | motivo_pausa | metadata | created_at | updated_at | numero_pedido_cliente | cliente | metros_totales_pedido | producto | colores | prioridad | fecha_entrega | observaciones_pedido | segundos_desde_inicio
-2025-12-21T12:19:24.962Z ----+-----------+-------------+-----------------+---------+-------+--------+--------------+-----------+-----------------------+-------------------------+-------------------+-----------------+---------------+--------------+----------+------------+------------+-----------------------+---------+-----------------------+----------+---------+-----------+---------------+----------------------+-----------------------
-2025-12-21T12:19:24.962Z (0 rows)
-2025-12-21T12:19:24.965Z CREATE VIEW
-2025-12-21T12:19:24.969Z CREATE VIEW
-2025-12-21T12:19:24.972Z ✅ Migración 'Crear Sistema de Tracking de Producción' aplicada exitosamente.
-2025-12-21T12:19:24.972Z 🔄 Aplicando migración: Crear Sistema de Gestión de Materiales...
-2025-12-21T12:19:25.005Z psql:../database/migrations/027-create-materiales-table.sql:15: NOTICE:  relation "materiales" already exists, skipping
-2025-12-21T12:19:25.005Z CREATE TABLE
-2025-12-21T12:19:25.007Z COMMENT
-2025-12-21T12:19:25.008Z COMMENT
-2025-12-21T12:19:25.008Z COMMENT
-2025-12-21T12:19:25.010Z COMMENT
-2025-12-21T12:19:25.011Z COMMENT
-2025-12-21T12:19:25.012Z psql:../database/migrations/027-create-materiales-table.sql:25: NOTICE:  relation "idx_materiales_numero" already exists, skipping
-2025-12-21T12:19:25.012Z CREATE INDEX
-2025-12-21T12:19:25.013Z psql:../database/migrations/027-create-materiales-table.sql:28: NOTICE:  relation "idx_materiales_estados" already exists, skipping
-2025-12-21T12:19:25.013Z CREATE INDEX
-2025-12-21T12:19:25.018Z CREATE FUNCTION
-2025-12-21T12:19:25.023Z DROP TRIGGER
-2025-12-21T12:19:25.024Z CREATE TRIGGER
-2025-12-21T12:19:25.025Z psql:../database/migrations/027-create-materiales-table.sql:54: NOTICE:  relation "pedidos_materiales" already exists, skipping
-2025-12-21T12:19:25.025Z CREATE TABLE
-2025-12-21T12:19:25.027Z COMMENT
-2025-12-21T12:19:25.028Z psql:../database/migrations/027-create-materiales-table.sql:60: NOTICE:  relation "idx_pedidos_materiales_pedido" already exists, skipping
-2025-12-21T12:19:25.028Z CREATE INDEX
-2025-12-21T12:19:25.029Z psql:../database/migrations/027-create-materiales-table.sql:61: NOTICE:  relation "idx_pedidos_materiales_material" already exists, skipping
-2025-12-21T12:19:25.029Z CREATE INDEX
-2025-12-21T12:19:25.093Z psql:../database/migrations/027-create-materiales-table.sql:111: NOTICE:  Migración de números de compra a materiales completada
-2025-12-21T12:19:25.096Z DO
-2025-12-21T12:19:25.097Z ✅ Migración 'Crear Sistema de Gestión de Materiales' aplicada exitosamente.
-2025-12-21T12:19:25.097Z === SCRIPT DE MIGRACIÓN COMPLETADO ===
-2025-12-21T12:19:25.097Z 🚀 Migraciones completadas. Iniciando servidor Node.js...
-2025-12-21T12:19:25.227Z [dotenv@17.2.2] injecting env (5) from .env -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
-2025-12-21T12:19:25.679Z 🔄 Intentando conectar a PostgreSQL...
-2025-12-21T12:19:25.680Z 👂 Event listeners del pool configurados
-2025-12-21T12:19:25.751Z 🔗 Nueva conexión al pool establecida
-2025-12-21T12:19:25.751Z ✅ PostgreSQL conectado correctamente
-2025-12-21T12:19:25.751Z - Host: control-produccin-pigmea-gestionpedidosdb-vcfcjc:5432
-2025-12-21T12:19:25.752Z - Database: desde DATABASE_URL
-2025-12-21T12:19:25.752Z - Max connections: 50
-2025-12-21T12:19:25.753Z 🔧 Iniciando creación/verificación de tablas...
-2025-12-21T12:19:25.756Z ✅ Extensión uuid-ossp verificada
-2025-12-21T12:19:25.757Z ✅ Tabla admin_users verificada
-2025-12-21T12:19:25.773Z 📋 Columnas existentes en admin_users: id, username, password_hash, role, is_active, created_at, updated_at, last_login_at, email, first_name, last_name, permissions, last_login, last_activity, ip_address, user_agent
-2025-12-21T12:19:25.780Z ✅ Constraint de rol actualizado
-2025-12-21T12:19:25.780Z 🔄 Verificando usuarios existentes...
-2025-12-21T12:19:25.783Z ✅ Todos los usuarios ya están actualizados
-2025-12-21T12:19:25.783Z ✅ Columnas de admin_users verificadas
-2025-12-21T12:19:25.790Z ✅ Tabla user_permissions verificada
-2025-12-21T12:19:25.790Z ✅ Tabla pedidos verificada (creada por migración)
-2025-12-21T12:19:25.791Z ✅ Tabla users verificada
-2025-12-21T12:19:25.791Z ✅ Tabla audit_log verificada
-2025-12-21T12:19:25.794Z ⚠️ Tabla audit_logs y clave foránea procesadas (puede haber avisos)
-2025-12-21T12:19:25.795Z ✅ Tabla pedido_comments creada
-2025-12-21T12:19:25.796Z ✅ Tabla vendedores creada
-2025-12-21T12:19:25.801Z ✅ Índices verificados
-2025-12-21T12:19:25.806Z ✅ Triggers configurados
-2025-12-21T12:19:25.815Z ✅ Columna vendedor_id verificada/creada
-2025-12-21T12:19:25.815Z 🎉 Todas las tablas han sido verificadas/creadas exitosamente
-2025-12-21T12:19:25.816Z 🔄 Health checks periódicos iniciados (cada 10s)
-2025-12-21T12:19:25.816Z 🐘 PostgreSQL conectado exitosamente
-2025-12-21T12:19:25.816Z ✅ dbClient compartido con middlewares
-2025-12-21T12:19:25.821Z 🚀 Servidor iniciado en puerto 8080
-2025-12-21T12:19:25.821Z ✅ PostgreSQL conectado - Sistema operativo
-2025-12-21T12:19:30.710Z 📨 [1] GET /api/health - User: anonymous - 2025-12-21T12:19:30.710Z
+Initializing deployment
+Cloning Repo github.com/JhonyAlex/GestionPedidosPigmea.git to /etc/dokploy/applications/control-produccin-pigmea-produccionpgimea-7mvrtg/code: ✅
+Cloning into '/etc/dokploy/applications/control-produccin-pigmea-produccionpgimea-7mvrtg/code'...
+remote: Enumerating objects: 278, done.
+Cloned github.com/JhonyAlex/GestionPedidosPigmea.git: ✅
+Build dockerfile: ✅
+Source Type: github: ✅
+#0 building with "default" instance using docker driver
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.07kB done
+#1 DONE 0.0s
+#2 [internal] load metadata for docker.io/library/node:18-alpine
+#2 DONE 0.7s
+#3 [internal] load .dockerignore
+#3 transferring context: 34B done
+#3 DONE 0.0s
+#4 [ 1/16] FROM docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e
+#4 DONE 0.0s
+#5 [ 2/16] WORKDIR /app
+#5 CACHED
+#6 [internal] load build context
+#6 transferring context: 3.10MB 0.1s done
+#6 DONE 0.1s
+#7 [ 3/16] COPY package*.json ./
+#7 DONE 0.1s
+#8 [ 4/16] COPY backend/package*.json ./backend/
+#8 DONE 0.2s
+#9 [ 5/16] RUN npm install
+#9 1.495 npm warn EBADENGINE Unsupported engine {
+#9 1.495 npm warn EBADENGINE   package: '@vitejs/plugin-react@5.0.1',
+#9 1.495 npm warn EBADENGINE   required: { node: '^20.19.0 || >=22.12.0' },
+#9 1.495 npm warn EBADENGINE   current: { node: 'v18.20.8', npm: '10.8.2' }
+#9 1.495 npm warn EBADENGINE }
+#9 5.413 npm warn deprecated react-beautiful-dnd@13.1.1: react-beautiful-dnd is now deprecated. Context and options: https://github.com/atlassian/react-beautiful-dnd/issues/2672
+#9 6.428
+#9 6.428 added 133 packages, and audited 134 packages in 6s
+#9 6.428
+#9 6.428 17 packages are looking for funding
+#9 6.428   run `npm fund` for details
+#9 6.447
+#9 6.447 1 moderate severity vulnerability
+#9 6.447
+#9 6.447 To address all issues, run:
+#9 6.447   npm audit fix
+#9 6.447
+#9 6.447 Run `npm audit` for details.
+#9 6.450 npm notice
+#9 6.450 npm notice New major version of npm available! 10.8.2 -> 11.7.0
+#9 6.450 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.7.0
+#9 6.450 npm notice To update run: npm install -g npm@11.7.0
+#9 6.450 npm notice
+#9 DONE 6.6s
+#10 [ 6/16] RUN cd backend && npm install
+#10 3.313
+#10 3.313 added 128 packages, and audited 129 packages in 3s
+#10 3.313
+#10 3.313 17 packages are looking for funding
+#10 3.313   run `npm fund` for details
+#10 3.316
+#10 3.316 1 high severity vulnerability
+#10 3.316
+#10 3.316 To address all issues, run:
+#10 3.316   npm audit fix
+#10 3.316
+#10 3.316 Run `npm audit` for details.
+#10 DONE 3.4s
+#11 [ 7/16] COPY . .
+#11 DONE 0.1s
+#12 [ 8/16] RUN npm install @vitejs/plugin-react vite terser --save-dev
+#12 1.181 npm warn idealTree Removing dependencies.@vitejs/plugin-react in favor of devDependencies.@vitejs/plugin-react
+#12 5.389
+#12 5.389 changed 4 packages, and audited 134 packages in 5s
+#12 5.390
+#12 5.390 17 packages are looking for funding
+#12 5.390   run `npm fund` for details
+#12 5.392
+#12 5.392 found 0 vulnerabilities
+#12 DONE 5.5s
+#13 [ 9/16] RUN npm run build
+#13 0.573
+#13 0.573 > gestor-de-pedidos-pigmea@0.0.0 build
+#13 0.573 > vite build
+#13 0.573
+#13 1.095 NODE_ENV=production is not supported in the .env file. Only NODE_ENV=development is supported to create a development build of your project. If you need to set process.env.NODE_ENV, you can set it in the Vite config instead.
+#13 1.161 vite v6.4.1 building for production...
+#13 2.431 transforming...
+#13 4.180 ✓ 96 modules transformed.
+#13 4.184 ✗ Build failed in 2.97s
+#13 4.184 error during build:
+#13 4.184 [vite:esbuild] Transform failed with 2 errors:
+#13 4.184 /app/hooks/useOperacionesProduccion.ts:90:14: ERROR: The symbol "handleOperacionCompletada" has already been declared
+#13 4.184 /app/hooks/useOperacionesProduccion.ts:100:14: ERROR: The symbol "handleOperacionCancelada" has already been declared
+#13 4.184 file: /app/hooks/useOperacionesProduccion.ts:90:14
+#13 4.184
+#13 4.184 The symbol "handleOperacionCompletada" has already been declared
+#13 4.184 88 |          socket.on('operacion-iniciada', handleOperacionIniciada);
+#13 4.184 89 |          socket.on('operacion-pausada', handleOperacionPausada);
+#13 4.184 90 |          const handleOperacionCompletada = (operacion: OperacionProduccion) => {
+#13 4.184    |                ^
+#13 4.184 91 |              setOperacionesActivas(prev => prev.filter(op => op.id !== operacion.id));
+#13 4.184 92 |              if (operacion.operadorId === user?.id) {
+#13 4.184
+#13 4.184 The symbol "handleOperacionCancelada" has already been declared
+#13 4.184 98 |          };
+#13 4.184 99 |
+#13 4.184 100|          const handleOperacionCancelada = (operacion: OperacionProduccion) => {
+#13 4.184    |                ^
+#13 4.184 101|              setOperacionesActivas(prev => prev.filter(op => op.id !== operacion.id));
+#13 4.184 102|              if (operacion.operadorId === user?.id) {
+#13 4.184
+#13 4.184     at failureErrorWithLog (/app/node_modules/esbuild/lib/main.js:1467:15)
+#13 4.184     at /app/node_modules/esbuild/lib/main.js:736:50
+#13 4.184     at responseCallbacks.<computed> (/app/node_modules/esbuild/lib/main.js:603:9)
+#13 4.184     at handleIncomingPacket (/app/node_modules/esbuild/lib/main.js:658:12)
+#13 4.184     at Socket.readFromStdout (/app/node_modules/esbuild/lib/main.js:581:7)
+#13 4.184     at Socket.emit (node:events:517:28)
+#13 4.184     at addChunk (node:internal/streams/readable:368:12)
+#13 4.184     at readableAddChunk (node:internal/streams/readable:341:9)
+#13 4.184     at Readable.push (node:internal/streams/readable:278:10)
+#13 4.184     at Pipe.onStreamRead (node:internal/stream_base_commons:190:23)
+#13 ERROR: process "/bin/sh -c npm run build" did not complete successfully: exit code: 1
+------
+> [ 9/16] RUN npm run build:
+4.184     at failureErrorWithLog (/app/node_modules/esbuild/lib/main.js:1467:15)
+4.184     at /app/node_modules/esbuild/lib/main.js:736:50
+4.184     at responseCallbacks.<computed> (/app/node_modules/esbuild/lib/main.js:603:9)
+4.184     at handleIncomingPacket (/app/node_modules/esbuild/lib/main.js:658:12)
+4.184     at Socket.readFromStdout (/app/node_modules/esbuild/lib/main.js:581:7)
+4.184     at Socket.emit (node:events:517:28)
+4.184     at addChunk (node:internal/streams/readable:368:12)
+4.184     at readableAddChunk (node:internal/streams/readable:341:9)
+4.184     at Readable.push (node:internal/streams/readable:278:10)
+4.184     at Pipe.onStreamRead (node:internal/stream_base_commons:190:23)
+------
+Dockerfile:21
+--------------------
+|
+|     # Build the frontend (aplicación principal)
+| >>> RUN npm run build
+|
+|     # Install psql client and dos2unix utility
+--------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c npm run build" did not complete successfully: exit code: 1
+Error ❌
+#0 building with "default" instance using docker driver
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.07kB done
+#1 DONE 0.0s
+#2 [internal] load metadata for docker.io/library/node:18-alpine
+#2 DONE 0.7s
+#3 [internal] load .dockerignore
+#3 transferring context: 34B done
+#3 DONE 0.0s
+#4 [ 1/16] FROM docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e
+#4 DONE 0.0s
+#5 [ 2/16] WORKDIR /app
+#5 CACHED
+#6 [internal] load build context
+#6 transferring context: 3.10MB 0.1s done
+#6 DONE 0.1s
+#7 [ 3/16] COPY package*.json ./
+#7 DONE 0.1s
+#8 [ 4/16] COPY backend/package*.json ./backend/
+#8 DONE 0.2s
+#9 [ 5/16] RUN npm install
+#9 1.495 npm warn EBADENGINE Unsupported engine {
+#9 1.495 npm warn EBADENGINE   package: '@vitejs/plugin-react@5.0.1',
+#9 1.495 npm warn EBADENGINE   required: { node: '^20.19.0 || >=22.12.0' },
+#9 1.495 npm warn EBADENGINE   current: { node: 'v18.20.8', npm: '10.8.2' }
+#9 1.495 npm warn EBADENGINE }
+#9 5.413 npm warn deprecated react-beautiful-dnd@13.1.1: react-beautiful-dnd is now deprecated. Context and options: https://github.com/atlassian/react-beautiful-dnd/issues/2672
+#9 6.428
+#9 6.428 added 133 packages, and audited 134 packages in 6s
+#9 6.428
+#9 6.428 17 packages are looking for funding
+#9 6.428   run `npm fund` for details
+#9 6.447
+#9 6.447 1 moderate severity vulnerability
+#9 6.447
+#9 6.447 To address all issues, run:
+#9 6.447   npm audit fix
+#9 6.447
+#9 6.447 Run `npm audit` for details.
+#9 6.450 npm notice
+#9 6.450 npm notice New major version of npm available! 10.8.2 -> 11.7.0
+#9 6.450 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.7.0
+#9 6.450 npm notice To update run: npm install -g npm@11.7.0
+#9 6.450 npm notice
+#9 DONE 6.6s
+#10 [ 6/16] RUN cd backend && npm install
+#10 3.313
+#10 3.313 added 128 packages, and audited 129 packages in 3s
+#10 3.313
+#10 3.313 17 packages are looking for funding
+#10 3.313   run `npm fund` for details
+#10 3.316
+#10 3.316 1 high severity vulnerability
+#10 3.316
+#10 3.316 To address all issues, run:
+#10 3.316   npm audit fix
+#10 3.316
+#10 3.316 Run `npm audit` for details.
+#10 DONE 3.4s
+#11 [ 7/16] COPY . .
+#11 DONE 0.1s
+#12 [ 8/16] RUN npm install @vitejs/plugin-react vite terser --save-dev
+#12 1.181 npm warn idealTree Removing dependencies.@vitejs/plugin-react in favor of devDependencies.@vitejs/plugin-react
+#12 5.389
+#12 5.389 changed 4 packages, and audited 134 packages in 5s
+#12 5.390
+#12 5.390 17 packages are looking for funding
+#12 5.390   run `npm fund` for details
+#12 5.392
+#12 5.392 found 0 vulnerabilities
+#12 DONE 5.5s
+#13 [ 9/16] RUN npm run build
+#13 0.573
+#13 0.573 > gestor-de-pedidos-pigmea@0.0.0 build
+#13 0.573 > vite build
+#13 0.573
+#13 1.095 NODE_ENV=production is not supported in the .env file. Only NODE_ENV=development is supported to create a development build of your project. If you need to set process.env.NODE_ENV, you can set it in the Vite config instead.
+#13 1.161 vite v6.4.1 building for production...
+#13 2.431 transforming...
+#13 4.180 ✓ 96 modules transformed.
+#13 4.184 ✗ Build failed in 2.97s
+#13 4.184 error during build:
+#13 4.184 [vite:esbuild] Transform failed with 2 errors:
+#13 4.184 /app/hooks/useOperacionesProduccion.ts:90:14: ERROR: The symbol "handleOperacionCompletada" has already been declared
+#13 4.184 /app/hooks/useOperacionesProduccion.ts:100:14: ERROR: The symbol "handleOperacionCancelada" has already been declared
+#13 4.184 file: /app/hooks/useOperacionesProduccion.ts:90:14
+#13 4.184
+#13 4.184 The symbol "handleOperacionCompletada" has already been declared
+#13 4.184 88 |          socket.on('operacion-iniciada', handleOperacionIniciada);
+#13 4.184 89 |          socket.on('operacion-pausada', handleOperacionPausada);
+#13 4.184 90 |          const handleOperacionCompletada = (operacion: OperacionProduccion) => {
+#13 4.184    |                ^
+#13 4.184 91 |              setOperacionesActivas(prev => prev.filter(op => op.id !== operacion.id));
+#13 4.184 92 |              if (operacion.operadorId === user?.id) {
+#13 4.184
+#13 4.184 The symbol "handleOperacionCancelada" has already been declared
+#13 4.184 98 |          };
+#13 4.184 99 |
+#13 4.184 100|          const handleOperacionCancelada = (operacion: OperacionProduccion) => {
+#13 4.184    |                ^
+#13 4.184 101|              setOperacionesActivas(prev => prev.filter(op => op.id !== operacion.id));
+#13 4.184 102|              if (operacion.operadorId === user?.id) {
+#13 4.184
+#13 4.184     at failureErrorWithLog (/app/node_modules/esbuild/lib/main.js:1467:15)
+#13 4.184     at /app/node_modules/esbuild/lib/main.js:736:50
+#13 4.184     at responseCallbacks.<computed> (/app/node_modules/esbuild/lib/main.js:603:9)
+#13 4.184     at handleIncomingPacket (/app/node_modules/esbuild/lib/main.js:658:12)
+#13 4.184     at Socket.readFromStdout (/app/node_modules/esbuild/lib/main.js:581:7)
+#13 4.184     at Socket.emit (node:events:517:28)
+#13 4.184     at addChunk (node:internal/streams/readable:368:12)
+#13 4.184     at readableAddChunk (node:internal/streams/readable:341:9)
+#13 4.184     at Readable.push (node:internal/streams/readable:278:10)
+#13 4.184     at Pipe.onStreamRead (node:internal/stream_base_commons:190:23)
+#13 ERROR: process "/bin/sh -c npm run build" did not complete successfully: exit code: 1
+------
+> [ 9/16] RUN npm run build:
+4.184     at failureErrorWithLog (/app/node_modules/esbuild/lib/main.js:1467:15)
+4.184     at /app/node_modules/esbuild/lib/main.js:736:50
+4.184     at responseCallbacks.<computed> (/app/node_modules/esbuild/lib/main.js:603:9)
+4.184     at handleIncomingPacket (/app/node_modules/esbuild/lib/main.js:658:12)
+4.184     at Socket.readFromStdout (/app/node_modules/esbuild/lib/main.js:581:7)
+4.184     at Socket.emit (node:events:517:28)
+4.184     at addChunk (node:internal/streams/readable:368:12)
+4.184     at readableAddChunk (node:internal/streams/readable:341:9)
+4.184     at Readable.push (node:internal/streams/readable:278:10)
+4.184     at Pipe.onStreamRead (node:internal/stream_base_commons:190:23)
+------
+Dockerfile:21
+--------------------
+|
+|     # Build the frontend (aplicación principal)
+| >>> RUN npm run build
+|
+|     # Install psql client and dos2unix utility
+--------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c npm run build" did not complete successfully: exit code: 1

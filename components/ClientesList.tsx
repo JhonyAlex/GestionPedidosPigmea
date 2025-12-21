@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useClientesManager, Cliente, ClienteCreateRequest, ClienteUpdateRequest } from '../hooks/useClientesManager';
 import ClienteCard from './ClienteCard';
 import ClienteModalMejorado from './ClienteModalMejorado';
 import ClienteDetailModal from './ClienteDetailModal';
 import DeleteClienteModal from './DeleteClienteModal';
+import ClienteSearchDropdown from './ClienteSearchDropdown';
 import { Icons } from './Icons';
 import { clienteService } from '../services/clienteService';
 
@@ -30,11 +31,72 @@ const ClientesList: React.FC<ClientesListProps> = ({ onCrearPedido, onNavigateTo
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [clienteToDelete, setClienteToDelete] = useState<Cliente | null>(null);
     
-    // 🚀 NUEVO: Estado para estadísticas en batch
+    // � Estado para búsqueda
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+    const searchContainerRef = useRef<HTMLDivElement>(null);
+    
+    // �🚀 NUEVO: Estado para estadísticas en batch
     const [clientesStats, setClientesStats] = useState<Record<string, any>>({});
     const [isLoadingStats, setIsLoadingStats] = useState(false);
 
-    // 🚀 NUEVO: Cargar estadísticas de todos los clientes en batch
+    // 🚀 NUEVO: Ca
+
+    // 🔍 Cerrar dropdown de búsqueda al hacer click fuera
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            
+            // No cerrar si el clic es dentro del dropdown
+            if (target.closest('.cliente-search-dropdown')) {
+                return;
+            }
+            
+            if (searchContainerRef.current && !searchContainerRef.current.contains(target)) {
+                setShowSearchDropdown(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+      
+
+    // 🔍 Función para filtrar clientes basada en el término de búsqueda
+    const searchResults = React.useMemo(() => {
+        if (!searchTerm || searchTerm.trim().length === 0) {
+            return [];
+        }
+
+        const searchTermLower = searchTerm.toLowerCase();
+        return clientes.filter(c => {
+            return (
+                c.nombre.toLowerCase().includes(searchTermLower) ||
+                (c.razon_social && c.razon_social.toLowerCase().includes(searchTermLower)) ||
+                (c.cif && c.cif.toLowerCase().includes(searchTermLower)) ||
+                (c.telefono && c.telefono.toLowerCase().includes(searchTermLower)) ||
+                (c.email && c.email.toLowerCase().includes(searchTermLower)) ||
+                (c.poblacion && c.poblacion.toLowerCase().includes(searchTermLower)) ||
+                (c.provincia && c.provincia.toLowerCase().includes(searchTermLower)) ||
+                (c.observaciones && c.observaciones.toLowerCase().includes(searchTermLower))
+            );
+        });
+    }, [searchTerm, clientes]);
+
+    // 🔍 Manejar cambio en el campo de búsqueda
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setSearchTerm(value);
+        setShowSearchDropdown(value.trim().length > 0);
+    };
+
+    // 🔍 Manejar selección de cliente desde el dropdown
+    const handleSelectCliente = (cliente: Cliente) => {
+        setShowSearchDropdown(false);
+        setSearchTerm('');
+        handleClienteClick(cliente);
+    };      document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);rgar estadísticas de todos los clientes en batch
     useEffect(() => {
         if (clientes.length > 0) {
             loadClientesStats();
@@ -135,18 +197,48 @@ const ClientesList: React.FC<ClientesListProps> = ({ onCrearPedido, onNavigateTo
             return (
                 <div className="flex justify-center items-center p-10">
                     <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
+                </div>flex-col gap-4 mb-6">
+                <div className="flex justify-between items-center">
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                        Listado de Clientes
+                    </h1>
+                    <button
+                        onClick={() => handleOpenModal()}
+                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                        <Icons.Plus className="-ml-1 mr-2 h-5 w-5" />
+                        Añadir Cliente
+                    </button>
                 </div>
-            );
-        }
-
-        if (error) {
-            return (
-                <div className="text-center p-10 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 rounded-lg">
-                    <h3 className="font-bold text-lg">Error al cargar los clientes</h3>
-                    <p>{error.message}</p>
+                
+                {/* 🔍 Campo de búsqueda */}
+                <div ref={searchContainerRef} className="relative max-w-md">
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="🔍 Buscar clientes..."
+                            value={searchTerm}
+                            className="w-full px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                            onChange={handleSearchChange}
+                            onFocus={() => searchTerm.trim().length > 0 && setShowSearchDropdown(true)}
+                        />
+                    </div>
                 </div>
-            );
-        }
+            </div>
+            
+            {/* 🔍 Dropdown de búsqueda */}
+            {showSearchDropdown && (
+                <ClienteSearchDropdown
+                    searchTerm={searchTerm}
+                    onSearchChange={(value) => {
+                        setSearchTerm(value);
+                        setShowSearchDropdown(value.trim().length > 0);
+                    }}
+                    results={searchResults}
+                    onSelectCliente={handleSelectCliente}
+                    onClose={() => setShowSearchDropdown(false)}
+                />
+            )}
 
         if (clientes.length === 0) {
             return (
