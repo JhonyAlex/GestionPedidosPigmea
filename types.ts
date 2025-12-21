@@ -404,3 +404,35 @@ export interface PedidoConProduccion extends Pedido {
     porcentajeCompletado?: number;
     tiempoRealProduccionSegundos?: number;
 }
+
+// === SISTEMA DE UNDO/REDO ===
+
+export type ActionType = 'CREATE' | 'UPDATE' | 'DELETE' | 'BULK_UPDATE' | 'BULK_DELETE';
+export type ActionStatus = 'pending' | 'applied' | 'undone' | 'conflicted';
+
+export interface ActionPayload {
+    // Datos necesarios para revertir la acción
+    before?: any; // Estado anterior (para undo)
+    after?: any;  // Estado posterior (para redo)
+    affectedIds?: string[]; // IDs afectados (para acciones masivas)
+}
+
+export interface ActionHistoryEntry {
+    id: string; // UUID de la acción
+    contextId: string; // ID del recurso afectado (ej: pedidoId, clienteId)
+    contextType: 'pedido' | 'cliente' | 'vendedor' | 'material'; // Tipo de recurso
+    type: ActionType; // Tipo de acción
+    payload: ActionPayload; // Datos de la acción
+    timestamp: string; // ISO 8601
+    userId: string; // ID del usuario que realizó la acción
+    userName: string; // Nombre del usuario
+    status: ActionStatus; // Estado de la acción
+    description: string; // Descripción legible de la acción
+}
+
+export interface UndoRedoState {
+    canUndo: boolean;
+    canRedo: boolean;
+    historyCount: number;
+    lastAction?: ActionHistoryEntry;
+}
