@@ -296,23 +296,26 @@ let connectedUsers = new Map(); // userId -> { socketId, userRole, joinedAt }
 
 // === SISTEMA DE BLOQUEO DE PEDIDOS ===
 let pedidoLocks = new Map(); // pedidoId -> { userId, username, socketId, lockedAt, lastActivity }
+let clienteLocks = new Map(); // clienteId -> { userId, username, socketId, lockedAt, lastActivity }
+let vendedorLocks = new Map(); // vendedorId -> { userId, username, socketId, lockedAt, lastActivity }
 const LOCK_TIMEOUT = 30 * 60 * 1000; // 30 minutos de inactividad
 
 // Función para limpiar bloqueos expirados
 function cleanupExpiredLocks() {
     const now = Date.now();
-    let hasChanges = false;
+    let hasChangesPedidos = false;
+    let hasChangesClientes = false;
+    let hasChangesVendedores = false;
     
+    // Limpiar pedidos
     Array.from(pedidoLocks.entries()).forEach(([pedidoId, lockData]) => {
         const timeSinceActivity = now - lockData.lastActivity;
         
-        // Si han pasado más de 30 minutos sin actividad, desbloquear
         if (timeSinceActivity > LOCK_TIMEOUT) {
             console.log(`🔓 Auto-desbloqueando pedido ${pedidoId} por inactividad (${Math.round(timeSinceActivity / 60000)} min)`);
             pedidoLocks.delete(pedidoId);
-            hasChanges = true;
+            hasChangesPedidos = true;
             
-            // Notificar a todos que el pedido se desbloqueó
             io.emit('pedido-unlocked', {
                 pedidoId,
                 reason: 'timeout',
@@ -321,11 +324,66 @@ function cleanupExpiredLocks() {
         }
     });
     
-    if (hasChanges) {
-        // Emitir lista actualizada de bloqueos
+    // Limpiar clientes
+    Array.from(clienteLocks.entries()).forEach(([clienteId, lockData]) => {
+        const timeSinceActivity = now - lockData.lastActivity;
+        
+        if (timeSinceActivity > LOCK_TIMEOUT) {
+            console.log(`🔓 Auto-desbloqueando cliente ${clienteId} por inactividad (${Math.round(timeSinceActivity / 60000)} min)`);
+            clienteLocks.delete(clienteId);
+            hasChangesClientes = true;
+            
+            io.emit('cliente-unlocked', {
+                clienteId,
+                reason: 'timeout',
+                timestamp: new Date().toISOString()
+            });
+        }
+    });
+    
+    // Limpiar vendedores
+    Array.from(vendedorLocks.entries()).forEach(([vendedorId, lockData]) => {
+        const timeSinceActivity = now - lockData.lastActivity;
+        
+        if (timeSinceActivity > LOCK_TIMEOUT) {
+            console.log(`🔓 Auto-desbloqueando vendedor ${vendedorId} por inactividad (${Math.round(timeSinceActivity / 60000)} min)`);
+            vendedorLocks.delete(vendedorId);
+            hasChangesVendedores = true;
+            
+            io.emit('vendedor-unlocked', {
+                vendedorId,
+                reason: 'timeout',
+                timestamp: new Date().toISOString()
+            });
+        }
+    });
+    
+    if (hasChangesPedidos) {
         io.emit('locks-updated', {
             locks: Array.from(pedidoLocks.entries()).map(([id, data]) => ({
                 pedidoId: id,
+                userId: data.userId,
+                username: data.username,
+                lockedAt: data.lockedAt
+            }))
+        });
+    }
+    
+    if (hasChangesClientes) {
+        io.emit('cliente-locks-updated', {
+            locks: Array.from(clienteLocks.entries()).map(([id, data]) => ({
+                clienteId: id,
+                userId: data.userId,
+                username: data.username,
+                lockedAt: data.lockedAt
+            }))
+        });
+    }
+    
+    if (hasChangesVendedores) {
+        io.emit('vendedor-locks-updated', {
+            locks: Array.from(vendedorLocks.entries()).map(([id, data]) => ({
+                vendedorId: id,
                 userId: data.userId,
                 username: data.username,
                 lockedAt: data.lockedAt
@@ -337,18 +395,48 @@ function cleanupExpiredLocks() {
 // Limpiar bloqueos expirados cada minuto
 setInterval(cleanupExpiredLocks, 60000);
 
-// Función para desbloquear todos los pedidos de un usuario
+// Función para desbloquear todos los recursos de un usuario
 function unlockAllPedidosForUser(userId, socketId) {
     const unlockedPedidos = [];
+    const unlockedClientes = [];
+    const unlockedVendedores = [];
     
+    // Desbloquear pedidos
     Array.from(pedidoLocks.entries()).forEach(([pedidoId, lockData]) => {
         if (lockData.userId === userId || lockData.socketId === socketId) {
             pedidoLocks.delete(pedidoId);
             unlockedPedidos.push(pedidoId);
             
-            // Notificar a todos que el pedido se desbloqueó
             io.emit('pedido-unlocked', {
                 pedidoId,
+                reason: 'user-disconnect',
+                timestamp: new Date().toISOString()
+            });
+        }
+    });
+    
+    // Desbloquear clientes
+    Array.from(clienteLocks.entries()).forEach(([clienteId, lockData]) => {
+        if (lockData.userId === userId || lockData.socketId === socketId) {
+            clienteLocks.delete(clienteId);
+            unlockedClientes.push(clienteId);
+            
+            io.emit('cliente-unlocked', {
+                clienteId,
+                reason: 'user-disconnect',
+                timestamp: new Date().toISOString()
+            });
+        }
+    });
+    
+    // Desbloquear vendedores
+    Array.from(vendedorLocks.entries()).forEach(([vendedorId, lockData]) => {
+        if (lockData.userId === userId || lockData.socketId === socketId) {
+            vendedorLocks.delete(vendedorId);
+            unlockedVendedores.push(vendedorId);
+            
+            io.emit('vendedor-unlocked', {
+                vendedorId,
                 reason: 'user-disconnect',
                 timestamp: new Date().toISOString()
             });
@@ -358,7 +446,6 @@ function unlockAllPedidosForUser(userId, socketId) {
     if (unlockedPedidos.length > 0) {
         console.log(`🔓 Desbloqueados ${unlockedPedidos.length} pedidos del usuario ${userId}`);
         
-        // Emitir lista actualizada de bloqueos
         io.emit('locks-updated', {
             locks: Array.from(pedidoLocks.entries()).map(([id, data]) => ({
                 pedidoId: id,
@@ -367,6 +454,33 @@ function unlockAllPedidosForUser(userId, socketId) {
                 lockedAt: data.lockedAt
             }))
         });
+    }
+    
+    if (unlockedClientes.length > 0) {
+        console.log(`🔓 Desbloqueados ${unlockedClientes.length} clientes del usuario ${userId}`);
+        
+        io.emit('cliente-locks-updated', {
+            locks: Array.from(clienteLocks.entries()).map(([id, data]) => ({
+                clienteId: id,
+                userId: data.userId,
+                username: data.username,
+                lockedAt: data.lockedAt
+            }))
+        });
+    }
+    
+    if (unlockedVendedores.length > 0) {
+        console.log(`🔓 Desbloqueados ${unlockedVendedores.length} vendedores del usuario ${userId}`);
+        
+        io.emit('vendedor-locks-updated', {
+            locks: Array.from(vendedorLocks.entries()).map(([id, data]) => ({
+                vendedorId: id,
+                userId: data.userId,
+                username: data.username,
+                lockedAt: data.lockedAt
+            }))
+        });
+    }
     }
 }
 
@@ -571,6 +685,186 @@ io.on('connection', (socket) => {
         socket.emit('locks-updated', {
             locks: Array.from(pedidoLocks.entries()).map(([id, data]) => ({
                 pedidoId: id,
+                userId: data.userId,
+                username: data.username,
+                lockedAt: data.lockedAt
+            }))
+        });
+    });
+    
+    // === SISTEMA DE BLOQUEO DE CLIENTES ===
+    
+    socket.on('lock-cliente', (data) => {
+        const { clienteId, userId, username } = data;
+        const existingLock = clienteLocks.get(clienteId);
+        
+        if (existingLock) {
+            if (existingLock.userId !== userId) {
+                socket.emit('cliente-lock-denied', {
+                    clienteId,
+                    lockedBy: existingLock.username,
+                    lockedAt: existingLock.lockedAt
+                });
+                return;
+            }
+            existingLock.lastActivity = Date.now();
+            existingLock.socketId = socket.id;
+            socket.emit('cliente-lock-acquired', { clienteId, userId, username });
+            return;
+        }
+        
+        const now = Date.now();
+        clienteLocks.set(clienteId, {
+            userId,
+            username,
+            socketId: socket.id,
+            lockedAt: now,
+            lastActivity: now
+        });
+        
+        console.log(`🔒 Cliente ${clienteId} bloqueado por ${username} (${userId})`);
+        socket.emit('cliente-lock-acquired', { clienteId, userId, username });
+        socket.broadcast.emit('cliente-locked', { clienteId, userId, username, lockedAt: now });
+        
+        io.emit('cliente-locks-updated', {
+            locks: Array.from(clienteLocks.entries()).map(([id, data]) => ({
+                clienteId: id,
+                userId: data.userId,
+                username: data.username,
+                lockedAt: data.lockedAt
+            }))
+        });
+    });
+    
+    socket.on('unlock-cliente', (data) => {
+        const { clienteId, userId } = data;
+        const existingLock = clienteLocks.get(clienteId);
+        
+        if (existingLock && existingLock.userId === userId) {
+            clienteLocks.delete(clienteId);
+            console.log(`🔓 Cliente ${clienteId} desbloqueado por ${existingLock.username}`);
+            
+            io.emit('cliente-unlocked', {
+                clienteId,
+                reason: 'user-unlock',
+                timestamp: new Date().toISOString()
+            });
+            
+            io.emit('cliente-locks-updated', {
+                locks: Array.from(clienteLocks.entries()).map(([id, data]) => ({
+                    clienteId: id,
+                    userId: data.userId,
+                    username: data.username,
+                    lockedAt: data.lockedAt
+                }))
+            });
+        }
+    });
+    
+    socket.on('cliente-activity', (data) => {
+        const { clienteId, userId } = data;
+        const existingLock = clienteLocks.get(clienteId);
+        
+        if (existingLock && existingLock.userId === userId) {
+            existingLock.lastActivity = Date.now();
+            existingLock.socketId = socket.id;
+        }
+    });
+    
+    socket.on('get-cliente-locks', () => {
+        socket.emit('cliente-locks-updated', {
+            locks: Array.from(clienteLocks.entries()).map(([id, data]) => ({
+                clienteId: id,
+                userId: data.userId,
+                username: data.username,
+                lockedAt: data.lockedAt
+            }))
+        });
+    });
+    
+    // === SISTEMA DE BLOQUEO DE VENDEDORES ===
+    
+    socket.on('lock-vendedor', (data) => {
+        const { vendedorId, userId, username } = data;
+        const existingLock = vendedorLocks.get(vendedorId);
+        
+        if (existingLock) {
+            if (existingLock.userId !== userId) {
+                socket.emit('vendedor-lock-denied', {
+                    vendedorId,
+                    lockedBy: existingLock.username,
+                    lockedAt: existingLock.lockedAt
+                });
+                return;
+            }
+            existingLock.lastActivity = Date.now();
+            existingLock.socketId = socket.id;
+            socket.emit('vendedor-lock-acquired', { vendedorId, userId, username });
+            return;
+        }
+        
+        const now = Date.now();
+        vendedorLocks.set(vendedorId, {
+            userId,
+            username,
+            socketId: socket.id,
+            lockedAt: now,
+            lastActivity: now
+        });
+        
+        console.log(`🔒 Vendedor ${vendedorId} bloqueado por ${username} (${userId})`);
+        socket.emit('vendedor-lock-acquired', { vendedorId, userId, username });
+        socket.broadcast.emit('vendedor-locked', { vendedorId, userId, username, lockedAt: now });
+        
+        io.emit('vendedor-locks-updated', {
+            locks: Array.from(vendedorLocks.entries()).map(([id, data]) => ({
+                vendedorId: id,
+                userId: data.userId,
+                username: data.username,
+                lockedAt: data.lockedAt
+            }))
+        });
+    });
+    
+    socket.on('unlock-vendedor', (data) => {
+        const { vendedorId, userId } = data;
+        const existingLock = vendedorLocks.get(vendedorId);
+        
+        if (existingLock && existingLock.userId === userId) {
+            vendedorLocks.delete(vendedorId);
+            console.log(`🔓 Vendedor ${vendedorId} desbloqueado por ${existingLock.username}`);
+            
+            io.emit('vendedor-unlocked', {
+                vendedorId,
+                reason: 'user-unlock',
+                timestamp: new Date().toISOString()
+            });
+            
+            io.emit('vendedor-locks-updated', {
+                locks: Array.from(vendedorLocks.entries()).map(([id, data]) => ({
+                    vendedorId: id,
+                    userId: data.userId,
+                    username: data.username,
+                    lockedAt: data.lockedAt
+                }))
+            });
+        }
+    });
+    
+    socket.on('vendedor-activity', (data) => {
+        const { vendedorId, userId } = data;
+        const existingLock = vendedorLocks.get(vendedorId);
+        
+        if (existingLock && existingLock.userId === userId) {
+            existingLock.lastActivity = Date.now();
+            existingLock.socketId = socket.id;
+        }
+    });
+    
+    socket.on('get-vendedor-locks', () => {
+        socket.emit('vendedor-locks-updated', {
+            locks: Array.from(vendedorLocks.entries()).map(([id, data]) => ({
+                vendedorId: id,
                 userId: data.userId,
                 username: data.username,
                 lockedAt: data.lockedAt
