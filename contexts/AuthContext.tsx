@@ -166,6 +166,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const login = async (username: string, password: string): Promise<AuthResponse> => {
         try {
             setLoading(true);
+            console.log('🔐 Iniciando login para:', username);
             
             const response = await fetch('/api/auth/login', {
                 method: 'POST',
@@ -175,8 +176,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 body: JSON.stringify({ username, password }),
             });
 
+            console.log('📡 Respuesta del servidor - Status:', response.status, response.statusText);
+
             // Si no hay respuesta del servidor (error de red/conexión)
             if (!response) {
+                console.error('❌ No hay respuesta del servidor');
                 return { 
                     success: false, 
                     message: '❌ Error de conexión: No se pudo contactar al servidor' 
@@ -187,8 +191,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             let data;
             try {
                 data = await response.json();
+                console.log('📦 Datos parseados:', data);
             } catch (parseError) {
-                console.error('Error parseando respuesta:', parseError);
+                console.error('❌ Error parseando respuesta:', parseError);
                 return { 
                     success: false, 
                     message: '⚠️ Error del servidor: Respuesta inválida' 
@@ -198,39 +203,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             if (!response.ok) {
                 // Distinguir entre tipos de errores del servidor
                 const errorCode = data.errorCode;
+                console.log('⚠️ Error del servidor - Código:', errorCode, '| Error:', data.error);
                 
                 switch (errorCode) {
                     case 'USER_NOT_FOUND':
+                        console.log('👤 Usuario no encontrado');
                         return { 
                             success: false, 
                             message: '👤 Usuario no encontrado: Verifique su nombre de usuario' 
                         };
                     
                     case 'INVALID_PASSWORD':
+                        console.log('🔒 Contraseña incorrecta');
                         return { 
                             success: false, 
                             message: '🔒 Contraseña incorrecta: Intente nuevamente' 
                         };
                     
                     case 'MISSING_CREDENTIALS':
+                        console.log('⚠️ Credenciales faltantes');
                         return { 
                             success: false, 
                             message: '⚠️ Usuario y contraseña requeridos' 
                         };
                     
                     case 'DATABASE_UNAVAILABLE':
+                        console.log('🔧 Base de datos no disponible');
                         return { 
                             success: false, 
                             message: '🔧 Base de datos no disponible: Contacte al administrador' 
                         };
                     
                     case 'INTERNAL_SERVER_ERROR':
+                        console.log('💥 Error interno del servidor');
                         return { 
                             success: false, 
                             message: `💥 Error del servidor: ${data.details || 'Error interno'}` 
                         };
                     
                     default:
+                        console.log('❌ Error desconocido:', data.error);
                         return { 
                             success: false, 
                             message: data.error || '❌ Error desconocido en el login' 
@@ -256,26 +268,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     setUser(syncedUser);
                 }
                 
+                console.log('✅ Login exitoso');
                 return { success: true, user: syncedUser, message: '✅ Login exitoso' };
             } else {
+                console.log('❌ Respuesta sin usuario válido');
                 return { success: false, message: data.error || '❌ Error desconocido en el login' };
             }
         } catch (error) {
-            console.error('Error en login:', error);
+            console.error('💥 Exception en login:', error);
             
             // Distinguir entre error de red y error de código
             if (error instanceof TypeError && error.message.includes('fetch')) {
+                console.log('🌐 Error de conexión detectado');
                 return { 
                     success: false, 
                     message: '🌐 Error de conexión: Verifique su conexión a internet' 
                 };
             }
             
+            console.log('💻 Error de código detectado:', error.message);
             return { 
                 success: false, 
                 message: `💻 Error de código: ${error.message}` 
             };
         } finally {
+            console.log('🔓 Desbloqueando loading');
             setLoading(false);
         }
     };
@@ -283,6 +300,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const register = async (userData: RegisterRequest): Promise<AuthResponse> => {
         try {
             setLoading(true);
+            console.log('📝 Iniciando registro para:', userData.username);
             
             const response = await fetch('/api/auth/register', {
                 method: 'POST',
@@ -292,26 +310,56 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 body: JSON.stringify(userData),
             });
 
-            const data = await response.json();
+            console.log('📡 Respuesta del servidor - Status:', response.status, response.statusText);
+
+            // Intentar parsear la respuesta
+            let data;
+            try {
+                data = await response.json();
+                console.log('📦 Datos parseados:', data);
+            } catch (parseError) {
+                console.error('❌ Error parseando respuesta:', parseError);
+                return { 
+                    success: false, 
+                    message: '⚠️ Error del servidor: Respuesta inválida' 
+                };
+            }
 
             if (!response.ok) {
-                return { success: false, message: data.error || 'Error en el registro' };
+                console.log('⚠️ Error en registro:', data.error);
+                return { success: false, message: data.error || '❌ Error en el registro' };
             }
 
             if (data.success && data.user) {
+                console.log('✅ Registro exitoso');
                 const enrichedUser = enrichUserWithPermissions(data.user);
                 setUser(enrichedUser);
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('pigmea_user', JSON.stringify(enrichedUser));
                 }
-                return { success: true, user: enrichedUser, message: data.message };
+                return { success: true, user: enrichedUser, message: data.message || '✅ Registro exitoso' };
             } else {
-                return { success: false, message: data.error || 'Error desconocido en el registro' };
+                console.log('❌ Registro sin usuario válido');
+                return { success: false, message: data.error || '❌ Error desconocido en el registro' };
             }
         } catch (error) {
-            console.error('Error en registro:', error);
-            return { success: false, message: 'Error de conexión' };
+            console.error('💥 Exception en registro:', error);
+            
+            if (error instanceof TypeError && error.message.includes('fetch')) {
+                console.log('🌐 Error de conexión detectado');
+                return { 
+                    success: false, 
+                    message: '🌐 Error de conexión: Verifique su conexión a internet' 
+                };
+            }
+            
+            console.log('💻 Error de código detectado:', error.message);
+            return { 
+                success: false, 
+                message: `💻 Error de código: ${error.message}` 
+            };
         } finally {
+            console.log('🔓 Desbloqueando loading (registro)');
             setLoading(false);
         }
     };

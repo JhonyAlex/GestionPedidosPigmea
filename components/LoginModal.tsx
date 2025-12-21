@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../types';
 
@@ -13,6 +13,23 @@ const LoginModal: React.FC = () => {
     });
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+
+    // Debug: Monitorear cambios de estado
+    useEffect(() => {
+        if (error) {
+            console.log('🔴 Estado de error actualizado:', error);
+        }
+    }, [error]);
+
+    useEffect(() => {
+        if (success) {
+            console.log('🟢 Estado de success actualizado:', success);
+        }
+    }, [success]);
+
+    useEffect(() => {
+        console.log('⏳ Estado de loading:', loading);
+    }, [loading]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -35,9 +52,11 @@ const LoginModal: React.FC = () => {
         }
 
         try {
+            console.log('📝 Iniciando submit del formulario...');
             let result;
             
             if (isRegisterMode) {
+                console.log('📝 Modo registro');
                 result = await register({
                     username: formData.username.trim(),
                     password: formData.password,
@@ -45,17 +64,22 @@ const LoginModal: React.FC = () => {
                     role: formData.role
                 });
             } else {
+                console.log('📝 Modo login');
                 result = await login(formData.username.trim(), formData.password);
             }
 
+            console.log('📝 Resultado recibido:', result);
+
             if (!result.success) {
+                console.log('❌ Login fallido, mostrando error:', result.message);
                 setError(result.message);
             } else {
+                console.log('✅ Login exitoso, mostrando mensaje:', result.message);
                 setSuccess(result.message);
                 // El login/register exitoso será manejado por el contexto
             }
         } catch (error) {
-            console.error('Error inesperado en handleSubmit:', error);
+            console.error('💥 Error inesperado en handleSubmit:', error);
             setError(`💻 Error inesperado: ${error.message || 'Error desconocido'}`);
         }
     };
