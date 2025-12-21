@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { useState, useEffect } from 'react';
+import WebSocketService from '../services/websocket';
 
 interface PedidoLock {
   pedidoId: string;
@@ -11,37 +11,29 @@ interface PedidoLock {
 /**
  * Hook ligero para observar el estado de bloqueo de pedidos sin intentar bloquearlos.
  * Útil para mostrar indicadores visuales en listas y tarjetas.
+ * Usa el WebSocketService centralizado para evitar múltiples conexiones.
  */
 export const useLockObserver = () => {
-  const socketRef = useRef<Socket | null>(null);
   const [locks, setLocks] = useState<Map<string, PedidoLock>>(new Map());
 
   useEffect(() => {
-    const API_URL = import.meta.env.VITE_API_URL || '';
-    const socketUrl = API_URL ? API_URL.replace('/api', '') : window.location.origin;
-    
-    const socket = io(socketUrl, {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000
-    });
+    const socket = WebSocketService.getSocket();
+    if (!socket) return;
 
-    socketRef.current = socket;
-
-    socket.on('connect', () => {
+    // Solicitar locks al conectar/reconectar
+    const handleConnect = () => {
       socket.emit('get-locks');
-    });
+    };
 
-    socket.on('locks-updated', (data: { locks: PedidoLock[] }) => {
+    const handleLocksUpdated = (data: { locks: PedidoLock[] }) => {
       const locksMap = new Map<string, PedidoLock>();
       data.locks.forEach(lock => {
         locksMap.set(lock.pedidoId, lock);
       });
       setLocks(locksMap);
-    });
+    };
 
-    socket.on('pedido-locked', (data: { pedidoId: string; userId: string; username: string; lockedAt: number }) => {
+    const handlePedidoLocked = (data: { pedidoId: string; userId: string; username: string; lockedAt: number }) => {
       setLocks(prev => {
         const newLocks = new Map(prev);
         newLocks.set(data.pedidoId, {
@@ -52,18 +44,33 @@ export const useLockObserver = () => {
         });
         return newLocks;
       });
-    });
+    };
 
-    socket.on('pedido-unlocked', (data: { pedidoId: string }) => {
+    const handlePedidoUnlocked = (data: { pedidoId: string }) => {
       setLocks(prev => {
         const newLocks = new Map(prev);
         newLocks.delete(data.pedidoId);
         return newLocks;
       });
-    });
+    };
+
+    // Suscribirse a eventos
+    socket.on('connect', handleConnect);
+    socket.on('locks-updated', handleLocksUpdated);
+    socket.on('pedido-locked', handlePedidoLocked);
+    socket.on('pedido-unlocked', handlePedidoUnlocked);
+
+    // Solicitar locks inicial si ya está conectado
+    if (socket.connected) {
+      socket.emit('get-locks');
+    }
 
     return () => {
-      socket.disconnect();
+      // Solo remover listeners, NO desconectar el socket (es compartido)
+      socket.off('connect', handleConnect);
+      socket.off('locks-updated', handleLocksUpdated);
+      socket.off('pedido-locked', handlePedidoLocked);
+      socket.off('pedido-unlocked', handlePedidoUnlocked);
     };
   }, []);
 

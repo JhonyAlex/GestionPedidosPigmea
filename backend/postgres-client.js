@@ -3037,7 +3037,7 @@ class PostgreSQLClient {
         
         // Evento: Cliente removido del pool
         this.pool.on('remove', () => {
-            console.log('🔄 Cliente removido del pool de conexiones');
+            // Cliente removido del pool (silencioso)
         });
         
         // Evento: Nuevo cliente conectado
