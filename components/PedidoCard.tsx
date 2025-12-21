@@ -209,7 +209,7 @@ interface PedidoCardProps {
     };
 }
 
-const PedidoCard: React.FC<PedidoCardProps> = ({ 
+const PedidoCard = React.memo<PedidoCardProps>(({ 
     pedido, 
     onArchiveToggle, 
     onSelectPedido, 
@@ -878,6 +878,9 @@ const PedidoCard: React.FC<PedidoCardProps> = ({
                 </div>
         </div>
     );
-};
+});
+
+// Agregar displayName para debugging
+PedidoCard.displayName = 'PedidoCard';
 
 export default PedidoCard;

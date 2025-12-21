@@ -1,9 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Pedido, UserRole, Etapa, HistorialEntry } from '../types';
 import { store } from '../services/storage';
 import { ETAPAS, KANBAN_FUNNELS, PREPARACION_SUB_ETAPAS_IDS } from '../constants';
 import { determinarEtapaPreparacion } from '../utils/preparacionLogic';
 import AntivahoConfirmationModal from '../components/AntivahoConfirmationModal';
+
+// 🚀 Configuración de optimización
+const USE_PAGINATION = true; // Habilitar paginación (cambiar a false para modo legacy)
+const ITEMS_PER_PAGE = 100; // Cargar 100 pedidos por página
 
 export const usePedidosManager = (
     currentUserRole: UserRole,
@@ -18,36 +22,77 @@ export const usePedidosManager = (
     const [isLoading, setIsLoading] = useState(true);
     const [antivahoModalState, setAntivahoModalState] = useState<{ isOpen: boolean; pedido: Pedido | null; toEtapa: Etapa | null }>({ isOpen: false, pedido: null, toEtapa: null });
     
+    // 🚀 Estados para paginación
+    const [currentPage, setCurrentPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+    const [totalPedidos, setTotalPedidos] = useState(0);
+    
     // ✅ Set para trackear IDs de pedidos que están siendo creados localmente
     const [creatingPedidoIds] = useState<Set<string>>(new Set());
 
-    useEffect(() => {
-        const initStore = async () => {
+    // 🚀 Función para cargar pedidos (paginado o completo)
+    const loadPedidos = useCallback(async (page: number = 1, append: boolean = false) => {
+        try {
             setIsLoading(true);
             const startTime = Date.now();
             const timestamp = new Date().toISOString();
             
-            console.log(`📊 [${timestamp}] Iniciando carga de pedidos...`);
-            
-            try {
+            console.log(`📊 [${timestamp}] Iniciando carga de pedidos (página ${page})...`);
+
+            if (USE_PAGINATION && 'getPaginated' in store) {
+                // Modo paginado
+                const { pedidos: newPedidos, pagination } = await (store as any).getPaginated({
+                    page,
+                    limit: ITEMS_PER_PAGE,
+                });
+
+                if (append) {
+                    // Agregar a la lista existente (infinite scroll)
+                    setPedidos(prev => {
+                        const existingIds = new Set(prev.map(p => p.id));
+                        const uniqueNew = newPedidos.filter((p: Pedido) => !existingIds.has(p.id));
+                        return [...prev, ...uniqueNew];
+                    });
+                } else {
+                    // Reemplazar lista completa
+                    setPedidos(newPedidos);
+                }
+
+                setTotalPedidos(pagination.total);
+                setHasMore(page < pagination.totalPages);
+                setCurrentPage(page);
+
+                const loadTime = Date.now() - startTime;
+                console.log(`✅ [${new Date().toISOString()}] Pedidos cargados (modo paginado):`);
+                console.log(`   - Cargados: ${newPedidos.length} pedidos`);
+                console.log(`   - Página: ${page}/${pagination.totalPages}`);
+                console.log(`   - Total en sistema: ${pagination.total}`);
+                console.log(`   - Tiempo de carga: ${loadTime}ms`);
+            } else {
+                // Modo legacy: cargar todo
                 const currentPedidos = await store.getAll();
                 const loadTime = Date.now() - startTime;
                 
                 setPedidos(currentPedidos);
+                setTotalPedidos(currentPedidos.length);
+                setHasMore(false);
                 
-                console.log(`✅ [${new Date().toISOString()}] Pedidos cargados exitosamente:`);
+                console.log(`✅ [${new Date().toISOString()}] Pedidos cargados (modo legacy):`);
                 console.log(`   - Total: ${currentPedidos.length} pedidos`);
                 console.log(`   - Tiempo de carga: ${loadTime}ms`);
-                
-            } catch (error) {
-                console.error("❌ Failed to fetch data from backend:", error);
-                alert("No se pudo conectar al servidor. Por favor, asegúrese de que el backend esté en ejecución y sea accesible.");
-            } finally {
-                setIsLoading(false);
             }
-        };
-        initStore();
+        } catch (error) {
+            console.error("❌ Failed to fetch data from backend:", error);
+            alert("No se pudo conectar al servidor. Por favor, asegúrese de que el backend esté en ejecución y sea accesible.");
+        } finally {
+            setIsLoading(false);
+        }
     }, []);
+
+    // Carga inicial
+    useEffect(() => {
+        loadPedidos(1, false);
+    }, [loadPedidos]);
 
     // Configurar listeners para sincronización en tiempo real
     useEffect(() => {
@@ -713,5 +758,17 @@ export const usePedidosManager = (
       handleConfirmAntivaho,
       handleCancelAntivaho,
       handleSetReadyForProduction,
+      // 🚀 Nuevas propiedades de paginación
+      currentPage,
+      hasMore,
+      totalPedidos,
+      loadMore: useCallback(() => {
+        if (!isLoading && hasMore && USE_PAGINATION) {
+          loadPedidos(currentPage + 1, true);
+        }
+      }, [currentPage, hasMore, isLoading, loadPedidos]),
+      reloadPedidos: useCallback(() => {
+        loadPedidos(1, false);
+      }, [loadPedidos]),
     };
 };

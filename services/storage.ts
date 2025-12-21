@@ -18,6 +18,24 @@ export interface DataStore<T extends { id: string }> {
   bulkInsert(items: T[]): Promise<void>;
 }
 
+// Interfaz para respuesta paginada
+export interface PaginatedResponse<T> {
+  pedidos: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface PaginationOptions {
+  page: number;
+  limit: number;
+  fechaEntregaDesde?: string;
+  fechaEntregaHasta?: string;
+}
+
 // --- MODO DE PRODUCCIÓN (API REAL) ---
 
 // Detectar entorno y configurar URL base
@@ -162,6 +180,37 @@ class ApiClient implements DataStore<Pedido> {
 
     public async getAll(): Promise<Pedido[]> {
         return apiRetryFetch<Pedido[]>('/pedidos');
+    }
+
+    public async getPaginated(options: PaginationOptions): Promise<PaginatedResponse<Pedido>> {
+        const params = new URLSearchParams({
+            page: options.page.toString(),
+            limit: options.limit.toString(),
+        });
+
+        if (options.fechaEntregaDesde) {
+            params.append('fechaEntregaDesde', options.fechaEntregaDesde);
+        }
+        if (options.fechaEntregaHasta) {
+            params.append('fechaEntregaHasta', options.fechaEntregaHasta);
+        }
+
+        const data = await apiRetryFetch<any>(`/pedidos?${params.toString()}`);
+        
+        // Si el backend no retorna paginación, usar formato legacy
+        if (!data.pagination) {
+            return {
+                pedidos: Array.isArray(data) ? data : [],
+                pagination: {
+                    page: 1,
+                    limit: Array.isArray(data) ? data.length : 0,
+                    total: Array.isArray(data) ? data.length : 0,
+                    totalPages: 1,
+                },
+            };
+        }
+
+        return data;
     }
 
     public async clear(): Promise<void> {

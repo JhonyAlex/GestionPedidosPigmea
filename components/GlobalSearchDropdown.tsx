@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { Pedido } from '../types';
 import { ETAPAS } from '../constants';
+import { useDebounce } from '../hooks/useDebounce';
 
 interface GlobalSearchDropdownProps {
     searchTerm: string;
@@ -20,20 +21,27 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
     maxResults = 10
 }) => {
     const inputRef = useRef<HTMLInputElement>(null);
+    
+    // 🚀 Aplicar debounce al término de búsqueda para mejorar performance
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
     // Auto-focus en el input cuando se abre
     useEffect(() => {
         inputRef.current?.focus();
     }, []);
 
-    // No mostrar dropdown si no hay término de búsqueda
+    // No mostrar dropdown si no hay término de búsqueda (usar el término sin debounce para cerrar inmediatamente)
     if (!searchTerm || searchTerm.trim().length === 0) {
         return null;
     }
+    
+    // Usar el término con debounce para filtrar resultados (mejor performance)
+    // Pero mostrar el dropdown inmediatamente cuando el usuario escribe
+    const shouldShowResults = debouncedSearchTerm && debouncedSearchTerm.trim().length > 0;
 
     // Limitar resultados
-    const displayResults = results.slice(0, maxResults);
-    const hasMoreResults = results.length > maxResults;
+    const displayResults = shouldShowResults ? results.slice(0, maxResults) : [];
+    const hasMoreResults = shouldShowResults && results.length > maxResults;
 
     return (
         <>

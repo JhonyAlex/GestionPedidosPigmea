@@ -3,6 +3,7 @@ import { Pedido, Prioridad, Etapa, DateField, WeekFilter, EstadoCliché } from '
 import { ETAPAS, PRIORIDAD_ORDEN } from '../constants';
 import { getDateRange, DateFilterOption } from '../utils/date';
 import { getCurrentWeek, isDateInWeek } from '../utils/weekUtils';
+import { useDebounce } from './useDebounce';
 
 // Clave para localStorage
 const FILTERS_STORAGE_KEY = 'gestionPedidos_userFilters';
@@ -51,6 +52,10 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
     const currentWeek = getCurrentWeek();
     
     const [searchTerm, setSearchTerm] = useState(savedFilters.searchTerm || '');
+    
+    // 🚀 Aplicar debounce al término de búsqueda para mejorar performance
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
+    
     const [filters, setFilters] = useState<{ priority: string, stage: string, dateField: DateField }>(
         savedFilters.filters || { priority: 'all', stage: 'all', dateField: 'fechaCreacion' }
     );
@@ -237,7 +242,8 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         }
         
         const filtered = pedidos.filter(p => {
-            const searchTermLower = searchTerm.toLowerCase();
+            // 🚀 Usar término con debounce para mejor performance
+            const searchTermLower = debouncedSearchTerm.toLowerCase();
             const searchTermMatch = !searchTermLower || (
                 // Campos de identificación y cliente
                 p.numeroPedidoCliente.toLowerCase().includes(searchTermLower) ||
@@ -396,7 +402,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         
         return filtered;
 
-    }, [pedidos, searchTerm, filters, selectedStages, antivahoFilter, preparacionFilter, estadoClicheFilter, anonimoFilter, dateFilter, sortConfig, customDateRange, weekFilter]);
+    }, [pedidos, debouncedSearchTerm, filters, selectedStages, antivahoFilter, preparacionFilter, estadoClicheFilter, anonimoFilter, dateFilter, sortConfig, customDateRange, weekFilter]);
 
     return {
         processedPedidos,
