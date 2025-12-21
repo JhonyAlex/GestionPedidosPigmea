@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Vendedor, VendedorCreateRequest, VendedorUpdateRequest } from '../types/vendedor';
 import { Icons } from './Icons';
+import { useVendedorLock } from '../hooks/useVendedorLock';
+import { useActionRecorder } from './UndoRedoProvider';
 
 interface VendedorModalProps {
   isOpen: boolean;
@@ -11,6 +13,8 @@ interface VendedorModalProps {
 }
 
 const VendedorModal: React.FC<VendedorModalProps> = ({ isOpen, onClose, onSave, vendedor, isEmbedded = false }) => {
+  const [showLockWarning, setShowLockWarning] = useState(false);
+  const [lockWarningMessage, setLockWarningMessage] = useState('');
   const [formData, setFormData] = useState<Partial<Vendedor>>({
     nombre: '',
     email: '',
@@ -20,21 +24,50 @@ const VendedorModal: React.FC<VendedorModalProps> = ({ isOpen, onClose, onSave, 
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  
+  const { recordVendedorUpdate } = useActionRecorder();
+  
+  const {
+    isLocked,
+    isLockedByMe,
+    lockedBy,
+    lockVendedor,
+    unlockVendedor
+  } = useVendedorLock({
+    vendedorId: vendedor?.id || null,
+    onLockDenied: (lockedByUser) => {
+      setLockWarningMessage(`Este vendedor está siendo editado por ${lockedByUser}`);
+      setShowLockWarning(true);
+    },
+    onLockLost: () => {
+      alert('⚠️ Has perdido el bloqueo de este vendedor por inactividad.');
+      onClose();
+    },
+    autoUnlock: !isEmbedded
+  });
+  
+  const isReadOnly = isEmbedded ? false : (vendedor && isLocked && !isLockedByMe);
 
   useEffect(() => {
-    if (vendedor) {
-      setFormData(vendedor);
-    } else {
-      setFormData({
-        nombre: '',
-        email: '',
-        telefono: '',
-        activo: true,
-      });
+    if (isOpen) {
+      if (vendedor) {
+        setFormData(vendedor);
+        if (!isEmbedded) {
+          lockVendedor();
+        }
+      } else {
+        setFormData({
+          nombre: '',
+          email: '',
+          telefono: '',
+          activo: true,
+        });
+      }
+      setError(null);
+      setValidationErrors({});
+      setShowLockWarning(false);
     }
-    setError(null);
-    setValidationErrors({});
-  }, [vendedor, isOpen]);
+  }, [vendedor, isOpen, isEmbedded, lockVendedor]);
 
   if (!isOpen) return null;
 
@@ -81,6 +114,11 @@ const VendedorModal: React.FC<VendedorModalProps> = ({ isOpen, onClose, onSave, 
     e.preventDefault();
     setError(null);
 
+    if (isReadOnly) {
+      setError('Este vendedor está bloqueado por otro usuario (solo lectura).');
+      return;
+    }
+
     if (!validateForm()) {
       setError('Por favor, completa todos los campos obligatorios correctamente.');
       return;
@@ -90,14 +128,27 @@ const VendedorModal: React.FC<VendedorModalProps> = ({ isOpen, onClose, onSave, 
 
     try {
       if (vendedor) {
-        // Update
+        // Update - Registrar acción
         const updateData: VendedorUpdateRequest = {
           nombre: formData.nombre,
           email: formData.email || undefined,
           telefono: formData.telefono || undefined,
           activo: formData.activo,
         };
+        
+        try {
+          const vendedorAntes = { ...vendedor };
+          const vendedorDespues = { ...vendedor, ...updateData };
+          await recordVendedorUpdate(vendedorAntes, vendedorDespues);
+        } catch (historyError) {
+          console.error('Error al registrar en historial:', historyError);
+        }
+        
         await onSave(updateData, vendedor.id);
+
+        if (!isEmbedded && isLockedByMe) {
+          unlockVendedor();
+        }
       } else {
         // Create
         const createData: VendedorCreateRequest = {
@@ -128,6 +179,7 @@ const VendedorModal: React.FC<VendedorModalProps> = ({ isOpen, onClose, onSave, 
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex justify-between items-center">
             <h3 className="text-xl font-bold text-white">
               {vendedor ? 'Editar Vendedor' : 'Nuevo Vendedor'}
+              {isReadOnly && <span className="ml-2 text-sm text-red-200">(Solo lectura)</span>}
             </h3>
             <button
               onClick={onClose}
@@ -136,6 +188,18 @@ const VendedorModal: React.FC<VendedorModalProps> = ({ isOpen, onClose, onSave, 
               <Icons.Close className="h-6 w-6" />
             </button>
           </div>
+
+          {/* Lock Warning */}
+          {showLockWarning && (
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4 mx-6 mt-4 rounded">
+              <div className="flex items-center">
+                <svg className="h-5 w-5 text-yellow-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <p className="text-sm text-yellow-700 dark:text-yellow-200">{lockWarningMessage}</p>
+              </div>
+            </div>
+          )}
 
           {/* Content */}
           <form onSubmit={handleSubmit}>

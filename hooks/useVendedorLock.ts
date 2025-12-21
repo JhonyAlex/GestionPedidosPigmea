@@ -67,15 +67,20 @@ export const useVendedorLock = ({
       }
     };
 
-    const handleLockDenied = (data: { vendedorId: string; lockedBy: string }) => {
+    const handleLockDenied = (data: { vendedorId: string; currentLock: { userId: string; username: string; lockedAt: string } }) => {
       if (data.vendedorId === vendedorIdRef.current) {
         setIsLocked(true);
         setIsLockedByMe(false);
-        setLockedBy(data.lockedBy);
+        setLockedBy(data.currentLock.username);
         isLockedByMeRef.current = false;
+
+        if (activityIntervalRef.current) {
+          clearInterval(activityIntervalRef.current);
+          activityIntervalRef.current = null;
+        }
         
         if (onLockDeniedRef.current) {
-          onLockDeniedRef.current(data.lockedBy);
+          onLockDeniedRef.current(data.currentLock.username);
         }
       }
     };
@@ -91,12 +96,19 @@ export const useVendedorLock = ({
 
     const handleVendedorUnlocked = (data: { vendedorId: string; reason: string }) => {
       if (data.vendedorId === vendedorIdRef.current) {
+        const wasLockedByMe = isLockedByMeRef.current;
+
         setIsLocked(false);
         setIsLockedByMe(false);
         setLockedBy(null);
         isLockedByMeRef.current = false;
+
+        if (activityIntervalRef.current) {
+          clearInterval(activityIntervalRef.current);
+          activityIntervalRef.current = null;
+        }
         
-        if (isLockedByMe && data.reason === 'timeout' && onLockLostRef.current) {
+        if (wasLockedByMe && data.reason === 'timeout' && onLockLostRef.current) {
           onLockLostRef.current();
         }
       }
@@ -164,7 +176,7 @@ export const useVendedorLock = ({
     }
 
     activityIntervalRef.current = setInterval(() => {
-      if (!isUnmountingRef.current && currentVendedorIdRef.current) {
+      if (!isUnmountingRef.current && currentVendedorIdRef.current && isLockedByMeRef.current) {
         socket.emit('vendedor-activity', {
           vendedorId: currentVendedorIdRef.current,
           userId: user.id.toString()

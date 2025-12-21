@@ -26,6 +26,28 @@ export interface WebSocketEvents {
   'material-assigned': (data: { pedidoId: string; materialId: number }) => void;
   'material-unassigned': (data: { pedidoId: string; materialId: number }) => void;
   
+  // Eventos de locks de cliente
+  'lock-cliente': (data: { clienteId: string; userId: string; username: string }) => void;
+  'unlock-cliente': (data: { clienteId: string; userId: string }) => void;
+  'cliente-activity': (data: { clienteId: string; userId: string }) => void;
+  'get-cliente-locks': () => void;
+  'cliente-lock-acquired': (data: { clienteId: string; userId: string; username: string; lockedAt: string }) => void;
+  'cliente-lock-denied': (data: { clienteId: string; currentLock: { userId: string; username: string; lockedAt: string } }) => void;
+  'cliente-locked': (data: { clienteId: string; userId: string; username: string; lockedAt: string }) => void;
+  'cliente-unlocked': (data: { clienteId: string }) => void;
+  'cliente-locks-updated': (data: { locks: any[] }) => void;
+  
+  // Eventos de locks de vendedor
+  'lock-vendedor': (data: { vendedorId: string; userId: string; username: string }) => void;
+  'unlock-vendedor': (data: { vendedorId: string; userId: string }) => void;
+  'vendedor-activity': (data: { vendedorId: string; userId: string }) => void;
+  'get-vendedor-locks': () => void;
+  'vendedor-lock-acquired': (data: { vendedorId: string; userId: string; username: string; lockedAt: string }) => void;
+  'vendedor-lock-denied': (data: { vendedorId: string; currentLock: { userId: string; username: string; lockedAt: string } }) => void;
+  'vendedor-locked': (data: { vendedorId: string; userId: string; username: string; lockedAt: string }) => void;
+  'vendedor-unlocked': (data: { vendedorId: string }) => void;
+  'vendedor-locks-updated': (data: { locks: any[] }) => void;
+  
   // Eventos del cliente
   authenticate: (data: { userId: string; userRole: UserRole }) => void;
   'user-activity': (data: { activity: string; data?: any }) => void;

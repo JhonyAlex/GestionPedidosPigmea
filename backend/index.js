@@ -481,7 +481,6 @@ function unlockAllPedidosForUser(userId, socketId) {
             }))
         });
     }
-    }
 }
 
 // Función para limpiar usuarios fantasma periodicamente

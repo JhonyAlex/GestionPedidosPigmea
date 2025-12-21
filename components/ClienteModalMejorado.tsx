@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Cliente, ClienteCreateRequest, ClienteUpdateRequest } from '../hooks/useClientesManager';
 import { Icons } from './Icons';
+import { useClienteLock } from '../hooks/useClienteLock';
+import { useActionRecorder } from './UndoRedoProvider';
 
 interface ClienteModalProps {
   isOpen: boolean;
@@ -14,6 +16,8 @@ type TabType = 'basicos' | 'contacto' | 'direccion' | 'observaciones';
 
 const ClienteModalMejorado: React.FC<ClienteModalProps> = ({ isOpen, onClose, onSave, cliente, isEmbedded = false }) => {
   const [activeTab, setActiveTab] = useState<TabType>('basicos');
+  const [showLockWarning, setShowLockWarning] = useState(false);
+  const [lockWarningMessage, setLockWarningMessage] = useState('');
   const [formData, setFormData] = useState<Partial<Cliente>>({
     nombre: '',
     razon_social: '',
@@ -32,31 +36,62 @@ const ClienteModalMejorado: React.FC<ClienteModalProps> = ({ isOpen, onClose, on
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  
+  const { recordClienteUpdate } = useActionRecorder();
+  
+  // Sistema de bloqueo (solo para edición, no para creación o modo embedded)
+  const {
+    isLocked,
+    isLockedByMe,
+    lockedBy,
+    lockCliente,
+    unlockCliente
+  } = useClienteLock({
+    clienteId: cliente?.id || null,
+    onLockDenied: (lockedByUser) => {
+      setLockWarningMessage(`Este cliente está siendo editado por ${lockedByUser}`);
+      setShowLockWarning(true);
+    },
+    onLockLost: () => {
+      alert('⚠️ Has perdido el bloqueo de este cliente por inactividad. Los cambios no guardados se perderán.');
+      onClose();
+    },
+    autoUnlock: !isEmbedded
+  });
+  
+  const isReadOnly = isEmbedded ? false : (cliente && isLocked && !isLockedByMe);
 
   useEffect(() => {
-    if (cliente) {
-      setFormData(cliente);
-    } else {
-      setFormData({
-        nombre: '',
-        razon_social: '',
-        cif: '',
-        direccion: '',
-        poblacion: '',
-        codigo_postal: '',
-        provincia: '',
-        pais: 'España',
-        telefono: '',
-        email: '',
-        persona_contacto: '',
-        observaciones: '',
-        estado: 'activo',
-      });
+    if (isOpen) {
+      if (cliente) {
+        setFormData(cliente);
+        // Intentar bloquear si no es modo embedded
+        if (!isEmbedded) {
+          lockCliente();
+        }
+      } else {
+        setFormData({
+          nombre: '',
+          razon_social: '',
+          cif: '',
+          direccion: '',
+          poblacion: '',
+          codigo_postal: '',
+          provincia: '',
+          pais: 'España',
+          telefono: '',
+          email: '',
+          persona_contacto: '',
+          observaciones: '',
+          estado: 'activo',
+        });
+      }
+      setActiveTab('basicos');
+      setError(null);
+      setValidationErrors({});
+      setShowLockWarning(false);
     }
-    setActiveTab('basicos');
-    setError(null);
-    setValidationErrors({});
-  }, [cliente, isOpen]);
+  }, [cliente, isOpen, isEmbedded, lockCliente]);
 
   if (!isOpen) return null;
 
@@ -116,6 +151,11 @@ const ClienteModalMejorado: React.FC<ClienteModalProps> = ({ isOpen, onClose, on
     e.preventDefault();
     setError(null);
 
+    if (isReadOnly) {
+      setError('Este cliente está bloqueado por otro usuario (solo lectura).');
+      return;
+    }
+
     if (!validateForm()) {
       setError('Por favor, completa todos los campos obligatorios correctamente.');
       return;
@@ -125,7 +165,7 @@ const ClienteModalMejorado: React.FC<ClienteModalProps> = ({ isOpen, onClose, on
 
     try {
       if (cliente) {
-        // Update
+        // Update - Registrar acción antes de guardar
         const updateData: ClienteUpdateRequest = {
             nombre: formData.nombre,
             razon_social: formData.razon_social,
@@ -140,9 +180,24 @@ const ClienteModalMejorado: React.FC<ClienteModalProps> = ({ isOpen, onClose, on
             persona_contacto: formData.persona_contacto,
             observaciones: formData.observaciones,
         };
+        
+        // Registrar en historial
+        try {
+          const clienteAntes = { ...cliente };
+          const clienteDespues = { ...cliente, ...updateData };
+          await recordClienteUpdate(clienteAntes, clienteDespues);
+        } catch (historyError) {
+          console.error('Error al registrar en historial:', historyError);
+        }
+        
         await onSave(updateData, cliente.id);
+
+        // Liberar lock después de guardar
+        if (!isEmbedded && isLockedByMe) {
+          unlockCliente();
+        }
       } else {
-        // Create
+        // Create - Registrar después de guardar (necesitamos el ID)
         const createData: ClienteCreateRequest = {
             nombre: formData.nombre!,
             razon_social: formData.razon_social,
@@ -158,6 +213,8 @@ const ClienteModalMejorado: React.FC<ClienteModalProps> = ({ isOpen, onClose, on
             observaciones: formData.observaciones,
         };
         await onSave(createData);
+        
+        // TODO: Registrar CREATE en historial cuando onSave retorne el cliente creado
       }
       onClose();
     } catch (err) {
@@ -460,11 +517,24 @@ const ClienteModalMejorado: React.FC<ClienteModalProps> = ({ isOpen, onClose, on
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+        {/* Lock Warning */}
+        {showLockWarning && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4 mx-6 mt-4 rounded">
+            <div className="flex items-center">
+              <svg className="h-5 w-5 text-yellow-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0 0v2m0-2h2m-2 0H10m8.5-9.5l-1.5 1.5m0 0L15 11m2-2l-1.5 1.5M9 9l1.5 1.5M15 15l-1.5-1.5m0 0L12 12m1.5 1.5L15 15m-6-6l1.5 1.5m0 0L12 12M9 9L7.5 7.5" />
+              </svg>
+              <p className="text-sm text-yellow-700 dark:text-yellow-200">{lockWarningMessage}</p>
+            </div>
+          </div>
+        )}
+        
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b dark:border-gray-700">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
               {cliente ? 'Editar Cliente' : 'Nuevo Cliente'}
+              {isReadOnly && <span className="ml-2 text-sm text-red-500">(Solo lectura)</span>}
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {cliente ? 'Actualiza la información del cliente' : 'Completa los datos del nuevo cliente'}

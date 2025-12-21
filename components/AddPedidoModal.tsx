@@ -8,6 +8,7 @@ import { useVendedoresManager } from '../hooks/useVendedoresManager';
 import { VendedorCreateRequest } from '../types/vendedor';
 import ClienteModalMejorado from './ClienteModalMejorado';
 import VendedorModal from './VendedorModal';
+import { useActionRecorder } from './UndoRedoProvider';
 
 const decimalToHHMM = (decimal: number): string => {
     if (!Number.isFinite(decimal) || decimal < 0) {
@@ -53,7 +54,7 @@ interface AddPedidoModalProps {
     onAdd: (data: {
         pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'subEtapaActual' | 'maquinaImpresion' | 'secuenciaTrabajo' | 'orden' | 'historial'>;
         secuenciaTrabajo: Etapa[];
-    }) => void;
+    }) => Promise<Pedido | undefined>; // ✅ Cambiar para que devuelva el pedido creado
     clientePreseleccionado?: { id: string; nombre: string } | null; // ✅ Permitir cliente preseleccionado
 }
 
@@ -108,6 +109,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
     const [isVendedorModalOpen, setVendedorModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'detalles' | 'gestion'>('detalles');
     const [validationErrors, setValidationErrors] = useState<string[]>([]);
+    const { recordPedidoCreate } = useActionRecorder();
 
     useEffect(() => {
         fetchClientes();
@@ -359,7 +361,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
         // Validar formulario
@@ -374,7 +376,14 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
         }
 
         const metrosValue = Number(formData.metros);
-        onAdd({ pedidoData: { ...formData, metros: metrosValue }, secuenciaTrabajo });
+        
+        // ✅ Esperar respuesta de onAdd para obtener el pedido creado
+        const newPedido = await onAdd({ pedidoData: { ...formData, metros: metrosValue }, secuenciaTrabajo });
+        
+        // ✅ Registrar acción CREATE en el historial
+        if (newPedido) {
+            recordPedidoCreate(newPedido);
+        }
     };
 
     return (

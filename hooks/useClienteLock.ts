@@ -67,15 +67,20 @@ export const useClienteLock = ({
       }
     };
 
-    const handleLockDenied = (data: { clienteId: string; lockedBy: string }) => {
+    const handleLockDenied = (data: { clienteId: string; currentLock: { userId: string; username: string; lockedAt: string } }) => {
       if (data.clienteId === clienteIdRef.current) {
         setIsLocked(true);
         setIsLockedByMe(false);
-        setLockedBy(data.lockedBy);
+        setLockedBy(data.currentLock.username);
         isLockedByMeRef.current = false;
+
+        if (activityIntervalRef.current) {
+          clearInterval(activityIntervalRef.current);
+          activityIntervalRef.current = null;
+        }
         
         if (onLockDeniedRef.current) {
-          onLockDeniedRef.current(data.lockedBy);
+          onLockDeniedRef.current(data.currentLock.username);
         }
       }
     };
@@ -91,12 +96,19 @@ export const useClienteLock = ({
 
     const handleClienteUnlocked = (data: { clienteId: string; reason: string }) => {
       if (data.clienteId === clienteIdRef.current) {
+        const wasLockedByMe = isLockedByMeRef.current;
+
         setIsLocked(false);
         setIsLockedByMe(false);
         setLockedBy(null);
         isLockedByMeRef.current = false;
+
+        if (activityIntervalRef.current) {
+          clearInterval(activityIntervalRef.current);
+          activityIntervalRef.current = null;
+        }
         
-        if (isLockedByMe && data.reason === 'timeout' && onLockLostRef.current) {
+        if (wasLockedByMe && data.reason === 'timeout' && onLockLostRef.current) {
           onLockLostRef.current();
         }
       }
@@ -164,7 +176,7 @@ export const useClienteLock = ({
     }
 
     activityIntervalRef.current = setInterval(() => {
-      if (!isUnmountingRef.current && currentClienteIdRef.current) {
+      if (!isUnmountingRef.current && currentClienteIdRef.current && isLockedByMeRef.current) {
         socket.emit('cliente-activity', {
           clienteId: currentClienteIdRef.current,
           userId: user.id.toString()

@@ -1,6 +1,8 @@
 import React, { useEffect, useCallback } from 'react';
 import { useUndoRedo } from '../hooks/useUndoRedo';
 import { Pedido } from '../types';
+import type { Cliente } from '../hooks/useClientesManager';
+import type { Vendedor } from '../types/vendedor';
 
 interface UndoRedoProviderProps {
     children: React.ReactNode;
@@ -177,11 +179,39 @@ export const useActionRecorder = () => {
         [recordAction]
     );
 
+    const recordClienteUpdate = useCallback(
+        async (before: Cliente, after: Cliente) => {
+            await recordAction(
+                String(after.id),
+                'cliente',
+                'UPDATE',
+                { before, after },
+                `Cliente actualizado: ${after.nombre}`
+            );
+        },
+        [recordAction]
+    );
+
+    const recordVendedorUpdate = useCallback(
+        async (before: Vendedor, after: Vendedor) => {
+            await recordAction(
+                String(after.id),
+                'vendedor',
+                'UPDATE',
+                { before, after },
+                `Vendedor actualizado: ${after.nombre}`
+            );
+        },
+        [recordAction]
+    );
+
     return {
         recordPedidoCreate,
         recordPedidoUpdate,
         recordPedidoDelete,
         recordBulkUpdate,
         recordBulkDelete,
+        recordClienteUpdate,
+        recordVendedorUpdate,
     };
 };
