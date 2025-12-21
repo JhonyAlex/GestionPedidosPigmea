@@ -113,8 +113,13 @@ const ActionHistoryPanel: React.FC<ActionHistoryPanelProps> = ({ onClose, contex
                                         <span className="text-xl">{getActionIcon(action.type)}</span>
                                         <div>
                                             <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                                {action.description}
+                                                {action.payload?.summary?.title || action.description}
                                             </p>
+                                            {action.payload?.summary?.details && (
+                                                <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
+                                                    {action.payload.summary.details}
+                                                </p>
+                                            )}
                                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                                 {action.userName}
                                             </p>

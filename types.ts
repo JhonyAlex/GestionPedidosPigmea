@@ -414,6 +414,17 @@ export interface ActionPayload {
     before?: any;
     after?: any;
     affectedIds?: string[]; // IDs afectados (para acciones masivas)
+
+    /**
+     * Resumen compacto para UI (1-2 líneas), pensado para no romperse
+     * cuando hay muchos cambios. `changes` puede contener el detalle completo.
+     */
+    summary?: {
+        title: string;
+        details: string;
+        changes?: string[];
+        extraChangesCount?: number;
+    };
 }
 
 export interface ActionHistoryEntry {
