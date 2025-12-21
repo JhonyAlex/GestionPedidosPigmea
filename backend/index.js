@@ -1063,24 +1063,6 @@ app.get('/api/auth/permissions', async (req, res) => {
             success: true,
             permissions: allPermissions
         });
-                    ]
-                },
-                usuarios: {
-                    name: 'Gestión de Usuarios',
-                    permissions: [
-                        { id: 'usuarios.view', name: 'Ver Usuarios' },
-                        { id: 'usuarios.create', name: 'Crear Usuarios' },
-                        { id: 'usuarios.edit', name: 'Editar Usuarios' },
-                        { id: 'usuarios.delete', name: 'Eliminar Usuarios' }
-                    ]
-                }
-            }
-        };
-
-        res.json({
-            success: true,
-            permissions
-        });
     } catch (error) {
         console.error('Error obteniendo permisos:', error);
         res.status(500).json({
@@ -3479,41 +3461,6 @@ app.get('/api/admin/dashboard', async (req, res) => {
         res.status(500).json({
             error: 'Error interno del servidor',
             message: error.message
-        });
-    }
-});
-                    status: 'healthy',
-                    connections: 5,
-                    responseTime: 42
-                },
-                server: {
-                    status: 'healthy',
-                    cpuUsage: 15,
-                    memoryUsage: 45
-                },
-                websocket: {
-                    status: 'healthy',
-                    connections: 2
-                }
-            },
-            recentAuditLogs: [
-                {
-                    id: '1',
-                    username: 'admin',
-                    action: 'LOGIN',
-                    module: 'auth',
-                    timestamp: new Date().toISOString(),
-                    details: 'Login exitoso'
-                }
-            ],
-            activeUsers: [
-                {
-                    userId: 'admin-1',
-                    username: 'admin',
-                    lastActivity: new Date().toISOString(),
-                    actionsToday: 5
-                }
-            ]
         });
     }
 });
