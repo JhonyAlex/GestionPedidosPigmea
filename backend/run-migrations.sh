@@ -31,7 +31,6 @@ echo "✅ Variables de conexión configuradas."
 # Definir rutas a los archivos de migración
 MIGRATIONS_DIR="../database/migrations"
 PEDIDOS_MIGRATION="$MIGRATIONS_DIR/000-create-pedidos-table.sql"
-PERMISSIONS_MIGRATION="$MIGRATIONS_DIR/create_user_permissions_table.sql"
 CLIENTES_MIGRATION="$MIGRATIONS_DIR/001-add-clientes-system.sql"
 NUEVA_FECHA_MIGRATION="$MIGRATIONS_DIR/006-add-nueva-fecha-entrega.sql"
 NUMERO_COMPRA_MIGRATION="$MIGRATIONS_DIR/007-add-numero-compra.sql"
@@ -78,7 +77,6 @@ apply_migration() {
 # Las migraciones están diseñadas para ser idempotentes (se pueden ejecutar varias veces sin problemas)
 
 apply_migration "Crear Tabla de Pedidos" "$PEDIDOS_MIGRATION"
-apply_migration "Crear Tabla de Permisos" "$PERMISSIONS_MIGRATION"
 apply_migration "Crear Tabla de Clientes" "$CLIENTES_MIGRATION"
 apply_migration "Agregar Nueva Fecha Entrega" "$NUEVA_FECHA_MIGRATION"
 # TEMPORALMENTE DESHABILITADA - Tabla alcanzó límite de 1600 columnas
