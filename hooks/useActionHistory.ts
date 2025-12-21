@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export interface ActionHistoryState {
     historyCount: number;
+    unreadCount: number;
 }
 
 export interface UseActionHistoryOptions {
@@ -15,8 +16,23 @@ export const useActionHistory = (options: UseActionHistoryOptions = {}) => {
     const { user } = useAuth();
     const { maxHistorySize = 100 } = options;
 
+    const getLastSeenKey = useCallback(() => {
+        if (!user?.id) return null;
+        return `actionHistory.lastSeen.${user.id}`;
+    }, [user?.id]);
+
+    const getLastSeenTimestamp = useCallback((): string | null => {
+        const key = getLastSeenKey();
+        if (!key) return null;
+        if (typeof window === 'undefined') return null;
+
+        const value = window.localStorage.getItem(key);
+        return value && value.length > 0 ? value : null;
+    }, [getLastSeenKey]);
+
     const [state, setState] = useState<ActionHistoryState>({
         historyCount: 0,
+        unreadCount: 0,
     });
     const [history, setHistory] = useState<ActionHistoryEntry[]>([]);
 
@@ -26,11 +42,20 @@ export const useActionHistory = (options: UseActionHistoryOptions = {}) => {
         try {
             const userActions = await actionHistoryDB.getActionsByUser(user.id, maxHistorySize);
             setHistory(userActions);
-            setState({ historyCount: userActions.length });
+
+            const lastSeen = getLastSeenTimestamp();
+            const unreadCount = lastSeen
+                ? userActions.filter(a => a.timestamp > lastSeen).length
+                : userActions.length;
+
+            setState({
+                historyCount: userActions.length,
+                unreadCount,
+            });
         } catch (error) {
             console.error('Error al refrescar historial:', error);
         }
-    }, [user?.id, maxHistorySize]);
+    }, [user?.id, maxHistorySize, getLastSeenTimestamp]);
 
     useEffect(() => {
         const initDB = async () => {
@@ -42,7 +67,7 @@ export const useActionHistory = (options: UseActionHistoryOptions = {}) => {
                     await refreshHistory();
                 } else {
                     setHistory([]);
-                    setState({ historyCount: 0 });
+                    setState({ historyCount: 0, unreadCount: 0 });
                 }
             } catch (error) {
                 console.error('Error al inicializar IndexedDB:', error);
@@ -96,11 +121,26 @@ export const useActionHistory = (options: UseActionHistoryOptions = {}) => {
         }
     }, []);
 
+    const markAllAsRead = useCallback(async () => {
+        const key = getLastSeenKey();
+        if (!key) return;
+        if (typeof window === 'undefined') return;
+
+        try {
+            const latestTimestamp = history[0]?.timestamp ?? new Date().toISOString();
+            window.localStorage.setItem(key, latestTimestamp);
+            setState(prev => ({ ...prev, unreadCount: 0 }));
+        } catch (error) {
+            console.error('Error al marcar historial como leído:', error);
+        }
+    }, [getLastSeenKey, history]);
+
     return {
         state,
         history,
         recordAction,
         getContextHistory,
+        markAllAsRead,
         refreshHistory,
     };
 };

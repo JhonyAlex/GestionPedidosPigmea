@@ -123,12 +123,19 @@ const Header: React.FC<HeaderProps> = ({
         canAccessAdmin, 
         canViewConfig
     } = usePermissions();
-    const { state: actionHistoryState } = useActionHistory();
+    const { state: actionHistoryState, markAllAsRead } = useActionHistory();
     const currentUserRole = user?.role || 'Operador';
     const [isStageFiltersCollapsed, setIsStageFiltersCollapsed] = useState(false);
     const [showSearchDropdown, setShowSearchDropdown] = useState(false);
     const [showBurgerMenu, setShowBurgerMenu] = useState(false);
     const [showHistoryPanel, setShowHistoryPanel] = useState(false);
+        // Al abrir (y mientras esté abierto), marcar como leído para que el badge baje a 0
+        useEffect(() => {
+            if (!showHistoryPanel) return;
+            if (actionHistoryState.unreadCount <= 0) return;
+            markAllAsRead();
+        }, [showHistoryPanel, actionHistoryState.unreadCount, markAllAsRead]);
+
     const searchContainerRef = useRef<HTMLDivElement>(null);
     const burgerMenuRef = useRef<HTMLDivElement>(null);
 
@@ -286,7 +293,13 @@ const Header: React.FC<HeaderProps> = ({
                         {/* Historial de acciones */}
                         <div className="flex items-center gap-1">
                             <button
-                                onClick={() => setShowHistoryPanel(!showHistoryPanel)}
+                                onClick={() => {
+                                    const next = !showHistoryPanel;
+                                    setShowHistoryPanel(next);
+                                    if (next) {
+                                        markAllAsRead();
+                                    }
+                                }}
                                 className={`relative p-2 rounded-md transition-colors ${
                                     showHistoryPanel 
                                         ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' 
@@ -298,9 +311,9 @@ const Header: React.FC<HeaderProps> = ({
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                 </svg>
-                                {actionHistoryState.historyCount > 0 && (
+                                {actionHistoryState.unreadCount > 0 && (
                                     <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-[10px] font-bold flex items-center justify-center text-white">
-                                        {actionHistoryState.historyCount > 9 ? '9+' : actionHistoryState.historyCount}
+                                        {actionHistoryState.unreadCount > 9 ? '9+' : actionHistoryState.unreadCount}
                                     </span>
                                 )}
                             </button>
