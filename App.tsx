@@ -33,7 +33,6 @@ import BulkDateUpdateModal from './components/BulkDateUpdateModal';
 import { ToastContainer } from './components/Toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { MaterialesProvider } from './contexts/MaterialesContext';
-import { UndoRedoProvider } from './components/UndoRedoProvider';
 import { calcularSiguienteEtapa, estaFueraDeSecuencia } from './utils/etapaLogic';
 import { procesarDragEnd } from './utils/dragLogic';
 import { usePedidosManager } from './hooks/usePedidosManager';
@@ -853,81 +852,10 @@ const AppContent: React.FC = () => {
         }
     };
 
-    /**
-     * Función para aplicar una acción de UNDO
-     * @param actionId ID de la acción a deshacer
-     * @param payload Datos de la acción (before, after, affectedIds, etc.)
-     */
-    const handleUndoAction = async (actionId: string, payload: any) => {
-        console.log('🔄 Aplicando UNDO:', actionId, payload);
-        
-        try {
-            // Determinar el tipo de acción basado en el payload
-            if (payload.before && payload.after) {
-                // UPDATE: restaurar el estado anterior
-                const pedido = payload.before as Pedido;
-                await handleSavePedidoLogic(pedido);
-                addToast(`Cambios revertidos en pedido ${pedido.numeroPedidoCliente}`, 'success');
-            } else if (payload.before && !payload.after) {
-                // DELETE: recrear el pedido eliminado
-                // TODO: Implementar recreación de pedido
-                addToast(`Pedido ${payload.before.numeroPedidoCliente} restaurado (función pendiente)`, 'warning');
-            } else if (!payload.before && payload.after) {
-                // CREATE: eliminar el pedido recién creado
-                const pedido = payload.after as Pedido;
-                await handleDeletePedidoLogic(pedido.id);
-                addToast(`Creación de pedido ${pedido.numeroPedidoCliente} deshecha`, 'success');
-            } else if (payload.affectedIds) {
-                // BULK_UPDATE o BULK_DELETE
-                addToast(`Operación masiva deshecha (función pendiente)`, 'warning');
-            }
-        } catch (error) {
-            console.error('Error al aplicar undo:', error);
-            addToast('Error al deshacer la acción', 'error');
-            throw error;
-        }
-    };
-
-    /**
-     * Función para aplicar una acción de REDO
-     * @param actionId ID de la acción a rehacer
-     * @param payload Datos de la acción (before, after, affectedIds, etc.)
-     */
-    const handleRedoAction = async (actionId: string, payload: any) => {
-        console.log('🔄 Aplicando REDO:', actionId, payload);
-        
-        try {
-            // Determinar el tipo de acción basado en el payload
-            if (payload.before && payload.after) {
-                // UPDATE: aplicar el estado posterior
-                const pedido = payload.after as Pedido;
-                await handleSavePedidoLogic(pedido);
-                addToast(`Cambios reaplicados en pedido ${pedido.numeroPedidoCliente}`, 'success');
-            } else if (payload.before && !payload.after) {
-                // DELETE: volver a eliminar el pedido
-                const pedido = payload.before as Pedido;
-                await handleDeletePedidoLogic(pedido.id);
-                addToast(`Pedido ${pedido.numeroPedidoCliente} eliminado nuevamente`, 'success');
-            } else if (!payload.before && payload.after) {
-                // CREATE: recrear el pedido
-                // TODO: Implementar recreación completa
-                addToast(`Pedido ${payload.after.numeroPedidoCliente} recreado (función pendiente)`, 'warning');
-            } else if (payload.affectedIds) {
-                // BULK_UPDATE o BULK_DELETE
-                addToast(`Operación masiva reaplicada (función pendiente)`, 'warning');
-            }
-        } catch (error) {
-            console.error('Error al aplicar redo:', error);
-            addToast('Error al rehacer la acción', 'error');
-            throw error;
-        }
-    };
-
     return (
-        <UndoRedoProvider onUndoAction={handleUndoAction} onRedoAction={handleRedoAction}>
-            <DragDropContext onDragEnd={handleDragEnd}>
-                <div className="min-h-screen text-gray-900 dark:text-white flex flex-col">
-                    <Header
+        <DragDropContext onDragEnd={handleDragEnd}>
+            <div className="min-h-screen text-gray-900 dark:text-white flex flex-col">
+                <Header
                     searchTerm={searchTerm}
                     onSearch={setSearchTerm}
                     allPedidos={pedidos}
@@ -1069,7 +997,6 @@ const AppContent: React.FC = () => {
                 />
             </div>
         </DragDropContext>
-        </UndoRedoProvider>
     );
 };
 

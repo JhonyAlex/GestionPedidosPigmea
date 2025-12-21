@@ -7,51 +7,16 @@ import { useUndoRedo } from '../hooks/useUndoRedo';
  */
 const ActionHistoryButton: React.FC = () => {
     const [isPanelOpen, setIsPanelOpen] = useState(false);
-    const { state, undo, redo, isProcessing } = useUndoRedo();
+    const { state } = useUndoRedo();
 
-    const togglePanel = () => {
-        setIsPanelOpen(!isPanelOpen);
-    };
+    const openPanel = () => setIsPanelOpen(true);
+    const closePanel = () => setIsPanelOpen(false);
+    const togglePanel = () => setIsPanelOpen(prev => !prev);
 
     return (
         <>
             {/* Botón flotante */}
             <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-2">
-                {/* Botones de Undo/Redo rápidos */}
-                {!isPanelOpen && (
-                    <div className="flex flex-col gap-2">
-                        {/* Undo Button */}
-                        {state.canUndo && (
-                            <button
-                                onClick={() => undo()}
-                                disabled={isProcessing}
-                                className="w-12 h-12 rounded-full bg-blue-500 text-white shadow-lg hover:bg-blue-600 
-                                    active:scale-95 transition-all duration-200 flex items-center justify-center
-                                    disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Deshacer (Ctrl+Z)"
-                                aria-label="Deshacer última acción"
-                            >
-                                <span className="text-xl">⏪</span>
-                            </button>
-                        )}
-
-                        {/* Redo Button */}
-                        {state.canRedo && (
-                            <button
-                                onClick={() => redo()}
-                                disabled={isProcessing}
-                                className="w-12 h-12 rounded-full bg-blue-500 text-white shadow-lg hover:bg-blue-600 
-                                    active:scale-95 transition-all duration-200 flex items-center justify-center
-                                    disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Rehacer (Ctrl+Y)"
-                                aria-label="Rehacer última acción"
-                            >
-                                <span className="text-xl">⏩</span>
-                            </button>
-                        )}
-                    </div>
-                )}
-
                 {/* Botón principal de historial */}
                 <button
                     onClick={togglePanel}
@@ -83,16 +48,21 @@ const ActionHistoryButton: React.FC = () => {
 
             {/* Panel lateral */}
             {isPanelOpen && (
-                <div className="fixed inset-0 z-50 flex justify-end">
+                <div
+                    className="fixed inset-0 z-50 flex justify-end"
+                    onClick={closePanel}
+                    role="presentation"
+                >
                     {/* Overlay */}
-                    <div 
-                        className="absolute inset-0 bg-black bg-opacity-30 transition-opacity"
-                        onClick={togglePanel}
-                    />
-                    
-                    {/* Panel */}
-                    <div className="relative w-full max-w-md animate-slide-in-right">
-                        <ActionHistoryPanel onClose={togglePanel} />
+                    <div className="absolute inset-0 bg-black bg-opacity-30 transition-opacity" />
+
+                    {/* Panel (evitar que el click dentro cierre) */}
+                    <div
+                        className="relative w-80 animate-slide-in-right"
+                        onClick={(e) => e.stopPropagation()}
+                        role="presentation"
+                    >
+                        <ActionHistoryPanel onClose={closePanel} />
                     </div>
                 </div>
             )}

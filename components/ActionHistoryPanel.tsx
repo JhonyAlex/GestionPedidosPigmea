@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { ActionHistoryEntry, ActionStatus } from '../types';
-import { useUndoRedo } from '../hooks/useUndoRedo';
+import { ActionHistoryEntry } from '../types';
+import { useActionHistory } from '../hooks/useActionHistory';
 
 interface ActionHistoryPanelProps {
     onClose?: () => void;
     contextId?: string; // Si se proporciona, muestra solo el historial de este contexto
+    onNavigateToPedidoId?: (pedidoId: string) => void;
 }
 
-const ActionHistoryPanel: React.FC<ActionHistoryPanelProps> = ({ onClose, contextId }) => {
-    const { history, state, isProcessing, undo, redo, getContextHistory } = useUndoRedo();
+const ActionHistoryPanel: React.FC<ActionHistoryPanelProps> = ({ onClose, contextId, onNavigateToPedidoId }) => {
+    const { history, state, getContextHistory } = useActionHistory();
     const [filteredHistory, setFilteredHistory] = useState<ActionHistoryEntry[]>([]);
-    const [showUndoAnimation, setShowUndoAnimation] = useState(false);
-    const [showRedoAnimation, setShowRedoAnimation] = useState(false);
 
     useEffect(() => {
         const loadHistory = async () => {
@@ -26,41 +25,12 @@ const ActionHistoryPanel: React.FC<ActionHistoryPanelProps> = ({ onClose, contex
         loadHistory();
     }, [contextId, history, getContextHistory]);
 
-    const handleUndo = async () => {
-        setShowUndoAnimation(true);
-        const success = await undo();
-        if (success) {
-            setTimeout(() => setShowUndoAnimation(false), 500);
-        } else {
-            setShowUndoAnimation(false);
-        }
-    };
+    const handleActionClick = (action: ActionHistoryEntry) => {
+        if (action.contextType !== 'pedido') return;
+        if (!onNavigateToPedidoId) return;
 
-    const handleRedo = async () => {
-        setShowRedoAnimation(true);
-        const success = await redo();
-        if (success) {
-            setTimeout(() => setShowRedoAnimation(false), 500);
-        } else {
-            setShowRedoAnimation(false);
-        }
-    };
-
-    const getStatusBadge = (status: ActionStatus) => {
-        const badges = {
-            applied: { text: 'Aplicada', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
-            undone: { text: 'Deshecha', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' },
-            conflicted: { text: 'Conflicto', color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' },
-            pending: { text: 'Pendiente', color: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200' },
-        };
-
-        const badge = badges[status] || badges.pending;
-
-        return (
-            <span className={`px-2 py-1 text-xs font-medium rounded-full ${badge.color}`}>
-                {badge.text}
-            </span>
-        );
+        onClose?.();
+        onNavigateToPedidoId(action.contextId);
     };
 
     const getActionIcon = (type: string) => {
@@ -115,39 +85,6 @@ const ActionHistoryPanel: React.FC<ActionHistoryPanelProps> = ({ onClose, contex
                 )}
             </div>
 
-            {/* Undo/Redo Controls */}
-            <div className="flex gap-2 p-4 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-                <button
-                    onClick={handleUndo}
-                    disabled={!state.canUndo || isProcessing}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200
-                        ${state.canUndo && !isProcessing
-                            ? 'bg-blue-500 text-white hover:bg-blue-600 active:scale-95'
-                            : 'bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500 cursor-not-allowed'
-                        }
-                        ${showUndoAnimation ? 'animate-pulse' : ''}`}
-                    title="Deshacer (Ctrl+Z)"
-                >
-                    <span className="text-lg">⏪</span>
-                    <span>Deshacer</span>
-                </button>
-
-                <button
-                    onClick={handleRedo}
-                    disabled={!state.canRedo || isProcessing}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200
-                        ${state.canRedo && !isProcessing
-                            ? 'bg-blue-500 text-white hover:bg-blue-600 active:scale-95'
-                            : 'bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500 cursor-not-allowed'
-                        }
-                        ${showRedoAnimation ? 'animate-pulse' : ''}`}
-                    title="Rehacer (Ctrl+Y)"
-                >
-                    <span className="text-lg">⏩</span>
-                    <span>Rehacer</span>
-                </button>
-            </div>
-
             {/* History List */}
             <div className="flex-1 overflow-y-auto">
                 {filteredHistory.length === 0 ? (
@@ -162,14 +99,13 @@ const ActionHistoryPanel: React.FC<ActionHistoryPanelProps> = ({ onClose, contex
                         {filteredHistory.map((action, index) => (
                             <div
                                 key={action.id}
+                                onClick={() => handleActionClick(action)}
+                                role={action.contextType === 'pedido' && onNavigateToPedidoId ? 'button' : undefined}
+                                tabIndex={action.contextType === 'pedido' && onNavigateToPedidoId ? 0 : undefined}
                                 className={`p-3 rounded-lg border transition-all duration-200
-                                    ${action.status === 'applied'
-                                        ? 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600'
-                                        : action.status === 'undone'
-                                        ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
-                                        : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
-                                    }
-                                    ${index === 0 ? 'ring-2 ring-blue-500 ring-opacity-50' : ''}`}
+                                    bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600
+                                    ${index === 0 ? 'ring-2 ring-blue-500 ring-opacity-50' : ''}
+                                    ${action.contextType === 'pedido' && onNavigateToPedidoId ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600/60' : ''}`}
                             >
                                 {/* Action Header */}
                                 <div className="flex items-start justify-between mb-2">
@@ -184,7 +120,6 @@ const ActionHistoryPanel: React.FC<ActionHistoryPanelProps> = ({ onClose, contex
                                             </p>
                                         </div>
                                     </div>
-                                    {getStatusBadge(action.status)}
                                 </div>
 
                                 {/* Action Details */}
@@ -194,13 +129,6 @@ const ActionHistoryPanel: React.FC<ActionHistoryPanelProps> = ({ onClose, contex
                                         {action.contextType}
                                     </span>
                                 </div>
-
-                                {/* Conflict Warning */}
-                                {action.status === 'conflicted' && (
-                                    <div className="mt-2 p-2 bg-red-100 dark:bg-red-900/40 rounded text-xs text-red-800 dark:text-red-200">
-                                        ⚠️ Esta acción ha sido modificada por otro usuario y no se puede deshacer.
-                                    </div>
-                                )}
                             </div>
                         ))}
                     </div>
@@ -209,13 +137,8 @@ const ActionHistoryPanel: React.FC<ActionHistoryPanelProps> = ({ onClose, contex
 
             {/* Footer Info */}
             <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                    <span>
-                        {state.canUndo ? '✅ Deshacer disponible' : '⚪ Sin acciones para deshacer'}
-                    </span>
-                    <span>
-                        {state.canRedo ? '✅ Rehacer disponible' : '⚪ Sin acciones para rehacer'}
-                    </span>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                    Tip: haz click en una acción de tipo <span className="font-medium">pedido</span> para ir al pedido.
                 </div>
             </div>
         </div>

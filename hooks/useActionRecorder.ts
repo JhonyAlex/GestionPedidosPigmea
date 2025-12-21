@@ -1,28 +1,14 @@
-import React, { useCallback } from 'react';
-import { useUndoRedo } from '../hooks/useUndoRedo';
-import { Pedido } from '../types';
-import type { Cliente } from '../hooks/useClientesManager';
+import { useCallback } from 'react';
+import type { Pedido } from '../types';
+import type { Cliente } from './useClientesManager';
 import type { Vendedor } from '../types/vendedor';
-
-interface UndoRedoProviderProps {
-    children: React.ReactNode;
-}
+import { useActionHistory } from './useActionHistory';
 
 /**
- * Provider legacy (solo envoltorio).
- * El proyecto ya no expone acciones de deshacer/rehacer desde la UI.
- */
-export const UndoRedoProvider: React.FC<UndoRedoProviderProps> = ({
-    children,
-}) => {
-    return <>{children}</>;
-};
-
-/**
- * Hook helper para registrar acciones desde componentes
+ * Hook helper para registrar acciones desde componentes.
  */
 export const useActionRecorder = () => {
-    const { recordAction } = useUndoRedo();
+    const { recordAction } = useActionHistory();
 
     const recordPedidoCreate = useCallback(
         async (pedido: Pedido) => {
@@ -42,8 +28,7 @@ export const useActionRecorder = () => {
     const recordPedidoUpdate = useCallback(
         async (before: Pedido, after: Pedido) => {
             const changes: string[] = [];
-            
-            // Detectar cambios específicos
+
             if (before.etapaActual !== after.etapaActual) {
                 changes.push(`Etapa: ${before.etapaActual} → ${after.etapaActual}`);
             }
@@ -54,9 +39,10 @@ export const useActionRecorder = () => {
                 changes.push(`Fecha entrega: ${before.fechaEntrega} → ${after.fechaEntrega}`);
             }
 
-            const description = changes.length > 0
-                ? `Pedido actualizado: ${after.numeroPedidoCliente} (${changes.join(', ')})`
-                : `Pedido actualizado: ${after.numeroPedidoCliente}`;
+            const description =
+                changes.length > 0
+                    ? `Pedido actualizado: ${after.numeroPedidoCliente} (${changes.join(', ')})`
+                    : `Pedido actualizado: ${after.numeroPedidoCliente}`;
 
             await recordAction(
                 after.id,
@@ -89,9 +75,8 @@ export const useActionRecorder = () => {
 
     const recordBulkUpdate = useCallback(
         async (pedidoIds: string[], description: string) => {
-            // Para operaciones masivas, usamos el primer ID como contexto
             const contextId = pedidoIds[0] || 'bulk';
-            
+
             await recordAction(
                 contextId,
                 'pedido',
@@ -108,7 +93,7 @@ export const useActionRecorder = () => {
     const recordBulkDelete = useCallback(
         async (pedidoIds: string[], pedidos: Pedido[]) => {
             const contextId = pedidoIds[0] || 'bulk';
-            
+
             await recordAction(
                 contextId,
                 'pedido',

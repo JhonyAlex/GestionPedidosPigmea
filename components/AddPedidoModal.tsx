@@ -8,7 +8,7 @@ import { useVendedoresManager } from '../hooks/useVendedoresManager';
 import { VendedorCreateRequest } from '../types/vendedor';
 import ClienteModalMejorado from './ClienteModalMejorado';
 import VendedorModal from './VendedorModal';
-import { useActionRecorder } from './UndoRedoProvider';
+import { useActionRecorder } from '../hooks/useActionRecorder';
 
 const decimalToHHMM = (decimal: number): string => {
     if (!Number.isFinite(decimal) || decimal < 0) {

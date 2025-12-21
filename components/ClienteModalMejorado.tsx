@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Cliente, ClienteCreateRequest, ClienteUpdateRequest } from '../hooks/useClientesManager';
 import { Icons } from './Icons';
 import { useClienteLock } from '../hooks/useClienteLock';
-import { useActionRecorder } from './UndoRedoProvider';
+import { useActionRecorder } from '../hooks/useActionRecorder';
 
 interface ClienteModalProps {
   isOpen: boolean;

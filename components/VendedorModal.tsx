@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Vendedor, VendedorCreateRequest, VendedorUpdateRequest } from '../types/vendedor';
 import { Icons } from './Icons';
 import { useVendedorLock } from '../hooks/useVendedorLock';
-import { useActionRecorder } from './UndoRedoProvider';
+import { useActionRecorder } from '../hooks/useActionRecorder';
 
 interface VendedorModalProps {
   isOpen: boolean;

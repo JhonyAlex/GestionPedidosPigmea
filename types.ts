@@ -405,15 +405,14 @@ export interface PedidoConProduccion extends Pedido {
     tiempoRealProduccionSegundos?: number;
 }
 
-// === SISTEMA DE UNDO/REDO ===
+// === HISTORIAL DE ACCIONES ===
 
 export type ActionType = 'CREATE' | 'UPDATE' | 'DELETE' | 'BULK_UPDATE' | 'BULK_DELETE';
-export type ActionStatus = 'pending' | 'applied' | 'undone' | 'conflicted';
 
 export interface ActionPayload {
-    // Datos necesarios para revertir la acción
-    before?: any; // Estado anterior (para undo)
-    after?: any;  // Estado posterior (para redo)
+    // Datos adicionales para describir la acción
+    before?: any;
+    after?: any;
     affectedIds?: string[]; // IDs afectados (para acciones masivas)
 }
 
@@ -426,13 +425,5 @@ export interface ActionHistoryEntry {
     timestamp: string; // ISO 8601
     userId: string; // ID del usuario que realizó la acción
     userName: string; // Nombre del usuario
-    status: ActionStatus; // Estado de la acción
     description: string; // Descripción legible de la acción
-}
-
-export interface UndoRedoState {
-    canUndo: boolean;
-    canRedo: boolean;
-    historyCount: number;
-    lastAction?: ActionHistoryEntry;
 }

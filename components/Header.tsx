@@ -11,7 +11,7 @@ import GlobalSearchDropdown from './GlobalSearchDropdown';
 import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { useNotifications } from '../contexts/NotificationContext';
-import { useUndoRedo } from '../hooks/useUndoRedo';
+import { useActionHistory } from '../hooks/useActionHistory';
 import ActionHistoryPanel from './ActionHistoryPanel';
 
 
@@ -123,23 +123,14 @@ const Header: React.FC<HeaderProps> = ({
         canAccessAdmin, 
         canViewConfig
     } = usePermissions();
-    const { state: undoRedoState, undo, redo, isProcessing } = useUndoRedo();
+    const { state: actionHistoryState } = useActionHistory();
     const currentUserRole = user?.role || 'Operador';
     const [isStageFiltersCollapsed, setIsStageFiltersCollapsed] = useState(false);
     const [showSearchDropdown, setShowSearchDropdown] = useState(false);
     const [showBurgerMenu, setShowBurgerMenu] = useState(false);
-    const [showHistoryPanel, setShowHistoryPanel] = useState(() => {
-        // Persistir estado del panel en localStorage
-        const stored = localStorage.getItem('historyPanel.isOpen');
-        return stored === 'true';
-    });
+    const [showHistoryPanel, setShowHistoryPanel] = useState(false);
     const searchContainerRef = useRef<HTMLDivElement>(null);
     const burgerMenuRef = useRef<HTMLDivElement>(null);
-
-    // Guardar estado del panel en localStorage
-    useEffect(() => {
-        localStorage.setItem('historyPanel.isOpen', String(showHistoryPanel));
-    }, [showHistoryPanel]);
 
     // Resetear el estado cuando cambie la vista
     useEffect(() => {
@@ -292,43 +283,24 @@ const Header: React.FC<HeaderProps> = ({
                             ))}
                         </div>
 
-                        {/* Botones Undo/Redo */}
+                        {/* Historial de acciones */}
                         <div className="flex items-center gap-1">
                             <button
-                                onClick={() => undo()}
-                                disabled={!undoRedoState.canUndo || isProcessing}
-                                className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                title={undoRedoState.lastAction ? `Deshacer: ${undoRedoState.lastAction.description}` : 'Deshacer (Ctrl+Z)'}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
-                                </svg>
-                            </button>
-                            <button
-                                onClick={() => redo()}
-                                disabled={!undoRedoState.canRedo || isProcessing}
-                                className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                title="Rehacer (Ctrl+Y)"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="m15 15 6-6m0 0-6-6m6 6H9a6 6 0 0 0 0 12h3" />
-                                </svg>
-                            </button>
-                            <button
                                 onClick={() => setShowHistoryPanel(!showHistoryPanel)}
-                                className={`p-2 rounded-md transition-colors ${
+                                className={`relative p-2 rounded-md transition-colors ${
                                     showHistoryPanel 
                                         ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' 
                                         : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                                 }`}
                                 title="Historial de acciones"
+                                aria-label="Historial de acciones"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                 </svg>
-                                {undoRedoState.historyCount > 0 && (
+                                {actionHistoryState.historyCount > 0 && (
                                     <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-[10px] font-bold flex items-center justify-center text-white">
-                                        {undoRedoState.historyCount > 9 ? '9+' : undoRedoState.historyCount}
+                                        {actionHistoryState.historyCount > 9 ? '9+' : actionHistoryState.historyCount}
                                     </span>
                                 )}
                             </button>
@@ -669,9 +641,28 @@ const Header: React.FC<HeaderProps> = ({
 
             {/* Panel lateral de historial */}
             {showHistoryPanel && (
-                <div className="fixed inset-0 z-50 flex justify-end pointer-events-none">
-                    <div className="pointer-events-auto w-full max-w-md animate-slide-in-right shadow-2xl">
-                        <ActionHistoryPanel onClose={() => setShowHistoryPanel(false)} />
+                <div
+                    className="fixed inset-0 z-50 flex justify-end"
+                    onClick={() => setShowHistoryPanel(false)}
+                    role="presentation"
+                >
+                    <div className="absolute inset-0 bg-black bg-opacity-30" />
+
+                    <div
+                        className="relative w-80 animate-slide-in-right shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                        role="presentation"
+                    >
+                        <ActionHistoryPanel
+                            onClose={() => setShowHistoryPanel(false)}
+                            onNavigateToPedidoId={(pedidoId) => {
+                                const pedido = allPedidos.find(p => p.id === pedidoId);
+                                if (pedido && onNavigateToPedido) {
+                                    setShowHistoryPanel(false);
+                                    onNavigateToPedido(pedido);
+                                }
+                            }}
+                        />
                     </div>
                 </div>
             )}
