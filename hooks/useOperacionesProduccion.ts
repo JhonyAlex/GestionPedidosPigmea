@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import WebSocketService from '../services/websocket';
 import {
     OperacionProduccion,
     OperacionActivaCompleta,
@@ -11,11 +12,8 @@ import {
     MetrajeProduccion,
     ObservacionProduccion
 } from '../types';
-import { io, Socket } from 'socket.io-client';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
-
-let socket: Socket | null = null;
 
 export function useOperacionesProduccion() {
     const { user } = useAuth();
@@ -33,66 +31,32 @@ export function useOperacionesProduccion() {
     });
 
     // ============================================
-    // INICIALIZAR SOCKET.IO
-    // ============================================
-    useEffect(() => {
-        if (!socket) {
-            const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin;
-            socket = io(socketUrl, {
-                transports: ['websocket', 'polling'],
-                reconnection: true,
-                reconnectionDelay: 1000,
-                reconnectionAttempts: 5
-            });
-
-            socket.on('connect', () => {
-                console.log('✅ Socket conectado (Operaciones Producción)');
-            });
-
-            socket.on('disconnect', () => {
-                console.log('❌ Socket desconectado (Operaciones Producción)');
-            });
-        }
-
-        // Cleanup
-        return () => {
-            // No desconectar el socket aquí para mantenerlo vivo
-        };
-    }, []);
-
-    // ============================================
     // SUSCRIBIRSE A EVENTOS DE SOCKET.IO
     // ============================================
     useEffect(() => {
+        const socket = WebSocketService.getSocket();
         if (!socket) return;
 
         const handleOperacionIniciada = (operacion: OperacionActivaCompleta) => {
-            console.log('🔄 Operación iniciada:', operacion);
             setOperacionesActivas(prev => [...prev, operacion]);
-            
-            // Si es mi operación, actualizarla
             if (operacion.operadorId === user?.id) {
                 setMiOperacionActual(operacion);
             }
         };
 
         const handleOperacionPausada = (operacion: OperacionProduccion) => {
-            console.log('⏸️ Operación pausada:', operacion);
             setOperacionesActivas(prev =>
                 prev.map(op => op.id === operacion.id ? { ...op, ...operacion } : op)
             );
-            
             if (operacion.operadorId === user?.id) {
                 setMiOperacionActual(prev => prev ? { ...prev, ...operacion } : null);
             }
         };
 
         const handleOperacionReanudada = (operacion: OperacionProduccion) => {
-            console.log('▶️ Operación reanudada:', operacion);
             setOperacionesActivas(prev =>
                 prev.map(op => op.id === operacion.id ? { ...op, ...operacion } : op)
             );
-            
             if (operacion.operadorId === user?.id) {
                 setMiOperacionActual(prev => prev ? { ...prev, ...operacion } : null);
             }
@@ -131,42 +95,35 @@ export function useOperacionesProduccion() {
             socket?.off('operacion-iniciada', handleOperacionIniciada);
             socket?.off('operacion-pausada', handleOperacionPausada);
             socket?.off('operacion-reanudada', handleOperacionReanudada);
-            socket?.off('operacion-completada', handleOperacionCompletada);
-            socket?.off('operacion-cancelada', handleOperacionCancelada);
+        const handleOperacionCompletada = (operacion: OperacionProduccion) => {
+            setOperacionesActivas(prev => prev.filter(op => op.id !== operacion.id));
+            if (operacion.operadorId === user?.id) {
+                setMiOperacionActual(null);
+            }
+            if (user?.id) {
+                cargarEstadisticas(user.id);
+            }
         };
-    }, [user?.id]);
 
-    // ============================================
-    // FUNCIONES DE API
-    // ============================================
+        const handleOperacionCancelada = (operacion: OperacionProduccion) => {
+            setOperacionesActivas(prev => prev.filter(op => op.id !== operacion.id));
+            if (operacion.operadorId === user?.id) {
+                setMiOperacionActual(null);
+            }
+        };
 
-    const cargarOperacionesActivas = useCallback(async (filtros?: { operadorId?: string; maquina?: string; etapa?: string }) => {
-        setLoading(true);
-        setError(null);
-        
-        try {
-            const params = new URLSearchParams();
-            if (filtros?.operadorId) params.append('operadorId', filtros.operadorId);
-            if (filtros?.maquina) params.append('maquina', filtros.maquina);
-            if (filtros?.etapa) params.append('etapa', filtros.etapa);
-            
-            const response = await fetch(`${API_URL}/produccion/operaciones-activas?${params.toString()}`, {
-                headers: getAuthHeaders()
-            });
-            
-            if (!response.ok) throw new Error('Error al cargar operaciones activas');
-            
-            const data = await response.json();
-            setOperacionesActivas(data.operaciones || []);
-            
-            // Buscar mi operación actual
-            const miOperacion = data.operaciones?.find((op: OperacionActivaCompleta) => op.operadorId === user?.id);
-            setMiOperacionActual(miOperacion || null);
-            
-        } catch (err) {
-            console.error('Error cargando operaciones activas:', err);
-            setError(err instanceof Error ? err.message : 'Error desconocido');
-        } finally {
+        socket.on('operacion-iniciada', handleOperacionIniciada);
+        socket.on('operacion-pausada', handleOperacionPausada);
+        socket.on('operacion-reanudada', handleOperacionReanudada);
+        socket.on('operacion-completada', handleOperacionCompletada);
+        socket.on('operacion-cancelada', handleOperacionCancelada);
+
+        return () => {
+            socket.off('operacion-iniciada', handleOperacionIniciada);
+            socket.off('operacion-pausada', handleOperacionPausada);
+            socket.off('operacion-reanudada', handleOperacionReanudada);
+            socket.off('operacion-completada', handleOperacionCompletada);
+            socket
             setLoading(false);
         }
     }, [user?.id]);
