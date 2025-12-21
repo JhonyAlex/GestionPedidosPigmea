@@ -1013,7 +1013,8 @@ app.post('/api/auth/login', async (req, res) => {
         
         if (!username || !password) {
             return res.status(400).json({ 
-                error: 'Usuario y contraseña son requeridos' 
+                error: 'Usuario y contraseña son requeridos',
+                errorCode: 'MISSING_CREDENTIALS'
             });
         }
 
@@ -1032,7 +1033,8 @@ app.post('/api/auth/login', async (req, res) => {
             
             if (!user) {
                 return res.status(401).json({ 
-                    error: 'Usuario no encontrado' 
+                    error: 'Usuario no encontrado',
+                    errorCode: 'USER_NOT_FOUND'
                 });
             }
 
@@ -1049,7 +1051,8 @@ app.post('/api/auth/login', async (req, res) => {
 
             if (!isValidPassword) {
                 return res.status(401).json({ 
-                    error: 'Contraseña incorrecta' 
+                    error: 'Contraseña incorrecta',
+                    errorCode: 'INVALID_PASSWORD'
                 });
             }
 
@@ -1092,13 +1095,16 @@ app.post('/api/auth/login', async (req, res) => {
         console.error('🚨 BD no disponible - rechazando login');
         return res.status(503).json({ 
             error: 'Service Unavailable',
+            errorCode: 'DATABASE_UNAVAILABLE',
             message: 'El sistema no está disponible. Por favor, contacte al administrador.' 
         });
 
     } catch (error) {
         console.error('💥 Error en login:', error);
         res.status(500).json({ 
-            error: 'Error interno del servidor' 
+            error: 'Error interno del servidor',
+            errorCode: 'INTERNAL_SERVER_ERROR',
+            details: error.message
         });
     }
 });

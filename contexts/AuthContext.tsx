@@ -175,10 +175,67 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 body: JSON.stringify({ username, password }),
             });
 
-            const data = await response.json();
+            // Si no hay respuesta del servidor (error de red/conexión)
+            if (!response) {
+                return { 
+                    success: false, 
+                    message: '❌ Error de conexión: No se pudo contactar al servidor' 
+                };
+            }
+
+            // Intentar parsear la respuesta
+            let data;
+            try {
+                data = await response.json();
+            } catch (parseError) {
+                console.error('Error parseando respuesta:', parseError);
+                return { 
+                    success: false, 
+                    message: '⚠️ Error del servidor: Respuesta inválida' 
+                };
+            }
 
             if (!response.ok) {
-                return { success: false, message: data.error || 'Error en el login' };
+                // Distinguir entre tipos de errores del servidor
+                const errorCode = data.errorCode;
+                
+                switch (errorCode) {
+                    case 'USER_NOT_FOUND':
+                        return { 
+                            success: false, 
+                            message: '👤 Usuario no encontrado: Verifique su nombre de usuario' 
+                        };
+                    
+                    case 'INVALID_PASSWORD':
+                        return { 
+                            success: false, 
+                            message: '🔒 Contraseña incorrecta: Intente nuevamente' 
+                        };
+                    
+                    case 'MISSING_CREDENTIALS':
+                        return { 
+                            success: false, 
+                            message: '⚠️ Usuario y contraseña requeridos' 
+                        };
+                    
+                    case 'DATABASE_UNAVAILABLE':
+                        return { 
+                            success: false, 
+                            message: '🔧 Base de datos no disponible: Contacte al administrador' 
+                        };
+                    
+                    case 'INTERNAL_SERVER_ERROR':
+                        return { 
+                            success: false, 
+                            message: `💥 Error del servidor: ${data.details || 'Error interno'}` 
+                        };
+                    
+                    default:
+                        return { 
+                            success: false, 
+                            message: data.error || '❌ Error desconocido en el login' 
+                        };
+                }
             }
 
             if (data.success && data.user) {
@@ -199,13 +256,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     setUser(syncedUser);
                 }
                 
-                return { success: true, user: syncedUser, message: data.message };
+                return { success: true, user: syncedUser, message: '✅ Login exitoso' };
             } else {
-                return { success: false, message: data.error || 'Error desconocido en el login' };
+                return { success: false, message: data.error || '❌ Error desconocido en el login' };
             }
         } catch (error) {
             console.error('Error en login:', error);
-            return { success: false, message: 'Error de conexión' };
+            
+            // Distinguir entre error de red y error de código
+            if (error instanceof TypeError && error.message.includes('fetch')) {
+                return { 
+                    success: false, 
+                    message: '🌐 Error de conexión: Verifique su conexión a internet' 
+                };
+            }
+            
+            return { 
+                success: false, 
+                message: `💻 Error de código: ${error.message}` 
+            };
         } finally {
             setLoading(false);
         }
