@@ -17,3 +17,84 @@
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
 }
+/* Animación para el panel de historial desde la derecha */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+/* Animación de highlight para tarjetas restauradas (azul para undo) */
+@keyframes glow-blue {
+  0% { 
+    background-color: #dbeafe; /* blue-100 */
+    box-shadow: 0 0 20px #3b82f6; 
+    transform: scale(1.03);
+  }
+  100% { 
+    background-color: transparent; 
+    transform: scale(1);
+  }
+}
+
+.dark @keyframes glow-blue-dark {
+  0% { 
+    background-color: #1e3a8a; /* blue-900 */
+    box-shadow: 0 0 20px #60a5fa;
+    transform: scale(1.03);
+  }
+  100% { 
+    background-color: transparent; 
+    transform: scale(1);
+  }
+}
+
+.card-undone {
+  animation: glow-blue 3s ease-out forwards;
+}
+
+.dark .card-undone {
+  animation: glow-blue-dark 3s ease-out forwards;
+}
+
+/* Badge temporal para undo */
+.card-undone::before {
+  content: '↩️ RESTAURADO';
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);
+  z-index: 10;
+  animation: badge-fade 3s ease-out forwards;
+}
+
+@keyframes badge-fade {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
