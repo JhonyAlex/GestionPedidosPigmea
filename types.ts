@@ -236,10 +236,12 @@ export interface AuthResponse {
 export interface AuthContextType {
     user: User | null;
     loading: boolean;
+    authError: string; // ✅ NUEVO: Mensaje de error persistente
     isSyncingPermissions?: boolean;
     login: (username: string, password: string) => Promise<AuthResponse>;
     register: (userData: RegisterRequest) => Promise<AuthResponse>;
     logout: () => void;
+    clearAuthError: () => void; // ✅ NUEVO: Limpiar error de autenticación
     updateUserPermissions?: (permissions: Permission[]) => Promise<boolean>;
 }
 

@@ -12,7 +12,14 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const [authError, setAuthError] = useState<string>(''); // ✅ NUEVO: Estado de error persistente
     const [isSyncingPermissions, setIsSyncingPermissions] = useState(false);
+
+    // ✅ NUEVO: Función para limpiar el error
+    const clearAuthError = () => {
+        console.log('🧹 Limpiando error de autenticación');
+        setAuthError('');
+    };
 
     // Función para enriquecer usuario con permisos
     const enrichUserWithPermissions = (userData: User): User => {
@@ -166,6 +173,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const login = async (username: string, password: string): Promise<AuthResponse> => {
         try {
             setLoading(true);
+            clearAuthError(); // ✅ Limpiar error anterior
             console.log('🔐 Iniciando login para:', username);
             
             const response = await fetch('/api/auth/login', {
@@ -181,9 +189,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             // Si no hay respuesta del servidor (error de red/conexión)
             if (!response) {
                 console.error('❌ No hay respuesta del servidor');
+                const errorMsg = '❌ Error de conexión: No se pudo contactar al servidor';
+                setAuthError(errorMsg); // ✅ Guardar en contexto
                 return { 
                     success: false, 
-                    message: '❌ Error de conexión: No se pudo contactar al servidor' 
+                    message: errorMsg
                 };
             }
 
@@ -194,9 +204,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 console.log('📦 Datos parseados:', data);
             } catch (parseError) {
                 console.error('❌ Error parseando respuesta:', parseError);
+                const errorMsg = '⚠️ Error del servidor: Respuesta inválida';
+                setAuthError(errorMsg); // ✅ Guardar en contexto
                 return { 
                     success: false, 
-                    message: '⚠️ Error del servidor: Respuesta inválida' 
+                    message: errorMsg
                 };
             }
 
@@ -205,48 +217,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 const errorCode = data.errorCode;
                 console.log('⚠️ Error del servidor - Código:', errorCode, '| Error:', data.error);
                 
+                let errorMsg: string;
+                
                 switch (errorCode) {
                     case 'USER_NOT_FOUND':
                         console.log('👤 Usuario no encontrado');
-                        return { 
-                            success: false, 
-                            message: '👤 Usuario no encontrado: Verifique su nombre de usuario' 
-                        };
+                        errorMsg = '👤 Usuario no encontrado: Verifique su nombre de usuario';
+                        break;
                     
                     case 'INVALID_PASSWORD':
                         console.log('🔒 Contraseña incorrecta');
-                        return { 
-                            success: false, 
-                            message: '🔒 Contraseña incorrecta: Intente nuevamente' 
-                        };
+                        errorMsg = '🔒 Contraseña incorrecta: Intente nuevamente';
+                        break;
                     
                     case 'MISSING_CREDENTIALS':
                         console.log('⚠️ Credenciales faltantes');
-                        return { 
-                            success: false, 
-                            message: '⚠️ Usuario y contraseña requeridos' 
-                        };
+                        errorMsg = '⚠️ Usuario y contraseña requeridos';
+                        break;
                     
                     case 'DATABASE_UNAVAILABLE':
                         console.log('🔧 Base de datos no disponible');
-                        return { 
-                            success: false, 
-                            message: '🔧 Base de datos no disponible: Contacte al administrador' 
-                        };
+                        errorMsg = '🔧 Base de datos no disponible: Contacte al administrador';
+                        break;
                     
                     case 'INTERNAL_SERVER_ERROR':
                         console.log('💥 Error interno del servidor');
-                        return { 
-                            success: false, 
-                            message: `💥 Error del servidor: ${data.details || 'Error interno'}` 
-                        };
+                        errorMsg = `💥 Error del servidor: ${data.details || 'Error interno'}`;
+                        break;
                     
                     default:
                         console.log('❌ Error desconocido:', data.error);
-                        return { 
-                            success: false, 
-                            message: data.error || '❌ Error desconocido en el login' 
-                        };
+                        errorMsg = data.error || '❌ Error desconocido en el login';
+                        break;
+                }
+                
+                setAuthError(errorMsg); // ✅ Guardar en contexto
+                return { 
+                    success: false, 
+                    message: errorMsg
+                };
                 }
             }
 
@@ -269,27 +278,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 }
                 
                 console.log('✅ Login exitoso');
+                clearAuthError(); // ✅ Limpiar error si login exitoso
                 return { success: true, user: syncedUser, message: '✅ Login exitoso' };
             } else {
                 console.log('❌ Respuesta sin usuario válido');
-                return { success: false, message: data.error || '❌ Error desconocido en el login' };
+                const errorMsg = data.error || '❌ Error desconocido en el login';
+                setAuthError(errorMsg); // ✅ Guardar en contexto
+                return { success: false, message: errorMsg };
             }
         } catch (error) {
             console.error('💥 Exception en login:', error);
             
+            let errorMsg: string;
+            
             // Distinguir entre error de red y error de código
             if (error instanceof TypeError && error.message.includes('fetch')) {
                 console.log('🌐 Error de conexión detectado');
-                return { 
-                    success: false, 
-                    message: '🌐 Error de conexión: Verifique su conexión a internet' 
-                };
+                errorMsg = '🌐 Error de conexión: Verifique su conexión a internet';
+            } else {
+                console.log('💻 Error de código detectado:', error.message);
+                errorMsg = `💻 Error de código: ${error.message}`;
             }
             
-            console.log('💻 Error de código detectado:', error.message);
+            setAuthError(errorMsg); // ✅ Guardar en contexto
             return { 
                 success: false, 
-                message: `💻 Error de código: ${error.message}` 
+                message: errorMsg
             };
         } finally {
             console.log('🔓 Desbloqueando loading');
@@ -411,9 +425,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const value: AuthContextType = {
         user,
         loading,
+        authError, // ✅ NUEVO: Exponer error
         login,
         logout,
         register,
+        clearAuthError, // ✅ NUEVO: Exponer función para limpiar error
         updateUserPermissions,
         isSyncingPermissions
     };

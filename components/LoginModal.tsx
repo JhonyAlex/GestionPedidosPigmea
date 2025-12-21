@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../types';
 
 const LoginModal: React.FC = () => {
-    const { login, register, loading } = useAuth();
+    const { login, register, loading, authError, clearAuthError } = useAuth(); // ✅ Usar authError del contexto
     const [isRegisterMode, setIsRegisterMode] = useState(false);
     const [formData, setFormData] = useState({
         username: '',
@@ -11,15 +11,14 @@ const LoginModal: React.FC = () => {
         displayName: '',
         role: 'Operador' as UserRole
     });
-    const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
-    // Debug: Monitorear cambios de estado
+    // Debug: Monitorear cambios de authError
     useEffect(() => {
-        if (error) {
-            console.log('🔴 Estado de error actualizado:', error);
+        if (authError) {
+            console.log('🔴 AuthError del contexto actualizado:', authError);
         }
-    }, [error]);
+    }, [authError]);
 
     useEffect(() => {
         if (success) {
@@ -37,17 +36,19 @@ const LoginModal: React.FC = () => {
             ...prev,
             [name]: value
         }));
-        setError('');
+        clearAuthError(); // ✅ Limpiar error del contexto
         setSuccess('');
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError('');
+        clearAuthError(); // ✅ Limpiar error del contexto
         setSuccess('');
 
         if (!formData.username.trim() || !formData.password.trim()) {
-            setError('⚠️ Usuario y contraseña son requeridos');
+            // Para errores de validación local, podemos seguir usando setError si lo necesitamos
+            // o usar el authError del contexto
+            console.log('⚠️ Validación: Usuario y contraseña requeridos');
             return;
         }
 
@@ -71,8 +72,8 @@ const LoginModal: React.FC = () => {
             console.log('📝 Resultado recibido:', result);
 
             if (!result.success) {
-                console.log('❌ Login fallido, mostrando error:', result.message);
-                setError(result.message);
+                console.log('❌ Login fallido, error ya guardado en contexto');
+                // El error ya está en authError del contexto
             } else {
                 console.log('✅ Login exitoso, mostrando mensaje:', result.message);
                 setSuccess(result.message);
@@ -80,13 +81,13 @@ const LoginModal: React.FC = () => {
             }
         } catch (error) {
             console.error('💥 Error inesperado en handleSubmit:', error);
-            setError(`💻 Error inesperado: ${error.message || 'Error desconocido'}`);
+            // Este caso es muy raro, normalmente los errores ya están manejados en login/register
         }
     };
 
     const toggleMode = () => {
         setIsRegisterMode(!isRegisterMode);
-        setError('');
+        clearAuthError(); // ✅ Limpiar error del contexto
         setSuccess('');
         setFormData({
             username: '',
@@ -181,7 +182,7 @@ const LoginModal: React.FC = () => {
                         </>
                     )}
 
-                    {error && (
+                    {authError && (
                         <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 dark:border-red-700 px-4 py-3 rounded relative">
                             <div className="flex items-start">
                                 <div className="flex-shrink-0">
@@ -191,24 +192,24 @@ const LoginModal: React.FC = () => {
                                 </div>
                                 <div className="ml-3">
                                     <p className="text-sm font-medium text-red-800 dark:text-red-200">
-                                        {error}
+                                        {authError}
                                     </p>
-                                    {error.includes('Usuario no encontrado') && (
+                                    {authError.includes('Usuario no encontrado') && (
                                         <p className="mt-1 text-xs text-red-700 dark:text-red-300">
                                             Sugerencia: Verifique que el nombre de usuario esté escrito correctamente
                                         </p>
                                     )}
-                                    {error.includes('Contraseña incorrecta') && (
+                                    {authError.includes('Contraseña incorrecta') && (
                                         <p className="mt-1 text-xs text-red-700 dark:text-red-300">
                                             Sugerencia: Revise que las mayúsculas y minúsculas sean correctas
                                         </p>
                                     )}
-                                    {error.includes('Base de datos') && (
+                                    {authError.includes('Base de datos') && (
                                         <p className="mt-1 text-xs text-red-700 dark:text-red-300">
                                             Acción: Contacte al administrador del sistema inmediatamente
                                         </p>
                                     )}
-                                    {error.includes('conexión') && (
+                                    {authError.includes('conexión') && (
                                         <p className="mt-1 text-xs text-red-700 dark:text-red-300">
                                             Sugerencia: Verifique su conexión a internet o que el servidor esté disponible
                                         </p>
