@@ -63,31 +63,6 @@ export function useOperacionesProduccion() {
         };
 
         const handleOperacionCompletada = (operacion: OperacionProduccion) => {
-            console.log('✅ Operación completada:', operacion);
-            setOperacionesActivas(prev => prev.filter(op => op.id !== operacion.id));
-            
-            if (operacion.operadorId === user?.id) {
-                setMiOperacionActual(null);
-            }
-            
-            // Actualizar estadísticas
-            if (user?.id) {
-                cargarEstadisticas(user.id);
-            }
-        };
-
-        const handleOperacionCancelada = (operacion: OperacionProduccion) => {
-            console.log('❌ Operación cancelada:', operacion);
-            setOperacionesActivas(prev => prev.filter(op => op.id !== operacion.id));
-            
-            if (operacion.operadorId === user?.id) {
-                setMiOperacionActual(null);
-            }
-        };
-
-        socket.on('operacion-iniciada', handleOperacionIniciada);
-        socket.on('operacion-pausada', handleOperacionPausada);
-        const handleOperacionCompletada = (operacion: OperacionProduccion) => {
             setOperacionesActivas(prev => prev.filter(op => op.id !== operacion.id));
             if (operacion.operadorId === user?.id) {
                 setMiOperacionActual(null);
