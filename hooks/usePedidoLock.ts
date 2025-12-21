@@ -205,22 +205,6 @@ export const usePedidoLock = ({
     setLockedBy(null);
   }, [user, pedidoId]);
 
-  // Auto-desbloquear al cambiar de pedido o al desmontar
-  useEffect(() => {
-    // Guardar el pedidoId actual cuando el efecto se ejecuta
-    if (pedidoId) {
-      currentPedidoIdRef.current = pedidoId;
-    }
-
-    return () => {
-      console.log(`🧹 [CLEANUP] Limpiando efecto de bloqueo - pedidoId: ${currentPedidoIdRef.current}, isLockedByMe: ${isLockedByMeRef.current}, autoUnlock: ${autoUnlock}`);
-      
-      isUnmountingRef.current = true;
-      
-      // ✅ Usar las referencias en lugar del estado para asegurar el desbloqueo
-      if (autoUnlock && isLockedByMeRef.current && currentPedidoIdRef.current && user) {
-        console.log(`🔓 [CLEANUP] Desbloqueando pedido ${currentPedidoIdRef.current} en cleanup`);
-        
   useEffect(() => {
     if (pedidoId) {
       currentPedidoIdRef.current = pedidoId;
@@ -302,3 +286,13 @@ export const usePedidoLock = ({
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [user]);
+
+  return {
+    isLocked,
+    isLockedByMe,
+    lockedBy,
+    allLocks,
+    lockPedido,
+    unlockPedido
+  };
+};
