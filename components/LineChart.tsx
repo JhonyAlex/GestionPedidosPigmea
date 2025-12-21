@@ -19,7 +19,12 @@ const LineChart: React.FC<LineChartProps> = ({ data }) => {
         return <div className="flex items-center justify-center h-full text-gray-500">No hay datos para mostrar.</div>;
     }
 
-    const allData = data.datasets.flatMap(ds => ds.data);
+    const allData = data.datasets.flatMap(ds => ds.data).filter(v => typeof v === 'number' && !isNaN(v) && isFinite(v));
+    
+    if (allData.length === 0) {
+        return <div className="flex items-center justify-center h-full text-gray-500">No hay datos válidos para mostrar.</div>;
+    }
+    
     const maxValue = Math.max(...allData);
     const minValue = Math.min(...allData);
     const range = maxValue - minValue || 1;
@@ -58,19 +63,28 @@ const LineChart: React.FC<LineChartProps> = ({ data }) => {
 
                     {/* Lines */}
                     <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 100 100`} preserveAspectRatio="none">
-                        {data.datasets.map((dataset, datasetIndex) => (
-                            <polyline
-                                key={datasetIndex}
-                                fill="none"
-                                stroke={dataset.borderColor}
-                                strokeWidth="0.5"
-                                points={dataset.data.map((value, index) => {
-                                    const x = (index / (data.labels.length - 1)) * 100;
-                                    const y = 100 - ((value - minValue) / range) * 100;
-                                    return `${x},${y}`;
-                                }).join(' ')}
-                            />
-                        ))}
+                        {data.datasets.map((dataset, datasetIndex) => {
+                            const points = dataset.data.map((value, index) => {
+                                if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
+                                    return null;
+                                }
+                                const x = data.labels.length > 1 ? (index / (data.labels.length - 1)) * 100 : 50;
+                                const y = range > 0 ? 100 - ((value - minValue) / range) * 100 : 50;
+                                return `${x},${y}`;
+                            }).filter(p => p !== null).join(' ');
+                            
+                            if (!points) return null;
+                            
+                            return (
+                                <polyline
+                                    key={datasetIndex}
+                                    fill="none"
+                                    stroke={dataset.borderColor}
+                                    strokeWidth="0.5"
+                                    points={points}
+                                />
+                            );
+                        })}
                     </svg>
 
                     {/* X-Axis Labels */}

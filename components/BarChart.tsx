@@ -18,7 +18,13 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
         return <div className="flex items-center justify-center h-full text-gray-500">No hay datos para mostrar.</div>;
     }
 
-    const maxValue = Math.max(...data.datasets.flatMap(ds => ds.data));
+    const allData = data.datasets.flatMap(ds => ds.data).filter(v => typeof v === 'number' && !isNaN(v) && isFinite(v));
+    
+    if (allData.length === 0) {
+        return <div className="flex items-center justify-center h-full text-gray-500">No hay datos válidos para mostrar.</div>;
+    }
+    
+    const maxValue = Math.max(...allData, 1);
     const yAxisSteps = 5;
     const yAxisLabels = Array.from({ length: yAxisSteps + 1 }, (_, i) => 
         Math.round((maxValue / yAxisSteps) * i)
@@ -55,16 +61,17 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
                             <div className="w-full flex justify-around items-end gap-1 h-full">
                                 {data.datasets.map(dataset => {
                                     const value = dataset.data[index];
-                                    const height = maxValue > 0 ? (value / maxValue) * 100 : 0;
+                                    const safeValue = typeof value === 'number' && !isNaN(value) && isFinite(value) ? value : 0;
+                                    const height = maxValue > 0 ? (safeValue / maxValue) * 100 : 0;
                                     const color = typeof dataset.backgroundColor === 'function' 
-                                        ? dataset.backgroundColor(value, index) 
+                                        ? dataset.backgroundColor(safeValue, index) 
                                         : dataset.backgroundColor;
                                     return (
                                         <div 
                                             key={dataset.label} 
                                             className="w-full rounded-t-sm hover:opacity-80 transition-opacity" 
                                             style={{ height: `${height}%`, backgroundColor: color }}
-                                            title={`${dataset.label}: ${value} min`}
+                                            title={`${dataset.label}: ${safeValue} min`}
                                         ></div>
                                     );
                                 })}
