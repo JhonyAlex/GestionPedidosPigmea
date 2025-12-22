@@ -46,7 +46,8 @@ const VendedorModal: React.FC<VendedorModalProps> = ({ isOpen, onClose, onSave, 
     autoUnlock: !isEmbedded
   });
   
-  const isReadOnly = isEmbedded ? false : (vendedor && isLocked && !isLockedByMe);
+  // No restricciones por bloqueo: modo TODO PERMITIDO
+  const isReadOnly = false;
 
   useEffect(() => {
     if (isOpen) {

@@ -59,7 +59,8 @@ const ClienteModalMejorado: React.FC<ClienteModalProps> = ({ isOpen, onClose, on
     autoUnlock: !isEmbedded
   });
   
-  const isReadOnly = isEmbedded ? false : (cliente && isLocked && !isLockedByMe);
+  // No restricciones por bloqueo: modo TODO PERMITIDO
+  const isReadOnly = false;
 
   useEffect(() => {
     if (isOpen) {

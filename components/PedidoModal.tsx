@@ -8,7 +8,7 @@ import SequenceBuilder from './SequenceBuilder';
 import SeccionDatosTecnicosDeMaterial from './SeccionDatosTecnicosDeMaterial';
 import CommentSystem from './comments/CommentSystem';
 // import { usePermissions } from '../hooks/usePermissions';
-// import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useVendedoresManager } from '../hooks/useVendedoresManager';
 import { useClientesManager, type Cliente } from '../hooks/useClientesManager';
 import { usePedidoLock } from '../hooks/usePedidoLock';
@@ -104,7 +104,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     const [isEtapaDropdownOpen, setIsEtapaDropdownOpen] = useState(false);
     const [pedidoMateriales, setPedidoMateriales] = useState<Material[]>([]);
     
-    // const { user } = useAuth();
+    const { user } = useAuth();
     const { vendedores, addVendedor, fetchVendedores } = useVendedoresManager();
     const { clientes, addCliente, fetchClientes, isLoading: isLoadingClientes } = useClientesManager();
     const { materiales, updateMaterial, getMaterialesByPedidoId } = useMaterialesManager();
@@ -1677,6 +1677,8 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                         <div className="flex-1 bg-white dark:bg-gray-800 min-h-0"> 
                             <CommentSystem
                                 pedidoId={pedido.id}
+                                currentUserId={user?.id}
+                                currentUserRole={user?.role}
                                 canDeleteComments={false}
                                 className="h-full"
                                 isConnected={isConnected}

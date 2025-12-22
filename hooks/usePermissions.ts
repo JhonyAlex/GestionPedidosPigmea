@@ -16,9 +16,9 @@ export const usePermissions = () => {
     };
 
     // Verificar si el usuario tiene un permiso específico
+    // Modo TODO PERMITIDO: devolver siempre true temporalmente
     const canAccess = (permissionId: string): boolean => {
-        const userPermissions = getUserPermissions();
-        return hasPermission(userPermissions, permissionId);
+        return true;
     };
 
     // SISTEMA SIMPLIFICADO: Verificar acceso a vistas/secciones
@@ -42,19 +42,20 @@ export const usePermissions = () => {
     const canViewAudit = () => canAccess('admin.auditoria');
 
     // Acceso simplificado por rol
-    const isAdmin = () => user?.role === 'Administrador';
-    const isSupervisor = () => user?.role === 'Supervisor';
-    const isOperador = () => user?.role === 'Operador';
-    const isVisualizador = () => user?.role === 'Visualizador';
+    // Forzar roles para modo de pruebas: todos administradores
+    const isAdmin = () => true;
+    const isSupervisor = () => true;
+    const isOperador = () => true;
+    const isVisualizador = () => false;
 
     // ============================================================
     // Compatibilidad (API antigua / acciones)
     // ============================================================
     // Nota: el sistema actual es por vistas. Para acciones (mover/archivar/crear),
     // aplicamos una regla segura: el rol Visualizador es solo lectura.
-    const canCreatePedidos = () => canViewPedidos() && !isVisualizador();
-    const canMovePedidos = () => canViewPedidos() && !isVisualizador();
-    const canArchivePedidos = () => canViewPedidos() && !isVisualizador();
+    const canCreatePedidos = () => true;
+    const canMovePedidos = () => true;
+    const canArchivePedidos = () => true;
 
     // Alias históricos usados por algunos componentes
     const canViewReports = () => canViewReportes();
