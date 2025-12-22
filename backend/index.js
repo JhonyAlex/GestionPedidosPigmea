@@ -514,6 +514,11 @@ function cleanupGhostUsers() {
 // Limpiar usuarios fantasma cada 10 segundos
 setInterval(cleanupGhostUsers, 10000);
 
+// Versión/buildTime del servidor (estable durante el proceso)
+const packageJson = require('../package.json');
+const serverVersion = packageJson.version || '1.0.0';
+const serverBuildTime = process.env.BUILD_TIME || new Date().toISOString();
+
 // Función para reset completo de usuarios conectados
 function resetConnectedUsers() {
     connectedUsers.clear();
@@ -522,20 +527,16 @@ function resetConnectedUsers() {
 
 io.on('connection', (socket) => {
     // Enviar versión del servidor al conectar
-    const packageJson = require('../package.json');
-    const serverVersion = packageJson.version || '1.0.0';
-    const buildTime = process.env.BUILD_TIME || new Date().toISOString();
-    
     socket.emit('server-version', {
         version: serverVersion,
-        buildTime: buildTime
+        buildTime: serverBuildTime
     });
     
     // Manejar solicitud de versión del cliente
     socket.on('request-version', () => {
         socket.emit('server-version', {
             version: serverVersion,
-            buildTime: buildTime
+            buildTime: serverBuildTime
         });
     });
     

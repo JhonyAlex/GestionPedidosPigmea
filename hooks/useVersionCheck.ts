@@ -13,28 +13,27 @@ export const useVersionCheck = () => {
     useEffect(() => {
         const socket = webSocketService.getSocket();
         const clientVersion = __APP_VERSION__;
-        const clientBuildTime = __BUILD_TIME__;
+        // Nota: __BUILD_TIME__ es del frontend. El servidor puede reportar su propio buildTime,
+        // que no es comparable y puede causar loops de refresco.
 
         // Escuchar evento de actualización desde el servidor
         const handleAppUpdated = (data: VersionInfo) => {
             console.log('🔄 Nueva versión detectada:', data);
             
-            // Comparar versión o timestamp de build
-            if (data.version !== clientVersion || data.buildTime !== clientBuildTime) {
-                setNewVersion(data.version);
-                setUpdateAvailable(true);
-            }
+            // Para evitar loops, usamos el evento explícito del servidor como fuente de verdad.
+            // Si el backend dispara 'app-updated', mostramos banner y refrescamos.
+            setNewVersion(data.version);
+            setUpdateAvailable(true);
         };
 
         // Escuchar respuesta del servidor con su versión actual
         const handleServerVersion = (data: VersionInfo) => {
             console.log('📡 Versión del servidor:', data);
             console.log('💻 Versión del cliente:', clientVersion);
-            
-            if (data.version !== clientVersion || data.buildTime !== clientBuildTime) {
-                setNewVersion(data.version);
-                setUpdateAvailable(true);
-            }
+
+            // IMPORTANTE: 'server-version' representa versión/buildTime del servidor.
+            // No lo usamos para invalidar el frontend, porque puede cambiar en cada conexión
+            // y generar un loop de auto-refresh.
         };
 
         // Usar any para evitar errores de tipo con eventos no tipados estrictamente
@@ -52,7 +51,11 @@ export const useVersionCheck = () => {
 
     const forceRefresh = () => {
         console.log('🔄 Forzando actualización del navegador...');
-        localStorage.setItem('force-refresh-reason', 'App update');
+        try {
+            localStorage.setItem('force-refresh-reason', 'App update');
+        } catch {
+            // Ignorar: algunos navegadores/bloqueadores impiden acceso a storage
+        }
         
         // Hard reload que borra caché
         window.location.reload();
