@@ -141,8 +141,10 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         autoUnlock: true
     });
     
-    // El modal nunca es de solo lectura (todos pueden editar)
-    const isReadOnly = false;
+    // El modal será de solo lectura para usuarios que NO tienen el bloqueo
+    // Esto hace que, si otro usuario está editando el pedido, se oculte/disable
+    // el contenido para otros usuarios (única restricción del sistema).
+    const isReadOnly = Boolean(isLocked && !isLockedByMe);
 
     // Función para detectar si hay cambios no guardados
     const hasUnsavedChanges = useMemo(() => {
@@ -937,10 +939,10 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                         <div className="flex items-center gap-2">
                             {canDeletePedidos() && (
                                 <>
-                                    <button onClick={handleDuplicateClick} title="Duplicar Pedido" className="text-gray-500 hover:text-indigo-500 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors">
+                                    <button onClick={handleDuplicateClick} title="Duplicar Pedido" className="text-gray-500 hover:text-indigo-500 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors" disabled={isReadOnly}>
                                         <DuplicateIcon />
                                     </button>
-                                    <button onClick={handleDeleteClick} title="Eliminar Pedido" className="text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-colors">
+                                    <button onClick={handleDeleteClick} title="Eliminar Pedido" className="text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-colors" disabled={isReadOnly}>
                                         <TrashIcon />
                                     </button>
                                 </>
@@ -949,7 +951,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                     </div>
                     <div className="flex items-center gap-4">
                         {pedido.etapaActual === Etapa.PREPARACION && pedido.subEtapaActual !== 'LISTO_PARA_PRODUCCION' && canMovePedidos() && (
-                            <button onClick={handleReadyForProductionClick} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">
+                            <button onClick={handleReadyForProductionClick} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200" disabled={isReadOnly}>
                                 Listo para Producción
                             </button>
                         )}
@@ -982,6 +984,20 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                 <p className="text-sm text-gray-500 dark:text-gray-400 px-8 pb-6 font-mono bg-gradient-to-r from-slate-50 to-gray-100 dark:from-gray-800 dark:to-gray-750 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">Registro Interno: {pedido.numeroRegistro}</p>
                 
                 {/* Acordeón de Etapa Actual */}
+                {/* Aviso: pedido en edición por otro usuario -> poner solo lectura */}
+                {isLocked && !isLockedByMe && (
+                    <div className="px-8 py-3 bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-yellow-600 dark:text-yellow-400">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                            </svg>
+                            <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">Este pedido está siendo editado por <strong>{lockedBy}</strong>. Vista sólo lectura para otros usuarios.</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button onClick={onClose} className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-200">Cerrar</button>
+                        </div>
+                    </div>
+                )}
                 <div className="border-b border-gray-200 dark:border-gray-700">
                     <button
                         type="button"
@@ -1690,7 +1706,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                 {/* Footer fijo con botones de acción */}
                 <div className="border-t-2 border-gray-300 dark:border-gray-600 bg-gradient-to-r from-slate-50 to-gray-100 dark:from-gray-800 dark:to-gray-750 px-8 py-4 flex justify-between items-center flex-shrink-0">
                     <div className="flex gap-2">
-                        <button type="button" onClick={handleArchiveClick} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled={pedido.etapaActual !== Etapa.COMPLETADO && pedido.etapaActual !== Etapa.ARCHIVADO && pedido.etapaActual !== Etapa.PREPARACION}>
+                        <button type="button" onClick={handleArchiveClick} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled={isReadOnly || (pedido.etapaActual !== Etapa.COMPLETADO && pedido.etapaActual !== Etapa.ARCHIVADO && pedido.etapaActual !== Etapa.PREPARACION)}>
                             {pedido.etapaActual === Etapa.ARCHIVADO ? 'Desarchivar' : 'Archivar'}
                         </button>
                         {pedido.etapaActual === Etapa.PREPARACION && (
@@ -1698,7 +1714,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                 type="button"
                                 onClick={handleSendToPrintClick}
                                 className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                disabled={!formData.materialDisponible || (!!formData.antivaho && (!formData.secuenciaTrabajo || formData.secuenciaTrabajo.length === 0))}
+                                disabled={isReadOnly || !formData.materialDisponible || (!!formData.antivaho && (!formData.secuenciaTrabajo || formData.secuenciaTrabajo.length === 0))}
                                 title={
                                     !formData.materialDisponible
                                         ? "El material debe estar disponible para enviar a impresión"
@@ -1713,7 +1729,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                             </button>
                         )}
                         {pedido.etapaActual !== Etapa.PREPARACION && !printingStages.includes(pedido.etapaActual) && (
-                            <select onChange={(e) => handleRevertToPrinting(e.target.value as Etapa)} className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded transition-colors duration-200" value="">
+                            <select onChange={(e) => handleRevertToPrinting(e.target.value as Etapa)} className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded transition-colors duration-200" value="" disabled={isReadOnly}>
                                 <option value="" disabled>Volver a Impresión...</option>
                                 {printingStages.map(stage => <option key={stage} value={stage}>{ETAPAS[stage].title}</option>)}
                             </select>
