@@ -131,7 +131,11 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         },
         onLockLost: () => {
             alert('⚠️ Has perdido el bloqueo de este pedido por inactividad. Los cambios no guardados se perderán.');
-            onClose();
+            if (typeof onClose === 'function') {
+                onClose();
+            } else {
+                console.warn('PedidoModal: onClose no es una función, no se puede cerrar automáticamente.');
+            }
         },
         autoUnlock: true
     });
