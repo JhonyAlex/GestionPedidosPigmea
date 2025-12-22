@@ -109,12 +109,13 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     const { clientes, addCliente, fetchClientes, isLoading: isLoadingClientes } = useClientesManager();
     const { materiales, updateMaterial, getMaterialesByPedidoId } = useMaterialesManager();
     const { recordPedidoUpdate } = useActionRecorder();
-    const { 
-        canEditPedidos, 
-        canDeletePedidos, 
-        canArchivePedidos, 
-        canMovePedidos 
-    } = usePermissions();
+    const permissions = usePermissions();
+    
+    // Helper functions using the permissions object
+    const canEditPedidos = () => permissions.canAccess('pedidos.edit');
+    const canDeletePedidos = () => permissions.canAccess('pedidos.delete');
+    const canArchivePedidos = () => permissions.canAccess('pedidos.archive');
+    const canMovePedidos = () => permissions.canAccess('pedidos.move');
     
     // Sistema de bloqueo de pedidos
     const {
