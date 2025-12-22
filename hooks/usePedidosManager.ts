@@ -88,7 +88,7 @@ export const usePedidosManager = (
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [setPedidos, setTotalPedidos, setHasMore, setCurrentPage, setIsLoading]);
 
     // Carga inicial
     useEffect(() => {
