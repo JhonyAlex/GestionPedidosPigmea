@@ -1,5 +1,5 @@
 import React from 'react';
-import { DropResult } from 'react-beautiful-dnd';
+import { DropResult } from '@hello-pangea/dnd';
 import { Pedido, Etapa, UserRole, HistorialEntry } from '../types';
 import { ETAPAS, PREPARACION_SUB_ETAPAS_IDS } from '../constants';
 import { store } from '../services/storage';

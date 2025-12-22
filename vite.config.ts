@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => {
           output: {
             manualChunks: {
               vendor: ['react', 'react-dom'],
-              dnd: ['react-beautiful-dnd']
+              dnd: ['@hello-pangea/dnd']
             }
           }
         }

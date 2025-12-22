@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pedido, UserRole, Etapa } from '../types';
-import { Droppable, Draggable } from 'react-beautiful-dnd';
+import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { usePermissions } from '../hooks/usePermissions';
 import { formatDateDDMMYYYY } from '../utils/date';
 

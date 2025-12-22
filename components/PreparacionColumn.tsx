@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Droppable, Draggable } from 'react-beautiful-dnd';
+import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { Pedido, UserRole } from '../types';
 import PedidoCard from './PedidoCard';
 import { useLockObserver } from '../hooks/useLockObserver';

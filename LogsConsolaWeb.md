@@ -10,9 +10,44 @@ Tracking Prevention blocked access to storage for <URL>.
 Tracking Prevention blocked access to storage for <URL>.
 Tracking Prevention blocked access to storage for <URL>.
 Tracking Prevention blocked access to storage for <URL>.
-index-5a-cjKbB.js:1 📊 [2025-12-22T08:39:29.072Z] Iniciando carga de pedidos (página 1)...
+index-E99kV4IV.js:1 📊 [2025-12-22T08:44:15.143Z] Iniciando carga de pedidos (página 1)...
+index-E99kV4IV.js:1 ⏳ Estado de loading: false
+index-E99kV4IV.js:1 ✅ [2025-12-22T08:44:15.309Z] Pedidos cargados (modo paginado):
+index-E99kV4IV.js:1    - Cargados: 100 pedidos
+index-E99kV4IV.js:1    - Página: 1/3
+index-E99kV4IV.js:1    - Total en sistema: 225
+index-E99kV4IV.js:1    - Tiempo de carga: 166ms
+index-E99kV4IV.js:1 📡 Versión del servidor: {version: '0.0.0', buildTime: '2025-12-22T08:44:14.733Z'}
+index-E99kV4IV.js:1 💻 Versión del cliente: 1.0.0
+index-E99kV4IV.js:1 📡 Versión del servidor: {version: '0.0.0', buildTime: '2025-12-22T08:44:14.733Z'}
+index-E99kV4IV.js:1 💻 Versión del cliente: 1.0.0
+index-E99kV4IV.js:1 🧹 Limpiando error de autenticación
+index-E99kV4IV.js:1 🧹 Limpiando error de autenticación
+index-E99kV4IV.js:1 🧹 Limpiando error de autenticación
+index-E99kV4IV.js:1 🧹 Limpiando error de autenticación
+index-E99kV4IV.js:1 🧹 Limpiando error de autenticación
+index-E99kV4IV.js:1 🧹 Limpiando error de autenticación
+index-E99kV4IV.js:1 🧹 Limpiando error de autenticación
+index-E99kV4IV.js:1 🧹 Limpiando error de autenticación
+index-E99kV4IV.js:1 🧹 Limpiando error de autenticación
+index-E99kV4IV.js:1 🧹 Limpiando error de autenticación
+index-E99kV4IV.js:1 🧹 Limpiando error de autenticación
+index-E99kV4IV.js:1 🧹 Limpiando error de autenticación
+index-E99kV4IV.js:1 🧹 Limpiando error de autenticación
+index-E99kV4IV.js:1 🧹 Limpiando error de autenticación
+index-E99kV4IV.js:1 📝 Iniciando submit del formulario...
+index-E99kV4IV.js:1 📝 Modo login
+index-E99kV4IV.js:1 🧹 Limpiando error de autenticación
+index-E99kV4IV.js:1 🔐 Iniciando login para: admin
+index-E99kV4IV.js:1 📡 Respuesta del servidor - Status: 200 
+index-E99kV4IV.js:1 📦 Datos parseados: {success: true, user: {…}, message: 'Login exitoso'}
+index-E99kV4IV.js:1 ✅ Login exitoso
+index-E99kV4IV.js:1 🧹 Limpiando error de autenticación
+index-E99kV4IV.js:1 🔓 Desbloqueando loading
+index-E99kV4IV.js:1 📝 Resultado recibido: {success: true, user: {…}, message: '✅ Login exitoso'}
+index-E99kV4IV.js:1 ✅ Login exitoso, mostrando mensaje: ✅ Login exitoso
 vendor-Z2Iecplj.js:10  TypeError: z is not a function
-    at ya (index-5a-cjKbB.js:1:306878)
+    at ya (index-E99kV4IV.js:1:306878)
     at gu (vendor-Z2Iecplj.js:10:60074)
     at Ei (vendor-Z2Iecplj.js:10:119069)
     at ks (vendor-Z2Iecplj.js:10:108309)
@@ -34,7 +69,7 @@ as @ vendor-Z2Iecplj.js:10
 w @ vendor-Z2Iecplj.js:1
 z @ vendor-Z2Iecplj.js:1
 vendor-Z2Iecplj.js:10  TypeError: z is not a function
-    at ya (index-5a-cjKbB.js:1:306878)
+    at ya (index-E99kV4IV.js:1:306878)
     at gu (vendor-Z2Iecplj.js:10:60074)
     at Ei (vendor-Z2Iecplj.js:10:119069)
     at ks (vendor-Z2Iecplj.js:10:108309)
@@ -60,7 +95,7 @@ as @ vendor-Z2Iecplj.js:10
 w @ vendor-Z2Iecplj.js:1
 z @ vendor-Z2Iecplj.js:1
 vendor-Z2Iecplj.js:10  Uncaught TypeError: z is not a function
-    at ya (index-5a-cjKbB.js:1:306878)
+    at ya (index-E99kV4IV.js:1:306878)
     at gu (vendor-Z2Iecplj.js:10:60074)
     at Ei (vendor-Z2Iecplj.js:10:119069)
     at ks (vendor-Z2Iecplj.js:10:108309)
@@ -70,7 +105,7 @@ vendor-Z2Iecplj.js:10  Uncaught TypeError: z is not a function
     at as (vendor-Z2Iecplj.js:10:103490)
     at w (vendor-Z2Iecplj.js:1:8075)
     at MessagePort.z (vendor-Z2Iecplj.js:1:8607)
-ya @ index-5a-cjKbB.js:1
+ya @ index-E99kV4IV.js:1
 gu @ vendor-Z2Iecplj.js:10
 Ei @ vendor-Z2Iecplj.js:10
 ks @ vendor-Z2Iecplj.js:10
@@ -80,8 +115,3 @@ us @ vendor-Z2Iecplj.js:10
 as @ vendor-Z2Iecplj.js:10
 w @ vendor-Z2Iecplj.js:1
 z @ vendor-Z2Iecplj.js:1
-index-5a-cjKbB.js:1 ✅ [2025-12-22T08:39:29.243Z] Pedidos cargados (modo paginado):
-index-5a-cjKbB.js:1    - Cargados: 100 pedidos
-index-5a-cjKbB.js:1    - Página: 1/3
-index-5a-cjKbB.js:1    - Total en sistema: 225
-index-5a-cjKbB.js:1    - Tiempo de carga: 171ms

@@ -1,7 +1,7 @@
 
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { Droppable, Draggable } from 'react-beautiful-dnd';
+import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { Pedido, Etapa, UserRole, Prioridad } from '../types';
 import { ETAPAS, PRIORIDAD_COLORS, KANBAN_FUNNELS } from '../constants';
 import { puedeAvanzarSecuencia, estaFueraDeSecuencia } from '../utils/etapaLogic';

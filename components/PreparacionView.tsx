@@ -1,5 +1,5 @@
 import React from 'react';
-import { Droppable } from 'react-beautiful-dnd';
+import { Droppable } from '@hello-pangea/dnd';
 import { Pedido, UserRole, Etapa } from '../types';
 import { PREPARACION_COLUMNS } from '../constants';
 import PreparacionColumn from './PreparacionColumn';
