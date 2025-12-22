@@ -1,183 +1,92 @@
 import { PermissionConfig, Permission, UserRole, RolePermissions } from '../types';
 
-// Configuración de permisos del sistema
+// ============================================================
+// SISTEMA DE PERMISOS SIMPLIFICADO POR VISTAS
+// ============================================================
+// Cada permiso representa el acceso a una vista/sección completa
+// Ventajas: Más simple, más mantenible, menos confusión en soporte
+// ============================================================
+
 export const PERMISSION_CONFIG: PermissionConfig = {
     categories: {
-        pedidos: {
-            name: 'Gestión de Pedidos',
-            description: 'Permisos relacionados con la creación, edición y gestión de pedidos',
+        vistas: {
+            name: 'Vistas del Sistema',
+            description: 'Control de acceso a vistas y secciones principales',
             permissions: [
                 {
-                    id: 'pedidos.view',
-                    name: 'Ver Pedidos',
-                    description: 'Permite visualizar la lista de pedidos',
-                    category: 'pedidos'
+                    id: 'vista.pedidos',
+                    name: 'Vista Pedidos',
+                    description: 'Acceso completo a la sección de Pedidos',
+                    category: 'vistas'
                 },
                 {
-                    id: 'pedidos.create',
-                    name: 'Crear Pedidos',
-                    description: 'Permite crear nuevos pedidos',
-                    category: 'pedidos'
+                    id: 'vista.clientes',
+                    name: 'Vista Clientes',
+                    description: 'Acceso completo a la sección de Clientes',
+                    category: 'vistas'
                 },
                 {
-                    id: 'pedidos.edit',
-                    name: 'Editar Pedidos',
-                    description: 'Permite modificar pedidos existentes',
-                    category: 'pedidos'
+                    id: 'vista.vendedores',
+                    name: 'Vista Vendedores',
+                    description: 'Acceso completo a la sección de Vendedores',
+                    category: 'vistas'
                 },
                 {
-                    id: 'pedidos.delete',
-                    name: 'Eliminar Pedidos',
-                    description: 'Permite eliminar pedidos',
-                    category: 'pedidos'
+                    id: 'vista.operador',
+                    name: 'Vista Operador Producción',
+                    description: 'Acceso a vista especializada de operación de producción',
+                    category: 'vistas'
                 },
                 {
-                    id: 'pedidos.move',
-                    name: 'Mover Etapas',
-                    description: 'Permite cambiar pedidos entre etapas',
-                    category: 'pedidos'
+                    id: 'vista.preparacion',
+                    name: 'Vista Preparación',
+                    description: 'Acceso a sección de preparación de pedidos',
+                    category: 'vistas'
                 },
                 {
-                    id: 'pedidos.duplicate',
-                    name: 'Duplicar Pedidos',
-                    description: 'Permite duplicar pedidos existentes',
-                    category: 'pedidos'
+                    id: 'vista.listo_produccion',
+                    name: 'Vista Listo Producción',
+                    description: 'Acceso a sección de pedidos listos para producción',
+                    category: 'vistas'
                 },
                 {
-                    id: 'pedidos.export',
-                    name: 'Exportar Pedidos',
-                    description: 'Permite exportar datos de pedidos',
-                    category: 'pedidos'
+                    id: 'vista.reportes',
+                    name: 'Vista Reportes',
+                    description: 'Acceso a sección de reportes y análisis',
+                    category: 'vistas'
                 },
                 {
-                    id: 'pedidos.archive',
-                    name: 'Archivar Pedidos',
-                    description: 'Permite archivar y desarchivar pedidos',
-                    category: 'pedidos'
-                },
-                {
-                    id: 'pedidos.operate',
-                    name: 'Operar Producción',
-                    description: 'Permite trabajar en modo operador de producción',
-                    category: 'pedidos'
+                    id: 'vista.auditoria',
+                    name: 'Vista Auditoría',
+                    description: 'Acceso a logs y auditoría del sistema',
+                    category: 'vistas'
                 }
             ]
         },
-        clientes: {
-            name: 'Gestión de Clientes',
-            description: 'Permisos para administrar los clientes de la empresa',
+        administracion: {
+            name: 'Administración',
+            description: 'Permisos de administración del sistema',
             permissions: [
                 {
-                    id: 'clientes.view',
-                    name: 'Ver Clientes',
-                    description: 'Permite visualizar la lista de clientes',
-                    category: 'clientes'
+                    id: 'admin.usuarios',
+                    name: 'Administrar Usuarios',
+                    description: 'Acceso completo a gestión de usuarios y permisos',
+                    category: 'administracion'
                 },
                 {
-                    id: 'clientes.create',
-                    name: 'Crear Clientes',
-                    description: 'Permite crear nuevos clientes',
-                    category: 'clientes'
+                    id: 'admin.configuracion',
+                    name: 'Administrar Configuración',
+                    description: 'Acceso a configuraciones del sistema',
+                    category: 'administracion'
                 },
                 {
-                    id: 'clientes.edit',
-                    name: 'Editar Clientes',
-                    description: 'Permite modificar la información de los clientes',
-                    category: 'clientes'
-                },
-                {
-                    id: 'clientes.delete',
-                    name: 'Archivar Clientes',
-                    description: 'Permite archivar (borrado lógico) de clientes',
-                    category: 'clientes'
+                    id: 'admin.auditoria',
+                    name: 'Ver Auditoría',
+                    description: 'Acceso a logs y auditoría del sistema',
+                    category: 'administracion'
                 }
             ]
-        },
-        usuarios: {
-            name: 'Gestión de Usuarios',
-            description: 'Permisos para administrar usuarios y sus accesos',
-            permissions: [
-                {
-                    id: 'usuarios.view',
-                    name: 'Ver Usuarios',
-                    description: 'Permite ver la lista de usuarios del sistema',
-                    category: 'usuarios'
-                },
-                {
-                    id: 'usuarios.create',
-                    name: 'Crear Usuarios',
-                    description: 'Permite crear nuevos usuarios',
-                    category: 'usuarios'
-                },
-                {
-                    id: 'usuarios.edit',
-                    name: 'Editar Usuarios',
-                    description: 'Permite modificar información de usuarios',
-                    category: 'usuarios'
-                },
-                {
-                    id: 'usuarios.delete',
-                    name: 'Eliminar Usuarios',
-                    description: 'Permite eliminar usuarios del sistema',
-                    category: 'usuarios'
-                },
-                {
-                    id: 'usuarios.permissions',
-                    name: 'Gestionar Permisos',
-                    description: 'Permite modificar permisos de usuarios',
-                    category: 'usuarios'
-                },
-                {
-                    id: 'usuarios.roles',
-                    name: 'Gestionar Roles',
-                    description: 'Permite modificar roles de usuarios',
-                    category: 'usuarios'
-                }
-            ]
-        },
-        reportes: {
-            name: 'Reportes y Análisis',
-            description: 'Permisos para generar y visualizar reportes',
-            permissions: [
-                {
-                    id: 'reportes.view',
-                    name: 'Ver Reportes',
-                    description: 'Permite acceder a la sección de reportes',
-                    category: 'reportes'
-                },
-                {
-                    id: 'reportes.kpi',
-                    name: 'Ver KPIs',
-                    description: 'Permite visualizar indicadores clave de rendimiento',
-                    category: 'reportes'
-                },
-                {
-                    id: 'reportes.export',
-                    name: 'Exportar Reportes',
-                    description: 'Permite exportar reportes en diferentes formatos',
-                    category: 'reportes'
-                },
-                {
-                    id: 'reportes.advanced',
-                    name: 'Reportes Avanzados',
-                    description: 'Permite acceso a reportes y análisis avanzados',
-                    category: 'reportes'
-                }
-            ]
-        },
-        configuracion: {
-            name: 'Configuración',
-            description: 'Permisos para modificar configuraciones del sistema',
-            permissions: [
-                {
-                    id: 'configuracion.view',
-                    name: 'Ver Configuración',
-                    description: 'Permite ver configuraciones del sistema',
-                    category: 'configuracion'
-                },
-                {
-                    id: 'configuracion.edit',
-                    name: 'Editar Configuración',
+        }
                     description: 'Permite modificar configuraciones del sistema',
                     category: 'configuracion'
                 },
@@ -260,49 +169,46 @@ export const DEFAULT_ROLE_PERMISSIONS: RolePermissions[] = [
             .flatMap(category => category.permissions)
             .map(permission => ({ ...permission, enabled: true }))
     },
+// Permisos por defecto para cada rol - SISTEMA SIMPLIFICADO
+export const DEFAULT_ROLE_PERMISSIONS: RolePermissions[] = [
+    {
+        role: 'Administrador',
+        permissions: Object.values(PERMISSION_CONFIG.categories)
+            .flatMap(category => category.permissions)
+            .map(permission => ({ ...permission, enabled: true }))
+    },
     {
         role: 'Supervisor',
         permissions: [
-            // Pedidos - Todos los permisos
-            { id: 'pedidos.view', name: 'Ver Pedidos', description: 'Permite visualizar la lista de pedidos', category: 'pedidos', enabled: true },
-            { id: 'clientes.view', name: 'Ver Clientes', description: 'Permite visualizar la lista de clientes', category: 'clientes', enabled: true },
-            { id: 'clientes.create', name: 'Crear Clientes', description: 'Permite crear nuevos clientes', category: 'clientes', enabled: true },
-            { id: 'clientes.edit', name: 'Editar Clientes', description: 'Permite modificar la información de los clientes', category: 'clientes', enabled: true },
-            { id: 'pedidos.create', name: 'Crear Pedidos', description: 'Permite crear nuevos pedidos', category: 'pedidos', enabled: true },
-            { id: 'pedidos.edit', name: 'Editar Pedidos', description: 'Permite modificar pedidos existentes', category: 'pedidos', enabled: true },
-            { id: 'pedidos.delete', name: 'Eliminar Pedidos', description: 'Permite eliminar pedidos', category: 'pedidos', enabled: true },
-            { id: 'pedidos.move', name: 'Mover Etapas', description: 'Permite cambiar pedidos entre etapas', category: 'pedidos', enabled: true },
-            { id: 'pedidos.duplicate', name: 'Duplicar Pedidos', description: 'Permite duplicar pedidos existentes', category: 'pedidos', enabled: true },
-            { id: 'pedidos.export', name: 'Exportar Pedidos', description: 'Permite exportar datos de pedidos', category: 'pedidos', enabled: true },
-            { id: 'pedidos.archive', name: 'Archivar Pedidos', description: 'Permite archivar y desarchivar pedidos', category: 'pedidos', enabled: true },
+            // Vistas principales
+            { id: 'vista.pedidos', name: 'Vista Pedidos', description: 'Acceso completo a la sección de Pedidos', category: 'vistas', enabled: true },
+            { id: 'vista.clientes', name: 'Vista Clientes', description: 'Acceso completo a la sección de Clientes', category: 'vistas', enabled: true },
+            { id: 'vista.vendedores', name: 'Vista Vendedores', description: 'Acceso completo a la sección de Vendedores', category: 'vistas', enabled: true },
+            { id: 'vista.preparacion', name: 'Vista Preparación', description: 'Acceso a sección de preparación de pedidos', category: 'vistas', enabled: true },
+            { id: 'vista.listo_produccion', name: 'Vista Listo Producción', description: 'Acceso a sección de pedidos listos para producción', category: 'vistas', enabled: true },
+            { id: 'vista.reportes', name: 'Vista Reportes', description: 'Acceso a sección de reportes y análisis', category: 'vistas', enabled: true },
             
-            // Usuarios - Solo lectura
-            { id: 'usuarios.view', name: 'Ver Usuarios', description: 'Permite ver la lista de usuarios del sistema', category: 'usuarios', enabled: true },
-            
-            // Reportes - Todos excepto avanzados
-            { id: 'reportes.view', name: 'Ver Reportes', description: 'Permite acceder a la sección de reportes', category: 'reportes', enabled: true },
-            { id: 'reportes.kpi', name: 'Ver KPIs', description: 'Permite visualizar indicadores clave de rendimiento', category: 'reportes', enabled: true },
-            { id: 'reportes.export', name: 'Exportar Reportes', description: 'Permite exportar reportes en diferentes formatos', category: 'reportes', enabled: true },
-            
-            // Auditoría - Solo lectura
-            { id: 'auditoria.view', name: 'Ver Auditoría', description: 'Permite ver logs de actividad del sistema', category: 'auditoria', enabled: true },
-            { id: 'auditoria.search', name: 'Búsqueda Avanzada', description: 'Permite realizar búsquedas avanzadas en logs', category: 'auditoria', enabled: true },
-            
-            // Sistema - Solo estado
-            { id: 'sistema.health', name: 'Ver Estado del Sistema', description: 'Permite ver el estado de salud del sistema', category: 'sistema', enabled: true }
+            // Auditoría
+            { id: 'admin.auditoria', name: 'Ver Auditoría', description: 'Acceso a logs y auditoría del sistema', category: 'administracion', enabled: true }
         ]
     },
     {
         role: 'Operador',
         permissions: [
-            // Pedidos - Solo operaciones básicas
-            { id: 'pedidos.view', name: 'Ver Pedidos', description: 'Permite visualizar la lista de pedidos', category: 'pedidos', enabled: true },
-            { id: 'pedidos.edit', name: 'Editar Pedidos', description: 'Permite modificar pedidos existentes', category: 'pedidos', enabled: true },
-            { id: 'pedidos.move', name: 'Mover Etapas', description: 'Permite cambiar pedidos entre etapas', category: 'pedidos', enabled: true },
-            
-            // Reportes - Solo vista básica
-            { id: 'reportes.view', name: 'Ver Reportes', description: 'Permite acceder a la sección de reportes', category: 'reportes', enabled: true },
-            { id: 'reportes.kpi', name: 'Ver KPIs', description: 'Permite visualizar indicadores clave de rendimiento', category: 'reportes', enabled: true }
+            // Solo vista de pedidos y operador
+            { id: 'vista.pedidos', name: 'Vista Pedidos', description: 'Acceso completo a la sección de Pedidos', category: 'vistas', enabled: true },
+            { id: 'vista.operador', name: 'Vista Operador Producción', description: 'Acceso a vista especializada de operación de producción', category: 'vistas', enabled: true },
+            { id: 'vista.preparacion', name: 'Vista Preparación', description: 'Acceso a sección de preparación de pedidos', category: 'vistas', enabled: true },
+            { id: 'vista.listo_produccion', name: 'Vista Listo Producción', description: 'Acceso a sección de pedidos listos para producción', category: 'vistas', enabled: true }
+        ]
+    },
+    {
+        role: 'Visualizador',
+        permissions: [
+            // Solo lectura en vistas principales
+            { id: 'vista.pedidos', name: 'Vista Pedidos', description: 'Acceso completo a la sección de Pedidos', category: 'vistas', enabled: true },
+            { id: 'vista.clientes', name: 'Vista Clientes', description: 'Acceso completo a la sección de Clientes', category: 'vistas', enabled: true },
+            { id: 'vista.reportes', name: 'Vista Reportes', description: 'Acceso a sección de reportes y análisis', category: 'vistas', enabled: true }
         ]
     }
 ];

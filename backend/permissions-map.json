@@ -1,97 +1,71 @@
 {
-  "pedidos.view": {
-    "id": "pedidos.view",
-    "category": "pedidos",
+  "vista.pedidos": {
+    "id": "vista.pedidos",
+    "category": "vistas",
     "action": "view",
-    "description": "Permite visualizar la lista de pedidos"
+    "description": "Acceso completo a la sección de Pedidos"
   },
-  "pedidos.create": {
-    "id": "pedidos.create",
-    "category": "pedidos",
-    "action": "create",
-    "description": "Permite crear nuevos pedidos"
+  "vista.clientes": {
+    "id": "vista.clientes",
+    "category": "vistas",
+    "action": "view",
+    "description": "Acceso completo a la sección de Clientes"
   },
-  "pedidos.edit": {
-    "id": "pedidos.edit",
-    "category": "pedidos",
-    "action": "edit",
-    "description": "Permite modificar pedidos existentes"
+  "vista.vendedores": {
+    "id": "vista.vendedores",
+    "category": "vistas",
+    "action": "view",
+    "description": "Acceso completo a la sección de Vendedores"
   },
-  "pedidos.delete": {
-    "id": "pedidos.delete",
-    "category": "pedidos",
-    "action": "delete",
-    "description": "Permite eliminar pedidos"
+  "vista.operador": {
+    "id": "vista.operador",
+    "category": "vistas",
+    "action": "view",
+    "description": "Acceso a vista especializada de operación de producción"
   },
-  "pedidos.move": {
-    "id": "pedidos.move",
-    "category": "pedidos",
-    "action": "move",
-    "description": "Permite cambiar pedidos entre etapas"
+  "vista.preparacion": {
+    "id": "vista.preparacion",
+    "category": "vistas",
+    "action": "view",
+    "description": "Acceso a sección de preparación de pedidos"
   },
-  "pedidos.print": {
-    "id": "pedidos.print",
-    "category": "pedidos",
-    "action": "print",
-    "description": "Permite imprimir pedidos"
+  "vista.listo_produccion": {
+    "id": "vista.listo_produccion",
+    "category": "vistas",
+    "action": "view",
+    "description": "Acceso a sección de pedidos listos para producción"
   },
-  "usuarios.admin": {
-    "id": "usuarios.admin",
-    "category": "usuarios",
+  "vista.reportes": {
+    "id": "vista.reportes",
+    "category": "vistas",
+    "action": "view",
+    "description": "Acceso a sección de reportes y análisis"
+  },
+  "vista.auditoria": {
+    "id": "vista.auditoria",
+    "category": "vistas",
+    "action": "view",
+    "description": "Acceso a logs y auditoría del sistema"
+  },
+  "admin.usuarios": {
+    "id": "admin.usuarios",
+    "category": "administracion",
     "action": "admin",
-    "description": "Permite administrar usuarios"
+    "description": "Acceso completo a gestión de usuarios y permisos"
   },
-  "permisos.admin": {
-    "id": "permisos.admin",
-    "category": "permisos",
+  "admin.configuracion": {
+    "id": "admin.configuracion",
+    "category": "administracion",
     "action": "admin",
-    "description": "Permite administrar permisos de usuarios"
+    "description": "Acceso a configuraciones del sistema"
   },
-  "secuencia.manage": {
-    "id": "secuencia.manage",
-    "category": "secuencia",
-    "action": "manage",
-    "description": "Permite gestionar la secuencia de pedidos"
-  },
-  "reportes.view": {
-    "id": "reportes.view",
-    "category": "reportes",
+  "admin.auditoria": {
+    "id": "admin.auditoria",
+    "category": "administracion",
     "action": "view",
-    "description": "Permite ver reportes"
-  },
-  "datos.export": {
-    "id": "datos.export",
-    "category": "datos",
-    "action": "export",
-    "description": "Permite exportar datos"
-  },
-  "dashboard.view": {
-    "id": "dashboard.view",
-    "category": "dashboard",
-    "action": "view",
-    "description": "Permite ver el dashboard"
-  },
-  "pedidos.operate": {
-    "id": "pedidos.operate",
-    "category": "pedidos",
-    "action": "operate",
-    "description": "Permite trabajar en modo operador de producción"
-  },
-  "clientes.view": {
-    "id": "clientes.view",
-    "category": "clientes",
-    "action": "view",
-    "description": "Permite visualizar la lista de clientes"
-  },
-  "clientes.create": {
-    "id": "clientes.create",
-    "category": "clientes",
-    "action": "create",
-    "description": "Permite crear nuevos clientes"
-  },
-  "clientes.edit": {
-    "id": "clientes.edit",
-    "category": "clientes",
+    "description": "Acceso a logs y auditoría del sistema"
+  }
+}
     "action": "edit",
     "description": "Permite modificar clientes existentes"
   },

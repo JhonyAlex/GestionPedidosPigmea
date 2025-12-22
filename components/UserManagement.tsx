@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { User, UserRole, Permission } from '../types';
 import { DEFAULT_ROLE_PERMISSIONS, getPermissionsByRole, getAllPermissionCategories, PERMISSION_CONFIG } from '../constants/permissions';
+import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../hooks/usePermissions';
 import PermissionsManager from './PermissionsManager';
 import UserPermissionsModal from './UserPermissionsModal';
 import { formatDateTimeDDMMYYYY } from '../utils/date';
@@ -20,6 +22,8 @@ interface UserManagementProps {
 type TabType = 'users' | 'permissions';
 
 const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
+    const { user } = useAuth();
+    const { canManageUsers } = usePermissions();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -42,13 +46,34 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
         permissions: []
     });
 
+    // Headers de autenticación
+    const getAuthHeaders = useCallback(() => {
+        if (!user?.id) return {};
+        
+        const headers: any = {
+            'x-user-id': String(user.id),
+            'x-user-role': user.role || 'Operador'
+        };
+        
+        if (user.permissions && Array.isArray(user.permissions)) {
+            headers['x-user-permissions'] = JSON.stringify(user.permissions);
+        }
+        
+        return headers;
+    }, [user]);
+
     // Cargar usuarios
     const fetchUsers = async () => {
         try {
             setLoading(true);
             setError(null);
             
-            const response = await fetch('/api/auth/users');
+            const response = await fetch('/api/auth/users', {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeaders()
+                }
+            });
             const data = await response.json();
             
             if (data.success) {
@@ -72,6 +97,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
+        // Validar permisos antes de hacer la petición
+        if (!canManageUsers()) {
+            setError('No tienes permisos para administrar usuarios.');
+            return;
+        }
+        
         try {
             let response;
             
@@ -81,6 +112,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
+                        ...getAuthHeaders()
                     },
                     body: JSON.stringify({
                         username: formData.username,
@@ -95,6 +127,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        ...getAuthHeaders()
                     },
                     body: JSON.stringify({
                         username: formData.username,
@@ -103,6 +136,16 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                         displayName: formData.displayName,
                     }),
                 });
+            }
+
+            if (response.status === 401) {
+                setError('No autenticado. Por favor, inicia sesión nuevamente.');
+                return;
+            }
+            
+            if (response.status === 403) {
+                setError('No tienes permisos para esta acción.');
+                return;
             }
 
             const result = await response.json();
@@ -122,6 +165,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
 
     // Eliminar usuario
     const handleDelete = async (userId: string) => {
+        // Validar permisos antes de hacer la petición
+        if (!canManageUsers()) {
+            setError('No tienes permisos para administrar usuarios.');
+            return;
+        }
+
         if (!confirm('¿Estás seguro de que quieres eliminar este usuario?')) {
             return;
         }
@@ -129,7 +178,21 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
         try {
             const response = await fetch(`/api/auth/users/${userId}`, {
                 method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeaders()
+                }
             });
+
+            if (response.status === 401) {
+                setError('No autenticado. Por favor, inicia sesión nuevamente.');
+                return;
+            }
+            
+            if (response.status === 403) {
+                setError('No tienes permisos para eliminar usuarios.');
+                return;
+            }
 
             const result = await response.json();
             
@@ -230,9 +293,20 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...getAuthHeaders()
                 },
                 body: JSON.stringify(requestBody),
             });
+
+            if (response.status === 401) {
+                setError('No autenticado. Por favor, inicia sesión nuevamente.');
+                return;
+            }
+            
+            if (response.status === 403) {
+                setError('No tienes permisos para cambiar contraseñas.');
+                return;
+            }
 
             const data = await response.json();
 
@@ -329,7 +403,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                         <div className="mb-6">
                             <button
                                 onClick={() => setShowAddForm(true)}
-                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                                disabled={!canManageUsers()}
+                                className={`px-4 py-2 rounded-lg transition-colors ${canManageUsers() ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-400 text-gray-200 cursor-not-allowed'}`}
                             >
                                 + Agregar Usuario
                             </button>
@@ -475,25 +550,29 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                                                     <div className="flex space-x-2">
                                                         <button
                                                             onClick={() => startEdit(user)}
-                                                            className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                                                            disabled={!canManageUsers()}
+                                                            className={`${canManageUsers() ? 'text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300' : 'text-gray-400 cursor-not-allowed'}`}
                                                         >
                                                             Editar
                                                         </button>
                                                         <button
                                                             onClick={() => openUserPermissions(user)}
-                                                            className="text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300"
+                                                            disabled={!canManageUsers()}
+                                                            className={`${canManageUsers() ? 'text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300' : 'text-gray-400 cursor-not-allowed'}`}
                                                         >
                                                             Permisos
                                                         </button>
                                                         <button
                                                             onClick={() => setShowPasswordModal(user)}
-                                                            className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+                                                            disabled={!canManageUsers()}
+                                                            className={`${canManageUsers() ? 'text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300' : 'text-gray-400 cursor-not-allowed'}`}
                                                         >
                                                             Contraseña
                                                         </button>
                                                         <button
                                                             onClick={() => handleDelete(user.id)}
-                                                            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                                                            disabled={!canManageUsers()}
+                                                            className={`${canManageUsers() ? 'text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300' : 'text-gray-400 cursor-not-allowed'}`}
                                                         >
                                                             Eliminar
                                                         </button>

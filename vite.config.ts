@@ -4,10 +4,14 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
+    const buildTime = new Date().toISOString();
+    
     return {
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
+        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+        '__BUILD_TIME__': JSON.stringify(buildTime),
+        '__APP_VERSION__': JSON.stringify('1.0.0')
       },
       resolve: {
         alias: {

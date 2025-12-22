@@ -521,6 +521,24 @@ function resetConnectedUsers() {
 }
 
 io.on('connection', (socket) => {
+    // Enviar versión del servidor al conectar
+    const packageJson = require('../package.json');
+    const serverVersion = packageJson.version || '1.0.0';
+    const buildTime = process.env.BUILD_TIME || new Date().toISOString();
+    
+    socket.emit('server-version', {
+        version: serverVersion,
+        buildTime: buildTime
+    });
+    
+    // Manejar solicitud de versión del cliente
+    socket.on('request-version', () => {
+        socket.emit('server-version', {
+            version: serverVersion,
+            buildTime: buildTime
+        });
+    });
+    
     // Manejar autenticación del usuario
     socket.on('authenticate', (userData) => {
         const { userId, userRole } = userData;
@@ -1748,6 +1766,39 @@ app.get('/api/permissions', async (req, res) => {
         console.error('Error obteniendo permisos:', error);
         res.status(500).json({
             error: 'Error interno del servidor'
+        });
+    }
+});
+
+// POST /api/admin/trigger-update - Disparar evento de actualización a todos los clientes
+app.post('/api/admin/trigger-update', requirePermission('usuarios.admin'), async (req, res) => {
+    try {
+        console.log('🚀 Disparando evento de actualización a todos los clientes...');
+        
+        const packageJson = require('../package.json');
+        const serverVersion = packageJson.version || '1.0.0';
+        const buildTime = process.env.BUILD_TIME || new Date().toISOString();
+        
+        // Emitir evento a todos los clientes conectados
+        io.emit('app-updated', {
+            version: serverVersion,
+            buildTime: buildTime
+        });
+        
+        console.log(`✅ Evento app-updated emitido a ${io.engine.clientsCount} clientes`);
+        
+        res.json({
+            success: true,
+            message: 'Evento de actualización enviado',
+            clientsNotified: io.engine.clientsCount,
+            version: serverVersion,
+            buildTime: buildTime
+        });
+    } catch (error) {
+        console.error('❌ Error al disparar actualización:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error al disparar actualización'
         });
     }
 });

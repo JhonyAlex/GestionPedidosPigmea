@@ -48,6 +48,11 @@ export interface WebSocketEvents {
   'vendedor-unlocked': (data: { vendedorId: string }) => void;
   'vendedor-locks-updated': (data: { locks: any[] }) => void;
   
+  // Eventos de versionado y actualizaciones
+  'server-version': (data: { version: string; buildTime: string }) => void;
+  'app-updated': (data: { version: string; buildTime: string }) => void;
+  'request-version': () => void;
+  
   // Eventos del cliente
   authenticate: (data: { userId: string; userRole: UserRole }) => void;
   'user-activity': (data: { activity: string; data?: any }) => void;

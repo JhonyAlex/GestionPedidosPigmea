@@ -21,108 +21,55 @@ export const usePermissions = () => {
         return hasPermission(userPermissions, permissionId);
     };
 
-    // Verificar si el usuario tiene alguno de los permisos especificados (OR)
-    const canAccessAny = (permissionIds: string[]): boolean => {
-        const userPermissions = getUserPermissions();
-        return permissionIds.some(permissionId => hasPermission(userPermissions, permissionId));
+    // SISTEMA SIMPLIFICADO: Verificar acceso a vistas/secciones
+    const canViewSection = (sectionId: string): boolean => {
+        return canAccess(`vista.${sectionId}`);
     };
 
-    // Verificar si el usuario tiene todos los permisos especificados (AND)
-    const canAccessAll = (permissionIds: string[]): boolean => {
-        const userPermissions = getUserPermissions();
-        return permissionIds.every(permissionId => hasPermission(userPermissions, permissionId));
-    };
+    // Acceso a vistas específicas
+    const canViewPedidos = () => canAccess('vista.pedidos');
+    const canViewClientes = () => canAccess('vista.clientes');
+    const canViewVendedores = () => canAccess('vista.vendedores');
+    const canViewOperador = () => canAccess('vista.operador');
+    const canViewPreparacion = () => canAccess('vista.preparacion');
+    const canViewListoProduccion = () => canAccess('vista.listo_produccion');
+    const canViewReportes = () => canAccess('vista.reportes');
+    const canViewAuditoria = () => canAccess('vista.auditoria');
 
-    // Verificar permisos específicos por categoría
-    const canViewPedidos = () => canAccess('pedidos.view');
-    const canCreatePedidos = () => canAccess('pedidos.create');
-    const canEditPedidos = () => canAccess('pedidos.edit');
-    const canDeletePedidos = () => canAccess('pedidos.delete');
-    const canMovePedidos = () => canAccess('pedidos.move');
-    const canArchivePedidos = () => canAccess('pedidos.archive');
+    // Acceso a administración
+    const canManageUsers = () => canAccess('admin.usuarios');
+    const canManageConfig = () => canAccess('admin.configuracion');
+    const canViewAudit = () => canAccess('admin.auditoria');
 
-    const canViewClientes = () => canAccess('clientes.view');
-    const canCreateClientes = () => canAccess('clientes.create');
-    const canEditClientes = () => canAccess('clientes.edit');
-    const canDeleteClientes = () => canAccess('clientes.delete');
-
-    const canViewUsers = () => canAccess('usuarios.view');
-    const canCreateUsers = () => canAccess('usuarios.create');
-    const canEditUsers = () => canAccess('usuarios.edit');
-    const canDeleteUsers = () => canAccess('usuarios.delete');
-    const canManagePermissions = () => canAccess('usuarios.permissions');
-
-    const canViewReports = () => canAccess('reportes.view');
-    const canViewKPI = () => canAccess('reportes.kpi');
-    const canExportReports = () => canAccess('reportes.export');
-
-    const canViewConfig = () => canAccess('configuracion.view');
-    const canEditConfig = () => canAccess('configuracion.edit');
-
-    const canViewAudit = () => canAccess('auditoria.view');
-
-    const canViewSystemHealth = () => canAccess('sistema.health');
-    const canAccessMaintenance = () => canAccess('sistema.maintenance');
-
-    // Verificar si es administrador (tiene todos los permisos de usuarios)
-    const isAdmin = () => {
-        return canAccessAll([
-            'usuarios.view',
-            'usuarios.create', 
-            'usuarios.edit',
-            'usuarios.delete',
-            'usuarios.permissions'
-        ]);
-    };
-
-    // Verificar si puede acceder a las funciones de administración
-    const canAccessAdmin = () => {
-        return canAccessAny([
-            'usuarios.view',
-            'usuarios.create',
-            'usuarios.edit',
-            'usuarios.permissions'
-        ]);
-    };
+    // Acceso simplificado por rol
+    const isAdmin = () => user?.role === 'Administrador';
+    const isSupervisor = () => user?.role === 'Supervisor';
+    const isOperador = () => user?.role === 'Operador';
+    const isVisualizador = () => user?.role === 'Visualizador';
 
     return {
         user,
         canAccess,
-        canAccessAny,
-        canAccessAll,
-        // Permisos específicos de pedidos
+        canViewSection,
+        // Vistas principales
         canViewPedidos,
-        canCreatePedidos,
-        canEditPedidos,
-        canDeletePedidos,
-        canMovePedidos,
-        canArchivePedidos,
-        // Permisos de clientes
         canViewClientes,
-        canCreateClientes,
-        canEditClientes,
-        canDeleteClientes,
-        // Permisos específicos de usuarios
-        canViewUsers,
-        canCreateUsers,
-        canEditUsers,
-        canDeleteUsers,
-        canManagePermissions,
-        // Permisos específicos de reportes
-        canViewReports,
-        canViewKPI,
-        canExportReports,
-        // Permisos específicos de configuración
-        canViewConfig,
-        canEditConfig,
-        // Permisos específicos de auditoría
+        canViewVendedores,
+        canViewOperador,
+        canViewPreparacion,
+        canViewListoProduccion,
+        canViewReportes,
+        canViewAuditoria,
+        // Administración
+        canManageUsers,
+        canManageConfig,
         canViewAudit,
-        // Permisos específicos de sistema
-        canViewSystemHealth,
-        canAccessMaintenance,
-        // Utilidades
+        // Roles
         isAdmin,
-        canAccessAdmin,
+        isSupervisor,
+        isOperador,
+        isVisualizador,
+        // Utilidades
         getUserPermissions
     };
 };

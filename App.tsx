@@ -42,11 +42,14 @@ import { useNavigateToPedido } from './hooks/useNavigateToPedido';
 import { useBulkOperations } from './hooks/useBulkOperations';
 import { useToast } from './hooks/useToast';
 import { useInactivityReload } from './hooks/useInactivityReload';
+import { useVersionCheck } from './hooks/useVersionCheck';
 import { auditService } from './services/audit';
+import UpdateBanner from './components/UpdateBanner';
 
 
 const AppContent: React.FC = () => {
     const { user, loading, logout } = useAuth();
+    const { updateAvailable, newVersion, forceRefresh } = useVersionCheck();
     
     // Hook para detectar inactividad y cerrar sesión automáticamente
     // ⚠️ Sincronizado con el timeout de bloqueo de pedidos (30 minutos)
@@ -854,6 +857,14 @@ const AppContent: React.FC = () => {
 
     return (
         <DragDropContext onDragEnd={handleDragEnd}>
+            {/* Banner de actualización */}
+            {updateAvailable && (
+                <UpdateBanner 
+                    onRefresh={forceRefresh}
+                    newVersion={newVersion}
+                />
+            )}
+            
             <div className="min-h-screen text-gray-900 dark:text-white flex flex-col">
                 <Header
                     searchTerm={searchTerm}
