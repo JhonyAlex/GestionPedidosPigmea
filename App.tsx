@@ -134,6 +134,11 @@ const AppContent: React.FC = () => {
         handleConfirmAntivaho,
         handleCancelAntivaho,
         handleSetReadyForProduction,
+        currentPage,
+        hasMore,
+        totalPedidos,
+        loadMore,
+        reloadPedidos,
     } = usePedidosManager(
         currentUserRole, 
         generarEntradaHistorial, 
