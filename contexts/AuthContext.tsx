@@ -256,7 +256,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     success: false, 
                     message: errorMsg
                 };
-                }
             }
 
             if (data.success && data.user) {
