@@ -1,8 +1,14 @@
 import { io, Socket } from 'socket.io-client';
-import { Pedido, UserRole } from '../types';
+import { Pedido, UserRole, Notification } from '../types';
 
 // Tipos para los eventos WebSocket
 export interface WebSocketEvents {
+  // Eventos de notificaciones
+  'notification': (notification: Notification) => void;
+  'notification-read': (data: { notificationId: string }) => void;
+  'notifications-read-all': () => void;
+  'notification-deleted': (data: { notificationId: string }) => void;
+
   // Eventos del servidor
   'pedido-created': (data: { pedido: Pedido; message: string; timestamp: string }) => void;
   'pedido-updated': (data: { pedido: Pedido; previousPedido?: Pedido; changes: string[]; message: string; timestamp: string }) => void;
@@ -22,10 +28,28 @@ export interface WebSocketEvents {
   'vendedor-deleted': (data: { vendedorId: string; vendedor?: any; message: string; timestamp: string }) => void;
   'material-created': (material: any) => void;
   'material-updated': (material: any) => void;
-  'material-deleted': (data: { materialId: number; pedidoId?: string }) => void;
-  'material-assigned': (data: { pedidoId: string; materialId: number }) => void;
-  'material-unassigned': (data: { pedidoId: string; materialId: number }) => void;
+  'material-deleted': (data: { materialId: number; pedidoId?: string; material?: any }) => void;
+  'material-assigned': (data: { pedidoId: string; materialId: number; material: any }) => void;
+  'material-unassigned': (data: { pedidoId: string; materialId: number; material: any }) => void;
   
+  // Eventos de locks de pedido
+  'lock-pedido': (data: { pedidoId: string; userId: string; username: string }) => void;
+  'unlock-pedido': (data: { pedidoId: string; userId: string }) => void;
+  'pedido-activity': (data: { pedidoId: string; userId: string }) => void;
+  'get-locks': () => void;
+  'lock-acquired': (data: { pedidoId: string; userId: string; username: string; lockedAt: string | number }) => void;
+  'lock-denied': (data: { pedidoId: string; currentLock?: { userId: string; username: string; lockedAt: string | number }; lockedBy?: string }) => void;
+  'pedido-locked': (data: { pedidoId: string; userId: string; username: string; lockedAt: string | number }) => void;
+  'pedido-unlocked': (data: { pedidoId: string }) => void;
+  'locks-updated': (data: { locks: any[] }) => void;
+
+  // Eventos de operaciones de producción
+  'operacion-iniciada': (data: any) => void;
+  'operacion-pausada': (data: any) => void;
+  'operacion-reanudada': (data: any) => void;
+  'operacion-completada': (data: any) => void;
+  'operacion-cancelada': (data: any) => void;
+
   // Eventos de locks de cliente
   'lock-cliente': (data: { clienteId: string; userId: string; username: string }) => void;
   'unlock-cliente': (data: { clienteId: string; userId: string }) => void;
