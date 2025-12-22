@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     const buildTime = new Date().toISOString();
+  const enableSourcemap = env.VITE_SOURCEMAP === 'true';
     
     return {
       define: {
@@ -21,7 +22,7 @@ export default defineConfig(({ mode }) => {
       plugins: [react()],
       build: {
         outDir: 'dist',
-        sourcemap: false,
+        sourcemap: enableSourcemap,
         minify: 'terser',
         rollupOptions: {
           output: {

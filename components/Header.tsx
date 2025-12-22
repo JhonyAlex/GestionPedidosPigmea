@@ -117,12 +117,19 @@ const Header: React.FC<HeaderProps> = ({
     onResetAllFilters
 }) => {
     const { user } = useAuth();
-    const { 
-        canViewReports, 
-        canCreatePedidos, 
-        canAccessAdmin, 
-        canViewConfig
+    const {
+        canViewReportes,
+        canViewPedidos,
+        canManageUsers,
+        canManageConfig,
+        isAdmin
     } = usePermissions();
+
+    // Compatibilidad: Header usa nombres históricos (en inglés)
+    const canViewReports = canViewReportes;
+    const canCreatePedidos = canViewPedidos;
+    const canViewConfig = canManageConfig;
+    const canAccessAdmin = () => isAdmin() || canManageUsers() || canManageConfig();
     const { state: actionHistoryState, markAllAsRead } = useActionHistory();
     const currentUserRole = user?.role || 'Operador';
     const [isStageFiltersCollapsed, setIsStageFiltersCollapsed] = useState(false);
