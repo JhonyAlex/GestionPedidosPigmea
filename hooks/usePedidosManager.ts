@@ -6,7 +6,7 @@ import { determinarEtapaPreparacion } from '../utils/preparacionLogic';
 import AntivahoConfirmationModal from '../components/AntivahoConfirmationModal';
 
 // 🚀 Configuración de optimización
-const USE_PAGINATION = true; // Habilitar paginación (cambiar a false para modo legacy)
+const USE_PAGINATION = false; // Desactivado: evita que la búsqueda omita pedidos no cargados
 const ITEMS_PER_PAGE = 100; // Cargar 100 pedidos por página
 
 export const usePedidosManager = (
