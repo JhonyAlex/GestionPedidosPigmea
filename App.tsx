@@ -30,6 +30,7 @@ import PermissionsDebug from './components/PermissionsDebug';
 import BulkActionsToolbar from './components/BulkActionsToolbar';
 import DeleteConfirmationModal from './components/DeleteConfirmationModal';
 import BulkDateUpdateModal from './components/BulkDateUpdateModal';
+import ImportDataModal from './components/ImportDataModal';
 import { ToastContainer } from './components/Toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { MaterialesProvider } from './contexts/MaterialesContext';
@@ -74,6 +75,7 @@ const AppContent: React.FC = () => {
     const [isDuplicating, setIsDuplicating] = useState(false);
     const [duplicatingMessage, setDuplicatingMessage] = useState('Duplicando pedido...');
     const [showUserManagement, setShowUserManagement] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
     
     // Estados para operaciones masivas
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -126,6 +128,7 @@ const AppContent: React.FC = () => {
         handleDeletePedido: handleDeletePedidoLogic,
         handleExportData,
         handleImportData,
+        handleImportSelectedPedidos,
         handleUpdatePedidoEtapa,
         antivahoModalState,
         handleConfirmAntivaho,
@@ -659,12 +662,7 @@ const AppContent: React.FC = () => {
     }
     
     const doImportData = () => {
-        handleImportData((importedPedidos) => {
-             if (window.confirm(`¿Está seguro de importar ${importedPedidos.length} pedidos? ESTA ACCIÓN BORRARÁ TODOS LOS DATOS ACTUALES.`)) {
-                return true;
-            }
-            return false;
-        });
+        setShowImportModal(true);
     }
 
     // Renderizado condicional DESPUÉS de todos los hooks
@@ -1005,6 +1003,12 @@ const AppContent: React.FC = () => {
                     pedidos={pedidos.filter(p => selectedIds.includes(p.id))}
                     onConfirm={handleBulkUpdateDate}
                     onCancel={() => setShowDateUpdateModal(false)}
+                />
+
+                <ImportDataModal
+                    isOpen={showImportModal}
+                    onClose={() => setShowImportModal(false)}
+                    onConfirm={handleImportSelectedPedidos}
                 />
             </div>
         </DragDropContext>

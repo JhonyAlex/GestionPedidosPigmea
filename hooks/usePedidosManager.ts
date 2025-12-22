@@ -661,6 +661,22 @@ export const usePedidosManager = (
         input.click();
     };
 
+    const handleImportSelectedPedidos = async (selectedPedidos: Pedido[]) => {
+        try {
+            setIsLoading(true);
+            await store.clear();
+            await store.bulkInsert(selectedPedidos);
+            const freshData = await store.getAll();
+            setPedidos(freshData);
+            setIsLoading(false);
+            alert(`✅ ${selectedPedidos.length} pedidos importados con éxito.`);
+        } catch (error) {
+            console.error("Failed to import selected pedidos:", error);
+            alert(`Error al importar los datos: ${(error as Error).message}`);
+            setIsLoading(false);
+        }
+    };
+
     const handleUpdatePedidoEtapa = async (pedido: Pedido, newEtapa: Etapa) => {
         const fromPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual);
         const toImpresion = KANBAN_FUNNELS.IMPRESION.stages.includes(newEtapa);
@@ -753,6 +769,7 @@ export const usePedidosManager = (
       handleDeletePedido,
       handleExportData,
       handleImportData,
+      handleImportSelectedPedidos,
       handleUpdatePedidoEtapa,
       antivahoModalState,
       handleConfirmAntivaho,
