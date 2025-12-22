@@ -40,10 +40,11 @@ export const usePedidosManager = (
             console.log(`📊 [${timestamp}] Iniciando carga de pedidos (página ${page})...`);
 
             if (USE_PAGINATION && 'getPaginated' in store) {
-                // Modo paginado
+                // Modo paginado - ✅ SIEMPRE cargar TODOS los pedidos (sin filtro de fecha)
                 const { pedidos: newPedidos, pagination } = await (store as any).getPaginated({
                     page,
                     limit: ITEMS_PER_PAGE,
+                    sinFiltroFecha: true, // 🔥 Cargar todos sin restricción de fecha
                 });
 
                 if (append) {

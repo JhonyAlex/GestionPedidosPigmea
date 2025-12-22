@@ -34,6 +34,7 @@ export interface PaginationOptions {
   limit: number;
   fechaEntregaDesde?: string;
   fechaEntregaHasta?: string;
+  sinFiltroFecha?: boolean; // 🔥 Cargar todos los pedidos sin restricción de fecha
 }
 
 // --- MODO DE PRODUCCIÓN (API REAL) ---
@@ -187,6 +188,11 @@ class ApiClient implements DataStore<Pedido> {
             page: options.page.toString(),
             limit: options.limit.toString(),
         });
+
+        // 🔥 Enviar parámetro para cargar TODOS los pedidos sin filtro de fecha
+        if (options.sinFiltroFecha !== false) {
+            params.append('sinFiltroFecha', 'true');
+        }
 
         if (options.fechaEntregaDesde) {
             params.append('fechaEntregaDesde', options.fechaEntregaDesde);
