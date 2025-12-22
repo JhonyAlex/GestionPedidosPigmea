@@ -190,13 +190,8 @@ export interface RolePermissions {
 }
 
 export type PermissionCategory = 
-    | 'pedidos'
-    | 'clientes'
-    | 'usuarios'
-    | 'reportes'
-    | 'configuracion'
-    | 'auditoria'
-    | 'sistema';
+    | 'vistas'
+    | 'administracion';
 
 export interface PermissionConfig {
     categories: {

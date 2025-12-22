@@ -21,6 +21,26 @@ const getDbClient = () => {
 };
 
 /**
+ * Mapeo de permisos antiguos a nuevos (sistema simplificado)
+ * Permite compatibilidad con usuarios que tienen permisos antiguos
+ */
+const PERMISSION_ALIASES = {
+    // Mapeo de permisos antiguos -> nuevos
+    'usuarios.admin': ['admin.usuarios', 'usuarios.view', 'usuarios.create', 'usuarios.edit', 'usuarios.delete', 'usuarios.permissions'],
+    'usuarios.view': ['admin.usuarios', 'vista.pedidos'], // Si puede ver pedidos, puede ver info básica de usuarios
+    'pedidos.view': ['vista.pedidos'],
+    'pedidos.create': ['vista.pedidos'],
+    'pedidos.edit': ['vista.pedidos'],
+    'pedidos.delete': ['vista.pedidos'],
+    'pedidos.move': ['vista.pedidos'],
+    'pedidos.archive': ['vista.pedidos'],
+    'clientes.view': ['vista.clientes'],
+    'clientes.create': ['vista.clientes'],
+    'clientes.edit': ['vista.clientes'],
+    'clientes.delete': ['vista.clientes'],
+};
+
+/**
  * Middleware que verifica si un usuario tiene un permiso específico
  * @param {string} permissionId - El ID del permiso requerido
  * @returns {Function} Middleware de Express
@@ -46,10 +66,27 @@ const requirePermission = (permissionId) => {
                 });
             }
 
+            // Obtener permisos alternativos (aliases)
+            const permissionsToCheck = [permissionId];
+            if (PERMISSION_ALIASES[permissionId]) {
+                permissionsToCheck.push(...PERMISSION_ALIASES[permissionId]);
+            }
+            
+            console.log('   - Permisos a verificar (incluyendo aliases):', permissionsToCheck);
+
             // Verificar el permiso del usuario
             const dbClient = getDbClient();
             console.log('   - Verificando permiso en BD...');
-            const hasPermission = await dbClient.hasPermission(req.user.id, permissionId, req.user);
+            
+            // Verificar si tiene alguno de los permisos (el original o sus aliases)
+            let hasPermission = false;
+            for (const permId of permissionsToCheck) {
+                hasPermission = await dbClient.hasPermission(req.user.id, permId, req.user);
+                if (hasPermission) {
+                    console.log(`   - ✅ Usuario tiene permiso: ${permId}`);
+                    break;
+                }
+            }
             
             console.log('   - Resultado:', hasPermission ? '✅ PERMITIDO' : '❌ DENEGADO');
             

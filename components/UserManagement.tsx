@@ -46,17 +46,37 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
         permissions: []
     });
 
-    // Headers de autenticación
+    // Headers de autenticación con fallback a localStorage
     const getAuthHeaders = useCallback(() => {
-        if (!user?.id) return {};
+        let userId = user?.id;
+        let userRole = user?.role;
+        let userPermissions = user?.permissions;
+
+        // Fallback a localStorage si el contexto no está cargado
+        if (!userId || !userRole) {
+            try {
+                const stored = localStorage.getItem('pigmea_user');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    userId = userId || parsed.id;
+                    userRole = userRole || parsed.role;
+                    userPermissions = userPermissions || parsed.permissions;
+                }
+            } catch (error) {
+                console.error('Error leyendo pigmea_user de localStorage:', error);
+            }
+        }
+
+        // Si aún no hay userId, retornar vacío (no autenticado)
+        if (!userId) return {};
         
         const headers: any = {
-            'x-user-id': String(user.id),
-            'x-user-role': user.role || 'Operador'
+            'x-user-id': String(userId),
+            'x-user-role': userRole || 'Operador'
         };
         
-        if (user.permissions && Array.isArray(user.permissions)) {
-            headers['x-user-permissions'] = JSON.stringify(user.permissions);
+        if (userPermissions && Array.isArray(userPermissions)) {
+            headers['x-user-permissions'] = JSON.stringify(userPermissions);
         }
         
         return headers;
