@@ -911,8 +911,52 @@ function broadcastToClients(event, data) {
 
 // === FUNCIONES AUXILIARES PARA NOTIFICACIONES ===
 
+const safeString = (value, maxLen = 32) => {
+    if (value === null || value === undefined) return '—';
+    if (typeof value === 'boolean') return value ? 'Sí' : 'No';
+    if (typeof value === 'number') return String(value);
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (trimmed.length <= maxLen) return trimmed;
+        return `${trimmed.slice(0, maxLen - 1)}…`;
+    }
+    if (Array.isArray(value)) {
+        if (value.length === 0) return '[]';
+        const preview = value.slice(0, 3).map(v => safeString(v, 16)).join(', ');
+        const extra = value.length > 3 ? ` +${value.length - 3}` : '';
+        return `[${preview}${extra}]`;
+    }
+    try {
+        const json = JSON.stringify(value);
+        if (!json) return '[obj]';
+        return json.length <= maxLen ? json : `${json.slice(0, maxLen - 1)}…`;
+    } catch {
+        return '[obj]';
+    }
+};
+
+const ETAPAS_INFO = {
+    PREPARACION: { title: 'Preparación' },
+    PENDIENTE: { title: 'Pendiente' },
+    IMPRESION_WM1: { title: 'Impresión WM1' },
+    IMPRESION_GIAVE: { title: 'Impresión Giave' },
+    IMPRESION_WM3: { title: 'Impresión WM3' },
+    IMPRESION_ANON: { title: 'Impresión Anónima' },
+    POST_LAMINACION_SL2: { title: 'Laminación SL2' },
+    POST_LAMINACION_NEXUS: { title: 'Laminación Nexus' },
+    POST_REBOBINADO_S2DT: { title: 'Rebobinado S2DT' },
+    POST_REBOBINADO_PROSLIT: { title: 'Rebobinado Proslit' },
+    POST_PERFORACION_MIC: { title: 'Perforación Micro' },
+    POST_PERFORACION_MAC: { title: 'Perforación Macro' },
+    POST_REBOBINADO_TEMAC: { title: 'Rebobinado Temac' },
+    COMPLETADO: { title: 'Completado' },
+    ARCHIVADO: { title: 'Archivado' }
+};
+
+const etapaTitle = (etapa) => ETAPAS_INFO[etapa]?.title || String(etapa);
+
 /**
- * Detectar cambios significativos entre dos pedidos
+ * Detectar cambios significativos entre dos pedidos (versión mejorada)
  * @param {Object} previousPedido - Pedido anterior
  * @param {Object} updatedPedido - Pedido actualizado
  * @returns {Array} - Array de strings describiendo los cambios
@@ -922,50 +966,47 @@ function detectChanges(previousPedido, updatedPedido) {
     
     if (!previousPedido) return changes;
     
-    // Cambios en etapa
+    // 1) Movimiento / etapa
     if (previousPedido.etapaActual !== updatedPedido.etapaActual) {
-        changes.push(`Etapa: ${previousPedido.etapaActual} → ${updatedPedido.etapaActual}`);
+        changes.push(`Etapa: ${etapaTitle(previousPedido.etapaActual)} → ${etapaTitle(updatedPedido.etapaActual)}`);
     }
-    
-    // Cambios en prioridad
-    if (previousPedido.prioridad !== updatedPedido.prioridad) {
-        changes.push(`Prioridad: ${previousPedido.prioridad} → ${updatedPedido.prioridad}`);
-    }
-    
-    // Cambios en cliente
-    if (previousPedido.cliente !== updatedPedido.cliente) {
-        changes.push(`Cliente: ${previousPedido.cliente} → ${updatedPedido.cliente}`);
-    }
-    
-    // Cambios en fechas
-    if (previousPedido.nuevaFechaEntrega !== updatedPedido.nuevaFechaEntrega) {
-        changes.push(`Nueva Fecha Entrega: ${previousPedido.nuevaFechaEntrega || 'Sin fecha'} → ${updatedPedido.nuevaFechaEntrega || 'Sin fecha'}`);
-    }
-    
-    if (previousPedido.fechaProduccion !== updatedPedido.fechaProduccion) {
-        changes.push(`Fecha Producción: ${previousPedido.fechaProduccion || 'Sin fecha'} → ${updatedPedido.fechaProduccion || 'Sin fecha'}`);
-    }
-    
-    // Cambios en estado de preparación
-    if (previousPedido.materialDisponible !== updatedPedido.materialDisponible) {
-        changes.push(`Material Disponible: ${previousPedido.materialDisponible ? 'Sí' : 'No'} → ${updatedPedido.materialDisponible ? 'Sí' : 'No'}`);
-    }
-    
-    if (previousPedido.clicheDisponible !== updatedPedido.clicheDisponible) {
-        changes.push(`Cliché Disponible: ${previousPedido.clicheDisponible ? 'Sí' : 'No'} → ${updatedPedido.clicheDisponible ? 'Sí' : 'No'}`);
-    }
-    
     if (previousPedido.subEtapaActual !== updatedPedido.subEtapaActual) {
-        changes.push(`Sub-Etapa: ${previousPedido.subEtapaActual || 'Ninguna'} → ${updatedPedido.subEtapaActual || 'Ninguna'}`);
+        changes.push(`Sub-etapa: ${safeString(previousPedido.subEtapaActual)} → ${safeString(updatedPedido.subEtapaActual)}`);
     }
-    
-    // Cambios en post-impresión
-    if (previousPedido.antivaho !== updatedPedido.antivaho) {
-        changes.push(`Antivaho: ${previousPedido.antivaho ? 'Sí' : 'No'} → ${updatedPedido.antivaho ? 'Sí' : 'No'}`);
-    }
-    
-    if (previousPedido.antivahoRealizado !== updatedPedido.antivahoRealizado) {
-        changes.push(`Antivaho Realizado: ${previousPedido.antivahoRealizado ? 'Sí' : 'No'} → ${updatedPedido.antivahoRealizado ? 'Sí' : 'No'}`);
+
+    // 2) Campos relevantes
+    const fields = [
+        { key: 'prioridad', label: 'Prioridad' },
+        { key: 'fechaEntrega', label: 'Entrega' },
+        { key: 'nuevaFechaEntrega', label: 'Nueva Entrega' },
+        { key: 'maquinaImpresion', label: 'Máquina' },
+        { key: 'metros', label: 'Metros' },
+        { key: 'tipoImpresion', label: 'Impresión' },
+        { key: 'desarrollo', label: 'Desarrollo' },
+        { key: 'capa', label: 'Capa' },
+        { key: 'camisa', label: 'Camisa' },
+        { key: 'producto', label: 'Producto' },
+        { key: 'antivaho', label: 'Antivaho' },
+        { key: 'antivahoRealizado', label: 'Antivaho hecho' },
+        { key: 'microperforado', label: 'Micro' },
+        { key: 'macroperforado', label: 'Macro' },
+        { key: 'anonimo', label: 'Anónimo' },
+        { key: 'estadoCliché', label: 'Estado Cliché' },
+        { key: 'materialDisponible', label: 'Material Disp.' },
+        { key: 'clicheDisponible', label: 'Cliché Disp.' }
+    ];
+
+    for (const field of fields) {
+        const beforeValue = previousPedido[field.key];
+        const afterValue = updatedPedido[field.key];
+
+        // Comparación simple
+        if (beforeValue !== afterValue) {
+            // Ignorar falsy vs falsy (null vs undefined vs '')
+            if (!beforeValue && !afterValue) continue;
+
+            changes.push(`${field.label}: ${safeString(beforeValue)} → ${safeString(afterValue)}`);
+        }
     }
     
     // Cambios en números de compra (detectar si cambió el array)
@@ -987,6 +1028,8 @@ function detectChanges(previousPedido, updatedPedido) {
  * @param {string} [options.pedidoId] - ID del pedido relacionado
  * @param {Object} [options.metadata] - Metadata adicional
  * @param {string} [options.userId] - ID del usuario destinatario (null = global)
+ * @param {string} [options.authorId] - ID del usuario que generó la acción
+ * @param {string} [options.authorName] - Nombre del usuario que generó la acción
  * @returns {Promise<Object>} - Notificación creada
  */
 async function createAndBroadcastNotification(type, title, message, options = {}) {
@@ -1000,7 +1043,11 @@ async function createAndBroadcastNotification(type, title, message, options = {}
         message,
         timestamp,
         pedidoId: options.pedidoId || null,
-        metadata: options.metadata || null,
+        metadata: {
+            ...options.metadata,
+            authorId: options.authorId || null,
+            authorName: options.authorName || 'Sistema'
+        } || null,
         userId: options.userId || null
     };
     
@@ -2222,7 +2269,9 @@ app.post('/api/pedidos', requirePermission('pedidos.create'), async (req, res) =
                     prioridad: newPedido.prioridad,
                     etapaActual: newPedido.etapaActual,
                     categoria: 'pedido'
-                }
+                },
+                authorId: req.user?.id,
+                authorName: req.user?.displayName || req.user?.username
             }
         );
         
@@ -2279,7 +2328,9 @@ app.put('/api/pedidos/:id', requirePermission('pedidos.edit'), async (req, res) 
                         etapaAnterior: previousPedido?.etapaActual,
                         cambios: changes,
                         categoria: 'pedido'
-                    }
+                    },
+                    authorId: req.user?.id,
+                    authorName: req.user?.displayName || req.user?.username
                 }
             );
         }
@@ -2326,7 +2377,9 @@ app.delete('/api/pedidos/:id', requirePermission('pedidos.delete'), async (req, 
                     prioridad: deletedPedido?.prioridad,
                     etapaActual: deletedPedido?.etapaActual,
                     categoria: 'pedido'
-                }
+                },
+                authorId: req.user?.id,
+                authorName: req.user?.displayName || req.user?.username
             }
         );
         

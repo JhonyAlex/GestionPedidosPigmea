@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Notification, NotificationContextType } from '../types';
 import { useAuth } from './AuthContext';
-import websocketService from '../services/websocket';
+import websocketService, { NotificationData } from '../services/websocket';
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
@@ -159,25 +159,81 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     useEffect(() => {
         if (!user) return;
 
-        // Por ahora, el sistema de notificaciones persistentes se maneja completamente
-        // desde el backend y se refresca al cargar. Los eventos en tiempo real se
-        // manejarán a través del Socket.IO cuando se implementen en el backend.
+        const socket = websocketService.getSocket();
         
-        // TODO: Añadir listeners de Socket.IO cuando el backend emita eventos:
-        // - 'notification' para nuevas notificaciones
-        // - 'notification-read' para sincronización de lectura
-        // - 'notifications-read-all' para marcar todas como leídas
-        // - 'notification-deleted' para eliminación sincronizada
-        
-        // Por ahora, solo refrescamos periódicamente si el usuario está activo
+        if (!socket) {
+            // Si el socket no está inicializado, intentamos conectar
+            websocketService.connect(user.id, user.role || 'OPERATOR');
+        }
+
+        const handleNotification = (notification: NotificationData) => {
+            // Convertir de NotificationData (socket) a Notification (context)
+            // Aseguramos compatibilidad de tipos
+            const newNotification: Notification = {
+                id: notification.id,
+                type: notification.type,
+                title: notification.title,
+                message: notification.message,
+                timestamp: notification.timestamp,
+                read: false, // Por defecto al recibirla
+                pedidoId: notification.pedidoId,
+                metadata: notification.metadata,
+                userId: notification.userId,
+            };
+
+            setNotifications(prev => {
+                // Evitar duplicados si ya existe
+                if (prev.some(n => n.id === newNotification.id)) return prev;
+                // Añadir al principio y mantener solo las últimas 50
+                const updated = [newNotification, ...prev];
+                return updated.slice(0, 50);
+            });
+        };
+
+        const handleNotificationRead = (data: { notificationId: string, userId: string }) => {
+            if (data.userId === String(user.id)) {
+                setNotifications(prev =>
+                    prev.map(n => n.id === data.notificationId ? { ...n, read: true } : n)
+                );
+            }
+        };
+
+        const handleNotificationsReadAll = (data: { userId: string }) => {
+            if (data.userId === String(user.id)) {
+                setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+            }
+        };
+
+        const handleNotificationDeleted = (data: { notificationId: string, userId: string }) => {
+            if (data.userId === String(user.id)) {
+                setNotifications(prev => prev.filter(n => n.id !== data.notificationId));
+            }
+        };
+
+        // Suscribirse a eventos si el socket existe
+        const currentSocket = websocketService.getSocket();
+        if (currentSocket) {
+            currentSocket.on('notification', handleNotification);
+            currentSocket.on('notification-read', handleNotificationRead);
+            currentSocket.on('notifications-read-all', handleNotificationsReadAll);
+            currentSocket.on('notification-deleted', handleNotificationDeleted);
+        }
+
+        // Refresco periódico como respaldo
         const intervalId = setInterval(() => {
             if (document.visibilityState === 'visible') {
                 refreshNotifications();
             }
-        }, 30000); // Refrescar cada 30 segundos si la pestaña está visible
+        }, 60000); // Aumentado a 60s ya que tenemos WebSocket
 
         return () => {
             clearInterval(intervalId);
+            if (currentSocket) {
+                currentSocket.off('notification', handleNotification);
+                currentSocket.off('notification-read', handleNotificationRead);
+                currentSocket.off('notifications-read-all', handleNotificationsReadAll);
+                currentSocket.off('notification-deleted', handleNotificationDeleted);
+            }
         };
     }, [user, refreshNotifications]);
 
