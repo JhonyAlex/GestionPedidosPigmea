@@ -47,6 +47,20 @@ export const usePermissions = () => {
     const isOperador = () => user?.role === 'Operador';
     const isVisualizador = () => user?.role === 'Visualizador';
 
+    // ============================================================
+    // Compatibilidad (API antigua / acciones)
+    // ============================================================
+    // Nota: el sistema actual es por vistas. Para acciones (mover/archivar/crear),
+    // aplicamos una regla segura: el rol Visualizador es solo lectura.
+    const canCreatePedidos = () => canViewPedidos() && !isVisualizador();
+    const canMovePedidos = () => canViewPedidos() && !isVisualizador();
+    const canArchivePedidos = () => canViewPedidos() && !isVisualizador();
+
+    // Alias históricos usados por algunos componentes
+    const canViewReports = () => canViewReportes();
+    const canViewConfig = () => canManageConfig();
+    const canAccessAdmin = () => isAdmin() || canManageUsers() || canManageConfig() || canViewAudit();
+
     return {
         user,
         canAccess,
@@ -64,6 +78,14 @@ export const usePermissions = () => {
         canManageUsers,
         canManageConfig,
         canViewAudit,
+        // Acciones (compatibilidad / solo lectura)
+        canCreatePedidos,
+        canMovePedidos,
+        canArchivePedidos,
+        // Alias históricos
+        canViewReports,
+        canViewConfig,
+        canAccessAdmin,
         // Roles
         isAdmin,
         isSupervisor,
