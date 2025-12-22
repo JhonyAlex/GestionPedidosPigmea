@@ -7,8 +7,8 @@ import { ETAPAS, KANBAN_FUNNELS, PREPARACION_COLUMNS, PREPARACION_SUB_ETAPAS_IDS
 import SequenceBuilder from './SequenceBuilder';
 import SeccionDatosTecnicosDeMaterial from './SeccionDatosTecnicosDeMaterial';
 import CommentSystem from './comments/CommentSystem';
-import { usePermissions } from '../hooks/usePermissions';
-import { useAuth } from '../contexts/AuthContext';
+// import { usePermissions } from '../hooks/usePermissions';
+// import { useAuth } from '../contexts/AuthContext';
 import { useVendedoresManager } from '../hooks/useVendedoresManager';
 import { useClientesManager, type Cliente } from '../hooks/useClientesManager';
 import { usePedidoLock } from '../hooks/usePedidoLock';
@@ -83,7 +83,7 @@ interface PedidoModalProps {
     onArchiveToggle: (pedido: Pedido) => void;
     onDuplicate: (pedido: Pedido) => void;
     onDelete: (pedidoId: string) => void;
-    currentUserRole: UserRole;
+    // currentUserRole: UserRole;
     onAdvanceStage: (pedido: Pedido) => void;
     onSendToPrint: (pedido: Pedido) => void;
     onSetReadyForProduction: (pedido: Pedido) => void;
@@ -91,7 +91,7 @@ interface PedidoModalProps {
     isConnected?: boolean;
 }
 
-const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onArchiveToggle, currentUserRole, onAdvanceStage, onSendToPrint, onDuplicate, onDelete, onSetReadyForProduction, onUpdateEtapa, isConnected = false }) => {
+const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onArchiveToggle, onAdvanceStage, onSendToPrint, onDuplicate, onDelete, onSetReadyForProduction, onUpdateEtapa, isConnected = false }) => {
     const [formData, setFormData] = useState<Pedido>(JSON.parse(JSON.stringify(pedido)));
     const [tiempoProduccionDecimalInput, setTiempoProduccionDecimalInput] = useState<string>(() => formatDecimalForInput(pedido.tiempoProduccionDecimal));
     const [activeTab, setActiveTab] = useState<'detalles' | 'gestion' | 'historial'>('detalles');
@@ -104,18 +104,18 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     const [isEtapaDropdownOpen, setIsEtapaDropdownOpen] = useState(false);
     const [pedidoMateriales, setPedidoMateriales] = useState<Material[]>([]);
     
-    const { user } = useAuth();
+    // const { user } = useAuth();
     const { vendedores, addVendedor, fetchVendedores } = useVendedoresManager();
     const { clientes, addCliente, fetchClientes, isLoading: isLoadingClientes } = useClientesManager();
     const { materiales, updateMaterial, getMaterialesByPedidoId } = useMaterialesManager();
     const { recordPedidoUpdate } = useActionRecorder();
-    const permissions = usePermissions();
+    // const permissions = usePermissions();
     
-    // Helper functions using the permissions object
-    const canEditPedidos = () => permissions.canAccess('pedidos.edit');
-    const canDeletePedidos = () => permissions.canAccess('pedidos.delete');
-    const canArchivePedidos = () => permissions.canAccess('pedidos.archive');
-    const canMovePedidos = () => permissions.canAccess('pedidos.move');
+    // Permisos eliminados: todos los usuarios pueden editar, borrar, archivar y mover pedidos
+    const canEditPedidos = () => true;
+    const canDeletePedidos = () => true;
+    const canArchivePedidos = () => true;
+    const canMovePedidos = () => true;
     
     // Sistema de bloqueo de pedidos
     const {
@@ -141,8 +141,8 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         autoUnlock: true
     });
     
-    // Determinar si el modal es de solo lectura
-    const isReadOnly = !canEditPedidos() || (isLocked && !isLockedByMe);
+    // El modal nunca es de solo lectura (todos pueden editar)
+    const isReadOnly = false;
 
     // Función para detectar si hay cambios no guardados
     const hasUnsavedChanges = useMemo(() => {
@@ -1677,8 +1677,6 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                         <div className="flex-1 bg-white dark:bg-gray-800 min-h-0"> 
                             <CommentSystem
                                 pedidoId={pedido.id}
-                                currentUserId={user?.id}
-                                currentUserRole={user?.role}
                                 canDeleteComments={false}
                                 className="h-full"
                                 isConnected={isConnected}
@@ -1689,42 +1687,36 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
 
                 {/* Footer fijo con botones de acción */}
                 <div className="border-t-2 border-gray-300 dark:border-gray-600 bg-gradient-to-r from-slate-50 to-gray-100 dark:from-gray-800 dark:to-gray-750 px-8 py-4 flex justify-between items-center flex-shrink-0">
-                    {isReadOnly ? (
-                        <span className="text-sm text-gray-500">Modo de solo lectura - No tiene permisos de edición.</span>
-                    ) : (
-                        <div className="flex gap-2">
-                            {canArchivePedidos() && (
-                                <button type="button" onClick={handleArchiveClick} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled={pedido.etapaActual !== Etapa.COMPLETADO && pedido.etapaActual !== Etapa.ARCHIVADO && pedido.etapaActual !== Etapa.PREPARACION}>
-                                    {pedido.etapaActual === Etapa.ARCHIVADO ? 'Desarchivar' : 'Archivar'}
-                                </button>
-                            )}
-                            {canMovePedidos() && pedido.etapaActual === Etapa.PREPARACION && (
-                                <button
-                                    type="button"
-                                    onClick={handleSendToPrintClick}
-                                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    disabled={!formData.materialDisponible || (!!formData.antivaho && (!formData.secuenciaTrabajo || formData.secuenciaTrabajo.length === 0))}
-                                    title={
-                                        !formData.materialDisponible
-                                            ? "El material debe estar disponible para enviar a impresión"
-                                            : (!!formData.antivaho && (!formData.secuenciaTrabajo || formData.secuenciaTrabajo.length === 0))
-                                            ? "Debe definir la secuencia de trabajo para pedidos con Antivaho"
-                                            : !!formData.antivaho
-                                            ? "Enviar a Post-Impresión (Antivaho)"
-                                            : "Enviar a Impresión"
-                                    }
-                                >
-                                    {!!formData.antivaho ? "Enviar a Post-Impresión" : "Enviar a Impresión"}
-                                </button>
-                            )}
-                            {canMovePedidos() && pedido.etapaActual !== Etapa.PREPARACION && !printingStages.includes(pedido.etapaActual) && (
-                                <select onChange={(e) => handleRevertToPrinting(e.target.value as Etapa)} className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded transition-colors duration-200" value="">
-                                    <option value="" disabled>Volver a Impresión...</option>
-                                    {printingStages.map(stage => <option key={stage} value={stage}>{ETAPAS[stage].title}</option>)}
-                                </select>
-                            )}
-                        </div>
-                    )}
+                    <div className="flex gap-2">
+                        <button type="button" onClick={handleArchiveClick} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled={pedido.etapaActual !== Etapa.COMPLETADO && pedido.etapaActual !== Etapa.ARCHIVADO && pedido.etapaActual !== Etapa.PREPARACION}>
+                            {pedido.etapaActual === Etapa.ARCHIVADO ? 'Desarchivar' : 'Archivar'}
+                        </button>
+                        {pedido.etapaActual === Etapa.PREPARACION && (
+                            <button
+                                type="button"
+                                onClick={handleSendToPrintClick}
+                                className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={!formData.materialDisponible || (!!formData.antivaho && (!formData.secuenciaTrabajo || formData.secuenciaTrabajo.length === 0))}
+                                title={
+                                    !formData.materialDisponible
+                                        ? "El material debe estar disponible para enviar a impresión"
+                                        : (!!formData.antivaho && (!formData.secuenciaTrabajo || formData.secuenciaTrabajo.length === 0))
+                                        ? "Debe definir la secuencia de trabajo para pedidos con Antivaho"
+                                        : !!formData.antivaho
+                                        ? "Enviar a Post-Impresión (Antivaho)"
+                                        : "Enviar a Impresión"
+                                }
+                            >
+                                {!!formData.antivaho ? "Enviar a Post-Impresión" : "Enviar a Impresión"}
+                            </button>
+                        )}
+                        {pedido.etapaActual !== Etapa.PREPARACION && !printingStages.includes(pedido.etapaActual) && (
+                            <select onChange={(e) => handleRevertToPrinting(e.target.value as Etapa)} className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded transition-colors duration-200" value="">
+                                <option value="" disabled>Volver a Impresión...</option>
+                                {printingStages.map(stage => <option key={stage} value={stage}>{ETAPAS[stage].title}</option>)}
+                            </select>
+                        )}
+                    </div>
                     
                     <div className="flex gap-4">
                         <button type="button" onClick={handleClose} className="bg-gray-500 hover:bg-gray-400 text-white dark:bg-gray-600 dark:hover:bg-gray-500 font-bold py-2 px-4 rounded transition-colors duration-200">Cancelar</button>
