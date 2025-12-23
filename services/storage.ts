@@ -152,6 +152,24 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise
     }
 }
 
+export async function checkNumeroPedidoClienteExists(numero: string): Promise<boolean> {
+    const trimmed = (numero || '').trim();
+    if (!trimmed) {
+        return false;
+    }
+
+    if (MODO_DESARROLLO) {
+        const pedidos = await store.getAll();
+        return pedidos.some(p => (p.numeroPedidoCliente || '').trim() === trimmed);
+    }
+
+    const result = await apiRetryFetch<{ exists: boolean }>(
+        `/pedidos/exists?numero=${encodeURIComponent(trimmed)}`
+    );
+
+    return Boolean(result?.exists);
+}
+
 class ApiClient implements DataStore<Pedido> {
     public async init(): Promise<void> {
         return Promise.resolve();

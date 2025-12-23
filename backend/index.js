@@ -1920,6 +1920,34 @@ app.get('/api/pedidos', async (req, res) => {
     }
 });
 
+// GET /api/pedidos/exists - Verificar si ya existe un numero de pedido
+app.get('/api/pedidos/exists', async (req, res) => {
+    try {
+        const numero = typeof req.query.numero === 'string' ? req.query.numero : '';
+
+        if (!numero.trim()) {
+            return res.status(400).json({ message: 'El parametro "numero" es requerido.' });
+        }
+
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({
+                error: 'Service Unavailable',
+                message: 'El sistema no esta disponible. Por favor, contacte al administrador.'
+            });
+        }
+
+        const exists = await dbClient.existsNumeroPedidoCliente(numero);
+        res.status(200).json({ exists });
+    } catch (error) {
+        console.error('Error in GET /api/pedidos/exists:', error);
+        res.status(500).json({
+            message: 'Error interno del servidor al validar el numero de pedido.',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
 // === ENDPOINTS DE OPERACIONES MASIVAS (DEBEN IR ANTES DE RUTAS CON :id) ===
 
 // DELETE /api/pedidos/bulk-delete - Eliminar múltiples pedidos

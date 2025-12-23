@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Pedido, Prioridad, TipoImpresion, Etapa, EstadoCliché } from '../types';
 import { KANBAN_FUNNELS, ETAPAS } from '../constants';
 import SequenceBuilder from './SequenceBuilder';
@@ -9,6 +9,7 @@ import { VendedorCreateRequest } from '../types/vendedor';
 import ClienteModalMejorado from './ClienteModalMejorado';
 import VendedorModal from './VendedorModal';
 import { useActionRecorder } from '../hooks/useActionRecorder';
+import { checkNumeroPedidoClienteExists } from '../services/storage';
 
 const decimalToHHMM = (decimal: number): string => {
     if (!Number.isFinite(decimal) || decimal < 0) {
@@ -113,6 +114,9 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
     const [activeTab, setActiveTab] = useState<'detalles' | 'gestion'>('detalles');
     const [validationErrors, setValidationErrors] = useState<string[]>([]);
     const { recordPedidoCreate } = useActionRecorder();
+    const [numeroPedidoError, setNumeroPedidoError] = useState<string | null>(null);
+    const [isCheckingNumeroPedido, setIsCheckingNumeroPedido] = useState(false);
+    const numeroPedidoValidationId = useRef(0);
 
     useEffect(() => {
         fetchClientes();
@@ -129,6 +133,44 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
             }));
         }
     }, [clientePreseleccionado]);
+
+    useEffect(() => {
+        const rawValue = formData.numeroPedidoCliente || '';
+        const value = rawValue.trim();
+
+        if (value.length < 3) {
+            numeroPedidoValidationId.current += 1;
+            setNumeroPedidoError(null);
+            setIsCheckingNumeroPedido(false);
+            return;
+        }
+
+        setIsCheckingNumeroPedido(true);
+        const currentValidationId = ++numeroPedidoValidationId.current;
+
+        const timer = setTimeout(async () => {
+            try {
+                const exists = await checkNumeroPedidoClienteExists(value);
+                if (numeroPedidoValidationId.current !== currentValidationId) {
+                    return;
+                }
+                setNumeroPedidoError(
+                    exists ? `Ya existe un pedido con el número ${value}.` : null
+                );
+            } catch (error) {
+                if (numeroPedidoValidationId.current !== currentValidationId) {
+                    return;
+                }
+                setNumeroPedidoError('No se pudo validar el número de pedido. Intente nuevamente.');
+            } finally {
+                if (numeroPedidoValidationId.current === currentValidationId) {
+                    setIsCheckingNumeroPedido(false);
+                }
+            }
+        }, 3000);
+
+        return () => clearTimeout(timer);
+    }, [formData.numeroPedidoCliente]);
 
     useEffect(() => {
         const decimal = formData.tiempoProduccionDecimal;
@@ -217,6 +259,12 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
         }
         if (!formData.numeroPedidoCliente.trim()) {
             errors.push('❌ Debe ingresar el número de pedido del cliente');
+        }
+        if (isCheckingNumeroPedido) {
+            errors.push('⏳ Validando el número de pedido, espere unos segundos');
+        }
+        if (numeroPedidoError) {
+            errors.push(`❌ ${numeroPedidoError}`);
         }
         if (!formData.fechaEntrega) {
             errors.push('❌ Debe especificar la fecha de entrega');
@@ -487,10 +535,24 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                                 name="numeroPedidoCliente" 
                                                 value={formData.numeroPedidoCliente} 
                                                 onChange={handleChange} 
-                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500" 
+                                                className={`w-full bg-gray-200 dark:bg-gray-700 border rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 ${
+                                                    numeroPedidoError
+                                                        ? 'border-red-500 dark:border-red-400'
+                                                        : 'border-gray-300 dark:border-gray-600'
+                                                }`}
                                                 placeholder="Ej: PED-2024-001"
                                                 required 
                                             />
+                                            {isCheckingNumeroPedido && (
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                    Validando número de pedido...
+                                                </p>
+                                            )}
+                                            {numeroPedidoError && (
+                                                <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                                                    {numeroPedidoError}
+                                                </p>
+                                            )}
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-4">

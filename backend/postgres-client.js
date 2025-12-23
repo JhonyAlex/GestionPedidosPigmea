@@ -1026,6 +1026,30 @@ class PostgreSQLClient {
 
     // === MÉTODOS PARA PEDIDOS ===
 
+    async existsNumeroPedidoCliente(numeroPedidoCliente) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+        try {
+            const normalized = (numeroPedidoCliente || '').trim();
+            if (!normalized) {
+                return false;
+            }
+
+            const query = `
+                SELECT id
+                FROM pedidos
+                WHERE numero_pedido_cliente = $1
+                   OR data->>'numeroPedidoCliente' = $1
+                LIMIT 1
+            `;
+
+            const result = await client.query(query, [normalized]);
+            return result.rowCount > 0;
+        } finally {
+            client.release();
+        }
+    }
+
     async create(pedido) {
         if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
