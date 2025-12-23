@@ -1,4 +1,10 @@
+UPDATE_MODIFIED_FUNCTION="$MIGRATIONS_DIR/000-create-update-modified-function.sql"
+
+apply_migration "Crear función update_modified_column" "$UPDATE_MODIFIED_FUNCTION"
+
 #!/bin/sh
+
+
 
 set -e
 
