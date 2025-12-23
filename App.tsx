@@ -370,7 +370,7 @@ const AppContent: React.FC = () => {
         setSelectedPedido(null);
     };
 
-    const handleAddPedido = async (data: { pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'maquinaImpresion' | 'secuenciaTrabajo' | 'orden' | 'historial'>; secuenciaTrabajo: Etapa[]; }) => {
+    const handleAddPedido = async (data: { pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'secuenciaTrabajo' | 'orden' | 'historial'>; secuenciaTrabajo: Etapa[]; }) => {
         const newPedido = await handleAddPedidoLogic(data);
         if (newPedido) {
             logAction(`Nuevo pedido ${newPedido.numeroPedidoCliente} creado.`, newPedido.id);

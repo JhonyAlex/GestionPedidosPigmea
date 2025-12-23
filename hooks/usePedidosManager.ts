@@ -448,7 +448,7 @@ export const usePedidosManager = (
         }
     };
 
-    const handleAddPedido = async (data: { pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'subEtapaActual' | 'maquinaImpresion' | 'secuenciaTrabajo' | 'orden' | 'historial'>; secuenciaTrabajo: Etapa[]; }) => {
+    const handleAddPedido = async (data: { pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'subEtapaActual' | 'secuenciaTrabajo' | 'orden' | 'historial'>; secuenciaTrabajo: Etapa[]; }) => {
         const { pedidoData, secuenciaTrabajo } = data;
         const now = new Date();
         const newId = now.getTime().toString();
@@ -470,7 +470,7 @@ export const usePedidosManager = (
             subEtapaActual: initialSubEtapa,
             etapasSecuencia: [{ etapa: initialStage, fecha: now.toISOString() }],
             historial: [generarEntradaHistorial(currentUserRole, 'Creación', 'Pedido creado en Preparación - Sin Gestión Iniciada.')],
-            maquinaImpresion: '',
+            maquinaImpresion: pedidoData.maquinaImpresion || '',
             secuenciaTrabajo,
             antivaho: pedidoData.antivaho || false,
             antivahoRealizado: false,

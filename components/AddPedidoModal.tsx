@@ -52,7 +52,7 @@ const sanitizeDecimalInput = (value: string): string => value.replace(',', '.');
 interface AddPedidoModalProps {
     onClose: () => void;
     onAdd: (data: {
-        pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'subEtapaActual' | 'maquinaImpresion' | 'secuenciaTrabajo' | 'orden' | 'historial'>;
+        pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'subEtapaActual' | 'secuenciaTrabajo' | 'orden' | 'historial'>;
         secuenciaTrabajo: Etapa[];
     }) => Promise<Pedido | undefined>; // ✅ Cambiar para que devuelva el pedido creado
     clientePreseleccionado?: { id: string; nombre: string } | null; // ✅ Permitir cliente preseleccionado
@@ -62,6 +62,8 @@ const initialFormData = {
     cliente: '',
     clienteId: '',  // ✅ Agregar clienteId
     numeroPedidoCliente: '',
+    maquinaImpresion: '',
+    numerosCompra: [],
     metros: '',
     fechaEntrega: '',
     nuevaFechaEntrega: '',
@@ -92,6 +94,7 @@ const initialFormData = {
     materialCapas: null,
     materialConsumoCantidad: null,
     materialConsumo: null,
+    observacionesMaterial: '',
     bobinaMadre: null,
     bobinaFinal: null,
     minAdap: null,
@@ -524,6 +527,27 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                                 className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
                                             >
                                                 {Object.values(TipoImpresion).map(t => <option key={t} value={t}>{t}</option>)}
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Maquina de Impresion</label>
+                                            <select
+                                                name="maquinaImpresion"
+                                                value={formData.maquinaImpresion}
+                                                onChange={handleChange}
+                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
+                                            >
+                                                <option value="">Sin asignar</option>
+                                                {KANBAN_FUNNELS.IMPRESION.stages.map(stage => {
+                                                    const stageInfo = ETAPAS[stage];
+                                                    const label = stageInfo?.title || stage;
+                                                    return (
+                                                        <option key={stage} value={label}>
+                                                            {label}
+                                                        </option>
+                                                    );
+                                                })}
                                             </select>
                                         </div>
 
