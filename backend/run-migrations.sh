@@ -1,6 +1,9 @@
 #!/bin/sh
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+MIGRATIONS_DIR="$SCRIPT_DIR/../database/migrations"
+
 echo "=== INICIANDO SCRIPT DE MIGRACIÓN DE BASE DE DATOS ==="
 
 # Construir conexión
@@ -11,8 +14,6 @@ else
     echo "❌ DATABASE_URL no definida."
     exit 1
 fi
-
-MIGRATIONS_DIR="../database/migrations"
 
 # Función para aplicar migraciones
 apply_migration() {
