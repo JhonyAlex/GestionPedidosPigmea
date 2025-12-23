@@ -1026,7 +1026,7 @@ class PostgreSQLClient {
 
     // === MÉTODOS PARA PEDIDOS ===
 
-    async existsNumeroPedidoCliente(numeroPedidoCliente) {
+    async existsNumeroPedidoCliente(numeroPedidoCliente, excludeId = null) {
         if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
         try {
@@ -1040,10 +1040,12 @@ class PostgreSQLClient {
                 FROM pedidos
                 WHERE numero_pedido_cliente = $1
                    OR data->>'numeroPedidoCliente' = $1
+                ${excludeId ? 'AND id <> $2' : ''}
                 LIMIT 1
             `;
 
-            const result = await client.query(query, [normalized]);
+            const values = excludeId ? [normalized, excludeId] : [normalized];
+            const result = await client.query(query, values);
             return result.rowCount > 0;
         } finally {
             client.release();

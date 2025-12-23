@@ -1924,6 +1924,7 @@ app.get('/api/pedidos', async (req, res) => {
 app.get('/api/pedidos/exists', async (req, res) => {
     try {
         const numero = typeof req.query.numero === 'string' ? req.query.numero : '';
+        const excludeId = typeof req.query.excludeId === 'string' ? req.query.excludeId : '';
 
         if (!numero.trim()) {
             return res.status(400).json({ message: 'El parametro "numero" es requerido.' });
@@ -1936,7 +1937,7 @@ app.get('/api/pedidos/exists', async (req, res) => {
             });
         }
 
-        const exists = await dbClient.existsNumeroPedidoCliente(numero);
+        const exists = await dbClient.existsNumeroPedidoCliente(numero, excludeId || null);
         res.status(200).json({ exists });
     } catch (error) {
         console.error('Error in GET /api/pedidos/exists:', error);

@@ -152,7 +152,7 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise
     }
 }
 
-export async function checkNumeroPedidoClienteExists(numero: string): Promise<boolean> {
+export async function checkNumeroPedidoClienteExists(numero: string, excludeId?: string): Promise<boolean> {
     const trimmed = (numero || '').trim();
     if (!trimmed) {
         return false;
@@ -160,12 +160,19 @@ export async function checkNumeroPedidoClienteExists(numero: string): Promise<bo
 
     if (MODO_DESARROLLO) {
         const pedidos = await store.getAll();
-        return pedidos.some(p => (p.numeroPedidoCliente || '').trim() === trimmed);
+        return pedidos.some(p => {
+            if (excludeId && p.id === excludeId) {
+                return false;
+            }
+            return (p.numeroPedidoCliente || '').trim() === trimmed;
+        });
     }
 
-    const result = await apiRetryFetch<{ exists: boolean }>(
-        `/pedidos/exists?numero=${encodeURIComponent(trimmed)}`
-    );
+    const params = new URLSearchParams({ numero: trimmed });
+    if (excludeId) {
+        params.set('excludeId', excludeId);
+    }
+    const result = await apiRetryFetch<{ exists: boolean }>(`/pedidos/exists?${params.toString()}`);
 
     return Boolean(result?.exists);
 }
