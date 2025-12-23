@@ -159,25 +159,81 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     useEffect(() => {
         if (!user) return;
 
-        // Por ahora, el sistema de notificaciones persistentes se maneja completamente
-        // desde el backend y se refresca al cargar. Los eventos en tiempo real se
-        // manejarán a través del Socket.IO cuando se implementen en el backend.
-        
-        // TODO: Añadir listeners de Socket.IO cuando el backend emita eventos:
-        // - 'notification' para nuevas notificaciones
-        // - 'notification-read' para sincronización de lectura
-        // - 'notifications-read-all' para marcar todas como leídas
-        // - 'notification-deleted' para eliminación sincronizada
-        
+        let socket: ReturnType<typeof websocketService.getSocket> | null = null;
+        try {
+            // Intentar obtener el socket, podría no estar conectado aún
+            if (websocketService.isWebSocketConnected()) {
+                socket = websocketService.getSocket();
+            }
+        } catch (e) {
+            console.debug('Socket no inicializado en NotificationContext');
+        }
+
+        const handleNewNotification = (notification: Notification) => {
+            console.log('🔔 Nueva notificación recibida:', notification);
+            setNotifications(prev => {
+                // Evitar duplicados si ya existe por ID
+                if (prev.some(n => n.id === notification.id)) return prev;
+
+                const updated = [notification, ...prev];
+                return updated.slice(0, 50);
+            });
+        };
+
+        const handleNotificationRead = (data: { notificationId: string }) => {
+            console.log('🔔 Notificación marcada como leída:', data.notificationId);
+            setNotifications(prev =>
+                prev.map(n => n.id === data.notificationId ? { ...n, read: true } : n)
+            );
+        };
+
+        const handleNotificationsReadAll = () => {
+            console.log('🔔 Todas las notificaciones marcadas como leídas');
+            setNotifications(prev =>
+                prev.map(n => ({ ...n, read: true }))
+            );
+        };
+
+        const handleNotificationDeleted = (data: { notificationId: string }) => {
+            console.log('🔔 Notificación eliminada:', data.notificationId);
+            setNotifications(prev => prev.filter(n => n.id !== data.notificationId));
+        };
+
+        if (socket) {
+            socket.on('notification', handleNewNotification);
+            socket.on('notification-read', handleNotificationRead);
+            socket.on('notifications-read-all', handleNotificationsReadAll);
+            socket.on('notification-deleted', handleNotificationDeleted);
+        }
+
         // Por ahora, solo refrescamos periódicamente si el usuario está activo
         const intervalId = setInterval(() => {
             if (document.visibilityState === 'visible') {
                 refreshNotifications();
+
+                // Intentar reconectar listeners si el socket se conectó después
+                if (!socket && websocketService.isWebSocketConnected()) {
+                    try {
+                        socket = websocketService.getSocket();
+                        socket.on('notification', handleNewNotification);
+                        socket.on('notification-read', handleNotificationRead);
+                        socket.on('notifications-read-all', handleNotificationsReadAll);
+                        socket.on('notification-deleted', handleNotificationDeleted);
+                    } catch (e) {
+                        // Ignorar
+                    }
+                }
             }
         }, 30000); // Refrescar cada 30 segundos si la pestaña está visible
 
         return () => {
             clearInterval(intervalId);
+            if (socket) {
+                socket.off('notification', handleNewNotification);
+                socket.off('notification-read', handleNotificationRead);
+                socket.off('notifications-read-all', handleNotificationsReadAll);
+                socket.off('notification-deleted', handleNotificationDeleted);
+            }
         };
     }, [user, refreshNotifications]);
 
