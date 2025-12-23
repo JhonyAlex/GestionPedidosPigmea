@@ -13,6 +13,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useActionHistory } from '../hooks/useActionHistory';
 import ActionHistoryPanel from './ActionHistoryPanel';
+import { normalizeSearchValue, pedidoMatchesSearch } from '../utils/search';
 
 
 interface HeaderProps {
@@ -181,47 +182,18 @@ const Header: React.FC<HeaderProps> = ({
 
     // Función para filtrar pedidos basada en el término de búsqueda
     const searchResults = React.useMemo(() => {
-        if (!searchTerm || searchTerm.trim().length === 0) {
+        const normalizedTerm = normalizeSearchValue(searchTerm);
+        if (!normalizedTerm) {
             return [];
         }
 
-        const searchTermLower = searchTerm.toLowerCase();
-        return allPedidos.filter(p => {
-            return (
-                // Campos de identificación y cliente
-                p.numeroPedidoCliente.toLowerCase().includes(searchTermLower) ||
-                p.numeroRegistro.toLowerCase().includes(searchTermLower) ||
-                p.cliente.toLowerCase().includes(searchTermLower) ||
-                (p.clienteId && p.clienteId.toLowerCase().includes(searchTermLower)) ||
-                (p.numerosCompra && p.numerosCompra.some(numero => numero.toLowerCase().includes(searchTermLower))) ||
-                
-                // Campos de producción
-                p.desarrollo.toLowerCase().includes(searchTermLower) ||
-                p.maquinaImpresion.toLowerCase().includes(searchTermLower) ||
-                String(p.metros).includes(searchTermLower) ||
-                (p.capa && p.capa.toLowerCase().includes(searchTermLower)) ||
-                (p.camisa && p.camisa.toLowerCase().includes(searchTermLower)) ||
-                p.tipoImpresion.toLowerCase().includes(searchTermLower) ||
-                
-                // Campos de etapas y prioridad
-                ETAPAS[p.etapaActual].title.toLowerCase().includes(searchTermLower) ||
-                (p.subEtapaActual && p.subEtapaActual.toLowerCase().includes(searchTermLower)) ||
-                p.prioridad.toLowerCase().includes(searchTermLower) ||
-                
-                // Observaciones
-                p.observaciones.toLowerCase().includes(searchTermLower) ||
-                (p.vendedorNombre && p.vendedorNombre.toLowerCase().includes(searchTermLower)) ||
-                
-                // Producto
-                (p.producto && p.producto.toLowerCase().includes(searchTermLower))
-            );
-        });
+        return allPedidos.filter(pedido => pedidoMatchesSearch(pedido, normalizedTerm));
     }, [searchTerm, allPedidos]);
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         onSearch(value);
-        setShowSearchDropdown(value.trim().length > 0);
+        setShowSearchDropdown(normalizeSearchValue(value).length > 0);
     };
 
     const handleSelectPedido = (pedido: Pedido) => {
@@ -561,7 +533,7 @@ const Header: React.FC<HeaderProps> = ({
                                     value={searchTerm}
                                     className="w-full px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                                     onChange={handleSearchChange}
-                                    onFocus={() => searchTerm.trim().length > 0 && setShowSearchDropdown(true)}
+                                    onFocus={() => normalizeSearchValue(searchTerm).length > 0 && setShowSearchDropdown(true)}
                                 />
                             </div>
                         </div>
@@ -570,7 +542,7 @@ const Header: React.FC<HeaderProps> = ({
                                 searchTerm={searchTerm}
                                 onSearchChange={(value) => {
                                     onSearch(value);
-                                    setShowSearchDropdown(value.trim().length > 0);
+                                    setShowSearchDropdown(normalizeSearchValue(value).length > 0);
                                 }}
                                 results={searchResults}
                                 onSelectPedido={handleSelectPedido}
