@@ -158,6 +158,10 @@ const AppContent: React.FC = () => {
       handleStageToggle,
       resetStageFilters,
       resetTraditionalStageFilter,
+      selectedVendedores,
+      handleVendedorToggle,
+      selectedClientes,
+      handleClienteToggle,
       antivahoFilter,
       handleAntivahoFilterChange,
       preparacionFilter,
@@ -880,6 +884,10 @@ const AppContent: React.FC = () => {
                     activeFilters={filters}
                     selectedStages={selectedStages}
                     onStageToggle={handleStageToggle}
+                    selectedVendedores={selectedVendedores}
+                    onVendedorToggle={handleVendedorToggle}
+                    selectedClientes={selectedClientes}
+                    onClienteToggle={handleClienteToggle}
                     antivahoFilter={antivahoFilter}
                     onAntivahoFilterChange={handleAntivahoFilterChange}
                     preparacionFilter={preparacionFilter}

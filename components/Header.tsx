@@ -14,6 +14,8 @@ import { useNotifications } from '../contexts/NotificationContext';
 import { useActionHistory } from '../hooks/useActionHistory';
 import ActionHistoryPanel from './ActionHistoryPanel';
 import { normalizeSearchValue, pedidoMatchesSearch } from '../utils/search';
+import { useVendedoresManager } from '../hooks/useVendedoresManager';
+import { useClientesManager } from '../hooks/useClientesManager';
 
 
 interface HeaderProps {
@@ -27,6 +29,10 @@ interface HeaderProps {
     activeFilters: { priority: string, stage: string, dateField: keyof Pedido };
     selectedStages: string[];
     onStageToggle: (stageId: string) => void;
+    selectedVendedores?: string[];
+    onVendedorToggle?: (vendedorId: string) => void;
+    selectedClientes?: string[];
+    onClienteToggle?: (clienteId: string) => void;
     antivahoFilter: 'all' | 'con' | 'sin' | 'hecho';
     onAntivahoFilterChange: (value: 'all' | 'con' | 'sin' | 'hecho') => void;
     preparacionFilter?: 'all' | 'sin-material' | 'sin-cliche' | 'listo';
@@ -94,6 +100,10 @@ const Header: React.FC<HeaderProps> = ({
     activeFilters,
     selectedStages,
     onStageToggle,
+    selectedVendedores = [],
+    onVendedorToggle,
+    selectedClientes = [],
+    onClienteToggle,
     antivahoFilter,
     onAntivahoFilterChange,
     preparacionFilter = 'all',
@@ -126,6 +136,10 @@ const Header: React.FC<HeaderProps> = ({
         isAdmin
     } = usePermissions();
 
+    // Cargar vendedores y clientes para los filtros
+    const { vendedores, loading: vendedoresLoading } = useVendedoresManager();
+    const { clientes, isLoading: clientesLoading } = useClientesManager();
+
     // Compatibilidad: Header usa nombres históricos (en inglés)
     const canViewReports = canViewReportes;
     const canCreatePedidos = canViewPedidos;
@@ -137,6 +151,8 @@ const Header: React.FC<HeaderProps> = ({
     const [showSearchDropdown, setShowSearchDropdown] = useState(false);
     const [showBurgerMenu, setShowBurgerMenu] = useState(false);
     const [showHistoryPanel, setShowHistoryPanel] = useState(false);
+    const [showVendedorDropdown, setShowVendedorDropdown] = useState(false);
+    const [showClienteDropdown, setShowClienteDropdown] = useState(false);
         // Al abrir (y mientras esté abierto), marcar como leído para que el badge baje a 0
         useEffect(() => {
             if (!showHistoryPanel) return;
@@ -146,6 +162,8 @@ const Header: React.FC<HeaderProps> = ({
 
     const searchContainerRef = useRef<HTMLDivElement>(null);
     const burgerMenuRef = useRef<HTMLDivElement>(null);
+    const vendedorDropdownRef = useRef<HTMLDivElement>(null);
+    const clienteDropdownRef = useRef<HTMLDivElement>(null);
 
     // Resetear el estado cuando cambie la vista
     useEffect(() => {
@@ -171,6 +189,14 @@ const Header: React.FC<HeaderProps> = ({
             // Cerrar menú hamburguesa
             if (burgerMenuRef.current && !burgerMenuRef.current.contains(target)) {
                 setShowBurgerMenu(false);
+            }
+
+            // Cerrar dropdowns de vendedor y cliente
+            if (vendedorDropdownRef.current && !vendedorDropdownRef.current.contains(target)) {
+                setShowVendedorDropdown(false);
+            }
+            if (clienteDropdownRef.current && !clienteDropdownRef.current.contains(target)) {
+                setShowClienteDropdown(false);
             }
         };
 
@@ -445,56 +471,182 @@ const Header: React.FC<HeaderProps> = ({
                             onDateFieldChange={onWeekDateFieldChange}
                         />
 
-                        {/* Filtros Adicionales */}
-                        <select
-                            name="priority"
-                            value={activeFilters.priority}
-                            onChange={(e) => onFilterChange(e.target.name, e.target.value)}
-                            className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        >
-                            <option value="all">🎯 Prioridad</option>
-                            {Object.values(Prioridad).map(p => <option key={p} value={p}>{p}</option>)}
-                        </select>
-
-                        <select
-                            name="antivaho"
-                            value={antivahoFilter}
-                            onChange={(e) => onAntivahoFilterChange(e.target.value as 'all' | 'con' | 'sin' | 'hecho')}
-                            className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        >
-                            <option value="all">💨 Antivaho</option>
-                            <option value="con">Con Antivaho</option>
-                            <option value="sin">Sin Antivaho</option>
-                            <option value="hecho">Hecho</option>
-                        </select>
-
-                        {/* Filtro de Anónimo */}
-                        {onAnonimoFilterChange && (
+                        {/* Grupo de Filtros Básicos (responsivo) */}
+                        <div className="flex flex-wrap items-center gap-2">
                             <select
-                                name="anonimo"
-                                value={anonimoFilter}
-                                onChange={(e) => onAnonimoFilterChange(e.target.value as 'all' | 'si' | 'no')}
+                                name="priority"
+                                value={activeFilters.priority}
+                                onChange={(e) => onFilterChange(e.target.name, e.target.value)}
                                 className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             >
-                                <option value="all">👤 Anónimo</option>
-                                <option value="si">Sí</option>
-                                <option value="no">No</option>
+                                <option value="all">🎯 Prioridad</option>
+                                {Object.values(Prioridad).map(p => <option key={p} value={p}>{p}</option>)}
                             </select>
+
+                            <select
+                                name="antivaho"
+                                value={antivahoFilter}
+                                onChange={(e) => onAntivahoFilterChange(e.target.value as 'all' | 'con' | 'sin' | 'hecho')}
+                                className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            >
+                                <option value="all">💨 Antivaho</option>
+                                <option value="con">Con Antivaho</option>
+                                <option value="sin">Sin Antivaho</option>
+                                <option value="hecho">Hecho</option>
+                            </select>
+
+                            {/* Filtro de Anónimo */}
+                            {onAnonimoFilterChange && (
+                                <select
+                                    name="anonimo"
+                                    value={anonimoFilter}
+                                    onChange={(e) => onAnonimoFilterChange(e.target.value as 'all' | 'si' | 'no')}
+                                    className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                >
+                                    <option value="all">👤 Anónimo</option>
+                                    <option value="si">Sí</option>
+                                    <option value="no">No</option>
+                                </select>
+                            )}
+
+                            {/* Filtro de Estado de Cliché */}
+                            {onEstadoClicheFilterChange && (
+                                <select
+                                    name="estadoCliche"
+                                    value={estadoClicheFilter}
+                                    onChange={(e) => onEstadoClicheFilterChange(e.target.value as EstadoCliché | 'all')}
+                                    className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                >
+                                    <option value="all">🎨 Cliché</option>
+                                    {Object.values(EstadoCliché).map(estado => (
+                                        <option key={estado} value={estado}>{estado}</option>
+                                    ))}
+                                </select>
+                            )}
+                        </div>
+
+                        {/* Filtro Multi-Select de Vendedor */}
+                        {onVendedorToggle && (
+                            <div ref={vendedorDropdownRef} className="relative">
+                                <button
+                                    onClick={() => setShowVendedorDropdown(!showVendedorDropdown)}
+                                    className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-1.5"
+                                    disabled={vendedoresLoading}
+                                >
+                                    <span>👤 Vendedor</span>
+                                    {selectedVendedores.length > 0 && (
+                                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-indigo-600 dark:bg-indigo-500 rounded-full">
+                                            {selectedVendedores.length}
+                                        </span>
+                                    )}
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+                                {showVendedorDropdown && (
+                                    <div className="absolute z-50 mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-64 overflow-y-auto">
+                                        <div className="p-2 border-b border-gray-200 dark:border-gray-700">
+                                            <label className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedVendedores.length === 0}
+                                                    onChange={() => onVendedorToggle('all')}
+                                                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                                />
+                                                <span className="text-sm font-medium text-gray-900 dark:text-white">Todos</span>
+                                            </label>
+                                        </div>
+                                        <div className="p-2">
+                                            <label className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedVendedores.includes('sin_asignar')}
+                                                    onChange={() => onVendedorToggle('sin_asignar')}
+                                                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                                />
+                                                <span className="text-sm text-gray-700 dark:text-gray-300 italic">Sin asignar</span>
+                                            </label>
+                                            {vendedores
+                                                .filter(v => v.activo)
+                                                .sort((a, b) => a.nombre.localeCompare(b.nombre))
+                                                .map(vendedor => (
+                                                    <label key={vendedor.id} className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedVendedores.includes(vendedor.id)}
+                                                            onChange={() => onVendedorToggle(vendedor.id)}
+                                                            className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                                        />
+                                                        <span className="text-sm text-gray-900 dark:text-white">{vendedor.nombre}</span>
+                                                    </label>
+                                                ))
+                                            }
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         )}
 
-                        {/* Filtro de Estado de Cliché */}
-                        {onEstadoClicheFilterChange && (
-                            <select
-                                name="estadoCliche"
-                                value={estadoClicheFilter}
-                                onChange={(e) => onEstadoClicheFilterChange(e.target.value as EstadoCliché | 'all')}
-                                className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            >
-                                <option value="all">🎨 Estado Cliché</option>
-                                {Object.values(EstadoCliché).map(estado => (
-                                    <option key={estado} value={estado}>{estado}</option>
-                                ))}
-                            </select>
+                        {/* Filtro Multi-Select de Cliente */}
+                        {onClienteToggle && (
+                            <div ref={clienteDropdownRef} className="relative">
+                                <button
+                                    onClick={() => setShowClienteDropdown(!showClienteDropdown)}
+                                    className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-1.5"
+                                    disabled={clientesLoading}
+                                >
+                                    <span>🏢 Cliente</span>
+                                    {selectedClientes.length > 0 && (
+                                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-indigo-600 dark:bg-indigo-500 rounded-full">
+                                            {selectedClientes.length}
+                                        </span>
+                                    )}
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+                                {showClienteDropdown && (
+                                    <div className="absolute z-50 mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-64 overflow-y-auto">
+                                        <div className="p-2 border-b border-gray-200 dark:border-gray-700">
+                                            <label className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedClientes.length === 0}
+                                                    onChange={() => onClienteToggle('all')}
+                                                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                                />
+                                                <span className="text-sm font-medium text-gray-900 dark:text-white">Todos</span>
+                                            </label>
+                                        </div>
+                                        <div className="p-2">
+                                            <label className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedClientes.includes('sin_asignar')}
+                                                    onChange={() => onClienteToggle('sin_asignar')}
+                                                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                                />
+                                                <span className="text-sm text-gray-700 dark:text-gray-300 italic">Sin asignar</span>
+                                            </label>
+                                            {clientes
+                                                .filter(c => c.estado === 'activo')
+                                                .sort((a, b) => a.nombre.localeCompare(b.nombre))
+                                                .map(cliente => (
+                                                    <label key={cliente.id} className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedClientes.includes(cliente.id)}
+                                                            onChange={() => onClienteToggle(cliente.id)}
+                                                            className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                                        />
+                                                        <span className="text-sm text-gray-900 dark:text-white">{cliente.nombre}</span>
+                                                    </label>
+                                                ))
+                                            }
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         )}
 
                         {/* Filtro de estado de preparación (visible solo en vista preparacion) */}

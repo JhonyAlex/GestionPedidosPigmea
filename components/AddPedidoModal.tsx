@@ -254,8 +254,8 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
         const errors: string[] = [];
 
         // Validaciones obligatorias
-        if (!formData.cliente.trim()) {
-            errors.push('❌ Debe seleccionar un cliente');
+        if (!formData.cliente.trim() || !formData.clienteId) {
+            errors.push('❌ El campo Cliente es obligatorio. Debe seleccionar un cliente');
         }
         if (!formData.numeroPedidoCliente.trim()) {
             errors.push('❌ Debe ingresar el número de pedido del cliente');

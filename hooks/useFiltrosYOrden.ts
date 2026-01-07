@@ -14,6 +14,8 @@ interface PersistedFilters {
     searchTerm: string;
     filters: { priority: string; stage: string; dateField: DateField };
     selectedStages: string[];
+    selectedVendedores: string[];
+    selectedClientes: string[];
     antivahoFilter: 'all' | 'con' | 'sin' | 'hecho';
     preparacionFilter: 'all' | 'sin-material' | 'sin-cliche' | 'listo';
     estadoClicheFilter: EstadoCliché | 'all';
@@ -61,6 +63,8 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         savedFilters.filters || { priority: 'all', stage: 'all', dateField: 'fechaCreacion' }
     );
     const [selectedStages, setSelectedStages] = useState<string[]>(savedFilters.selectedStages || []);
+    const [selectedVendedores, setSelectedVendedores] = useState<string[]>(savedFilters.selectedVendedores || []);
+    const [selectedClientes, setSelectedClientes] = useState<string[]>(savedFilters.selectedClientes || []);
     const [antivahoFilter, setAntivahoFilter] = useState<'all' | 'con' | 'sin' | 'hecho'>(
         savedFilters.antivahoFilter || 'all'
     );
@@ -97,6 +101,8 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
             searchTerm,
             filters,
             selectedStages,
+            selectedVendedores,
+            selectedClientes,
             antivahoFilter,
             preparacionFilter,
             estadoClicheFilter,
@@ -111,6 +117,8 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         searchTerm,
         filters,
         selectedStages,
+        selectedVendedores,
+        selectedClientes,
         antivahoFilter,
         preparacionFilter,
         estadoClicheFilter,
@@ -179,6 +187,32 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         }
     }, []);
 
+    const handleVendedorToggle = useCallback((vendedorId: string) => {
+        if (vendedorId === 'all') {
+            setSelectedVendedores([]);
+        } else {
+            setSelectedVendedores(prev => {
+                const isSelected = prev.includes(vendedorId);
+                return isSelected 
+                    ? prev.filter(id => id !== vendedorId)
+                    : [...prev, vendedorId];
+            });
+        }
+    }, []);
+
+    const handleClienteToggle = useCallback((clienteId: string) => {
+        if (clienteId === 'all') {
+            setSelectedClientes([]);
+        } else {
+            setSelectedClientes(prev => {
+                const isSelected = prev.includes(clienteId);
+                return isSelected 
+                    ? prev.filter(id => id !== clienteId)
+                    : [...prev, clienteId];
+            });
+        }
+    }, []);
+
     const resetStageFilters = useCallback(() => {
         setSelectedStages([]);
         setFilters(prev => ({ ...prev, stage: 'all' }));
@@ -194,6 +228,8 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         setSearchTerm('');
         setFilters({ priority: 'all', stage: 'all', dateField: 'fechaCreacion' });
         setSelectedStages([]);
+        setSelectedVendedores([]);
+        setSelectedClientes([]);
         setAntivahoFilter('all');
         setPreparacionFilter('all');
         setEstadoClicheFilter('all');
@@ -266,6 +302,16 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
                 (anonimoFilter === 'si' && p.anonimo === true) || 
                 (anonimoFilter === 'no' && p.anonimo !== true);
 
+            // Filtro de Vendedores (multi-select)
+            const vendedorMatch = selectedVendedores.length === 0 || 
+                selectedVendedores.includes(p.vendedorId || '') ||
+                (selectedVendedores.includes('sin_asignar') && !p.vendedorId);
+
+            // Filtro de Clientes (multi-select)
+            const clienteMatch = selectedClientes.length === 0 || 
+                selectedClientes.includes(p.clienteId || '') ||
+                (selectedClientes.includes('sin_asignar') && !p.clienteId);
+
             // Filtro de semana (tiene prioridad sobre filtro de fecha normal)
             let weekMatch = true;
             if (weekFilter.enabled) {
@@ -296,7 +342,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
             // Si el filtro de semana está activo, usar weekMatch en lugar de dateMatch
             const finalDateMatch = weekFilter.enabled ? weekMatch : dateMatch;
 
-            return searchTermMatch && priorityMatch && stageMatch && finalDateMatch && antivahoMatch && preparacionMatch && estadoClicheMatch && anonimoMatch;
+            return searchTermMatch && priorityMatch && stageMatch && finalDateMatch && antivahoMatch && preparacionMatch && estadoClicheMatch && anonimoMatch && vendedorMatch && clienteMatch;
         });
 
         if (sortConfig.key) {
@@ -347,7 +393,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         
         return filtered;
 
-    }, [pedidos, debouncedSearchTerm, filters, selectedStages, antivahoFilter, preparacionFilter, estadoClicheFilter, anonimoFilter, dateFilter, sortConfig, customDateRange, weekFilter]);
+    }, [pedidos, debouncedSearchTerm, filters, selectedStages, selectedVendedores, selectedClientes, antivahoFilter, preparacionFilter, estadoClicheFilter, anonimoFilter, dateFilter, sortConfig, customDateRange, weekFilter]);
 
     return {
         processedPedidos,
@@ -359,6 +405,10 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         handleStageToggle,
         resetStageFilters,
         resetTraditionalStageFilter,
+        selectedVendedores,
+        handleVendedorToggle,
+        selectedClientes,
+        handleClienteToggle,
         antivahoFilter,
         handleAntivahoFilterChange,
         preparacionFilter,

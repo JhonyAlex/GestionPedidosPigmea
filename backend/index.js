@@ -2227,8 +2227,13 @@ app.post('/api/pedidos', requirePermission('pedidos.create'), async (req, res) =
         console.log('  - ClienteId:', newPedido.clienteId);
         console.log('  - ID Pedido:', newPedido.id);
         
+        // ✅ VALIDACIÓN: Campo Cliente obligatorio
         if (!newPedido || !newPedido.id) {
             return res.status(400).json({ message: 'Datos del pedido inválidos.' });
+        }
+        
+        if (!newPedido.cliente || !newPedido.cliente.trim()) {
+            return res.status(400).json({ message: 'El campo Cliente es obligatorio.' });
         }
         
         await dbClient.create(newPedido);
