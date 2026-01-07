@@ -47,6 +47,7 @@ export function useVendedoresManager() {
         try {
             globalLoading = true;
             setLoading(true);
+            notifyListeners();
             setError(null);
             globalError = null;
             
@@ -66,7 +67,6 @@ export function useVendedoresManager() {
             const data = await response.json();
             globalVendedores = data;
             setVendedores(globalVendedores);
-            notifyListeners();
         } catch (err) {
             console.error('Error fetching vendedores:', err);
             const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
@@ -75,6 +75,7 @@ export function useVendedoresManager() {
         } finally {
             globalLoading = false;
             setLoading(false);
+            notifyListeners();
         }
     }, [getAuthHeaders]);
 

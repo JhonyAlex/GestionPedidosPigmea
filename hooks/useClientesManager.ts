@@ -68,6 +68,7 @@ export const useClientesManager = () => {
     console.log('🚀 Iniciando fetch de clientes...');
     globalLoading = true;
     setIsLoading(true);
+    notifyListeners();
     setError(null);
     globalError = null;
     
@@ -83,7 +84,6 @@ export const useClientesManager = () => {
       globalTotal = clientesData.length;
       setClientes(globalClientes);
       setTotalClientes(globalTotal);
-      notifyListeners();
     } catch (err) {
       globalError = err as Error;
       setError(err as Error);
@@ -91,6 +91,7 @@ export const useClientesManager = () => {
     } finally {
       globalLoading = false;
       setIsLoading(false);
+      notifyListeners();
       console.log('✅ Fetch completado. globalLoading:', false);
     }
   }, []);
