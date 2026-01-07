@@ -30,13 +30,13 @@ const XMarkIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
   </svg>
-);Archive,
-  on
+);
 
 const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
   selectedCount,
   onUpdateDate,
   onDelete,
+  onArchive,
   onCancel,
 }) => {
   if (selectedCount < 2) return null;
@@ -64,19 +64,19 @@ const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
               onClick={onUpdateDate}
               className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200 font-medium"
               title="Cambiar Nueva Fecha de Entrega"
-            >Archive}
+            >
+              <CalendarIcon />
+              <span className="hidden sm:inline">Cambiar Nueva Fecha de Entrega</span>
+              <span className="sm:hidden">Fecha</span>
+            </button>
+
+            <button
+              onClick={onArchive}
               className="flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors duration-200 font-medium"
               title="Archivar seleccionados"
             >
               <ArchiveIcon />
               <span className="hidden sm:inline">Archivar</span>
-            </button>
-
-            <button
-              onClick={on
-              <CalendarIcon />
-              <span className="hidden sm:inline">Cambiar Nueva Fecha de Entrega</span>
-              <span className="sm:hidden">Fecha</span>
             </button>
 
             <button
