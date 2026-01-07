@@ -214,8 +214,10 @@ const AppContent: React.FC = () => {
         isSelectionActive,
         toggleSelection,
         clearSelection,
+        selectAll,
         bulkDelete,
         bulkUpdateDate,
+        bulkArchive,
     } = useBulkOperations();
 
     // Limpiar selección al cambiar de vista
@@ -642,6 +644,48 @@ const AppContent: React.FC = () => {
         }
     };
 
+    const handleBulkArchive = async () => {
+        const selectedPedidos = pedidos.filter(p => selectedIds.includes(p.id));
+        const result = await bulkArchive(selectedIds, true);
+        
+        if (result.success) {
+            // Actualizar la lista de pedidos
+            setPedidos(prev => prev.map(p => {
+                if (selectedIds.includes(p.id)) {
+                    return {
+                        ...p,
+                        archivado: true,
+                        historial: [
+                            ...(p.historial || []),
+                            {
+                                timestamp: new Date().toISOString(),
+                                usuario: user?.displayName || user?.username || currentUserRole,
+                                accion: 'Archivado masivo',
+                                detalles: 'Pedido archivado mediante operación masiva'
+                            }
+                        ]
+                    };
+                }
+                return p;
+            }));
+            
+            // Log de auditoría
+            logAction(`${result.updatedCount} pedidos archivados en operación masiva.`);
+            
+            // Emitir actividad WebSocket
+            emitActivity('bulk-archive', { 
+                count: result.updatedCount,
+                pedidoIds: selectedIds,
+                archived: true
+            });
+            
+            // Mostrar toast de éxito
+            alert(`✅ ${result.updatedCount} ${result.updatedCount === 1 ? 'pedido archivado' : 'pedidos archivados'} exitosamente.`);
+        } else {
+            alert(`❌ Error al archivar pedidos: ${result.error}`);
+        }
+    };
+
     const handleViewChange = (newView: ViewType) => {
         if (newView === 'report' && currentUserRole !== 'Administrador') {
             alert('Permiso denegado.');
@@ -757,6 +801,7 @@ const AppContent: React.FC = () => {
                                         selectedIds={selectedIds}
                                         isSelectionActive={isSelectionActive}
                                         onToggleSelection={toggleSelection}
+                                        onSelectAll={selectAll}
                                     />
                                 ))}
                             </div>
@@ -781,6 +826,7 @@ const AppContent: React.FC = () => {
                                         selectedIds={selectedIds}
                                         isSelectionActive={isSelectionActive}
                                         onToggleSelection={toggleSelection}
+                                        onSelectAll={selectAll}
                                     />
                                 ))}
                             </div>
@@ -801,6 +847,7 @@ const AppContent: React.FC = () => {
                                         selectedIds={selectedIds}
                                         isSelectionActive={isSelectionActive}
                                         onToggleSelection={toggleSelection}
+                                        onSelectAll={selectAll}
                                     />
                                 ))}
                             </div>
@@ -920,7 +967,6 @@ const AppContent: React.FC = () => {
                         onArchiveToggle={handleArchiveToggle}
                         onDuplicate={handleDuplicatePedido}
                         onDelete={handleDeletePedido}
-                        currentUserRole={currentUserRole}
                         onAdvanceStage={handleAdvanceStage}
                         onSendToPrint={setPedidoToSend}
                         onSetReadyForProduction={handleSetReadyForProduction}
@@ -1001,6 +1047,7 @@ const AppContent: React.FC = () => {
                     selectedCount={selectedIds.length}
                     onUpdateDate={() => setShowDateUpdateModal(true)}
                     onDelete={() => setShowDeleteModal(true)}
+                    onArchive={handleBulkArchive}
                     onCancel={clearSelection}
                 />
                 

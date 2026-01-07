@@ -170,6 +170,9 @@ const Header: React.FC<HeaderProps> = ({
         if (currentView !== 'list') {
             setIsStageFiltersCollapsed(false);
         }
+        // Cerrar dropdowns cuando cambia la vista
+        setShowVendedorDropdown(false);
+        setShowClienteDropdown(false);
     }, [currentView]);
 
     // Cerrar dropdown y menú hamburguesa al hacer click fuera
@@ -529,7 +532,10 @@ const Header: React.FC<HeaderProps> = ({
                         {onVendedorToggle && (
                             <div ref={vendedorDropdownRef} className="relative">
                                 <button
-                                    onClick={() => setShowVendedorDropdown(!showVendedorDropdown)}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowVendedorDropdown(prev => !prev);
+                                    }}
                                     className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-1.5"
                                     disabled={vendedoresLoading}
                                 >
@@ -573,11 +579,18 @@ const Header: React.FC<HeaderProps> = ({
                                                     return a.nombre.localeCompare(b.nombre);
                                                 })
                                                 .map(vendedor => (
-                                                    <label key={vendedor.id} className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
+                                                    <label 
+                                                        key={`vendedor-${vendedor.id}`} 
+                                                        className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
+                                                    >
                                                         <input
                                                             type="checkbox"
                                                             checked={selectedVendedores.includes(vendedor.id)}
-                                                            onChange={() => onVendedorToggle(vendedor.id)}
+                                                            onChange={(e) => {
+                                                                e.stopPropagation();
+                                                                onVendedorToggle(vendedor.id);
+                                                            }}
+                                                            onClick={(e) => e.stopPropagation()}
                                                             className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                                                         />
                                                         <span className={`text-sm ${
@@ -600,7 +613,10 @@ const Header: React.FC<HeaderProps> = ({
                         {onClienteToggle && (
                             <div ref={clienteDropdownRef} className="relative">
                                 <button
-                                    onClick={() => setShowClienteDropdown(!showClienteDropdown)}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowClienteDropdown(prev => !prev);
+                                    }}
                                     className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-1.5"
                                     disabled={clientesLoading}
                                 >
@@ -648,11 +664,18 @@ const Header: React.FC<HeaderProps> = ({
                                                 .map(cliente => {
                                                     const esActivo = (cliente.estado || '').toLowerCase() === 'activo';
                                                     return (
-                                                        <label key={cliente.id} className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
+                                                        <label 
+                                                            key={`cliente-${cliente.id}`} 
+                                                            className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
+                                                        >
                                                             <input
                                                                 type="checkbox"
                                                                 checked={selectedClientes.includes(cliente.id)}
-                                                                onChange={() => onClienteToggle(cliente.id)}
+                                                                onChange={(e) => {
+                                                                    e.stopPropagation();
+                                                                    onClienteToggle(cliente.id);
+                                                                }}
+                                                                onClick={(e) => e.stopPropagation()}
                                                                 className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                                                             />
                                                             <span className={`text-sm ${

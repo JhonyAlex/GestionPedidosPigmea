@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Pedido, Prioridad, Etapa, DateField, WeekFilter, EstadoCliché } from '../types';
 import { ETAPAS, PRIORIDAD_ORDEN } from '../constants';
 import { getDateRange, DateFilterOption } from '../utils/date';
@@ -94,6 +94,9 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
             dateField: 'fechaEntrega'
         }
     );
+
+    // 🔄 No validar automáticamente - dejar que los handlers manejen la lógica
+    // El problema de "pegado" no es por IDs inválidos, sino por referencias perdidas
 
     // Efecto para guardar filtros en localStorage cada vez que cambien
     useEffect(() => {

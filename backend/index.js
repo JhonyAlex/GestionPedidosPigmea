@@ -2132,6 +2132,105 @@ app.patch('/api/pedidos/bulk-update-date', requirePermission('pedidos.edit'), as
     }
 });
 
+// PATCH /api/pedidos/bulk-archive - Archivar/Desarchivar múltiples pedidos
+app.patch('/api/pedidos/bulk-archive', requirePermission('pedidos.edit'), async (req, res) => {
+    try {
+        const { ids, archived = true } = req.body;
+        
+        console.log('📦 [BULK ARCHIVE] Endpoint alcanzado');
+        console.log('📦 IDs recibidos:', ids);
+        console.log('📦 Archivar:', archived);
+        
+        // Validación
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ 
+                error: 'Se requiere un array de IDs no vacío.' 
+            });
+        }
+
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({ 
+                error: 'Base de datos no disponible' 
+            });
+        }
+
+        console.log(`📦 ${archived ? 'Archivando' : 'Desarchivando'} ${ids.length} pedidos...`);
+
+        // Actualizar cada pedido
+        let updatedCount = 0;
+        const updatedPedidos = [];
+        const errors = [];
+
+        for (const id of ids) {
+            try {
+                console.log(`  🔄 Procesando pedido ${id}...`);
+                
+                const pedido = await dbClient.findById(id);
+                if (!pedido) {
+                    console.warn(`  ⚠️ Pedido ${id} no encontrado, saltando...`);
+                    errors.push({ id, error: 'Pedido no encontrado' });
+                    continue;
+                }
+
+                console.log(`  📦 Pedido encontrado: ${pedido.numeroPedidoCliente}`);
+                console.log(`  📦 Estado anterior: ${pedido.archivado ? 'Archivado' : 'Activo'}`);
+
+                // Actualizar el pedido con el nuevo estado
+                const updatedPedido = {
+                    ...pedido,
+                    archivado: archived
+                };
+
+                const result = await dbClient.update(updatedPedido);
+                
+                if (result) {
+                    updatedCount++;
+                    console.log(`  ✅ Pedido ${id} ${archived ? 'archivado' : 'desarchivado'} exitosamente`);
+                    updatedPedidos.push({
+                        id: result.id,
+                        numeroPedidoCliente: result.numeroPedidoCliente,
+                        archivado: result.archivado
+                    });
+                } else {
+                    console.error(`  ❌ Error: update devolvió null para ${id}`);
+                    errors.push({ id, error: 'update devolvió null' });
+                }
+            } catch (error) {
+                console.error(`  ❌ Error actualizando pedido ${id}:`, error.message);
+                errors.push({ id, error: error.message });
+            }
+        }
+
+        // 🔥 EVENTO WEBSOCKET: Pedidos archivados masivamente
+        broadcastToClients('pedidos-bulk-archived', {
+            pedidoIds: ids,
+            count: updatedCount,
+            archived,
+            pedidos: updatedPedidos
+        });
+
+        console.log(`✅ ${updatedCount} de ${ids.length} pedidos ${archived ? 'archivados' : 'desarchivados'} exitosamente`);
+        if (errors.length > 0) {
+            console.log(`⚠️ ${errors.length} errores:`, errors);
+        }
+
+        res.status(200).json({ 
+            success: true,
+            updatedCount,
+            totalRequested: ids.length,
+            errors: errors.length > 0 ? errors : undefined,
+            message: `${updatedCount} pedidos ${archived ? 'archivados' : 'desarchivados'} exitosamente.` 
+        });
+        
+    } catch (error) {
+        console.error('❌ Error en bulk-archive:', error);
+        res.status(500).json({ 
+            error: 'Error interno del servidor al archivar pedidos.',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
 // POST /api/pedidos/bulk - Bulk insert pedidos
 app.post('/api/pedidos/bulk', async (req, res) => {
     try {

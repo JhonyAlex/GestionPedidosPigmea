@@ -11,6 +11,7 @@ interface UseBulkOperationsReturn {
   selectAll: (ids: string[]) => void;
   bulkDelete: (ids: string[]) => Promise<{ success: boolean; deletedCount: number; error?: string }>;
   bulkUpdateDate: (ids: string[], nuevaFechaEntrega: string) => Promise<{ success: boolean; updatedCount: number; error?: string }>;
+  bulkArchive: (ids: string[], archived?: boolean) => Promise<{ success: boolean; updatedCount: number; error?: string }>;
 }
 
 export const useBulkOperations = (): UseBulkOperationsReturn => {
@@ -158,6 +159,73 @@ export const useBulkOperations = (): UseBulkOperationsReturn => {
     }
   }, [clearSelection]);
 
+  const bulkArchive = useCallback(async (
+    ids: string[],
+    archived: boolean = true
+  ): Promise<{ success: boolean; updatedCount: number; error?: string }> => {
+    try {
+      console.log('📦 bulkArchive - IDs a archivar:', ids);
+      console.log('📦 bulkArchive - Archivar:', archived);
+      console.log('📦 bulkArchive - Total de IDs:', ids.length);
+      
+      // Obtener usuario del localStorage para enviar en headers
+      const userString = localStorage.getItem('pigmea_user');
+      const user = userString ? JSON.parse(userString) : null;
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Agregar headers de autenticación si hay usuario
+      if (user) {
+        headers['x-user-id'] = user.id;
+        headers['x-user-role'] = user.role;
+        console.log('📦 bulkArchive - Usuario:', user.id, user.role);
+      }
+      
+      console.log('📦 bulkArchive - Enviando petición...');
+      
+      const response = await fetch(`${API_URL}/pedidos/bulk-archive`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ ids, archived }),
+        credentials: 'include',
+      });
+
+      if (response.status === 401) {
+        throw new Error('No autenticado. Por favor, inicia sesión nuevamente.');
+      }
+
+      if (response.status === 403) {
+        throw new Error('No tienes permisos para realizar esta operación.');
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Error del servidor' }));
+        throw new Error(errorData.error || `Error HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      console.log('📦 bulkArchive - Respuesta del servidor:', data);
+      
+      // Limpiar selección después de archivar
+      clearSelection();
+      
+      return {
+        success: true,
+        updatedCount: data.updatedCount || ids.length,
+      };
+    } catch (error) {
+      console.error('Error en bulkArchive:', error);
+      return {
+        success: false,
+        updatedCount: 0,
+        error: error instanceof Error ? error.message : 'Error desconocido',
+      };
+    }
+  }, [clearSelection]);
+
   return {
     selectedIds,
     isSelectionActive,
@@ -166,5 +234,6 @@ export const useBulkOperations = (): UseBulkOperationsReturn => {
     selectAll,
     bulkDelete,
     bulkUpdateDate,
+    bulkArchive,
   };
 };

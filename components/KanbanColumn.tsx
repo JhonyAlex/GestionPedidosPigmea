@@ -18,6 +18,7 @@ interface KanbanColumnProps {
     selectedIds?: string[];
     isSelectionActive?: boolean;
     onToggleSelection?: (id: string) => void;
+    onSelectAll?: (ids: string[]) => void;
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({ 
@@ -31,7 +32,8 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
     onUpdatePedido,
     selectedIds = [],
     isSelectionActive = false,
-    onToggleSelection
+    onToggleSelection,
+    onSelectAll
 }) => {
     const { user } = useAuth();
     const { getLockInfo } = useLockObserver();
@@ -39,11 +41,46 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
     // Eliminado delay artificial, renderiza directamente
     const isMounted = true;
 
+    // Verificar si todos los pedidos de esta columna están seleccionados
+    const allSelected = pedidos.length > 0 && pedidos.every(p => selectedIds.includes(p.id));
+    const someSelected = pedidos.some(p => selectedIds.includes(p.id)) && !allSelected;
+
+    const handleSelectAll = () => {
+        if (!onSelectAll) return;
+        
+        if (allSelected) {
+            // Deseleccionar todos los de esta columna
+            const idsToKeep = selectedIds.filter(id => !pedidos.find(p => p.id === id));
+            onSelectAll(idsToKeep);
+        } else {
+            // Seleccionar todos los de esta columna (agregando a los ya seleccionados)
+            const columnIds = pedidos.map(p => p.id);
+            const newSelection = [...new Set([...selectedIds, ...columnIds])];
+            onSelectAll(newSelection);
+        }
+    };
+
     return (
         <div className="flex flex-col bg-gray-200 dark:bg-gray-800 rounded-xl shadow-lg h-full">
             <div className={`px-4 py-2 rounded-t-xl ${etapa.color}`}>
-                <div className="flex justify-center items-center gap-2">
-                    <h2 className="text-lg font-medium text-white">{etapa.title}</h2>
+                <div className="flex justify-between items-center gap-2">
+                    <div className="flex items-center gap-2">
+                        {isSelectionActive && onSelectAll && pedidos.length > 0 && (
+                            <input
+                                type="checkbox"
+                                checked={allSelected}
+                                ref={(input) => {
+                                    if (input) {
+                                        input.indeterminate = someSelected;
+                                    }
+                                }}
+                                onChange={handleSelectAll}
+                                className="w-4 h-4 cursor-pointer accent-white"
+                                title={allSelected ? "Deseleccionar todos" : "Seleccionar todos"}
+                            />
+                        )}
+                        <h2 className="text-lg font-medium text-white">{etapa.title}</h2>
+                    </div>
                     <span className="bg-black bg-opacity-25 text-white text-xs font-bold px-2 py-0.5 rounded-full">
                         {pedidos.length}
                     </span>
