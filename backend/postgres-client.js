@@ -1980,47 +1980,102 @@ class PostgreSQLClient {
             const queryParams = [];
 
             if (searchTerm) {
-                whereClauses.push(`(nombre ILIKE $${queryParams.length + 1} OR cif ILIKE $${queryParams.length + 1} OR email ILIKE $${queryParams.length + 1})`);
+                whereClauses.push(`(c.nombre ILIKE $${queryParams.length + 1} OR c.cif ILIKE $${queryParams.length + 1} OR c.email ILIKE $${queryParams.length + 1})`);
                 queryParams.push(`%${searchTerm}%`);
             }
 
+            // Si se filtra por estado, aplicar filtro sobre el estado calculado
             if (estado) {
-                whereClauses.push(`estado = $${queryParams.length + 1}`);
-                queryParams.push(estado);
+                if (estado.toLowerCase() === 'activo') {
+                    whereClauses.push(`(
+                        COUNT(p.id) > 0 
+                        AND COUNT(p.id) > COUNT(CASE 
+                            WHEN p.etapa_actual IN ('ARCHIVADO', 'COMPLETADO') 
+                            OR p.data->>'etapaActual' IN ('ARCHIVADO', 'COMPLETADO')
+                            THEN 1 
+                        END)
+                    )`);
+                } else if (estado.toLowerCase() === 'inactivo') {
+                    whereClauses.push(`(
+                        COUNT(p.id) = 0 
+                        OR COUNT(p.id) = COUNT(CASE 
+                            WHEN p.etapa_actual IN ('ARCHIVADO', 'COMPLETADO') 
+                            OR p.data->>'etapaActual' IN ('ARCHIVADO', 'COMPLETADO')
+                            THEN 1 
+                        END)
+                    )`);
+                }
             }
 
-            const where = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+            const having = whereClauses.length > 0 ? `HAVING ${whereClauses.join(' AND ')}` : '';
             
-            const validSortColumns = ['nombre', 'cif', 'poblacion', 'estado', 'created_at', 'total_pedidos'];
+            const validSortColumns = ['nombre', 'cif', 'poblacion', 'created_at', 'total_pedidos', 'pedidos_activos'];
             const safeSortBy = validSortColumns.includes(sortBy) ? sortBy : 'nombre';
             const safeSortOrder = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
 
             const baseQuery = `
                 FROM clientes c
-                LEFT JOIN (
-                    SELECT cliente_id, COUNT(*) as total_pedidos
-                    FROM pedidos
-                    GROUP BY cliente_id
-                ) p ON c.id = p.cliente_id
-                ${where}
+                LEFT JOIN pedidos p ON c.id = p.cliente_id
+                GROUP BY c.id, c.nombre, c.razon_social, c.cif, c.telefono, c.email, 
+                         c.direccion_fiscal, c.codigo_postal, c.poblacion, c.provincia, 
+                         c.pais, c.persona_contacto, c.notas, c.estado, c.fecha_baja, 
+                         c.created_at, c.updated_at
+                ${having}
             `;
 
-            const countQuery = `SELECT COUNT(*) as total ${baseQuery}`;
+            const countQuery = `SELECT COUNT(*) as total FROM (
+                SELECT c.id ${baseQuery}
+            ) as subquery`;
             const totalResult = await client.query(countQuery, queryParams);
             const total = parseInt(totalResult.rows[0].total, 10);
 
             const dataQuery = `
-                SELECT c.*, COALESCE(p.total_pedidos, 0) as total_pedidos
+                SELECT 
+                    c.*,
+                    COUNT(p.id) as total_pedidos,
+                    COUNT(CASE 
+                        WHEN p.etapa_actual NOT IN ('ARCHIVADO', 'COMPLETADO') 
+                        AND p.data->>'etapaActual' NOT IN ('ARCHIVADO', 'COMPLETADO')
+                        THEN 1 
+                    END) as pedidos_activos,
+                    CASE 
+                        WHEN COUNT(p.id) = 0 THEN 'inactivo'
+                        WHEN COUNT(p.id) = COUNT(CASE 
+                            WHEN p.etapa_actual IN ('ARCHIVADO', 'COMPLETADO') 
+                            OR p.data->>'etapaActual' IN ('ARCHIVADO', 'COMPLETADO')
+                            THEN 1 
+                        END) THEN 'inactivo'
+                        ELSE 'activo'
+                    END as estado_calculado
                 ${baseQuery}
-                ORDER BY ${safeSortBy} ${safeSortOrder}
+                ORDER BY 
+                    CASE WHEN '${safeSortBy}' = 'estado' THEN 
+                        CASE 
+                            WHEN COUNT(p.id) = 0 THEN 1
+                            WHEN COUNT(p.id) = COUNT(CASE 
+                                WHEN p.etapa_actual IN ('ARCHIVADO', 'COMPLETADO') 
+                                OR p.data->>'etapaActual' IN ('ARCHIVADO', 'COMPLETADO')
+                                THEN 1 
+                            END) THEN 1
+                            ELSE 0
+                        END
+                    END ${safeSortOrder},
+                    ${safeSortBy === 'estado' ? 'c.nombre' : safeSortBy} ${safeSortOrder}
                 LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
             `;
             queryParams.push(limit, offset);
 
             const dataResult = await client.query(dataQuery, queryParams);
 
+            // Reemplazar el campo estado con el estado_calculado
+            const data = dataResult.rows.map(row => ({
+                ...row,
+                estado: row.estado_calculado,
+                estado_manual: row.estado // Mantener el original por si acaso
+            }));
+
             return {
-                data: dataResult.rows,
+                data,
                 total,
                 page,
                 limit,
@@ -2036,13 +2091,36 @@ class PostgreSQLClient {
         const client = await this.pool.connect();
         try {
             const query = `
-                SELECT id, nombre, estado
-                FROM clientes
-                WHERE LOWER(estado) = 'activo'
-                ORDER BY nombre ASC;
+                SELECT 
+                    c.id, 
+                    c.nombre,
+                    c.estado as estado_manual,
+                    CASE 
+                        WHEN COUNT(p.id) = 0 THEN 'inactivo'
+                        WHEN COUNT(p.id) = COUNT(CASE 
+                            WHEN p.etapa_actual IN ('ARCHIVADO', 'COMPLETADO') 
+                            OR p.data->>'etapaActual' IN ('ARCHIVADO', 'COMPLETADO')
+                            THEN 1 
+                        END) THEN 'inactivo'
+                        ELSE 'activo'
+                    END as estado
+                FROM clientes c
+                LEFT JOIN pedidos p ON c.id = p.cliente_id
+                GROUP BY c.id, c.nombre, c.estado
+                ORDER BY 
+                    CASE 
+                        WHEN COUNT(p.id) = 0 THEN 1
+                        WHEN COUNT(p.id) = COUNT(CASE 
+                            WHEN p.etapa_actual IN ('ARCHIVADO', 'COMPLETADO') 
+                            OR p.data->>'etapaActual' IN ('ARCHIVADO', 'COMPLETADO')
+                            THEN 1 
+                        END) THEN 1
+                        ELSE 0
+                    END,
+                    c.nombre ASC;
             `;
             const result = await client.query(query);
-            console.log(`📊 [getAllClientesSimple] Clientes activos encontrados: ${result.rows.length}`);
+            console.log(`📊 [getAllClientesSimple] Total clientes encontrados: ${result.rows.length}`);
             return result.rows;
         } finally {
             client.release();
@@ -2370,9 +2448,54 @@ class PostgreSQLClient {
         if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
         try {
-            const query = 'SELECT * FROM vendedores ORDER BY nombre ASC';
+            const query = `
+                SELECT 
+                    v.*,
+                    COUNT(p.id) as total_pedidos,
+                    COUNT(CASE 
+                        WHEN p.etapa_actual NOT IN ('ARCHIVADO', 'COMPLETADO') 
+                        AND p.data->>'etapaActual' NOT IN ('ARCHIVADO', 'COMPLETADO')
+                        THEN 1 
+                    END) as pedidos_activos,
+                    CASE 
+                        WHEN COUNT(p.id) = 0 THEN false
+                        WHEN COUNT(p.id) = COUNT(CASE 
+                            WHEN p.etapa_actual IN ('ARCHIVADO', 'COMPLETADO') 
+                            OR p.data->>'etapaActual' IN ('ARCHIVADO', 'COMPLETADO')
+                            THEN 1 
+                        END) THEN false
+                        ELSE true
+                    END as activo_calculado
+                FROM vendedores v
+                LEFT JOIN pedidos p ON v.id = p.vendedor_id
+                GROUP BY v.id, v.nombre, v.email, v.telefono, v.activo, v.created_at, v.updated_at
+                ORDER BY 
+                    CASE 
+                        WHEN COUNT(p.id) = 0 THEN 1
+                        WHEN COUNT(p.id) = COUNT(CASE 
+                            WHEN p.etapa_actual IN ('ARCHIVADO', 'COMPLETADO') 
+                            OR p.data->>'etapaActual' IN ('ARCHIVADO', 'COMPLETADO')
+                            THEN 1 
+                        END) THEN 1
+                        ELSE 0
+                    END,
+                    v.nombre ASC;
+            `;
             const result = await client.query(query);
-            return result.rows;
+            
+            // Transformar snake_case a camelCase y usar el activo calculado
+            return result.rows.map(row => ({
+                id: row.id,
+                nombre: row.nombre,
+                email: row.email,
+                telefono: row.telefono,
+                activo: row.activo_calculado, // Usar el calculado dinámicamente
+                activoManual: row.activo, // Mantener el original
+                totalPedidos: parseInt(row.total_pedidos),
+                pedidosActivos: parseInt(row.pedidos_activos),
+                createdAt: row.created_at,
+                updatedAt: row.updated_at
+            }));
         } finally {
             client.release();
         }

@@ -567,8 +567,11 @@ const Header: React.FC<HeaderProps> = ({
                                                 <span className="text-sm text-gray-700 dark:text-gray-300 italic">Sin asignar</span>
                                             </label>
                                             {vendedores
-                                                .filter(v => v.activo)
-                                                .sort((a, b) => a.nombre.localeCompare(b.nombre))
+                                                .sort((a, b) => {
+                                                    // Primero activos, luego inactivos, ambos alfabéticamente
+                                                    if (a.activo !== b.activo) return a.activo ? -1 : 1;
+                                                    return a.nombre.localeCompare(b.nombre);
+                                                })
                                                 .map(vendedor => (
                                                     <label key={vendedor.id} className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
                                                         <input
@@ -577,7 +580,13 @@ const Header: React.FC<HeaderProps> = ({
                                                             onChange={() => onVendedorToggle(vendedor.id)}
                                                             className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                                                         />
-                                                        <span className="text-sm text-gray-900 dark:text-white">{vendedor.nombre}</span>
+                                                        <span className={`text-sm ${
+                                                            vendedor.activo 
+                                                                ? 'text-gray-900 dark:text-white' 
+                                                                : 'text-gray-500 dark:text-gray-500 italic line-through'
+                                                        }`}>
+                                                            {vendedor.nombre}{!vendedor.activo && ' (Inactivo)'}
+                                                        </span>
                                                     </label>
                                                 ))
                                             }
@@ -629,19 +638,33 @@ const Header: React.FC<HeaderProps> = ({
                                                 <span className="text-sm text-gray-700 dark:text-gray-300 italic">Sin asignar</span>
                                             </label>
                                             {clientes
-                                                .filter(c => c.estado === 'activo')
-                                                .sort((a, b) => a.nombre.localeCompare(b.nombre))
-                                                .map(cliente => (
-                                                    <label key={cliente.id} className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedClientes.includes(cliente.id)}
-                                                            onChange={() => onClienteToggle(cliente.id)}
-                                                            className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                                                        />
-                                                        <span className="text-sm text-gray-900 dark:text-white">{cliente.nombre}</span>
-                                                    </label>
-                                                ))
+                                                .sort((a, b) => {
+                                                    // Primero activos, luego inactivos, ambos alfabéticamente
+                                                    const aActivo = (a.estado || '').toLowerCase() === 'activo' ? 0 : 1;
+                                                    const bActivo = (b.estado || '').toLowerCase() === 'activo' ? 0 : 1;
+                                                    if (aActivo !== bActivo) return aActivo - bActivo;
+                                                    return a.nombre.localeCompare(b.nombre);
+                                                })
+                                                .map(cliente => {
+                                                    const esActivo = (cliente.estado || '').toLowerCase() === 'activo';
+                                                    return (
+                                                        <label key={cliente.id} className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedClientes.includes(cliente.id)}
+                                                                onChange={() => onClienteToggle(cliente.id)}
+                                                                className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                                            />
+                                                            <span className={`text-sm ${
+                                                                esActivo
+                                                                    ? 'text-gray-900 dark:text-white' 
+                                                                    : 'text-gray-500 dark:text-gray-500 italic line-through'
+                                                            }`}>
+                                                                {cliente.nombre}{!esActivo && ' (Inactivo)'}
+                                                            </span>
+                                                        </label>
+                                                    );
+                                                })
                                             }
                                         </div>
                                     </div>
