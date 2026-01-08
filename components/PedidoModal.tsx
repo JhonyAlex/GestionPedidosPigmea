@@ -7,6 +7,7 @@ import { ETAPAS, KANBAN_FUNNELS, PREPARACION_COLUMNS, PREPARACION_SUB_ETAPAS_IDS
 import SequenceBuilder from './SequenceBuilder';
 import SeccionDatosTecnicosDeMaterial from './SeccionDatosTecnicosDeMaterial';
 import CommentSystem from './comments/CommentSystem';
+import ObservacionesAutocomplete from './ObservacionesAutocomplete';
 // import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../contexts/AuthContext';
 import { useVendedoresManager } from '../hooks/useVendedoresManager';
@@ -1444,13 +1445,18 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
 
                                         <div>
                                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">📝 Observaciones</label>
+                                            <ObservacionesAutocomplete
+                                                value={formData.observacionesRapidas || ''}
+                                                onChange={(value) => setFormData(prev => ({ ...prev, observacionesRapidas: value }))}
+                                                placeholder="Escribe una observación rápida..."
+                                            />
                                             <textarea 
                                                 name="observaciones" 
                                                 value={formData.observaciones} 
                                                 onChange={handleChange} 
-                                                rows={4} 
-                                                placeholder="Notas importantes, instrucciones especiales..."
-                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                                rows={3} 
+                                                placeholder="Notas adicionales más extensas..."
+                                                className="w-full mt-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
                                             ></textarea>
                                         </div>
                                     </div>
@@ -1701,13 +1707,18 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                 {/* Observaciones */}
                                 <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
                                     <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">📝 Observaciones del Pedido</label>
+                                    <ObservacionesAutocomplete
+                                        value={formData.observacionesRapidas || ''}
+                                        onChange={(value) => setFormData(prev => ({ ...prev, observacionesRapidas: value }))}
+                                        placeholder="Escribe una observación rápida..."
+                                    />
                                     <textarea 
                                         name="observaciones" 
                                         value={formData.observaciones} 
                                         onChange={handleChange} 
-                                        rows={4} 
-                                        placeholder="Notas importantes sobre el pedido, instrucciones especiales, etc."
-                                        className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"
+                                        rows={3} 
+                                        placeholder="Notas adicionales más extensas..."
+                                        className="w-full mt-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50"
                                     ></textarea>
                                 </div>
                             </fieldset>

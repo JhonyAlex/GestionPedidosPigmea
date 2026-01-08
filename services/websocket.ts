@@ -32,6 +32,10 @@ export interface WebSocketEvents {
   'material-assigned': (data: { pedidoId: string; materialId: number; material: any }) => void;
   'material-unassigned': (data: { pedidoId: string; materialId: number; material: any }) => void;
   
+  // Eventos de templates de observaciones
+  'observacion-template-updated': (template: { id: number; text: string; usageCount: number; lastUsed: string; createdAt: string }) => void;
+  'observacion-template-deleted': (data: { id: number }) => void;
+  
   // Eventos de locks de pedido
   'lock-pedido': (data: { pedidoId: string; userId: string; username: string }) => void;
   'unlock-pedido': (data: { pedidoId: string; userId: string }) => void;

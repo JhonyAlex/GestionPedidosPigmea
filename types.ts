@@ -117,6 +117,8 @@ export interface Pedido {
     }> | null;
     /** Observaciones específicas sobre el material de suministro */
     observacionesMaterial?: string;
+    /** Observaciones rápidas (tags/templates) separadas por " | " */
+    observacionesRapidas?: string;
     /** El diámetro o medida de la bobina madre. */
     bobinaMadre?: number | null;
     /** El diámetro o medida de la bobina final. */

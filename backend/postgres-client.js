@@ -3839,6 +3839,158 @@ class PostgreSQLClient {
         }
     }
 
+    // === GESTIÓN DE TEMPLATES DE OBSERVACIONES ===
+
+    /**
+     * Obtener todos los templates de observaciones activos
+     * @returns {Promise<Array>} - Lista de templates ordenados por uso
+     */
+    async getAllObservacionesTemplates() {
+        if (!this.isInitialized) {
+            throw new Error('PostgreSQL no está inicializado');
+        }
+
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                SELECT 
+                    id,
+                    text,
+                    usage_count AS "usageCount",
+                    last_used AS "lastUsed",
+                    created_at AS "createdAt"
+                FROM observaciones_templates
+                WHERE is_active = true
+                ORDER BY usage_count DESC, last_used DESC
+            `;
+            
+            const result = await client.query(query);
+            return result.rows;
+        } catch (error) {
+            console.error('❌ Error al obtener templates de observaciones:', error);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Buscar templates de observaciones por texto
+     * @param {string} searchTerm - Término de búsqueda
+     * @returns {Promise<Array>} - Lista de templates que coinciden
+     */
+    async searchObservacionesTemplates(searchTerm) {
+        if (!this.isInitialized) {
+            throw new Error('PostgreSQL no está inicializado');
+        }
+
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                SELECT 
+                    id,
+                    text,
+                    usage_count AS "usageCount",
+                    last_used AS "lastUsed",
+                    created_at AS "createdAt"
+                FROM observaciones_templates
+                WHERE is_active = true 
+                  AND LOWER(text) LIKE LOWER($1)
+                ORDER BY usage_count DESC, last_used DESC
+                LIMIT 10
+            `;
+            
+            const result = await client.query(query, [`%${searchTerm}%`]);
+            return result.rows;
+        } catch (error) {
+            console.error('❌ Error al buscar templates de observaciones:', error);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Crear o incrementar uso de un template de observación
+     * @param {string} text - Texto del template (max 100 chars)
+     * @returns {Promise<Object>} - Template creado o actualizado
+     */
+    async upsertObservacionTemplate(text) {
+        if (!this.isInitialized) {
+            throw new Error('PostgreSQL no está inicializado');
+        }
+
+        // Validar longitud máxima
+        const trimmedText = text.trim();
+        if (trimmedText.length === 0 || trimmedText.length > 100) {
+            throw new Error('El texto debe tener entre 1 y 100 caracteres');
+        }
+
+        const client = await this.pool.connect();
+        try {
+            // Intentar insertar o actualizar si ya existe
+            const query = `
+                INSERT INTO observaciones_templates (text, usage_count, last_used)
+                VALUES ($1, 1, CURRENT_TIMESTAMP)
+                ON CONFLICT (text) 
+                DO UPDATE SET 
+                    usage_count = observaciones_templates.usage_count + 1,
+                    last_used = CURRENT_TIMESTAMP,
+                    is_active = true
+                RETURNING 
+                    id,
+                    text,
+                    usage_count AS "usageCount",
+                    last_used AS "lastUsed",
+                    created_at AS "createdAt"
+            `;
+            
+            const result = await client.query(query, [trimmedText]);
+            console.log(`✅ Template de observación guardado/actualizado: "${trimmedText.substring(0, 30)}..."`);
+            return result.rows[0];
+        } catch (error) {
+            console.error('❌ Error al guardar template de observación:', error);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Eliminar (soft delete) un template de observación
+     * @param {number} id - ID del template
+     * @returns {Promise<void>}
+     */
+    async deleteObservacionTemplate(id) {
+        if (!this.isInitialized) {
+            throw new Error('PostgreSQL no está inicializado');
+        }
+
+        const client = await this.pool.connect();
+        try {
+            const query = `
+                UPDATE observaciones_templates 
+                SET is_active = false 
+                WHERE id = $1
+                RETURNING id, text
+            `;
+            
+            const result = await client.query(query, [id]);
+            
+            if (result.rowCount === 0) {
+                throw new Error(`Template con ID ${id} no encontrado`);
+            }
+            
+            console.log(`✅ Template de observación eliminado: ID ${id}`);
+            return result.rows[0];
+        } catch (error) {
+            console.error(`❌ Error al eliminar template ${id}:`, error);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
     // === MÉTODO DE CIERRE ===
     async close() {
         // Detener health checks antes de cerrar

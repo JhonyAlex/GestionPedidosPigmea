@@ -3,6 +3,7 @@ import { Pedido, Prioridad, TipoImpresion, Etapa, EstadoCliché } from '../types
 import { KANBAN_FUNNELS, ETAPAS } from '../constants';
 import SequenceBuilder from './SequenceBuilder';
 import SeccionDatosTecnicosDeMaterial from './SeccionDatosTecnicosDeMaterial';
+import ObservacionesAutocomplete from './ObservacionesAutocomplete';
 import { useClientesManager, ClienteCreateRequest } from '../hooks/useClientesManager';
 import { useVendedoresManager } from '../hooks/useVendedoresManager';
 import { VendedorCreateRequest } from '../types/vendedor';
@@ -77,6 +78,7 @@ const initialFormData = {
     tiempoProduccionDecimal: null,
     tiempoProduccionPlanificado: '00:00',
     observaciones: '',
+    observacionesRapidas: '',
     materialDisponible: false,
     clicheDisponible: false,
     estadoCliché: EstadoCliché.PENDIENTE_CLIENTE,
@@ -812,13 +814,18 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
 
                                         <div>
                                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">📝 Observaciones</label>
+                                            <ObservacionesAutocomplete
+                                                value={formData.observacionesRapidas || ''}
+                                                onChange={(value) => setFormData((prev: any) => ({ ...prev, observacionesRapidas: value }))}
+                                                placeholder="Escribe una observación rápida..."
+                                            />
                                             <textarea 
                                                 name="observaciones" 
                                                 value={formData.observaciones} 
                                                 onChange={handleChange} 
-                                                rows={4} 
-                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
-                                                placeholder="Notas importantes, instrucciones especiales..."
+                                                rows={3} 
+                                                className="w-full mt-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
+                                                placeholder="Notas adicionales más extensas..."
                                             ></textarea>
                                         </div>
                                     </div>

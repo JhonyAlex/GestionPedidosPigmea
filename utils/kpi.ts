@@ -224,6 +224,11 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             ? `${nuevaFechaEntregaParts[2]}/${nuevaFechaEntregaParts[1]}/${nuevaFechaEntregaParts[0]}` 
             : (p.nuevaFechaEntrega || '-');
         
+        // Combinar observaciones rápidas y observaciones normales
+        const obsRapidas = p.observacionesRapidas ? p.observacionesRapidas.split(' | ').filter(Boolean).join(' • ') : '';
+        const obsNormal = p.observaciones || '';
+        const observacionesCombinadas = [obsRapidas, obsNormal].filter(Boolean).join('\n') || '-';
+        
         return [
             p.desarrollo || '-',
             { content: `${p.cliente}\n${p.numeroPedidoCliente}`, styles: { fontStyle: 'bold' }},
@@ -235,7 +240,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             p.microperforado ? 'Sí' : 'No',
             ETAPAS[p.etapaActual].title,
             getNextStageTitle(p),
-            p.observaciones,
+            observacionesCombinadas,
             formatDateDDMMYYYY(p.fechaCreacion),
             formattedNuevaFechaEntrega,
         ];

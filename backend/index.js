@@ -3887,6 +3887,95 @@ app.delete('/api/pedidos/:pedidoId/materiales/:materialId', requirePermission('p
 
 
 // =================================================================
+// RUTAS DE TEMPLATES DE OBSERVACIONES
+// =================================================================
+
+// GET /api/observaciones/templates - Obtener todos los templates activos
+app.get('/api/observaciones/templates', async (req, res) => {
+    try {
+        const templates = await dbClient.getAllObservacionesTemplates();
+        res.status(200).json(templates);
+    } catch (error) {
+        console.error('Error in GET /api/observaciones/templates:', error);
+        res.status(500).json({ 
+            message: "Error al obtener templates de observaciones",
+            error: error.message 
+        });
+    }
+});
+
+// GET /api/observaciones/templates/search - Buscar templates por texto
+app.get('/api/observaciones/templates/search', async (req, res) => {
+    try {
+        const { q } = req.query;
+        if (!q || q.trim().length === 0) {
+            return res.status(200).json([]);
+        }
+        
+        const templates = await dbClient.searchObservacionesTemplates(q.trim());
+        res.status(200).json(templates);
+    } catch (error) {
+        console.error('Error in GET /api/observaciones/templates/search:', error);
+        res.status(500).json({ 
+            message: "Error al buscar templates",
+            error: error.message 
+        });
+    }
+});
+
+// POST /api/observaciones/templates - Crear o incrementar uso de un template
+app.post('/api/observaciones/templates', async (req, res) => {
+    try {
+        const { text } = req.body;
+        
+        if (!text || text.trim().length === 0) {
+            return res.status(400).json({ 
+                message: 'El texto del template es requerido' 
+            });
+        }
+        
+        if (text.trim().length > 100) {
+            return res.status(400).json({ 
+                message: 'El texto no puede exceder 100 caracteres' 
+            });
+        }
+        
+        const template = await dbClient.upsertObservacionTemplate(text.trim());
+        
+        // 🔥 EVENTO WEBSOCKET: Template creado/actualizado
+        io.emit('observacion-template-updated', template);
+        
+        res.status(201).json(template);
+    } catch (error) {
+        console.error('Error in POST /api/observaciones/templates:', error);
+        res.status(500).json({ 
+            message: error.message 
+        });
+    }
+});
+
+// DELETE /api/observaciones/templates/:id - Eliminar un template
+app.delete('/api/observaciones/templates/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const deletedTemplate = await dbClient.deleteObservacionTemplate(parseInt(id));
+        
+        // 🔥 EVENTO WEBSOCKET: Template eliminado
+        io.emit('observacion-template-deleted', { id: parseInt(id) });
+        
+        res.status(200).json(deletedTemplate);
+    } catch (error) {
+        console.error(`Error in DELETE /api/observaciones/templates/${req.params.id}:`, error);
+        const statusCode = error.message.includes('no encontrado') ? 404 : 500;
+        res.status(statusCode).json({ 
+            message: error.message 
+        });
+    }
+});
+
+
+// =================================================================
 // RUTAS ADMINISTRATIVAS
 // =================================================================
 
