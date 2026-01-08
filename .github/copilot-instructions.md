@@ -2,6 +2,15 @@
 
 Usa estas reglas para mantener la calidad y conexión del proyecto.
 
+> 📚 **Guía extendida**: Para cambios en BD o componentes, consultar `.github/agents/database-and-components-guide.md`
+
+---
+
+### ⚠️ 0. Regla de Confirmación (OBLIGATORIA)
+* **Regla:** Antes de modificar BD, tipos compartidos o múltiples archivos, **DETENTE y confirma** con el usuario.
+* **Por qué:** Previene errores colaterales en módulos no relacionados.
+* **Acción:** Listar archivos afectados y pedir confirmación explícita.
+
 ---
 
 ### 🌐 1. Conexión al Servidor (API)
