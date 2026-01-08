@@ -294,7 +294,7 @@ const ObservacionesAutocomplete: React.FC<ObservacionesAutocompleteProps> = ({
             )}
 
             {/* Dropdown de sugerencias */}
-            {showDropdown && !disabled && (inputValue.length > 0 || templates.length > 0) && (
+            {showDropdown && !disabled && (
                 <div 
                     ref={dropdownRef}
                     className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto"
