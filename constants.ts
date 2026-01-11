@@ -124,10 +124,10 @@ export const PRIORIDAD_COLORS: Record<Prioridad, string> = {
     [Prioridad.BAJA]: 'border-gray-500',
 }
 
-// Máquinas de impresión disponibles
+// Máquinas de impresión disponibles (usando los títulos tal como se guardan en maquinaImpresion)
 export const MAQUINAS_IMPRESION = [
-    { id: Etapa.IMPRESION_WM1, nombre: 'Windmöller 1' },
-    { id: Etapa.IMPRESION_GIAVE, nombre: 'GIAVE' },
-    { id: Etapa.IMPRESION_WM3, nombre: 'Windmöller 3' },
-    { id: Etapa.IMPRESION_ANON, nombre: 'ANON' },
+    { id: 'Windmöller 1', nombre: 'Windmöller 1' },
+    { id: 'GIAVE', nombre: 'GIAVE' },
+    { id: 'Windmöller 3', nombre: 'Windmöller 3' },
+    { id: 'ANON', nombre: 'ANON' },
 ] as const;
