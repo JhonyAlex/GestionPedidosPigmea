@@ -123,3 +123,11 @@ export const PRIORIDAD_COLORS: Record<Prioridad, string> = {
     [Prioridad.NORMAL]: 'border-blue-500',
     [Prioridad.BAJA]: 'border-gray-500',
 }
+
+// Máquinas de impresión disponibles
+export const MAQUINAS_IMPRESION = [
+    { id: Etapa.IMPRESION_WM1, nombre: 'Windmöller 1' },
+    { id: Etapa.IMPRESION_GIAVE, nombre: 'GIAVE' },
+    { id: Etapa.IMPRESION_WM3, nombre: 'Windmöller 3' },
+    { id: Etapa.IMPRESION_ANON, nombre: 'ANON' },
+] as const;

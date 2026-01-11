@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ViewType, Prioridad, Etapa, UserRole, Pedido, DateField, WeekFilter as WeekFilterType, EstadoCliché } from '../types';
-import { ETAPAS_KANBAN, ETAPAS, STAGE_GROUPS } from '../constants';
+import { ETAPAS_KANBAN, ETAPAS, STAGE_GROUPS, MAQUINAS_IMPRESION } from '../constants';
 import { DateFilterOption } from '../utils/date';
 import UserInfo from './UserInfo';
 import WeekFilter from './WeekFilter';
@@ -33,6 +33,8 @@ interface HeaderProps {
     onVendedorToggle?: (vendedorId: string) => void;
     selectedClientes?: string[];
     onClienteToggle?: (clienteId: string) => void;
+    selectedMaquinas?: string[];
+    onMaquinaToggle?: (maquinaId: string) => void;
     antivahoFilter: 'all' | 'con' | 'sin' | 'hecho';
     onAntivahoFilterChange: (value: 'all' | 'con' | 'sin' | 'hecho') => void;
     preparacionFilter?: 'all' | 'sin-material' | 'sin-cliche' | 'listo';
@@ -104,6 +106,8 @@ const Header: React.FC<HeaderProps> = ({
     onVendedorToggle,
     selectedClientes = [],
     onClienteToggle,
+    selectedMaquinas = [],
+    onMaquinaToggle,
     antivahoFilter,
     onAntivahoFilterChange,
     preparacionFilter = 'all',
@@ -151,6 +155,7 @@ const Header: React.FC<HeaderProps> = ({
     const [showSearchDropdown, setShowSearchDropdown] = useState(false);
     const [showBurgerMenu, setShowBurgerMenu] = useState(false);
     const [showHistoryPanel, setShowHistoryPanel] = useState(false);
+    const [showMaquinaDropdown, setShowMaquinaDropdown] = useState(false);
     const [showVendedorDropdown, setShowVendedorDropdown] = useState(false);
     const [showClienteDropdown, setShowClienteDropdown] = useState(false);
         // Al abrir (y mientras esté abierto), marcar como leído para que el badge baje a 0
@@ -162,7 +167,8 @@ const Header: React.FC<HeaderProps> = ({
 
     const searchContainerRef = useRef<HTMLDivElement>(null);
     const burgerMenuRef = useRef<HTMLDivElement>(null);
-    const vendedorDropdownRef = useRef<HTMLDivElement>(null);
+    const vendedorDropdownRef = useRef<HTMLDivElement>(null)
+    const maquinaDropdownRef = useRef<HTMLDivElement>(null);;
     const clienteDropdownRef = useRef<HTMLDivElement>(null);
 
     // Resetear el estado cuando cambie la vista
@@ -171,6 +177,7 @@ const Header: React.FC<HeaderProps> = ({
             setIsStageFiltersCollapsed(false);
         }
         // Cerrar dropdowns cuando cambia la vista
+        setShowMaquinaDropdown(false);
         setShowVendedorDropdown(false);
         setShowClienteDropdown(false);
     }, [currentView]);
@@ -200,6 +207,9 @@ const Header: React.FC<HeaderProps> = ({
             }
             if (clienteDropdownRef.current && !clienteDropdownRef.current.contains(target)) {
                 setShowClienteDropdown(false);
+            }
+            if (maquinaDropdownRef.current && !maquinaDropdownRef.current.contains(target)) {
+                setShowMaquinaDropdown(false);
             }
         };
 
@@ -689,6 +699,75 @@ const Header: React.FC<HeaderProps> = ({
                                                     );
                                                 })
                                             }
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Filtro Multi-Select de Máquina (solo en preparacion y listoProduccion) */}
+                        {onMaquinaToggle && (currentView === 'preparacion' || currentView === 'listoProduccion') && (
+                            <div ref={maquinaDropdownRef} className="relative">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowMaquinaDropdown(prev => !prev);
+                                    }}
+                                    className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-1.5"
+                                >
+                                    <span>🖨️ Máquina</span>
+                                    {selectedMaquinas.length > 0 && (
+                                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-indigo-600 dark:bg-indigo-500 rounded-full">
+                                            {selectedMaquinas.length}
+                                        </span>
+                                    )}
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+                                {showMaquinaDropdown && (
+                                    <div className="absolute z-50 mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-64 overflow-y-auto">
+                                        <div className="p-2 border-b border-gray-200 dark:border-gray-700">
+                                            <label className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedMaquinas.length === 0}
+                                                    onChange={() => onMaquinaToggle('all')}
+                                                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                                />
+                                                <span className="text-sm font-medium text-gray-900 dark:text-white">Todas</span>
+                                            </label>
+                                        </div>
+                                        <div className="p-2">
+                                            <label className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedMaquinas.includes('sin_maquina')}
+                                                    onChange={() => onMaquinaToggle('sin_maquina')}
+                                                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                                />
+                                                <span className="text-sm text-gray-700 dark:text-gray-300 italic">Sin máquina</span>
+                                            </label>
+                                            {MAQUINAS_IMPRESION.map(maquina => (
+                                                <label 
+                                                    key={`maquina-${maquina.id}`} 
+                                                    className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedMaquinas.includes(maquina.id)}
+                                                        onChange={(e) => {
+                                                            e.stopPropagation();
+                                                            onMaquinaToggle(maquina.id);
+                                                        }}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                                    />
+                                                    <span className="text-sm text-gray-900 dark:text-white">
+                                                        {maquina.nombre}
+                                                    </span>
+                                                </label>
+                                            ))}
                                         </div>
                                     </div>
                                 )}

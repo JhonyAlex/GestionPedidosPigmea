@@ -162,6 +162,8 @@ const AppContent: React.FC = () => {
       handleVendedorToggle,
       selectedClientes,
       handleClienteToggle,
+      selectedMaquinas,
+      handleMaquinaToggle,
       antivahoFilter,
       handleAntivahoFilterChange,
       preparacionFilter,
@@ -938,6 +940,8 @@ const AppContent: React.FC = () => {
                     onVendedorToggle={handleVendedorToggle}
                     selectedClientes={selectedClientes}
                     onClienteToggle={handleClienteToggle}
+                    selectedMaquinas={selectedMaquinas}
+                    onMaquinaToggle={handleMaquinaToggle}
                     antivahoFilter={antivahoFilter}
                     onAntivahoFilterChange={handleAntivahoFilterChange}
                     preparacionFilter={preparacionFilter}

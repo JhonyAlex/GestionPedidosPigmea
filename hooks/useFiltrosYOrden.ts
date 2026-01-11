@@ -16,6 +16,7 @@ interface PersistedFilters {
     selectedStages: string[];
     selectedVendedores: string[];
     selectedClientes: string[];
+    selectedMaquinas: string[];
     antivahoFilter: 'all' | 'con' | 'sin' | 'hecho';
     preparacionFilter: 'all' | 'sin-material' | 'sin-cliche' | 'listo';
     estadoClicheFilter: EstadoCliché | 'all';
@@ -65,6 +66,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
     const [selectedStages, setSelectedStages] = useState<string[]>(savedFilters.selectedStages || []);
     const [selectedVendedores, setSelectedVendedores] = useState<string[]>(savedFilters.selectedVendedores || []);
     const [selectedClientes, setSelectedClientes] = useState<string[]>(savedFilters.selectedClientes || []);
+    const [selectedMaquinas, setSelectedMaquinas] = useState<string[]>(savedFilters.selectedMaquinas || []);
     const [antivahoFilter, setAntivahoFilter] = useState<'all' | 'con' | 'sin' | 'hecho'>(
         savedFilters.antivahoFilter || 'all'
     );
@@ -216,6 +218,19 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         }
     }, []);
 
+    const handleMaquinaToggle = useCallback((maquinaId: string) => {
+        if (maquinaId === 'all') {
+            setSelectedMaquinas([]);
+        } else {
+            setSelectedMaquinas(prev => {
+                const isSelected = prev.includes(maquinaId);
+                return isSelected 
+                    ? prev.filter(id => id !== maquinaId)
+                    : [...prev, maquinaId];
+            });
+        }
+    }, []);
+
     const resetStageFilters = useCallback(() => {
         setSelectedStages([]);
         setFilters(prev => ({ ...prev, stage: 'all' }));
@@ -315,6 +330,11 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
                 selectedClientes.includes(p.clienteId || '') ||
                 (selectedClientes.includes('sin_asignar') && !p.clienteId);
 
+            // Filtro de Máquinas (multi-select)
+            const maquinaMatch = selectedMaquinas.length === 0 || 
+                selectedMaquinas.includes(p.maquinaImpresion || '') ||
+                (selectedMaquinas.includes('sin_maquina') && !p.maquinaImpresion);
+
             // Filtro de semana (tiene prioridad sobre filtro de fecha normal)
             let weekMatch = true;
             if (weekFilter.enabled) {
@@ -345,7 +365,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
             // Si el filtro de semana está activo, usar weekMatch en lugar de dateMatch
             const finalDateMatch = weekFilter.enabled ? weekMatch : dateMatch;
 
-            return searchTermMatch && priorityMatch && stageMatch && finalDateMatch && antivahoMatch && preparacionMatch && estadoClicheMatch && anonimoMatch && vendedorMatch && clienteMatch;
+            return searchTermMatch && priorityMatch && stageMatch && finalDateMatch && antivahoMatch && preparacionMatch && estadoClicheMatch && anonimoMatch && vendedorMatch && clienteMatch && maquinaMatch;
         });
 
         if (sortConfig.key) {
@@ -396,7 +416,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         
         return filtered;
 
-    }, [pedidos, debouncedSearchTerm, filters, selectedStages, selectedVendedores, selectedClientes, antivahoFilter, preparacionFilter, estadoClicheFilter, anonimoFilter, dateFilter, sortConfig, customDateRange, weekFilter]);
+    }, [pedidos, debouncedSearchTerm, filters, selectedStages, selectedVendedores, selectedClientes, selectedMaquinas, antivahoFilter, preparacionFilter, estadoClicheFilter, anonimoFilter, dateFilter, sortConfig, customDateRange, weekFilter]);
 
     return {
         processedPedidos,
@@ -412,6 +432,8 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         handleVendedorToggle,
         selectedClientes,
         handleClienteToggle,
+        selectedMaquinas,
+        handleMaquinaToggle,
         antivahoFilter,
         handleAntivahoFilterChange,
         preparacionFilter,
