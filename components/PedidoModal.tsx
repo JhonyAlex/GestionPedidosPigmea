@@ -96,6 +96,7 @@ interface PedidoModalProps {
 const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onArchiveToggle, onAdvanceStage, onSendToPrint, onDuplicate, onDelete, onSetReadyForProduction, onUpdateEtapa, isConnected = false }) => {
     const [formData, setFormData] = useState<Pedido>(JSON.parse(JSON.stringify(pedido)));
     const [tiempoProduccionDecimalInput, setTiempoProduccionDecimalInput] = useState<string>(() => formatDecimalForInput(pedido.tiempoProduccionDecimal));
+    const [velocidadPosibleInput, setVelocidadPosibleInput] = useState<string>(() => formData.velocidadPosible?.toString() || '');
     const [activeTab, setActiveTab] = useState<'detalles' | 'gestion' | 'historial'>('detalles');
     const [showConfirmClose, setShowConfirmClose] = useState(false);
     const [nuevoVendedor, setNuevoVendedor] = useState('');
@@ -291,7 +292,80 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
             tiempoProduccionDecimal: normalized,
             tiempoProduccionPlanificado: decimalToHHMM(normalized),
         }));
-    }, [formData.tiempoProduccionDecimal, setFormData, tiempoProduccionDecimalInput]);
+
+        // 🔄 CALC BIDIRECCIONAL: Calcular velocidad a partir del tiempo modificado
+        const metros = Number(formData.metros);
+        if (metros > 0 && normalized > 0.5) {
+            // velocidad_posible = metros / ((tiempo_final - 0.5) * 60)
+            const calculatedVelocidad = Math.round(metros / ((normalized - 0.5) * 60));
+            if (calculatedVelocidad > 0 && calculatedVelocidad <= 999) {
+                setFormData(prev => ({
+                    ...prev,
+                    tiempoProduccionDecimal: normalized,
+                    tiempoProduccionPlanificado: decimalToHHMM(normalized),
+                    velocidadPosible: calculatedVelocidad,
+                }));
+                setVelocidadPosibleInput(calculatedVelocidad.toString());
+            }
+        }
+    }, [formData.tiempoProduccionDecimal, formData.metros, setFormData, tiempoProduccionDecimalInput]);
+
+    // 🎯 NUEVO: Handler para velocidadPosible con cálculo automático de tiempo
+    const handleVelocidadPosibleChange = useCallback((rawValue: string) => {
+        // Solo permitir números enteros
+        const sanitizedValue = rawValue.replace(/[^0-9]/g, '');
+        setVelocidadPosibleInput(sanitizedValue);
+
+        if (sanitizedValue.trim() === '') {
+            setFormData(prev => ({
+                ...prev,
+                velocidadPosible: null,
+            }));
+            return;
+        }
+
+        const parsed = parseInt(sanitizedValue, 10);
+        if (!Number.isFinite(parsed) || parsed < 0 || parsed > 999) {
+            return;
+        }
+
+        // 🔄 CALC BIDIRECCIONAL: Calcular tiempo a partir de velocidad
+        const metros = Number(formData.metros);
+        if (metros > 0 && parsed > 0) {
+            // tiempo_final = (metros / velocidad_posible) / 60 + 0.5
+            const calculatedTiempo = parseFloat(((metros / parsed) / 60 + 0.5).toFixed(2));
+            const hhmmValue = decimalToHHMM(calculatedTiempo);
+
+            setFormData(prev => ({
+                ...prev,
+                velocidadPosible: parsed,
+                tiempoProduccionDecimal: calculatedTiempo,
+                tiempoProduccionPlanificado: hhmmValue,
+            }));
+            setTiempoProduccionDecimalInput(formatDecimalForInput(calculatedTiempo));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                velocidadPosible: parsed,
+            }));
+        }
+    }, [formData.metros, setFormData]);
+
+    const handleVelocidadPosibleBlur = useCallback(() => {
+        const sanitizedValue = velocidadPosibleInput.replace(/[^0-9]/g, '');
+        if (sanitizedValue.trim() === '') {
+            setVelocidadPosibleInput(formData.velocidadPosible?.toString() || '');
+            return;
+        }
+
+        const parsed = parseInt(sanitizedValue, 10);
+        if (!Number.isFinite(parsed) || parsed < 0 || parsed > 999) {
+            setVelocidadPosibleInput(formData.velocidadPosible?.toString() || '');
+            return;
+        }
+
+        setVelocidadPosibleInput(parsed.toString());
+    }, [formData.velocidadPosible, velocidadPosibleInput]);
 
     // Solicitar bloqueo al abrir el modal (solo una vez al montar)
     useEffect(() => {
@@ -1337,8 +1411,22 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
                                                     Tiempo Producción {formData.anonimo && <span className="ml-1 text-xs text-yellow-600 dark:text-yellow-400">(Auto)</span>}
                                                 </label>
-                                                <div className="flex gap-2">
-                                                    <div className="flex-1">
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    <div>
+                                                        <input 
+                                                            type="text" 
+                                                            inputMode="numeric"
+                                                            name="velocidadPosible" 
+                                                            value={velocidadPosibleInput}
+                                                            onChange={(e) => handleVelocidadPosibleChange(e.target.value)}
+                                                            onBlur={handleVelocidadPosibleBlur}
+                                                            disabled={formData.anonimo}
+                                                            placeholder="m/min"
+                                                            title="Velocidad Posible en metros/minuto (máx 3 dígitos)"
+                                                            className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                                                        />
+                                                    </div>
+                                                    <div>
                                                         <input 
                                                             type="text" 
                                                             inputMode="decimal"
@@ -1352,7 +1440,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                             className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                                                         />
                                                     </div>
-                                                    <div className="flex-1">
+                                                    <div>
                                                         <input 
                                                             type="text" 
                                                             name="tiempoProduccionPlanificado" 

@@ -78,6 +78,7 @@ export interface Pedido {
     tipoImpresion: TipoImpresion;
     desarrollo: string;
     capa: string;
+    velocidadPosible?: number | null; // ✅ Velocidad posible en m/min (máx 3 dígitos) - para cálculo bidireccional
     tiempoProduccionDecimal?: number | null; // ✅ NUEVO: Tiempo en formato decimal (ej: 1.5 = 1h 30m)
     tiempoProduccionPlanificado: string; // HH:mm (calculado automáticamente desde tiempoProduccionDecimal)
     tiempoTotalProduccion?: string; // "X días, Y horas"

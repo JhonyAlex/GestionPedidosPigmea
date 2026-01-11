@@ -975,6 +975,11 @@ function detectChanges(previousPedido, updatedPedido) {
         changes.push(`Números de Compra: ${prevNumerosCompra || 'Ninguno'} → ${newNumerosCompra || 'Ninguno'}`);
     }
     
+    // Cambios en velocidad posible
+    if (previousPedido.velocidadPosible !== updatedPedido.velocidadPosible) {
+        changes.push(`Velocidad Posible: ${previousPedido.velocidadPosible || 'Sin definir'} → ${updatedPedido.velocidadPosible || 'Sin definir'} m/min`);
+    }
+    
     return changes;
 }
 
