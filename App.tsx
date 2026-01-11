@@ -562,12 +562,13 @@ const AppContent: React.FC = () => {
 
     // === MANEJADORES DE OPERACIONES MASIVAS ===
     const handleBulkDelete = async () => {
-        const selectedPedidos = pedidos.filter(p => selectedIds.includes(p.id));
-        const result = await bulkDelete(selectedIds);
+        const ids = [...selectedIds];
+        const selectedPedidos = pedidos.filter(p => ids.includes(p.id));
+        const result = await bulkDelete(ids);
         
         if (result.success) {
             // Actualizar la lista de pedidos
-            setPedidos(prev => prev.filter(p => !selectedIds.includes(p.id)));
+            setPedidos(prev => prev.filter(p => !ids.includes(p.id)));
             
             // Log de auditoría
             logAction(`${result.deletedCount} pedidos eliminados en operación masiva.`);
@@ -575,7 +576,7 @@ const AppContent: React.FC = () => {
             // Emitir actividad WebSocket
             emitActivity('bulk-delete', { 
                 count: result.deletedCount,
-                pedidoIds: selectedIds
+                pedidoIds: ids
             });
             
             // Mostrar toast de éxito
@@ -588,11 +589,12 @@ const AppContent: React.FC = () => {
     };
 
     const handleBulkUpdateDate = async (nuevaFecha: string) => {
-        console.log('🟢 handleBulkUpdateDate - selectedIds:', selectedIds);
+        const ids = [...selectedIds];
+        console.log('🟢 handleBulkUpdateDate - selectedIds:', ids);
         console.log('🟢 handleBulkUpdateDate - nuevaFecha:', nuevaFecha);
-        console.log('🟢 handleBulkUpdateDate - Total seleccionados:', selectedIds.length);
+        console.log('Total seleccionados:', ids.length);
         
-        const result = await bulkUpdateDate(selectedIds, nuevaFecha);
+        const result = await bulkUpdateDate(ids, nuevaFecha);
         
         console.log('🟢 handleBulkUpdateDate - Resultado:', result);
         
@@ -602,7 +604,7 @@ const AppContent: React.FC = () => {
             // Actualizar la lista de pedidos
             setPedidos(prev => {
                 const updated = prev.map(p => {
-                    if (selectedIds.includes(p.id)) {
+                    if (ids.includes(p.id)) {
                         console.log(`  ✅ Actualizando pedido ${p.id} (${p.numeroPedidoCliente})`);
                         return {
                             ...p,
@@ -631,7 +633,7 @@ const AppContent: React.FC = () => {
             // Emitir actividad WebSocket
             emitActivity('bulk-update-date', { 
                 count: result.updatedCount,
-                pedidoIds: selectedIds,
+                pedidoIds: ids,
                 nuevaFecha
             });
             
@@ -645,13 +647,14 @@ const AppContent: React.FC = () => {
     };
 
     const handleBulkArchive = async () => {
-        const selectedPedidos = pedidos.filter(p => selectedIds.includes(p.id));
-        const result = await bulkArchive(selectedIds, true);
+        const ids = [...selectedIds];
+        const selectedPedidos = pedidos.filter(p => ids.includes(p.id));
+        const result = await bulkArchive(ids, true);
         
         if (result.success) {
             // Actualizar la lista de pedidos
             setPedidos(prev => prev.map(p => {
-                if (selectedIds.includes(p.id)) {
+                if (ids.includes(p.id)) {
                     return {
                         ...p,
                         archivado: true,
@@ -675,7 +678,7 @@ const AppContent: React.FC = () => {
             // Emitir actividad WebSocket
             emitActivity('bulk-archive', { 
                 count: result.updatedCount,
-                pedidoIds: selectedIds,
+                pedidoIds: ids,
                 archived: true
             });
             
@@ -1085,3 +1088,9 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+
+
+
+
+

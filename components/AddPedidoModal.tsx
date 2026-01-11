@@ -290,11 +290,6 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
             errors.push('⚠️ Debe seleccionar una opción de Post-Impresión para pedidos anónimos');
         }
 
-        // Validación de secuencia de trabajo para antivaho
-        if (formData.antivaho && secuenciaTrabajo.length === 0) {
-            errors.push('⚠️ Debe definir la secuencia de trabajo para pedidos con Antivaho');
-        }
-
         setValidationErrors(errors);
         return errors.length === 0;
     };

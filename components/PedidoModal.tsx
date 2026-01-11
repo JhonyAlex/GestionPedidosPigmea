@@ -1889,12 +1889,10 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                 type="button"
                                 onClick={handleSendToPrintClick}
                                 className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                disabled={isReadOnly || !formData.materialDisponible || (!!formData.antivaho && (!formData.secuenciaTrabajo || formData.secuenciaTrabajo.length === 0))}
+                                disabled={isReadOnly || !formData.materialDisponible}
                                 title={
                                     !formData.materialDisponible
                                         ? "El material debe estar disponible para enviar a impresión"
-                                        : (!!formData.antivaho && (!formData.secuenciaTrabajo || formData.secuenciaTrabajo.length === 0))
-                                        ? "Debe definir la secuencia de trabajo para pedidos con Antivaho"
                                         : !!formData.antivaho
                                         ? "Enviar a Post-Impresión (Antivaho)"
                                         : "Enviar a Impresión"
