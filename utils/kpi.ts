@@ -149,20 +149,20 @@ const getNextStageTitle = (pedido: Pedido): string => {
 
 export const generatePedidosPDF = (pedidos: Pedido[]) => {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('l', 'pt', 'a4'); // 'l' for landscape (horizontal orientation) - A4 landscape = 842x595 pt
+    const doc = new jsPDF('p', 'pt', 'a4'); // 'p' for portrait (vertical orientation) - A4 portrait = 595x842 pt
 
     // --- HEADER ---
     doc.setFontSize(16);
     doc.setFont(undefined, 'bold');
-    doc.text('PIGMEA S.L.', 28, 35);
+    doc.text('PIGMEA S.L.', 20, 28);
 
     // --- Document Title & Dynamic Subtitle ---
     doc.setFontSize(10);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(100);
     const mainSubtitle = 'Planificación semanal';
-    let tableStartY = 60; // Adjusted start Y for the table
-    doc.text(mainSubtitle, 28, 52);
+    let tableStartY = 50; // Adjusted start Y for the table
+    doc.text(mainSubtitle, 20, 42);
 
     // Dynamic subtitle part based on stages present in the exported list
     const printingMachines = new Set<string>();
@@ -188,10 +188,10 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
     if (dynamicSubtitle) {
         doc.setFontSize(7);
         doc.setTextColor(150);
-        doc.text(dynamicSubtitle, 28, 62, { 
-            maxWidth: 842 - 28 - 28, // Page width (landscape: 842pt) - margins
+        doc.text(dynamicSubtitle, 20, 52, { 
+            maxWidth: 595 - 20 - 20, // Page width (portrait: 595pt) - margins
         });
-        tableStartY = 72; 
+        tableStartY = 60; 
     }
     
     // Date
@@ -199,7 +199,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
     doc.setFontSize(8);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(0); 
-    doc.text(formatDateDDMMYYYY(today), 814, 35, { align: 'right' });
+    doc.text(formatDateDDMMYYYY(today), 575, 28, { align: 'right' });
 
     // Table
     const tableColumn = [
@@ -211,38 +211,32 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
         "Camisa",
         "Antiv.",
         "Láser",
-        "Et. Actual",
         "Sig. Etapa",
         "Observaciones",
-        "Creación",
-        "N.F. Entrega"
+        "Creación"
     ];
     
     const tableRows = pedidos.map(p => {
-        const nuevaFechaEntregaParts = p.nuevaFechaEntrega ? p.nuevaFechaEntrega.split('-') : null;
-        const formattedNuevaFechaEntrega = nuevaFechaEntregaParts && nuevaFechaEntregaParts.length === 3 
-            ? `${nuevaFechaEntregaParts[2]}/${nuevaFechaEntregaParts[1]}/${nuevaFechaEntregaParts[0]}` 
-            : (p.nuevaFechaEntrega || '-');
-        
         // Combinar observaciones rápidas y observaciones normales
         const obsRapidas = p.observacionesRapidas ? p.observacionesRapidas.split(' | ').filter(Boolean).join(' • ') : '';
         const obsNormal = p.observaciones || '';
         const observacionesCombinadas = [obsRapidas, obsNormal].filter(Boolean).join('\n') || '-';
         
+        // Formatear metros con separador de miles
+        const formattedMetros = p.metros ? p.metros.toLocaleString('es-ES') : '0';
+        
         return [
             p.desarrollo || '-',
             { content: `${p.cliente}\n${p.numeroPedidoCliente}`, styles: { fontStyle: 'bold' }},
-            p.metros,
+            formattedMetros,
             p.tipoImpresion.replace(' (SUP)', '').replace(' (TTE)', ''),
             p.capa,
             p.camisa || '-',
             p.antivaho ? 'Sí' : 'No',
             p.microperforado ? 'Sí' : 'No',
-            ETAPAS[p.etapaActual].title,
             getNextStageTitle(p),
             observacionesCombinadas,
             formatDateDDMMYYYY(p.fechaCreacion),
-            formattedNuevaFechaEntrega,
         ];
     });
     
@@ -251,10 +245,10 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
         head: [tableColumn],
         body: tableRows,
         theme: 'grid',
-        margin: { left: 28, right: 28 }, // 10mm margins (28.35pt ≈ 10mm)
+        margin: { left: 14, right: 14, top: 14, bottom: 14 }, // Márgenes reducidos (aproximadamente 5mm)
         styles: {
-            fontSize: 6.5, // Reduced font size for content
-            cellPadding: { top: 2, right: 3, bottom: 2, left: 3 }, // Minimal padding
+            fontSize: 6, // Reduced font size for content
+            cellPadding: { top: 1.5, right: 2, bottom: 1.5, left: 2 }, // Minimal padding
             valign: 'middle',
             textColor: [31, 41, 55],
             overflow: 'linebreak',
@@ -265,23 +259,21 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             textColor: 255,
             fontStyle: 'bold',
             halign: 'center',
-            fontSize: 7, // Reduced header font size
-            cellPadding: { top: 2, right: 3, bottom: 2, left: 3 },
+            fontSize: 6.5, // Reduced header font size
+            cellPadding: { top: 1.5, right: 2, bottom: 1.5, left: 2 },
         },
         columnStyles: {
             0: { cellWidth: 35 }, // Des.
-            1: { cellWidth: 70, halign: 'left' }, // Cliente y # Pedido
-            2: { cellWidth: 32 }, // Metros
+            1: { cellWidth: 80, halign: 'left' }, // Cliente y # Pedido
+            2: { cellWidth: 35 }, // Metros
             3: { cellWidth: 38 }, // Tipo
-            4: { cellWidth: 25 }, // Capa
+            4: { cellWidth: 24 }, // Capa
             5: { cellWidth: 32 }, // Camisa
-            6: { cellWidth: 25 }, // Antiv.
-            7: { cellWidth: 25 }, // Láser
-            8: { cellWidth: 58 }, // Et. Actual
-            9: { cellWidth: 58 }, // Sig. Etapa
-            10: { cellWidth: 137, halign: 'left' }, // Observaciones
-            11: { cellWidth: 38 }, // Creación
-            12: { cellWidth: 48 }, // N.F. Entrega
+            6: { cellWidth: 24 }, // Antiv.
+            7: { cellWidth: 24 }, // Láser
+            8: { cellWidth: 55 }, // Sig. Etapa
+            9: { cellWidth: 120, halign: 'left' }, // Observaciones
+            10: { cellWidth: 38 }, // Creación
         },
         didParseCell: (data) => {
             const pedido = pedidos[data.row.index];
