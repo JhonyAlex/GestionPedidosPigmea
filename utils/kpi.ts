@@ -266,7 +266,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             0: { cellWidth: 35 }, // Des.
             1: { cellWidth: 80, halign: 'left' }, // Cliente y # Pedido
             2: { cellWidth: 35 }, // Metros
-            3: { cellWidth: 38 }, // Tipo
+            3: { cellWidth: 38, fontSize: 5.5 }, // Tipo (font ligeramente menor para evitar cortes)
             4: { cellWidth: 24 }, // Capa
             5: { cellWidth: 32 }, // Camisa
             6: { cellWidth: 24 }, // Antiv.
