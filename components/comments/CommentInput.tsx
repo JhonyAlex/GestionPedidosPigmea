@@ -174,6 +174,10 @@ const CommentInput: React.FC<CommentInputProps> = ({
                 onBlur={handleBlur}
                 placeholder={placeholder}
                 disabled={disabled || isSubmitting}
+                data-gramm="false"
+                data-gramm_editor="false"
+                data-enable-grammarly="false"
+                spellCheck="true"
                 rows={isExpanded ? 3 : 1}
                 className={`w-full px-4 py-3 rounded-xl resize-none border-2 transition-all duration-200
                   ${isExpanded ? 'border-blue-500 dark:border-blue-400' : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}
