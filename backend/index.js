@@ -4265,23 +4265,55 @@ app.get('/api/comments/:pedidoId', requireAuth, async (req, res) => {
             });
         }
         
-        const result = await dbClient.pool.query(`
-            SELECT 
-                id,
-                pedido_id as "pedidoId",
-                user_id as "userId", 
-                user_role as "userRole",
-                username,
-                message,
-                mentioned_users as "mentionedUsers",
-                is_system_message as "isSystemMessage",
-                is_edited as "isEdited",
-                edited_at as "editedAt",
-                created_at as "timestamp"
-            FROM pedido_comments 
-            WHERE pedido_id = $1 
-            ORDER BY created_at ASC
-        `, [pedidoId]);
+        // Verificar si la columna mentioned_users existe
+        const columnCheckResult = await dbClient.pool.query(`
+            SELECT EXISTS (
+                SELECT 1 FROM information_schema.columns 
+                WHERE table_name = 'pedido_comments' 
+                AND column_name = 'mentioned_users'
+            ) as column_exists;
+        `);
+        
+        const hasMentionedUsersColumn = columnCheckResult.rows[0]?.column_exists || false;
+
+        let result;
+        if (hasMentionedUsersColumn) {
+            result = await dbClient.pool.query(`
+                SELECT 
+                    id,
+                    pedido_id as "pedidoId",
+                    user_id as "userId", 
+                    user_role as "userRole",
+                    username,
+                    message,
+                    mentioned_users as "mentionedUsers",
+                    is_system_message as "isSystemMessage",
+                    is_edited as "isEdited",
+                    edited_at as "editedAt",
+                    created_at as "timestamp"
+                FROM pedido_comments 
+                WHERE pedido_id = $1 
+                ORDER BY created_at ASC
+            `, [pedidoId]);
+        } else {
+            // Sin columna mentioned_users (retrocompatibilidad)
+            result = await dbClient.pool.query(`
+                SELECT 
+                    id,
+                    pedido_id as "pedidoId",
+                    user_id as "userId", 
+                    user_role as "userRole",
+                    username,
+                    message,
+                    is_system_message as "isSystemMessage",
+                    is_edited as "isEdited",
+                    edited_at as "editedAt",
+                    created_at as "timestamp"
+                FROM pedido_comments 
+                WHERE pedido_id = $1 
+                ORDER BY created_at ASC
+            `, [pedidoId]);
+        }
 
         res.json({
             success: true,
@@ -4344,29 +4376,60 @@ app.post('/api/comments', requireAuth, async (req, res) => {
             console.log(`🔄 Convirtiendo user_id "${finalUserId}" a UUID: ${validUserId}`);
         }
 
+        // Verificar si la columna mentioned_users existe
+        const columnCheckResult = await dbClient.pool.query(`
+            SELECT EXISTS (
+                SELECT 1 FROM information_schema.columns 
+                WHERE table_name = 'pedido_comments' 
+                AND column_name = 'mentioned_users'
+            ) as column_exists;
+        `);
+        
+        const hasMentionedUsersColumn = columnCheckResult.rows[0]?.column_exists || false;
+
         // Convertir mentionedUsers a JSONB
         const mentionedUsersJson = JSON.stringify(mentionedUsers);
 
-        const result = await dbClient.pool.query(`
-            INSERT INTO pedido_comments (
-                pedido_id, user_id, user_role, username, message, mentioned_users, is_system_message
-            ) VALUES ($1, $2, $3, $4, $5, $6, false)
-            RETURNING 
-                id,
-                pedido_id as "pedidoId",
-                user_id as "userId",
-                user_role as "userRole", 
-                username,
-                message,
-                mentioned_users as "mentionedUsers",
-                is_system_message as "isSystemMessage",
-                created_at as "timestamp"
-        `, [pedidoId, validUserId, finalUserRole, finalUsername, message.trim(), mentionedUsersJson]);
+        let result;
+        if (hasMentionedUsersColumn) {
+            // Versión con soporte para menciones
+            result = await dbClient.pool.query(`
+                INSERT INTO pedido_comments (
+                    pedido_id, user_id, user_role, username, message, mentioned_users, is_system_message
+                ) VALUES ($1, $2, $3, $4, $5, $6, false)
+                RETURNING 
+                    id,
+                    pedido_id as "pedidoId",
+                    user_id as "userId",
+                    user_role as "userRole", 
+                    username,
+                    message,
+                    mentioned_users as "mentionedUsers",
+                    is_system_message as "isSystemMessage",
+                    created_at as "timestamp"
+            `, [pedidoId, validUserId, finalUserRole, finalUsername, message.trim(), mentionedUsersJson]);
+        } else {
+            // Versión sin menciones (retrocompatibilidad)
+            result = await dbClient.pool.query(`
+                INSERT INTO pedido_comments (
+                    pedido_id, user_id, user_role, username, message, is_system_message
+                ) VALUES ($1, $2, $3, $4, $5, false)
+                RETURNING 
+                    id,
+                    pedido_id as "pedidoId",
+                    user_id as "userId",
+                    user_role as "userRole", 
+                    username,
+                    message,
+                    is_system_message as "isSystemMessage",
+                    created_at as "timestamp"
+            `, [pedidoId, validUserId, finalUserRole, finalUsername, message.trim()]);
+        }
 
         const newComment = result.rows[0];
 
-        // Crear notificaciones para usuarios mencionados
-        if (mentionedUsers && mentionedUsers.length > 0) {
+        // Crear notificaciones para usuarios mencionados (solo si la columna existe y hay menciones)
+        if (hasMentionedUsersColumn && mentionedUsers && mentionedUsers.length > 0) {
             for (const mentionedUser of mentionedUsers) {
                 try {
                     // No crear notificación si el usuario se menciona a sí mismo
