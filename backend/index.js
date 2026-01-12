@@ -4621,6 +4621,83 @@ async function startServer() {
             setPermissionsDbClient(dbClient);
             setDbHealthClient(dbClient);
             console.log('✅ dbClient compartido con middlewares');
+
+            // 🔄 Ejecutar migraciones automáticamente en startup
+            try {
+                console.log('🔄 Verificando y aplicando migraciones pendientes...');
+                
+                // Verificar si la columna mentioned_users existe
+                const checkColumnQuery = `
+                    SELECT EXISTS (
+                        SELECT 1 
+                        FROM information_schema.columns 
+                        WHERE table_name = 'pedido_comments' 
+                        AND column_name = 'mentioned_users'
+                    ) as column_exists;
+                `;
+                const checkResult = await dbClient.pool.query(checkColumnQuery);
+                const columnExists = checkResult.rows[0]?.column_exists;
+
+                if (!columnExists) {
+                    console.log('📝 Aplicando migración 032: Sistema de menciones...');
+                    
+                    // Aplicar migración 032
+                    await dbClient.pool.query(`
+                        -- Agregar columna mentioned_users si no existe
+                        DO $$ 
+                        BEGIN
+                            IF NOT EXISTS (
+                                SELECT 1 FROM information_schema.columns 
+                                WHERE table_name = 'pedido_comments' 
+                                AND column_name = 'mentioned_users'
+                            ) THEN
+                                ALTER TABLE pedido_comments 
+                                ADD COLUMN mentioned_users JSONB DEFAULT '[]'::jsonb;
+                                
+                                COMMENT ON COLUMN pedido_comments.mentioned_users IS 
+                                'Array de user_ids mencionados con @ en el comentario (máximo 5)';
+                            END IF;
+                        END $$;
+
+                        -- Crear índice GIN para búsquedas eficientes
+                        CREATE INDEX IF NOT EXISTS idx_pedido_comments_mentioned_users 
+                        ON pedido_comments USING GIN (mentioned_users);
+
+                        -- Función para obtener comentarios donde un usuario fue mencionado
+                        CREATE OR REPLACE FUNCTION get_comments_mentioning_user(target_user_id UUID)
+                        RETURNS TABLE (
+                            id UUID,
+                            pedido_id UUID,
+                            user_id UUID,
+                            comentario TEXT,
+                            mentioned_users JSONB,
+                            created_at TIMESTAMP WITH TIME ZONE
+                        ) AS $$
+                        BEGIN
+                            RETURN QUERY
+                            SELECT 
+                                pc.id,
+                                pc.pedido_id,
+                                pc.user_id,
+                                pc.comentario,
+                                pc.mentioned_users,
+                                pc.created_at
+                            FROM pedido_comments pc
+                            WHERE mentioned_users @> to_jsonb(ARRAY[target_user_id::text])
+                            ORDER BY pc.created_at DESC;
+                        END;
+                        $$ LANGUAGE plpgsql;
+                    `);
+                    
+                    console.log('✅ Migración 032 aplicada exitosamente');
+                } else {
+                    console.log('✅ Migración 032 ya aplicada previamente');
+                }
+            } catch (migrationError) {
+                console.error('⚠️ Error al aplicar migraciones automáticas:', migrationError.message);
+                // No detener el servidor, continuar con retrocompatibilidad
+            }
+
         } else {
             console.log('⚠️ No se encontró configuración de base de datos');
         }
