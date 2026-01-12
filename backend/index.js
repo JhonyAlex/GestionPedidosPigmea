@@ -4459,12 +4459,13 @@ app.post('/api/comments', requireAuth, async (req, res) => {
                             mentionedBy: {
                                 id: validUserId,
                                 username: finalUsername
-                            }
+                            },
+                            comment: message.trim()
                         })
                     ]);
 
-                    // Emitir evento WebSocket de nueva notificación
-                    io.emit('notification:new', {
+                    // Emitir evento WebSocket de nueva notificación SOLO al usuario mencionado
+                    const notificationPayload = {
                         id: notificationId,
                         type: 'mention',
                         title: `${finalUsername} te mencionó`,
@@ -4478,11 +4479,20 @@ app.post('/api/comments', requireAuth, async (req, res) => {
                             mentionedBy: {
                                 id: validUserId,
                                 username: finalUsername
-                            }
+                            },
+                            comment: message.trim()
                         }
+                    };
+
+                    // Emitir solo a las sesiones del usuario mencionado
+                    const targetSockets = Array.from(io.sockets.sockets.values())
+                        .filter(socket => socket.userId === mentionedUser.id);
+                    
+                    targetSockets.forEach(socket => {
+                        socket.emit('notification:new', notificationPayload);
                     });
 
-                    console.log(`📧 Notificación de mención creada para ${mentionedUser.username}`);
+                    console.log(`📧 Notificación de mención enviada a ${mentionedUser.username} (${targetSockets.length} sesiones activas)`);
                 } catch (notifError) {
                     console.error(`Error creando notificación de mención para ${mentionedUser.username}:`, notifError);
                     // Continuar aunque falle la notificación

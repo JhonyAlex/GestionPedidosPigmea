@@ -15,9 +15,10 @@ export interface ParsedMention {
 
 /**
  * Expresión regular para detectar menciones en el formato @usuario
- * Permite letras, números, guiones bajos y puntos
+ * Permite letras, números, guiones bajos, puntos y espacios
+ * Se captura hasta encontrar un espacio doble, salto de línea o final del texto
  */
-const MENTION_REGEX = /@([\w.-]+)/g;
+const MENTION_REGEX = /@([\w.-]+(?:\s+[\w.-]+)*)/g;
 
 /**
  * Extrae todas las menciones (@usuario) de un texto
