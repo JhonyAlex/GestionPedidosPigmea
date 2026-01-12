@@ -12,7 +12,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useActionHistory } from '../hooks/useActionHistory';
-import ActionHistoryPanel from './ActionHistoryPanel';
+import ActivityPanel from './ActivityPanel';
 import { normalizeSearchValue, pedidoMatchesSearch } from '../utils/search';
 import { useVendedoresManager } from '../hooks/useVendedoresManager';
 import { useClientesManager } from '../hooks/useClientesManager';
@@ -154,16 +154,16 @@ const Header: React.FC<HeaderProps> = ({
     const [isStageFiltersCollapsed, setIsStageFiltersCollapsed] = useState(true);
     const [showSearchDropdown, setShowSearchDropdown] = useState(false);
     const [showBurgerMenu, setShowBurgerMenu] = useState(false);
-    const [showHistoryPanel, setShowHistoryPanel] = useState(false);
+    const [showActivityPanel, setShowActivityPanel] = useState(false);
     const [showMaquinaDropdown, setShowMaquinaDropdown] = useState(false);
     const [showVendedorDropdown, setShowVendedorDropdown] = useState(false);
     const [showClienteDropdown, setShowClienteDropdown] = useState(false);
         // Al abrir (y mientras esté abierto), marcar como leído para que el badge baje a 0
         useEffect(() => {
-            if (!showHistoryPanel) return;
+            if (!showActivityPanel) return;
             if (actionHistoryState.unreadCount <= 0) return;
             markAllAsRead();
-        }, [showHistoryPanel, actionHistoryState.unreadCount, markAllAsRead]);
+        }, [showActivityPanel, actionHistoryState.unreadCount, markAllAsRead]);
 
     const searchContainerRef = useRef<HTMLDivElement>(null);
     const burgerMenuRef = useRef<HTMLDivElement>(null);
@@ -308,23 +308,23 @@ const Header: React.FC<HeaderProps> = ({
                             ))}
                         </div>
 
-                        {/* Historial de acciones */}
+                        {/* Notificaciones y Actividad */}
                         <div className="flex items-center gap-1">
                             <button
                                 onClick={() => {
-                                    const next = !showHistoryPanel;
-                                    setShowHistoryPanel(next);
+                                    const next = !showActivityPanel;
+                                    setShowActivityPanel(next);
                                     if (next) {
                                         markAllAsRead();
                                     }
                                 }}
                                 className={`relative p-2 rounded-md transition-colors ${
-                                    showHistoryPanel 
+                                    showActivityPanel 
                                         ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' 
                                         : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                                 }`}
-                                title="Historial de acciones"
-                                aria-label="Historial de acciones"
+                                title="Notificaciones y Actividad"
+                                aria-label="Notificaciones y Actividad"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
@@ -921,33 +921,18 @@ const Header: React.FC<HeaderProps> = ({
                 )}
             </div>
 
-            {/* Panel lateral de historial */}
-            {showHistoryPanel && (
-                <div
-                    className="fixed inset-0 z-50 flex justify-end"
-                    onClick={() => setShowHistoryPanel(false)}
-                    role="presentation"
-                >
-                    <div className="absolute inset-0 bg-black bg-opacity-30" />
-
-                    <div
-                        className="relative w-80 animate-slide-in-right shadow-2xl"
-                        onClick={(e) => e.stopPropagation()}
-                        role="presentation"
-                    >
-                        <ActionHistoryPanel
-                            onClose={() => setShowHistoryPanel(false)}
-                            onNavigateToPedidoId={(pedidoId) => {
-                                const pedido = allPedidos.find(p => p.id === pedidoId);
-                                if (pedido && onNavigateToPedido) {
-                                    setShowHistoryPanel(false);
-                                    onNavigateToPedido(pedido);
-                                }
-                            }}
-                        />
-                    </div>
-                </div>
-            )}
+            {/* Panel de Notificaciones y Actividad */}
+            <ActivityPanel
+                isOpen={showActivityPanel}
+                onClose={() => setShowActivityPanel(false)}
+                onNavigateToPedido={(pedidoId, commentId) => {
+                    const pedido = allPedidos.find(p => p.id === pedidoId);
+                    if (pedido && onNavigateToPedido) {
+                        setShowActivityPanel(false);
+                        onNavigateToPedido(pedido);
+                    }
+                }}
+            />
         </header>
     );
 };
