@@ -349,6 +349,19 @@ const Header: React.FC<HeaderProps> = ({
                             </button>
                         )}
 
+                        {/* Exportar PDF destacado en vista de Lista */}
+                        {currentView === 'list' && (
+                            <button
+                                onClick={onExportPDF}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-amber-600 text-white rounded-md font-semibold hover:bg-amber-700 transition-colors shadow focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                title="Exportar la lista a PDF"
+                                aria-label="Exportar PDF"
+                            >
+                                <DownloadIcon />
+                                <span className="hidden md:inline">Exportar PDF</span>
+                            </button>
+                        )}
+
                         {/* Menú Hamburguesa */}
                         <div className="relative" ref={burgerMenuRef}>
                             <button
@@ -389,7 +402,7 @@ const Header: React.FC<HeaderProps> = ({
                                     {/* Opciones de Admin */}
                                     <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Acciones</div>
                                     
-                                    {(currentView === 'list' || currentView === 'archived') && (
+                                    {(currentView === 'archived') && (
                                         <button 
                                             onClick={() => {
                                                 onExportPDF();
