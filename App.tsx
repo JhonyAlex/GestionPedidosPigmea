@@ -34,6 +34,7 @@ import ImportDataModal from './components/ImportDataModal';
 import { ToastContainer } from './components/Toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { MaterialesProvider } from './contexts/MaterialesContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import { calcularSiguienteEtapa, estaFueraDeSecuencia } from './utils/etapaLogic';
 import { procesarDragEnd } from './utils/dragLogic';
 import { usePedidosManager } from './hooks/usePedidosManager';
@@ -1087,7 +1088,9 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
     return (
         <AuthProvider>
-            <AppContent />
+            <NotificationProvider>
+                <AppContent />
+            </NotificationProvider>
         </AuthProvider>
     );
 };
