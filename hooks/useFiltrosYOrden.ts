@@ -108,6 +108,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
             selectedStages,
             selectedVendedores,
             selectedClientes,
+            selectedMaquinas,
             antivahoFilter,
             preparacionFilter,
             estadoClicheFilter,
@@ -124,6 +125,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         selectedStages,
         selectedVendedores,
         selectedClientes,
+        selectedMaquinas,
         antivahoFilter,
         preparacionFilter,
         estadoClicheFilter,
@@ -135,7 +137,13 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
     ]);
 
     const handleFilterChange = (name: string, value: string) => setFilters(prev => ({ ...prev, [name]: value }));
-    const handleDateFilterChange = (value: string) => setDateFilter(value as DateFilterOption);
+    const handleDateFilterChange = (value: string) => {
+        setDateFilter(value as DateFilterOption);
+        // Si se activa un filtro de fecha, desactivar el filtro de semana
+        if (value !== 'all') {
+            setWeekFilter(prev => ({ ...prev, enabled: false }));
+        }
+    };
     const handleAntivahoFilterChange = (value: 'all' | 'con' | 'sin' | 'hecho') => setAntivahoFilter(value);
     const handlePreparacionFilterChange = (value: 'all' | 'sin-material' | 'sin-cliche' | 'listo') => setPreparacionFilter(value);
     const handleEstadoClicheFilterChange = (value: EstadoCliché | 'all') => setEstadoClicheFilter(value);
@@ -147,11 +155,20 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
     
     // Handlers para filtro de semana
     const handleWeekFilterToggle = useCallback(() => {
-        setWeekFilter(prev => ({ ...prev, enabled: !prev.enabled }));
+        setWeekFilter(prev => {
+            const newEnabled = !prev.enabled;
+            // Si se activa el filtro de semana, resetear el filtro de fecha a 'all'
+            if (newEnabled) {
+                setDateFilter('all');
+            }
+            return { ...prev, enabled: newEnabled };
+        });
     }, []);
     
     const handleWeekChange = useCallback((year: number, week: number) => {
         setWeekFilter(prev => ({ ...prev, year, week, enabled: true }));
+        // Al cambiar la semana, desactivar el filtro de fecha
+        setDateFilter('all');
     }, []);
     
     const handleWeekDateFieldChange = useCallback((dateField: DateField) => {
@@ -248,6 +265,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         setSelectedStages([]);
         setSelectedVendedores([]);
         setSelectedClientes([]);
+        setSelectedMaquinas([]);
         setAntivahoFilter('all');
         setPreparacionFilter('all');
         setEstadoClicheFilter('all');

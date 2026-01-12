@@ -11,17 +11,10 @@ import { MetricasProduccionPanel } from './MetricasProduccionPanel';
 
 const MAQUINAS_DISPONIBLES = [
     { id: 'todas', nombre: 'Todas las Máquinas', icon: '🏭' },
-    { id: 'IMPRESION_WM1', nombre: 'Impresora WM1', icon: '🖨️' },
-    { id: 'IMPRESION_GIAVE', nombre: 'Impresora GIAVE', icon: '🖨️' },
-    { id: 'IMPRESION_WM3', nombre: 'Impresora WM3', icon: '🖨️' },
-    { id: 'IMPRESION_ANON', nombre: 'Impresora Anónima', icon: '🖨️' },
-    { id: 'POST_LAMINACION_SL2', nombre: 'Laminadora SL2', icon: '📄' },
-    { id: 'POST_LAMINACION_NEXUS', nombre: 'Laminadora NEXUS', icon: '📄' },
-    { id: 'POST_REBOBINADO_S2DT', nombre: 'Rebobinadora S2DT', icon: '🔄' },
-    { id: 'POST_REBOBINADO_PROSLIT', nombre: 'Rebobinadora PROSLIT', icon: '🔄' },
-    { id: 'POST_PERFORACION_MIC', nombre: 'Perforadora Micro', icon: '⚙️' },
-    { id: 'POST_PERFORACION_MAC', nombre: 'Perforadora Macro', icon: '⚙️' },
-    { id: 'POST_REBOBINADO_TEMAC', nombre: 'Rebobinadora TEMAC', icon: '🔄' }
+    { id: 'Windmöller 1', nombre: 'Windmöller 1', icon: '🖨️' },
+    { id: 'GIAVE', nombre: 'GIAVE', icon: '🖨️' },
+    { id: 'Windmöller 3', nombre: 'Windmöller 3', icon: '🖨️' },
+    { id: 'ANON', nombre: 'ANON', icon: '🖨️' },
 ];
 
 export function OperadorView() {
@@ -101,13 +94,10 @@ export function OperadorView() {
         }
     };
 
-    // Filtrar pedidos por máquina
+    // Filtrar pedidos por máquina de impresión
     const pedidosFiltrados = maquinaSeleccionada === 'todas'
         ? pedidosDisponibles
-        : pedidosDisponibles.filter(p => 
-            p.etapaActual === maquinaSeleccionada || 
-            p.secuenciaTrabajo?.includes(maquinaSeleccionada as any)
-        );
+        : pedidosDisponibles.filter(p => p.maquinaImpresion === maquinaSeleccionada);
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-6">
