@@ -151,7 +151,7 @@ const Header: React.FC<HeaderProps> = ({
     const canAccessAdmin = () => isAdmin() || canManageUsers() || canManageConfig();
     const { state: actionHistoryState, markAllAsRead } = useActionHistory();
     const currentUserRole = user?.role || 'Operador';
-    const [isStageFiltersCollapsed, setIsStageFiltersCollapsed] = useState(false);
+    const [isStageFiltersCollapsed, setIsStageFiltersCollapsed] = useState(true);
     const [showSearchDropdown, setShowSearchDropdown] = useState(false);
     const [showBurgerMenu, setShowBurgerMenu] = useState(false);
     const [showHistoryPanel, setShowHistoryPanel] = useState(false);
