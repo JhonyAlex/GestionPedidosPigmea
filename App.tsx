@@ -93,7 +93,8 @@ const AppContent: React.FC = () => {
 
     // Valores derivados del usuario (o valores por defecto)
     const currentUserRole = user?.role || 'Operador';
-    const currentUserId = user ? `${user.username}-${String(user.id).slice(-6)}` : 'guest-user';
+    const currentUserId = user?.username || 'guest-user';
+    const currentUserDisplayName = user?.displayName;
 
     // Hooks personalizados - siempre llamar antes de returns condicionales
     const { 
@@ -106,7 +107,7 @@ const AppContent: React.FC = () => {
         subscribeToPedidoUpdated,
         subscribeToPedidoDeleted,
         subscribeToPageReturn
-    } = useWebSocket(currentUserId, currentUserRole);
+    } = useWebSocket(currentUserId, currentUserRole, currentUserDisplayName);
 
     const generarEntradaHistorial = useCallback((usuarioRole: UserRole, accion: string, detalles: string): HistorialEntry => ({
         timestamp: new Date().toISOString(),

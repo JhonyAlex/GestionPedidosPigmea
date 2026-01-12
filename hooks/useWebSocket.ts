@@ -15,7 +15,7 @@ export interface UseWebSocketReturn {
   subscribeToPageReturn: (callback: () => void) => () => void;
 }
 
-export const useWebSocket = (userId: string, userRole: UserRole): UseWebSocketReturn => {
+export const useWebSocket = (userId: string, userRole: UserRole, displayName?: string): UseWebSocketReturn => {
   const [isConnected, setIsConnected] = useState(false);
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [connectedUsers, setConnectedUsers] = useState<ConnectedUser[]>([]);
@@ -49,8 +49,9 @@ export const useWebSocket = (userId: string, userRole: UserRole): UseWebSocketRe
       setIsConnected(connected);
       
       // Autenticar solo si está conectado pero no autenticado
-      if (connected && !isAuthenticated) {
-        webSocketService.authenticate(userId, userRole);
+      // ✅ NO autenticar si userId es 'guest-user' (esperar a que se cargue el usuario real)
+      if (connected && !isAuthenticated && userId !== 'guest-user') {
+        webSocketService.authenticate(userId, userRole, displayName);
         setIsAuthenticated(true);
       } else if (!connected) {
         setIsAuthenticated(false);
@@ -60,7 +61,7 @@ export const useWebSocket = (userId: string, userRole: UserRole): UseWebSocketRe
     return () => {
       clearInterval(connectionCheck);
     };
-  }, [userId, userRole, isAuthenticated]);
+  }, [userId, userRole, displayName, isAuthenticated]);
 
   const removeNotification = useCallback((id: string) => {
     webSocketService.removeNotification(id);

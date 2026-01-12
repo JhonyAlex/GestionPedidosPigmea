@@ -6,6 +6,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import PermissionsManager from './PermissionsManager';
 import UserPermissionsModal from './UserPermissionsModal';
 import { formatDateTimeDDMMYYYY } from '../utils/date';
+import webSocketService from '../services/websocket'; // ✅ Importar websocket service
 
 interface UserFormData {
     username: string;
@@ -111,6 +112,29 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
 
     useEffect(() => {
         fetchUsers();
+        
+        // ✅ Suscribirse al evento de actualización de login
+        const socket = (webSocketService as any).socket;
+        if (socket) {
+            socket.on('user-login-updated', (data: { userId: number; username: string; lastLogin: string }) => {
+                console.log('🔄 Usuario actualizó último login:', data);
+                // Actualizar el usuario en la lista sin recargar todo
+                setUsers(prevUsers => 
+                    prevUsers.map(u => 
+                        u.id === data.userId 
+                            ? { ...u, lastLogin: data.lastLogin }
+                            : u
+                    )
+                );
+            });
+        }
+        
+        // Cleanup: desuscribirse al desmontar
+        return () => {
+            if (socket) {
+                socket.off('user-login-updated');
+            }
+        };
     }, []);
 
     // Manejar envío del formulario

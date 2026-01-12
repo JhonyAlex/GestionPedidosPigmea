@@ -82,13 +82,14 @@ export interface WebSocketEvents {
   'request-version': () => void;
   
   // Eventos del cliente
-  authenticate: (data: { userId: string; userRole: UserRole }) => void;
+  authenticate: (data: { userId: string; userRole: UserRole; displayName?: string }) => void;
   'user-activity': (data: { activity: string; data?: any }) => void;
 }
 
 export interface ConnectedUser {
   userId: string;
   userRole: UserRole;
+  displayName?: string; // ✅ Nombre para mostrar en UI
   joinedAt: string;
 }
 
@@ -640,9 +641,9 @@ class WebSocketService {
   }
 
   // Métodos públicos
-  public authenticate(userId: string, userRole: UserRole) {
+  public authenticate(userId: string, userRole: UserRole, displayName?: string) {
     if (this.socket && this.isConnected) {
-      this.socket.emit('authenticate', { userId, userRole });
+      this.socket.emit('authenticate', { userId, userRole, displayName });
     }
   }
 

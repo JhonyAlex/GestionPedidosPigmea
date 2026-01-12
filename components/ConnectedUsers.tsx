@@ -91,11 +91,14 @@ const ConnectedUsers: React.FC<ConnectedUsersProps> = ({ users, currentUser, isC
                       <span className="text-lg">{getRoleIcon(user.userRole)}</span>
                       <div>
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {user.userId}
+                          {user.displayName || user.userId}
                           {user.userId === currentUser && (
                             <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(tú)</span>
                           )}
                         </div>
+                        {user.displayName && user.displayName !== user.userId && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400">@{user.userId}</div>
+                        )}
                         <div className={`text-xs ${getRoleColor(user.userRole)}`}>
                           {user.userRole}
                         </div>

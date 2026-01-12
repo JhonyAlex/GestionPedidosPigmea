@@ -542,23 +542,27 @@ io.on('connection', (socket) => {
     
     // Manejar autenticación del usuario
     socket.on('authenticate', (userData) => {
-        const { userId, userRole } = userData;
+        const { userId, userRole, displayName } = userData;
         connectedUsers.set(userId, {
             socketId: socket.id,
             userRole: userRole || 'Operador',
+            displayName: displayName || userId, // ✅ Guardar displayName
             joinedAt: new Date().toISOString()
         });
         
         socket.userId = userId;
         socket.userRole = userRole;
+        socket.displayName = displayName;
         
         // Notificar a otros usuarios sobre la nueva conexión
         socket.broadcast.emit('user-connected', {
             userId,
             userRole,
+            displayName,
             connectedUsers: Array.from(connectedUsers.entries()).map(([id, data]) => ({
                 userId: id,
                 userRole: data.userRole,
+                displayName: data.displayName,
                 joinedAt: data.joinedAt
             }))
         });
@@ -568,6 +572,7 @@ io.on('connection', (socket) => {
             connectedUsers: Array.from(connectedUsers.entries()).map(([id, data]) => ({
                 userId: id,
                 userRole: data.userRole,
+                displayName: data.displayName,
                 joinedAt: data.joinedAt
             }))
         });
@@ -587,6 +592,7 @@ io.on('connection', (socket) => {
                 connectedUsers: Array.from(connectedUsers.entries()).map(([id, data]) => ({
                     userId: id,
                     userRole: data.userRole,
+                    displayName: data.displayName,
                     joinedAt: data.joinedAt
                 }))
             });
@@ -1104,6 +1110,13 @@ app.post('/api/auth/login', async (req, res) => {
                 role: isAdminUser ? mapRole(user.role, false) : user.role, // Mapear solo usuarios admin
                 displayName: user.display_name || user.username
             };
+
+            // ✅ Emitir evento WebSocket para notificar actualización de último login
+            io.emit('user-login-updated', {
+                userId: user.id,
+                username: user.username,
+                lastLogin: new Date().toISOString()
+            });
 
             console.log(`✅ Login BD exitoso: ${username} (${user.role})`);
             
