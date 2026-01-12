@@ -1,3 +1,5 @@
+import { MentionedUser } from '../utils/mentions';
+
 export interface Comment {
   id: string;
   pedidoId: string;
@@ -6,6 +8,7 @@ export interface Comment {
   username: string;
   message: string;
   timestamp: Date;
+  mentionedUsers?: MentionedUser[];
   isSystemMessage?: boolean;
   isEdited?: boolean;
   editedAt?: Date;
@@ -13,6 +16,7 @@ export interface Comment {
 
 export interface CommentFormData {
   message: string;
+  mentionedUsers?: MentionedUser[];
 }
 
 export interface CommentSocketEvents {

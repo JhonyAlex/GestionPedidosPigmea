@@ -23,6 +23,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     const { user } = useAuth();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showingAll, setShowingAll] = useState(false); // Para controlar si mostramos todas o solo 20
 
     // Función para obtener headers de autenticación
     const getAuthHeaders = useCallback(() => {

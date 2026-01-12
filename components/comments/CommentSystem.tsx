@@ -3,6 +3,7 @@ import { Comment, CommentFormData } from '../../types/comments';
 import { useComments } from '../../hooks/useComments';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserRole } from '../../types';
+import { MentionedUser, parseMentions } from '../../utils/mentions';
 import CommentList from './CommentList';
 import CommentInput from './CommentInput';
 
@@ -25,6 +26,8 @@ const CommentSystem: React.FC<CommentSystemProps> = ({
 }) => {
   const { user } = useAuth();
   const [isTyping, setIsTyping] = useState(false);
+  const [availableUsers, setAvailableUsers] = useState<MentionedUser[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
   
   const { 
     comments, 
@@ -34,6 +37,36 @@ const CommentSystem: React.FC<CommentSystemProps> = ({
     addComment, 
     deleteComment 
   } = useComments(pedidoId);
+
+  // Cargar usuarios activos para menciones
+  useEffect(() => {
+    const loadActiveUsers = async () => {
+      if (!user) return;
+      
+      try {
+        setLoadingUsers(true);
+        const response = await fetch('/api/users/active', {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': user.id,
+            'x-user-role': user.role,
+            'x-user-permissions': JSON.stringify(user.permissions || [])
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableUsers(data.users || []);
+        }
+      } catch (error) {
+        console.error('Error loading active users for mentions:', error);
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+
+    loadActiveUsers();
+  }, [user]);
 
   // Lógica de scroll movida a este componente
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -55,7 +88,16 @@ const CommentSystem: React.FC<CommentSystemProps> = ({
     if (!currentUserId || !currentUserRole) {
       throw new Error('Usuario no autenticado');
     }
-    await addComment(data.message);
+    
+    // Parsear menciones del mensaje
+    const mentionedUsers = parseMentions(
+      data.message,
+      availableUsers,
+      currentUserId,
+      5 // Límite de 5 menciones
+    );
+
+    await addComment(data.message, mentionedUsers);
   };
 
   const handleDeleteComment = async (commentId: string) => {
@@ -108,9 +150,10 @@ const CommentSystem: React.FC<CommentSystemProps> = ({
         <CommentInput
           onSubmit={handleAddComment}
           isSubmitting={isSubmitting}
-          placeholder="Escribe una actividad o comentario..."
+          placeholder="Escribe una actividad o comentario... (@usuario para mencionar)"
           disabled={!currentUserId || !currentUserRole}
           onIsTypingChange={setIsTyping}
+          availableUsers={availableUsers}
         />
       )}
     </div>

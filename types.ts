@@ -245,7 +245,7 @@ export interface AuthContextType {
 
 // === NOTIFICACIONES ===
 
-export type NotificationType = 'success' | 'info' | 'warning' | 'error';
+export type NotificationType = 'success' | 'info' | 'warning' | 'error' | 'mention';
 
 export type NotificationCategory = 'pedido' | 'cliente' | 'vendedor' | 'sistema' | 'usuario';
 
@@ -255,6 +255,11 @@ export interface NotificationMetadata {
     etapaActual?: Etapa;
     etapaAnterior?: Etapa;
     cambios?: string[];
+    commentId?: string; // Para notificaciones de menciones
+    mentionedBy?: { // Usuario que hizo la mención
+        id: string;
+        username: string;
+    };
     [key: string]: any; // Permite campos adicionales
 }
 

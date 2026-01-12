@@ -3,13 +3,14 @@ import { Comment, CommentSocketEvents } from '../types/comments';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../types';
 import webSocketService from '../services/websocket';
+import { MentionedUser } from '../utils/mentions';
 
 interface UseCommentsReturn {
   comments: Comment[];
   isLoading: boolean;
   isSubmitting: boolean;
   error: string | null;
-  addComment: (message: string) => Promise<void>;
+  addComment: (message: string, mentionedUsers?: MentionedUser[]) => Promise<void>;
   deleteComment: (commentId: string) => Promise<void>;
   refreshComments: () => Promise<void>;
 }
@@ -67,7 +68,7 @@ export const useComments = (pedidoId: string): UseCommentsReturn => {
   }, [pedidoId, getAuthHeaders]);
 
   // Agregar comentario
-  const addComment = useCallback(async (message: string) => {
+  const addComment = useCallback(async (message: string, mentionedUsers: MentionedUser[] = []) => {
     if (!user?.id || !user?.username) {
       throw new Error('Usuario no autenticado');
     }
@@ -87,7 +88,8 @@ export const useComments = (pedidoId: string): UseCommentsReturn => {
           message: message.trim(),
           userId: user.id,
           userRole: user.role,
-          username: user.username
+          username: user.username,
+          mentionedUsers: mentionedUsers
         })
       });
 

@@ -1274,6 +1274,47 @@ app.get('/api/auth/users', async (req, res) => {
     }
 });
 
+// GET /api/users/active - Obtener usuarios activos para menciones (requiere autenticación)
+app.get('/api/users/active', requireAuth, async (req, res) => {
+    try {
+        // Verificar que la BD está disponible
+        if (!dbClient.isInitialized || !dbClient.pool) {
+            console.error('🚨 BD no disponible - rechazando consulta de usuarios activos');
+            return res.status(503).json({ 
+                error: 'Service Unavailable',
+                message: 'El sistema no está disponible. Por favor, contacte al administrador.' 
+            });
+        }
+
+        // Obtener solo usuarios activos de admin_users
+        const result = await dbClient.pool.query(`
+            SELECT 
+                id,
+                username
+            FROM admin_users 
+            WHERE is_active = true
+            ORDER BY username ASC
+        `);
+
+        // Formato simplificado para el autocomplete de menciones
+        const activeUsers = result.rows.map(user => ({
+            id: user.id,
+            username: user.username
+        }));
+
+        res.status(200).json({
+            success: true,
+            users: activeUsers
+        });
+
+    } catch (error) {
+        console.error('Error obteniendo usuarios activos:', error);
+        res.status(500).json({ 
+            error: 'Error interno del servidor' 
+        });
+    }
+});
+
 // PUT /api/auth/users/:id - Actualizar usuario
 app.put('/api/auth/users/:id', async (req, res) => {
     try {
@@ -2699,6 +2740,80 @@ app.post('/api/admin/migrate', requirePermission('usuarios.admin'), async (req, 
             } catch (error) {
                 console.error('Error en migración cliche_dates:', error);
                 results.push({ migration: 'cliche_dates', status: 'error', error: error.message });
+            }
+
+            // ===== MIGRACIÓN 032: Sistema de Menciones en Comentarios =====
+            try {
+                await client.query(`
+                    DO $$ 
+                    BEGIN
+                        -- Agregar columna mentioned_users si no existe
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'pedido_comments' AND column_name = 'mentioned_users'
+                        ) THEN
+                            ALTER TABLE pedido_comments 
+                            ADD COLUMN mentioned_users JSONB DEFAULT '[]'::jsonb;
+                            
+                            COMMENT ON COLUMN pedido_comments.mentioned_users IS 
+                            'Array JSONB de usuarios mencionados. Formato: [{"id": "uuid", "username": "nombre"}]';
+                            
+                            RAISE NOTICE 'Columna mentioned_users agregada a pedido_comments';
+                        ELSE
+                            RAISE NOTICE 'Columna mentioned_users ya existe en pedido_comments';
+                        END IF;
+                    END $$;
+                `);
+
+                // Crear índice GIN para búsqueda eficiente de menciones
+                await client.query(`
+                    CREATE INDEX IF NOT EXISTS idx_pedido_comments_mentioned_users_gin 
+                    ON pedido_comments USING gin(mentioned_users);
+                `);
+
+                // Crear índice compuesto para búsquedas de comentarios con menciones
+                await client.query(`
+                    CREATE INDEX IF NOT EXISTS idx_pedido_comments_mentions 
+                    ON pedido_comments(pedido_id) 
+                    WHERE mentioned_users IS NOT NULL AND jsonb_array_length(mentioned_users) > 0;
+                `);
+
+                // Crear función auxiliar para buscar comentarios donde se menciona a un usuario
+                await client.query(`
+                    CREATE OR REPLACE FUNCTION get_comments_mentioning_user(user_id_param UUID)
+                    RETURNS TABLE(
+                        comment_id UUID,
+                        pedido_id VARCHAR(50),
+                        message TEXT,
+                        username VARCHAR(50),
+                        created_at TIMESTAMP WITH TIME ZONE
+                    ) AS $func$
+                    BEGIN
+                        RETURN QUERY
+                        SELECT 
+                            pc.id,
+                            pc.pedido_id,
+                            pc.message,
+                            pc.username,
+                            pc.created_at
+                        FROM pedido_comments pc
+                        WHERE pc.mentioned_users @> jsonb_build_array(
+                            jsonb_build_object('id', user_id_param::text)
+                        )
+                        ORDER BY pc.created_at DESC;
+                    END;
+                    $func$ LANGUAGE plpgsql STABLE;
+                `);
+
+                await client.query(`
+                    COMMENT ON FUNCTION get_comments_mentioning_user(UUID) IS 
+                    'Retorna todos los comentarios donde se menciona al usuario especificado';
+                `);
+
+                results.push({ migration: 'mentioned_users', status: 'success' });
+            } catch (error) {
+                console.error('Error en migración mentioned_users:', error);
+                results.push({ migration: 'mentioned_users', status: 'error', error: error.message });
             }
 
             // Verificar estado final
@@ -4158,6 +4273,7 @@ app.get('/api/comments/:pedidoId', requireAuth, async (req, res) => {
                 user_role as "userRole",
                 username,
                 message,
+                mentioned_users as "mentionedUsers",
                 is_system_message as "isSystemMessage",
                 is_edited as "isEdited",
                 edited_at as "editedAt",
@@ -4183,7 +4299,7 @@ app.get('/api/comments/:pedidoId', requireAuth, async (req, res) => {
 // Crear un nuevo comentario
 app.post('/api/comments', requireAuth, async (req, res) => {
     try {
-        const { pedidoId, message, userId, userRole, username } = req.body;
+        const { pedidoId, message, userId, userRole, username, mentionedUsers = [] } = req.body;
         const userFromToken = req.user;
 
         // Validaciones
@@ -4191,6 +4307,14 @@ app.post('/api/comments', requireAuth, async (req, res) => {
             return res.status(400).json({
                 success: false,
                 error: 'El pedidoId y mensaje son requeridos'
+            });
+        }
+
+        // Validar límite de menciones (máximo 5)
+        if (mentionedUsers.length > 5) {
+            return res.status(400).json({
+                success: false,
+                error: 'Máximo 5 menciones permitidas por comentario'
             });
         }
 
@@ -4220,10 +4344,13 @@ app.post('/api/comments', requireAuth, async (req, res) => {
             console.log(`🔄 Convirtiendo user_id "${finalUserId}" a UUID: ${validUserId}`);
         }
 
+        // Convertir mentionedUsers a JSONB
+        const mentionedUsersJson = JSON.stringify(mentionedUsers);
+
         const result = await dbClient.pool.query(`
             INSERT INTO pedido_comments (
-                pedido_id, user_id, user_role, username, message, is_system_message
-            ) VALUES ($1, $2, $3, $4, $5, false)
+                pedido_id, user_id, user_role, username, message, mentioned_users, is_system_message
+            ) VALUES ($1, $2, $3, $4, $5, $6, false)
             RETURNING 
                 id,
                 pedido_id as "pedidoId",
@@ -4231,13 +4358,76 @@ app.post('/api/comments', requireAuth, async (req, res) => {
                 user_role as "userRole", 
                 username,
                 message,
+                mentioned_users as "mentionedUsers",
                 is_system_message as "isSystemMessage",
                 created_at as "timestamp"
-        `, [pedidoId, validUserId, finalUserRole, finalUsername, message.trim()]);
+        `, [pedidoId, validUserId, finalUserRole, finalUsername, message.trim(), mentionedUsersJson]);
 
         const newComment = result.rows[0];
 
-        // Emitir evento WebSocket
+        // Crear notificaciones para usuarios mencionados
+        if (mentionedUsers && mentionedUsers.length > 0) {
+            for (const mentionedUser of mentionedUsers) {
+                try {
+                    // No crear notificación si el usuario se menciona a sí mismo
+                    // (aunque permitimos auto-menciones, no hace falta notificar)
+                    if (mentionedUser.id === validUserId) {
+                        continue;
+                    }
+
+                    const notificationId = `mention-${newComment.id}-${mentionedUser.id}-${Date.now()}`;
+                    
+                    await dbClient.pool.query(`
+                        INSERT INTO notifications (
+                            id, type, title, message, timestamp, read, 
+                            pedido_id, user_id, metadata
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                    `, [
+                        notificationId,
+                        'mention',
+                        `${finalUsername} te mencionó`,
+                        `"${message.trim().substring(0, 100)}${message.trim().length > 100 ? '...' : ''}"`,
+                        new Date(),
+                        false,
+                        pedidoId,
+                        mentionedUser.id,
+                        JSON.stringify({
+                            commentId: newComment.id,
+                            mentionedBy: {
+                                id: validUserId,
+                                username: finalUsername
+                            }
+                        })
+                    ]);
+
+                    // Emitir evento WebSocket de nueva notificación
+                    io.emit('notification:new', {
+                        id: notificationId,
+                        type: 'mention',
+                        title: `${finalUsername} te mencionó`,
+                        message: `"${message.trim().substring(0, 100)}${message.trim().length > 100 ? '...' : ''}"`,
+                        timestamp: new Date(),
+                        read: false,
+                        pedidoId: pedidoId,
+                        userId: mentionedUser.id,
+                        metadata: {
+                            commentId: newComment.id,
+                            mentionedBy: {
+                                id: validUserId,
+                                username: finalUsername
+                            }
+                        }
+                    });
+
+                    console.log(`📧 Notificación de mención creada para ${mentionedUser.username}`);
+                } catch (notifError) {
+                    console.error(`Error creando notificación de mención para ${mentionedUser.username}:`, notifError);
+                    // Continuar aunque falle la notificación
+                }
+            }
+        }
+
+        // Emitir evento WebSocket del comentario
         io.emit('comment:added', newComment);
 
         // Log de auditoría
@@ -4249,7 +4439,7 @@ app.post('/api/comments', requireAuth, async (req, res) => {
             finalUsername,
             'COMMENT_CREATED',
             'COMMENTS',
-            `Comentario agregado al pedido ${pedidoId}`,
+            `Comentario agregado al pedido ${pedidoId}${mentionedUsers.length > 0 ? ` mencionando a ${mentionedUsers.length} usuario(s)` : ''}`,
             req.ip,
             req.get('User-Agent'),
             newComment.id

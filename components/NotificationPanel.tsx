@@ -6,12 +6,17 @@ import { formatDateDDMMYYYY } from '../utils/date';
 interface NotificationPanelProps {
     isOpen: boolean;
     onClose: () => void;
-    onNavigateToPedido?: (pedidoId: string) => void;
+    onNavigateToPedido?: (pedidoId: string, commentId?: string) => void;
 }
 
 const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose, onNavigateToPedido }) => {
     const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [showAll, setShowAll] = useState(false);
+
+    // Límite de notificaciones visibles (20 por defecto)
+    const visibleNotifications = showAll ? notifications : notifications.slice(0, 20);
+    const hasMoreNotifications = notifications.length > 20;
 
     const handleNotificationClick = async (notification: Notification) => {
         // Marcar como leída si no lo está
@@ -25,7 +30,12 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose, 
 
         // Navegar al pedido si existe
         if (notification.pedidoId && onNavigateToPedido) {
-            onNavigateToPedido(notification.pedidoId);
+            // Si es una notificación de mención, extraer el commentId del metadata
+            const commentId = notification.type === 'mention' && notification.metadata?.commentId 
+                ? notification.metadata.commentId 
+                : undefined;
+            
+            onNavigateToPedido(notification.pedidoId, commentId);
             onClose(); // Cerrar el panel después de navegar
         }
     };
@@ -61,6 +71,8 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose, 
                 return '⚠️';
             case 'error':
                 return '❌';
+            case 'mention':
+                return '💬';
             default:
                 return 'ℹ️';
         }
@@ -76,6 +88,8 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose, 
                 return 'border-yellow-500 dark:border-yellow-400';
             case 'error':
                 return 'border-red-500 dark:border-red-400';
+            case 'mention':
+                return 'border-purple-500 dark:border-purple-400';
             default:
                 return 'border-gray-500 dark:border-gray-400';
         }
@@ -149,7 +163,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose, 
 
                 {/* Botones de acción */}
                 {notifications.length > 0 && (
-                    <div className="p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                    <div className="p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 space-y-2">
                         <button
                             onClick={handleMarkAllRead}
                             disabled={unreadCount === 0}
@@ -157,6 +171,32 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose, 
                         >
                             Marcar todas como leídas
                         </button>
+                        
+                        {/* Botón para ver más notificaciones */}
+                        {hasMoreNotifications && !showAll && (
+                            <button
+                                onClick={() => setShowAll(true)}
+                                className="w-full px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                                Ver más antiguas ({notifications.length - 20})
+                            </button>
+                        )}
+                        
+                        {/* Botón para mostrar menos */}
+                        {showAll && hasMoreNotifications && (
+                            <button
+                                onClick={() => setShowAll(false)}
+                                className="w-full px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
+                                Mostrar menos
+                            </button>
+                        )}
                     </div>
                 )}
 
@@ -172,7 +212,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose, 
                         </div>
                     ) : (
                         <div className="space-y-2">
-                            {notifications.map((notification) => (
+                            {visibleNotifications.map((notification) => (
                                 <div
                                     key={notification.id}
                                     onClick={() => handleNotificationClick(notification)}
@@ -213,6 +253,11 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose, 
                                             {/* Metadata adicional */}
                                             {notification.metadata && (
                                                 <div className="flex flex-wrap gap-1 mb-2">
+                                                    {notification.type === 'mention' && notification.metadata.mentionedBy && (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                                                            📝 Mencionado por @{notification.metadata.mentionedBy.username}
+                                                        </span>
+                                                    )}
                                                     {notification.metadata.cliente && (
                                                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
                                                             👤 {notification.metadata.cliente}

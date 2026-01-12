@@ -1,6 +1,7 @@
 import React from 'react';
 import { Comment } from '../../types/comments';
 import { formatDistanceToNow } from '../../utils/date';
+import { renderMentions } from '../../utils/mentions';
 
 interface CommentItemProps {
   comment: Comment;
@@ -105,8 +106,41 @@ const CommentItem: React.FC<CommentItemProps> = ({
         
         <div className="text-sm text-gray-800 dark:text-gray-200 break-words leading-relaxed bg-gray-50 dark:bg-gray-700/50 
                         rounded-lg px-3 py-2 border border-gray-200 dark:border-gray-600 shadow-sm">
-          {comment.message}
+          {comment.mentionedUsers && comment.mentionedUsers.length > 0 ? (
+            // Renderizar mensaje con menciones resaltadas
+            <span>
+              {renderMentions(comment.message, comment.mentionedUsers).map((segment, index) => {
+                if (segment.type === 'mention' && segment.user) {
+                  return (
+                    <span
+                      key={index}
+                      className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/50 
+                                 text-blue-700 dark:text-blue-300 font-semibold border border-blue-300 dark:border-blue-700
+                                 hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-colors cursor-pointer"
+                      title={`Usuario: ${segment.user.username}`}
+                    >
+                      {segment.content}
+                    </span>
+                  );
+                }
+                return <span key={index}>{segment.content}</span>;
+              })}
+            </span>
+          ) : (
+            // Sin menciones, renderizar mensaje normal
+            comment.message
+          )}
         </div>
+        
+        {canDelete && (
+          <button
+            onClick={handleDelete}
+            className="mt-1 text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300
+                       hover:underline opacity-0 group-hover:opacity-100 transition-opacity font-medium"
+          >
+            Eliminar
+          </button>
+        )}
       </div>
     </div>
   );

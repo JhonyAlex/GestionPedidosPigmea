@@ -13,7 +13,7 @@ export interface WebSocketEvents {
   'pedido-created': (data: { pedido: Pedido; message: string; timestamp: string }) => void;
   'pedido-updated': (data: { pedido: Pedido; previousPedido?: Pedido; changes: string[]; message: string; timestamp: string }) => void;
   'pedido-deleted': (data: { pedidoId: string; deletedPedido?: Pedido; message: string; timestamp: string }) => void;
-  'user-connected': (data: { userId: string; userRole: UserRole; connectedUsers: ConnectedUser[] }) => void;
+  'user-connected': (data: { userId: string; userRole: UserRole; displayName?: string; connectedUsers: ConnectedUser[] }) => void;
   'user-disconnected': (data: { userId: string; connectedUsers: ConnectedUser[] }) => void;
   'users-list': (data: { connectedUsers: ConnectedUser[] }) => void;
   'user-activity-received': (data: { userId: string; userRole: UserRole; activity: string; data?: any }) => void;
@@ -556,13 +556,14 @@ class WebSocketService {
     // Eventos de usuarios
     this.socket.on('user-connected', (data) => {
       console.log('👤 Usuario conectado:', data);
+      console.log('📋 Lista de usuarios actualizada:', data.connectedUsers);
       this.connectedUsers = data.connectedUsers;
       this.notifyConnectedUsersListeners();
       
       this.addNotification({
         type: 'info',
         title: 'Usuario conectado',
-        message: `${data.userId} (${data.userRole}) se conectó`,
+        message: `${data.displayName || data.userId} (${data.userRole}) se conectó`,
         autoClose: true,
         duration: 3000
       });
@@ -570,6 +571,7 @@ class WebSocketService {
 
     this.socket.on('user-disconnected', (data) => {
       console.log('👤 Usuario desconectado:', data);
+      console.log('📋 Lista de usuarios actualizada:', data.connectedUsers);
       this.connectedUsers = data.connectedUsers;
       this.notifyConnectedUsersListeners();
       
@@ -583,6 +585,7 @@ class WebSocketService {
     });
 
     this.socket.on('users-list', (data) => {
+      console.log('📋 Lista completa de usuarios recibida:', data.connectedUsers);
       this.connectedUsers = data.connectedUsers;
       this.notifyConnectedUsersListeners();
     });
@@ -718,6 +721,8 @@ class WebSocketService {
   }
 
   private notifyConnectedUsersListeners() {
+    console.log(`🔔 Notificando a ${this.connectedUsersListeners.length} listeners de usuarios conectados`);
+    console.log('📊 Usuarios actuales:', this.connectedUsers.map(u => ({ userId: u.userId, displayName: u.displayName })));
     this.connectedUsersListeners.forEach(listener => listener([...this.connectedUsers]));
   }
 

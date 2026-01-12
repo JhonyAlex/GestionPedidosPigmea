@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { CommentFormData } from '../../types/comments';
+import { MentionedUser } from '../../utils/mentions';
+import MentionAutocomplete from '../MentionAutocomplete';
 
 interface CommentInputProps {
   onSubmit: (data: CommentFormData) => Promise<void>;
@@ -7,17 +9,24 @@ interface CommentInputProps {
   placeholder?: string;
   disabled?: boolean;
   onIsTypingChange?: (isTyping: boolean) => void;
+  /** Lista de usuarios disponibles para mencionar */
+  availableUsers?: MentionedUser[];
 }
 
 const CommentInput: React.FC<CommentInputProps> = ({ 
   onSubmit, 
   isSubmitting = false,
-  placeholder = "Escribe un comentario...",
+  placeholder = "Escribe un comentario... (@usuario para mencionar)",
   disabled = false,
-  onIsTypingChange
+  onIsTypingChange,
+  availableUsers = []
 }) => {
   const [message, setMessage] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showMentionAutocomplete, setShowMentionAutocomplete] = useState(false);
+  const [cursorPosition, setCursorPosition] = useState(0);
+  const [autocompleteCoordinates, setAutocompleteCoordinates] = useState({ top: 0, left: 0 });
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,26 +36,116 @@ const CommentInput: React.FC<CommentInputProps> = ({
       await onSubmit({ message: message.trim() });
       setMessage('');
       setIsExpanded(false);
+      setShowMentionAutocomplete(false);
     } catch (error) {
       console.error('Error al enviar comentario:', error);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Si el autocomplete está abierto, no procesar Enter (lo manejará el autocomplete)
+    if (showMentionAutocomplete && (e.key === 'Enter' || e.key === 'Tab' || e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'Escape')) {
+      return;
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
     }
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    const newCursorPosition = e.target.selectionStart;
+    
+    setMessage(newValue);
+    setCursorPosition(newCursorPosition);
+    
+    // Detectar si se escribió '@' para mostrar autocomplete
+    const textBeforeCursor = newValue.substring(0, newCursorPosition);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    
+    // Verificar si hay un '@' reciente y no hay espacio después
+    if (lastAtIndex !== -1) {
+      const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
+      if (!textAfterAt.includes(' ') && !textAfterAt.includes('\n')) {
+        setShowMentionAutocomplete(true);
+        calculateAutocompletePosition();
+      } else {
+        setShowMentionAutocomplete(false);
+      }
+    } else {
+      setShowMentionAutocomplete(false);
+    }
+  };
+
+  const handleSelectUser = (user: MentionedUser, mentionStart: number, mentionEnd: number) => {
+    // Reemplazar @búsqueda con @username
+    const before = message.substring(0, mentionStart);
+    const after = message.substring(mentionEnd);
+    const newMessage = `${before}@${user.username} ${after}`;
+    
+    setMessage(newMessage);
+    setShowMentionAutocomplete(false);
+    
+    // Enfocar el textarea y mover el cursor después de la mención
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+      const newCursorPos = mentionStart + user.username.length + 2; // +2 por @ y espacio
+      setTimeout(() => {
+        textareaRef.current?.setSelectionRange(newCursorPos, newCursorPos);
+      }, 0);
+    }
+  };
+
+  const calculateAutocompletePosition = () => {
+    if (!textareaRef.current) return;
+    
+    // Posicionar el dropdown justo debajo del textarea
+    const rect = textareaRef.current.getBoundingClientRect();
+    setAutocompleteCoordinates({
+      top: rect.height + 5, // 5px debajo del textarea
+      left: 10
+    });
+  };
+
+  // Actualizar posición del cursor cuando el usuario navega con el teclado
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const handleSelectionChange = () => {
+      setCursorPosition(textarea.selectionStart);
+    };
+
+    textarea.addEventListener('select', handleSelectionChange);
+    textarea.addEventListener('click', handleSelectionChange);
+    
+    return () => {
+      textarea.removeEventListener('select', handleSelectionChange);
+      textarea.removeEventListener('click', handleSelectionChange);
+    };
+  }, []);
+
   const handleFocus = () => {
     setIsExpanded(true);
     onIsTypingChange?.(true);
   };
 
-  const handleBlur = () => {
+  const handleBlur = (e: React.FocusEvent) => {
+    // No cerrar si el blur es porque se está interactuando con el autocomplete
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    if (relatedTarget && relatedTarget.closest('[data-mention-autocomplete]')) {
+      return;
+    }
+    
     if (!message.trim()) setIsExpanded(false);
     onIsTypingChange?.(false);
+    
+    // Cerrar autocomplete con delay para permitir clicks en el dropdown
+    setTimeout(() => {
+      setShowMentionAutocomplete(false);
+    }, 200);
   };
 
   return (
@@ -67,8 +166,9 @@ const CommentInput: React.FC<CommentInputProps> = ({
           <div className="flex-1">
             <div className="relative">
               <textarea
+                ref={textareaRef}
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={handleChange}
                 onKeyDown={handleKeyDown}
                 onFocus={handleFocus}
                 onBlur={handleBlur}
@@ -89,16 +189,32 @@ const CommentInput: React.FC<CommentInputProps> = ({
                   {message.length}/500
                 </div>
               )}
+              
+              {/* Autocomplete de menciones */}
+              {showMentionAutocomplete && availableUsers.length > 0 && (
+                <div data-mention-autocomplete>
+                  <MentionAutocomplete
+                    text={message}
+                    cursorPosition={cursorPosition}
+                    onSelectUser={handleSelectUser}
+                    onClose={() => setShowMentionAutocomplete(false)}
+                    users={availableUsers}
+                    coordinates={autocompleteCoordinates}
+                  />
+                </div>
+              )}
             </div>
             
             {isExpanded && (
               <div className="flex items-center justify-between mt-2">
                 <div className="text-[10px] text-gray-500 dark:text-gray-400">
                   <kbd className="px-1 py-0.5 text-[9px] font-semibold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded">
+                    @
+                  </kbd> mencionar usuario • <kbd className="px-1 py-0.5 text-[9px] font-semibold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded">
                     Enter
-                  </kbd> para enviar, <kbd className="px-1 py-0.5 text-[9px] font-semibold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded">
+                  </kbd> enviar • <kbd className="px-1 py-0.5 text-[9px] font-semibold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded">
                     Shift+Enter
-                  </kbd> para nueva línea
+                  </kbd> nueva línea
                 </div>
                 
                 <div className="flex items-center space-x-1">
