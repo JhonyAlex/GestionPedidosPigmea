@@ -544,11 +544,9 @@ const Header: React.FC<HeaderProps> = ({
                                     className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 >
                                     <option value="all">🎨 Cliché</option>
-                                    {Object.values(EstadoCliché).map(estado => (
-                                        <option key={estado} value={estado}>
-                                            {estado}
-                                        </option>
-                                    ))}
+                                    <option value={EstadoCliché.PENDIENTE_CLIENTE}>Repetición</option>
+                                    <option value={EstadoCliché.REPETICION_CAMBIO}>Rep. c/Cambio</option>
+                                    <option value={EstadoCliché.NUEVO}>Nuevo</option>
                                 </select>
                             )}
                         </div>
