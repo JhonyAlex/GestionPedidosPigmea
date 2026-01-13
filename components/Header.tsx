@@ -541,11 +541,14 @@ const Header: React.FC<HeaderProps> = ({
                                     name="estadoCliche"
                                     value={estadoClicheFilter}
                                     onChange={(e) => onEstadoClicheFilterChange(e.target.value as EstadoCliché | 'all')}
-                                    className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 w-auto"
+                                    style={{ width: 'auto', minWidth: 'fit-content' }}
                                 >
                                     <option value="all">🎨 Cliché</option>
                                     {Object.values(EstadoCliché).map(estado => (
-                                        <option key={estado} value={estado}>{estado}</option>
+                                        <option key={estado} value={estado} className="text-xs">
+                                            {estado}
+                                        </option>
                                     ))}
                                 </select>
                             )}
