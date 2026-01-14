@@ -145,11 +145,14 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
                                                     {pedido.numeroRegistro}
                                                 </span>
                                             </div>
-                                            <span 
-                                                className={`text-sm px-3 py-1 rounded-full font-semibold text-white whitespace-nowrap ${ETAPAS[pedido.etapaActual]?.color || 'bg-gray-500'}`}
-                                            >
-                                                {ETAPAS[pedido.etapaActual]?.title || pedido.etapaActual}
-                                            </span>
+                                            {/* Badge de etapa con color dinámico */}
+                                            {pedido.etapaActual && ETAPAS[pedido.etapaActual] && (
+                                                <span 
+                                                    className={`text-sm px-3 py-1 rounded-full font-semibold text-white whitespace-nowrap ${ETAPAS[pedido.etapaActual].color}`}
+                                                >
+                                                    {ETAPAS[pedido.etapaActual].title}
+                                                </span>
+                                            )}
                                         </div>
 
                                         {/* Segunda línea: Cliente */}
