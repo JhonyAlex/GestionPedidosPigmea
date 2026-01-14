@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
-import { Pedido } from '../types';
-import { ETAPAS } from '../constants';
+import { Pedido, Etapa } from '../types';
+import { ETAPAS, PREPARACION_COLUMNS } from '../constants';
 import { useDebounce } from '../hooks/useDebounce';
 
 interface GlobalSearchDropdownProps {
@@ -24,6 +24,26 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
     
     // 🚀 Aplicar debounce al término de búsqueda para mejorar performance
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+    // Función helper para obtener la etapa/sub-etapa a mostrar
+    const getEtapaDisplay = (pedido: Pedido): { title: string; color: string } => {
+        // Si está en PREPARACION, mostrar la sub-etapa
+        if (pedido.etapaActual === Etapa.PREPARACION && pedido.subEtapaActual) {
+            const subEtapa = PREPARACION_COLUMNS.find(col => col.id === pedido.subEtapaActual);
+            if (subEtapa) {
+                return { title: subEtapa.title, color: subEtapa.color };
+            }
+        }
+        
+        // Para cualquier otra etapa, usar ETAPAS
+        const etapa = ETAPAS[pedido.etapaActual];
+        if (etapa) {
+            return { title: etapa.title, color: etapa.color };
+        }
+        
+        // Fallback
+        return { title: pedido.etapaActual, color: 'bg-gray-500' };
+    };
 
     // Auto-focus en el input cuando se abre
     useEffect(() => {
@@ -146,13 +166,16 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
                                                 </span>
                                             </div>
                                             {/* Badge de etapa con color dinámico */}
-                                            {pedido.etapaActual && ETAPAS[pedido.etapaActual] && (
-                                                <span 
-                                                    className={`text-sm px-3 py-1 rounded-full font-semibold text-white whitespace-nowrap ${ETAPAS[pedido.etapaActual].color}`}
-                                                >
-                                                    {ETAPAS[pedido.etapaActual].title}
-                                                </span>
-                                            )}
+                                            {(() => {
+                                                const etapaDisplay = getEtapaDisplay(pedido);
+                                                return (
+                                                    <span 
+                                                        className={`text-sm px-3 py-1 rounded-full font-semibold text-white whitespace-nowrap ${etapaDisplay.color}`}
+                                                    >
+                                                        {etapaDisplay.title}
+                                                    </span>
+                                                );
+                                            })()}
                                         </div>
 
                                         {/* Segunda línea: Cliente */}
