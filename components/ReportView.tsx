@@ -103,7 +103,9 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
             // --- Machine Normalization ---
             let normalizedMachine = MACHINE_SIN_ASIGNAR;
             
-            if (p.vendedorNombre === 'DNT' || (p.vendedorId && p.vendedorNombre?.includes('DNT'))) { // Robust check
+            const vendedorNombre = p.vendedorNombre?.trim().toUpperCase() || '';
+            
+            if (vendedorNombre === 'DNT' || vendedorNombre.includes('DNT')) {
                 normalizedMachine = MACHINE_DNT;
             } else if (p.maquinaImpresion) {
                 // Check if the machine is one of our known machines
@@ -120,7 +122,8 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
             if (!selectedMachines.includes(normalizedMachine)) return;
 
             // --- Calculations ---
-            const hours = p.tiempoProduccionDecimal || (parseTimeToMinutes(p.tiempoProduccionPlanificado) / 60) || 0;
+            const planificadoStr = p.tiempoProduccionPlanificado || '00:00';
+            const hours = p.tiempoProduccionDecimal || (parseTimeToMinutes(planificadoStr) / 60) || 0;
             const isFirm = p.clicheDisponible === true;
 
             // Update Groups (Accumulators)
@@ -255,19 +258,24 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
                     {Object.keys(processedData.machineGroups).map(machineKey => {
                         const data = processedData.machineGroups[machineKey];
                         const total = data.firm + data.variable;
-                        if (total === 0) return null; // Skip empty? Or show 0?
+                        
+                        // Show if there are orders, even if hours are 0
+                        if (data.count === 0 && total === 0) return null;
                         
                         // Scale (simple max based scaling for now, ideally dynamic)
                         // Let's find global max first
                         const maxHours = Math.max(...Object.values(processedData.machineGroups).map(d => d.firm + d.variable), 1);
-                        const heightPercent = (total / maxHours) * 100;
-                        const firmPercent = (data.firm / total) * 100;
-                        const variablePercent = (data.variable / total) * 100;
+                        // Ensure min height if there are orders but 0 hours (e.g. 1px or 2%)
+                        const minHeight = total === 0 && data.count > 0 ? 2 : 0; 
+                        const heightPercent = Math.max((total / maxHours) * 100, minHeight);
+                        
+                        const firmPercent = total > 0 ? (data.firm / total) * 100 : 0;
+                        const variablePercent = total > 0 ? (data.variable / total) * 100 : (data.count > 0 ? 100 : 0); // If 0 hours, make the tiny bar variable color by default?
 
                         return (
                             <div key={machineKey} className="flex flex-col items-center flex-1 group relative">
                                 {/* Tooltip */}
-                                <div className="absolute bottom-full mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded p-2 z-10 w-32 text-center">
+                                <div className="absolute bottom-full mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded p-2 z-10 w-32 text-center shadow-xl">
                                     <div className="font-bold">{machineKey}</div>
                                     <div>Total: {total.toFixed(1)}h</div>
                                     <div className="text-green-400">Firme: {data.firm.toFixed(1)}h</div>
@@ -276,7 +284,7 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
                                 </div>
                                 
                                 {/* Bar Container */}
-                                <div className="w-full max-w-[60px] flex flex-col-reverse bg-gray-100 dark:bg-gray-700 rounded overflow-hidden" style={{ height: `${heightPercent}%` }}>
+                                <div className="w-full max-w-[60px] flex flex-col-reverse bg-gray-100 dark:bg-gray-700 rounded overflow-hidden relative" style={{ height: `${heightPercent}%` }}>
                                     {/* Firm Load (Bottom) */}
                                     <div style={{ height: `${firmPercent}%` }} className="bg-green-500 w-full transition-all duration-500"></div>
                                     {/* Variable Load (Top) */}
@@ -284,8 +292,15 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
                                          {/* Striped pattern overlay could go here */}
                                          <div className="absolute inset-0 opacity-20 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNCIgaGVpZ2h0PSI0IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0xIDNMMCA0TDMgMkw0IDNMMSAzWiIgZmlsbD0iIzAwMCIvPjwvc3ZnPg==')]"></div>
                                     </div>
+                                    
+                                    {/* Zero Hours Indicator */}
+                                    {total === 0 && data.count > 0 && (
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <span className="text-[10px] text-gray-500 font-bold">0h</span>
+                                        </div>
+                                    )}
                                 </div>
-                                <span className="mt-2 text-xs font-medium text-gray-600 dark:text-gray-400 rotate-0 truncate w-full text-center">{machineKey}</span>
+                                <span className="mt-2 text-xs font-medium text-gray-600 dark:text-gray-400 rotate-0 truncate w-full text-center" title={machineKey}>{machineKey}</span>
                             </div>
                         );
                     })}
