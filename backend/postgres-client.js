@@ -1225,7 +1225,7 @@ class PostgreSQLClient {
                 SELECT column_name 
                 FROM information_schema.columns 
                 WHERE table_name = 'pedidos' 
-                AND column_name IN ('nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'vendedor_id', 'cliche_info_adicional', 'anonimo', 'compra_cliche', 'recepcion_cliche', 'observaciones_material', 'tiempo_produccion_decimal')
+                AND column_name IN ('nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'vendedor_id', 'cliche_info_adicional', 'anonimo', 'compra_cliche', 'recepcion_cliche', 'observaciones_material', 'tiempo_produccion_decimal', 'horas_confirmadas')
             `);
             
             const existingColumns = columnsResult.rows.map(row => row.column_name);
@@ -1242,6 +1242,7 @@ class PostgreSQLClient {
             const hasMacroperforado = existingColumns.includes('macroperforado');
             const hasAnonimoPostImpresion = existingColumns.includes('anonimo_post_impresion');
             const hasTiempoProduccionDecimal = existingColumns.includes('tiempo_produccion_decimal');
+            const hasHorasConfirmadas = existingColumns.includes('horas_confirmadas');
 
             // Construir query dinámicamente basado en columnas existentes
             const updateFields = [];
@@ -1365,6 +1366,12 @@ class PostgreSQLClient {
             if (hasTiempoProduccionDecimal) {
                 updateFields.push(`tiempo_produccion_decimal = $${paramIndex++}`);
                 values.push(pedido.tiempoProduccionDecimal || null);
+            }
+
+            // Agregar horas_confirmadas solo si la columna existe
+            if (hasHorasConfirmadas) {
+                updateFields.push(`horas_confirmadas = $${paramIndex++}`);
+                values.push(pedido.horasConfirmadas === true);
             }
 
             updateFields.push(`data = $${paramIndex++}`);

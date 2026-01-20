@@ -1701,29 +1701,14 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                         </div>
                                         <div>
                                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Compra Cliché</label>
-                                            <div className="flex items-center gap-3">
-                                                <input 
-                                                    type="date" 
-                                                    name="compraCliche" 
-                                                    value={formData.compraCliche || ''} 
-                                                    onChange={handleChange} 
-                                                    disabled={isReadOnly}
-                                                    className="flex-1 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
-                                                />
-                                                <div className="flex items-center bg-gray-100 dark:bg-gray-800 px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        id="horasConfirmadas"
-                                                        checked={!!formData.horasConfirmadas} 
-                                                        onChange={handleHorasConfirmadasManualChange} 
-                                                        disabled={isReadOnly} 
-                                                        className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-50 cursor-pointer"
-                                                    />
-                                                    <label htmlFor="horasConfirmadas" className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
-                                                        Horas conf.
-                                                    </label>
-                                                </div>
-                                            </div>
+                                            <input 
+                                                type="date" 
+                                                name="compraCliche" 
+                                                value={formData.compraCliche || ''} 
+                                                onChange={handleChange} 
+                                                disabled={isReadOnly}
+                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                            />
                                         </div>
                                         <div>
                                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Recepción Cliché</label>
@@ -1736,9 +1721,24 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                 className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
                                             />
                                         </div>
-                                        <div className="flex items-center pt-2">
-                                            <input type="checkbox" id="clicheDisponible" name="clicheDisponible" checked={!!formData.clicheDisponible} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                                            <label htmlFor="clicheDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Cliché Disponible</label>
+                                        <div className="flex flex-col gap-2 pt-2">
+                                            <div className="flex items-center">
+                                                <input type="checkbox" id="clicheDisponible" name="clicheDisponible" checked={!!formData.clicheDisponible} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                                <label htmlFor="clicheDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Cliché Disponible</label>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <input 
+                                                    type="checkbox" 
+                                                    id="horasConfirmadas"
+                                                    checked={!!formData.horasConfirmadas} 
+                                                    onChange={handleHorasConfirmadasManualChange} 
+                                                    disabled={isReadOnly} 
+                                                    className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-50 cursor-pointer"
+                                                />
+                                                <label htmlFor="horasConfirmadas" className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                                                    Horas confirmadas
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
