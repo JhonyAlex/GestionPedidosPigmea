@@ -168,10 +168,11 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
             const vendedorNombre = p.vendedorNombre?.trim().toUpperCase() || '';
             const maquinaImp = p.maquinaImpresion?.trim() || '';
 
-            if (p.anonimo) {
-                machineCategory = 'ANON';
-            } else if (vendedorNombre.includes('DNT') || maquinaImp.toUpperCase().includes('DNT')) {
+            // Prioritize DNT check (Vendor or Machine)
+            if (vendedorNombre.includes('DNT') || maquinaImp.toUpperCase().includes('DNT')) {
                 machineCategory = MACHINE_DNT;
+            } else if (p.anonimo) {
+                machineCategory = 'ANON';
             } else if (maquinaImp) {
                 // Check if known machine
                 const knownMachine = MAQUINAS_IMPRESION.find(m => m.id === maquinaImp || m.nombre === maquinaImp);
@@ -221,25 +222,18 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
         });
 
         // Calculate Free Capacity
-        const physicalMachines = ['Windmöller 1', 'Windmöller 3', 'GIAVE'];
-        // Filter physical machines to only those selected
-        const activePhysicalMachines = physicalMachines.filter(m => selectedMachines.includes(m));
-        
-        const totalWeeklyCapacity = activePhysicalMachines.length * CAPACITY_PER_WEEK;
+        // New Formula requested: 180 - WH1 - WH3 - DNT = Libres
+        const FIXED_CAPACITY_BASE = 180;
 
         sortedWeeks.forEach(group => {
-            group.totalCapacity = totalWeeklyCapacity;
+            group.totalCapacity = FIXED_CAPACITY_BASE;
             
-            let loadForCapacity = 0;
-            Object.keys(group.machines).forEach(key => {
-                // Only count load for physical machines + unassigned (assuming they go to physical)
-                // DNT is external, ANON ?? -> assume ANON is internal unless specified
-                if (key !== MACHINE_DNT && selectedMachines.includes(key)) {
-                     loadForCapacity += group.machines[key];
-                }
-            });
+            const wh1 = group.machines['Windmöller 1'] || 0;
+            const wh3 = group.machines['Windmöller 3'] || 0;
+            const dnt = group.machines['DNT'] || 0;
             
-            group.freeCapacity = totalWeeklyCapacity - loadForCapacity;
+            // Formula: 180 - WH1 - WH3 - DNT
+            group.freeCapacity = FIXED_CAPACITY_BASE - wh1 - wh3 - dnt;
         });
 
         return {
