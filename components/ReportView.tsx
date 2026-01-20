@@ -152,6 +152,7 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
                     label: `SEMANA ${weekNum} (${year})`,
                     dateRange: `${startStr} al ${endStr}`,
                     machines: {},
+                    machinePedidos: {},
                     totalCapacity: 0,
                     totalLoad: 0,
                     freeCapacity: 0
@@ -200,14 +201,8 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
                 }
                 weeklyGroups[weekKey].machines[machineCategory] += hours;
 
-                if (weeklyGroups[weekKey].machinePedidos) {
-                     if (!weeklyGroups[weekKey].machinePedidos![machineCategory]) {
-                        weeklyGroups[weekKey].machinePedidos![machineCategory] = [];
-                     }
+                if (weeklyGroups[weekKey].machinePedidos && weeklyGroups[weekKey].machinePedidos![machineCategory]) {
                      weeklyGroups[weekKey].machinePedidos![machineCategory].push(p);
-                } else {
-                    // Fallback init if missing (though unlikely given line 151)
-                    weeklyGroups[weekKey].machinePedidos = { [machineCategory]: [p] };
                 }
 
                 weeklyGroups[weekKey].totalLoad += hours;
