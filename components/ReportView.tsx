@@ -289,7 +289,7 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
                         const variablePercent = total > 0 ? (data.variable / total) * 100 : (data.count > 0 ? 100 : 0); // If 0 hours, make the tiny bar variable color by default?
 
                         return (
-                            <div key={machineKey} className="flex flex-col items-center flex-1 group relative">
+                            <div key={machineKey} className="flex flex-col items-center flex-1 group relative h-full justify-end">
                                 {/* Tooltip */}
                                 <div className="absolute bottom-full mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded p-2 z-10 w-32 text-center shadow-xl">
                                     <div className="font-bold">{machineKey}</div>
@@ -300,7 +300,7 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
                                 </div>
                                 
                                 {/* Bar Container */}
-                                <div className="w-full max-w-[60px] flex flex-col-reverse bg-gray-100 dark:bg-gray-700 rounded overflow-hidden relative" style={{ height: `${heightPercent}%` }}>
+                                <div className="w-full max-w-[60px] flex flex-col-reverse bg-gray-100 dark:bg-gray-700 rounded overflow-hidden relative transition-all duration-500" style={{ height: `${heightPercent}%` }}>
                                     {/* Firm Load (Bottom) */}
                                     <div style={{ height: `${firmPercent}%` }} className="bg-green-500 w-full transition-all duration-500"></div>
                                     {/* Variable Load (Top) */}
