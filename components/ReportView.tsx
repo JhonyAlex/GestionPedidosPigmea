@@ -168,8 +168,9 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
             const vendedorNombre = p.vendedorNombre?.trim().toUpperCase() || '';
             const maquinaImp = p.maquinaImpresion?.trim() || '';
 
-            // Prioritize DNT check (Vendor or Machine)
-            if (vendedorNombre.includes('DNT') || maquinaImp.toUpperCase().includes('DNT')) {
+            // CRITICAL: DNT priority rule. 
+            // If vendor is DNT, it MUST go to DNT category, regardless of machine assignment.
+            if (vendedorNombre.includes('DNT')) {
                 machineCategory = MACHINE_DNT;
             } else if (p.anonimo) {
                 machineCategory = 'ANON';
@@ -293,6 +294,7 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
                         onDateFieldChange={setDateField}
                         onDateFilterChange={setDateFilter}
                         onCustomDateChange={(e) => setCustomDateRange({ ...customDateRange, [e.target.name]: e.target.value })}
+                        align="right"
                     />
                 </div>
             </div>
