@@ -201,9 +201,14 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
                 }
                 weeklyGroups[weekKey].machines[machineCategory] += hours;
 
-                if (weeklyGroups[weekKey].machinePedidos && weeklyGroups[weekKey].machinePedidos![machineCategory]) {
-                     weeklyGroups[weekKey].machinePedidos![machineCategory].push(p);
+                // Ensure machinePedidos structure exists and push order
+                if (!weeklyGroups[weekKey].machinePedidos) {
+                    weeklyGroups[weekKey].machinePedidos = {};
                 }
+                if (!weeklyGroups[weekKey].machinePedidos![machineCategory]) {
+                    weeklyGroups[weekKey].machinePedidos![machineCategory] = [];
+                }
+                weeklyGroups[weekKey].machinePedidos![machineCategory].push(p);
 
                 weeklyGroups[weekKey].totalLoad += hours;
             }

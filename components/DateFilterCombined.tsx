@@ -117,7 +117,7 @@ const DateFilterCombined: React.FC<DateFilterCombinedProps> = ({
 
             {/* Panel Desplegable */}
             {isOpen && (
-                <div className="absolute left-0 mt-2 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
+                <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
                     {/* Sección de Campo de Fecha */}
                     <div className="p-3 border-b border-gray-200 dark:border-gray-700">
                         <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
