@@ -13,7 +13,7 @@ interface ReportViewProps {
 // Special filter constants
 const STAGE_LISTO_PARA_PRODUCCION = 'LISTO_PARA_PRODUCCION';
 const MACHINE_DNT = 'DNT';
-const MACHINE_SIN_ASIGNAR = 'SIN_ASIGNAR';
+const MACHINE_SIN_ASIGNAR = 'Sin Asignar';
 
 const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) => {
     // --- 1. State Management (Filters) ---
@@ -117,8 +117,13 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
                 if (knownMachine) {
                     normalizedMachine = knownMachine.id;
                 } else {
-                     // Keep as is or map to unknown? For now, use the value if it's not empty
-                     normalizedMachine = p.maquinaImpresion; 
+                     // Check if it looks like a DNT vendor even if not explicit
+                     if (p.maquinaImpresion.includes('DNT')) {
+                         normalizedMachine = MACHINE_DNT;
+                     } else {
+                         // Keep as is or map to unknown? For now, use the value if it's not empty
+                         normalizedMachine = p.maquinaImpresion; 
+                     }
                 }
             }
 
@@ -277,8 +282,8 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
                         // Let's find global max first
                         const maxHours = Math.max(...Object.values(processedData.machineGroups).map(d => d.firm + d.variable), 1);
                         // Ensure min height if there are orders but 0 hours (e.g. 1px or 2%)
-                        const minHeight = total === 0 && data.count > 0 ? 2 : 0; 
-                        const heightPercent = Math.max((total / maxHours) * 100, minHeight);
+                        const minHeight = total === 0 && data.count > 0 ? 5 : 0; 
+                        const heightPercent = total > 0 ? (total / maxHours) * 100 : minHeight;
                         
                         const firmPercent = total > 0 ? (data.firm / total) * 100 : 0;
                         const variablePercent = total > 0 ? (data.variable / total) * 100 : (data.count > 0 ? 100 : 0); // If 0 hours, make the tiny bar variable color by default?
