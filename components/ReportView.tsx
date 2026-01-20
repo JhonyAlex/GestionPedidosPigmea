@@ -44,8 +44,10 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
         // 1. Filter by Date
         
         let filtered = pedidos;
+        let filteredCount = 0;
 
         if (dateFilter !== 'all') {
+             // ... existing date logic ...
              let startDate: Date | null = null;
              let endDate: Date | null = null;
 
@@ -72,6 +74,8 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
                  });
              }
         }
+        
+        filteredCount = filtered.length;
 
         // 2. Filter by Stage & Machine + Normalize Data
         const machineGroups: Record<string, { firm: number; variable: number; count: number }> = {};
@@ -122,8 +126,15 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
             if (!selectedMachines.includes(normalizedMachine)) return;
 
             // --- Calculations ---
+            // Prioritize tiempoProduccionPlanificado as requested by user, but handle "00:00" or empty
             const planificadoStr = p.tiempoProduccionPlanificado || '00:00';
-            const hours = p.tiempoProduccionDecimal || (parseTimeToMinutes(planificadoStr) / 60) || 0;
+            let hours = parseTimeToMinutes(planificadoStr) / 60;
+            
+            // Fallback to decimal if planificado is 0 but decimal exists (edge case)
+            if (hours === 0 && p.tiempoProduccionDecimal) {
+                hours = p.tiempoProduccionDecimal;
+            }
+
             const isFirm = p.clicheDisponible === true;
 
             // Update Groups (Accumulators)
@@ -152,7 +163,7 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
             });
         });
 
-        return { machineGroups, tableRows };
+        return { machineGroups, tableRows, filteredCount };
 
     }, [pedidos, selectedStages, selectedMachines, dateFilter, dateField, customDateRange]);
 
@@ -309,12 +320,11 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
 
             {/* --- Detail Table --- */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                     <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-200">Detalle de Pedidos</h2>
-                </div>
+                {/* ... existing table code ... */}
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead className="bg-gray-50 dark:bg-gray-700">
+                        {/* ... table content ... */}
+                         <thead className="bg-gray-50 dark:bg-gray-700">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Prioridad</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Pedido / Cliente</th>
@@ -381,8 +391,42 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
                     </table>
                 </div>
             </div>
+
+            {/* Debug Info */}
+            <DebugInfo 
+                all={pedidos.length} 
+                filtered={processedData.filteredCount} 
+                rows={processedData.tableRows.length} 
+                sample={processedData.tableRows[0]}
+                filters={{ selectedStages, selectedMachines, dateFilter }}
+            />
         </main>
     );
 };
 
 export default ReportView;
+
+// --- Debug Component (Optional) ---
+const DebugInfo: React.FC<{ 
+    all: number, 
+    filtered: number, 
+    rows: number, 
+    sample: any,
+    filters: any
+}> = ({ all, filtered, rows, sample, filters }) => (
+    <div className="mt-8 p-4 bg-gray-100 dark:bg-gray-800 text-xs font-mono rounded border border-gray-300 dark:border-gray-600 overflow-auto max-h-60">
+        <h4 className="font-bold mb-2 text-red-500">Debug Info (Remove in Prod)</h4>
+        <div className="grid grid-cols-2 gap-4">
+            <div>
+                <p>Total Pedidos: {all}</p>
+                <p>Filtered by Date: {filtered}</p>
+                <p>Final Rows: {rows}</p>
+                <p>Filters: {JSON.stringify(filters, null, 2)}</p>
+            </div>
+            <div>
+                <p>Sample Row (First Match):</p>
+                <pre>{JSON.stringify(sample, null, 2)}</pre>
+            </div>
+        </div>
+    </div>
+);
