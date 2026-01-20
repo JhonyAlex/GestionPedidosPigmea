@@ -27,8 +27,7 @@ const MACHINE_COLUMN_HEADERS: Record<string, string> = {
     'Windmöller 3': 'WH-3',
     'GIAVE': 'SUP GIAVE',
     'DNT': 'DNT',
-    'Sin Asignar': 'Pedidos',
-    'ANON': 'ANON'
+    'Sin Asignar': 'Variables',
 };
 
 // Define colors for each machine column header
@@ -37,13 +36,12 @@ const MACHINE_COLORS: Record<string, string> = {
     'Windmöller 3': 'bg-red-200 text-red-900 border-red-300', // WH-3
     'GIAVE': 'bg-orange-200 text-orange-900 border-orange-300', // SUP GIAVE
     'DNT': 'bg-green-200 text-green-900 border-green-300', // DNT
-    'Sin Asignar': 'bg-gray-200 text-gray-900 border-gray-300', // Pedidos
-    'ANON': 'bg-purple-200 text-purple-900 border-purple-300' // ANON
+    'Sin Asignar': 'bg-gray-200 text-gray-900 border-gray-300', // Variables
 };
 
 export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys }) => {
     // Sort machine keys to match desired order: WH-1, Pedidos, WH-3, GIAVE, DNT
-    const desiredOrder = ['Windmöller 1', 'Sin Asignar', 'Windmöller 3', 'GIAVE', 'DNT', 'ANON'];
+    const desiredOrder = ['Windmöller 1', 'Sin Asignar', 'Windmöller 3', 'GIAVE', 'DNT'];
     const sortedKeys = [...machineKeys].sort((a, b) => {
         const indexA = desiredOrder.indexOf(a);
         const indexB = desiredOrder.indexOf(b);

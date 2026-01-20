@@ -19,6 +19,9 @@ interface PedidoListProps {
     sortConfig: { key: keyof Pedido, direction: 'ascending' | 'descending' };
     onSort: (key: keyof Pedido) => void;
     highlightedPedidoId: string | null;
+    selectedIds?: string[];
+    onToggleSelection?: (id: string) => void;
+    onSelectAll?: (ids: string[]) => void;
 }
 
 const ArchiveBoxIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" /></svg>;
@@ -94,8 +97,10 @@ const PedidoRow: React.FC<{
     isHighlighted: boolean,
     provided: any,
     snapshot: any,
-    highlightedPedidoId: string | null
-}> = ({ pedido, index, onSelectPedido, onArchiveToggle, isArchivedView, currentUserRole, onAdvanceStage, isHighlighted, provided, snapshot, highlightedPedidoId }) => {
+    highlightedPedidoId: string | null,
+    isSelected?: boolean,
+    onToggleSelection?: (id: string) => void
+}> = ({ pedido, index, onSelectPedido, onArchiveToggle, isArchivedView, currentUserRole, onAdvanceStage, isHighlighted, provided, snapshot, highlightedPedidoId, isSelected, onToggleSelection }) => {
     const { canMovePedidos, canArchivePedidos } = usePermissions();
     
     const { canAdvance, advanceButtonTitle } = useMemo(() => {
@@ -152,6 +157,16 @@ const PedidoRow: React.FC<{
             onClick={() => onSelectPedido(pedido)}
             className={`hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''}`}
         >
+            {onToggleSelection && (
+                <td className="px-2 py-2 w-10 text-center" onClick={(e) => e.stopPropagation()}>
+                    <input
+                        type="checkbox"
+                        checked={isSelected || false}
+                        onChange={() => onToggleSelection(pedido.id)}
+                        className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                    />
+                </td>
+            )}
             <td className="px-2 py-2 font-medium text-gray-900 dark:text-white whitespace-nowrap text-sm w-24">{pedido.numeroPedidoCliente}</td>
             <td className="px-2 py-2 text-gray-900 dark:text-white text-sm w-28 truncate" title={pedido.cliente}>{pedido.cliente}</td>
             <td className="px-2 py-2 text-gray-900 dark:text-white text-sm w-28 truncate" title={pedido.desarrollo}>{pedido.desarrollo}</td>
@@ -199,7 +214,7 @@ const PedidoRow: React.FC<{
 };
 
 
-const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArchiveToggle, isArchivedView, currentUserRole, onAdvanceStage, sortConfig, onSort, highlightedPedidoId }) => {
+const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArchiveToggle, isArchivedView, currentUserRole, onAdvanceStage, sortConfig, onSort, highlightedPedidoId, selectedIds, onToggleSelection, onSelectAll }) => {
     const [isMounted, setIsMounted] = useState(false);
     useEffect(() => {
         setIsMounted(true);
@@ -212,6 +227,16 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
                     <table className="min-w-full table-fixed">
                         <thead className="bg-gray-50 dark:bg-gray-700">
                             <tr>
+                                {onSelectAll && (
+                                    <th className="px-2 py-2 w-10 text-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={pedidos.length > 0 && pedidos.every(p => selectedIds?.includes(p.id))}
+                                            onChange={() => onSelectAll(pedidos.map(p => p.id))}
+                                            className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                        />
+                                    </th>
+                                )}
                                 <SortableHeaderTh label="N° Pedido" sortKey="numeroPedidoCliente" onSort={onSort} sortConfig={sortConfig} width="w-24" />
                                 <SortableHeaderTh label="Cliente" sortKey="cliente" onSort={onSort} sortConfig={sortConfig} width="w-28" />
                                 <SortableHeaderTh label="Desarrollo" sortKey="desarrollo" onSort={onSort} sortConfig={sortConfig} width="w-28" />
@@ -260,6 +285,8 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
                                                             provided={provided}
                                                             snapshot={snapshot}
                                                             highlightedPedidoId={highlightedPedidoId}
+                                                            isSelected={selectedIds?.includes(pedido.id)}
+                                                            onToggleSelection={onToggleSelection}
                                                         />
                                                     )}
                                                 </Draggable>
@@ -271,9 +298,9 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
                             </Droppable>
                         )}
                     </table>
-                     {!isMounted && (
+                    {!isMounted && (
                         <div className="text-center py-10 text-gray-500">Cargando...</div>
-                     )}
+                    )}
                 </div>
             </div>
         </main>

@@ -11,6 +11,7 @@ interface UseBulkOperationsReturn {
   selectAll: (ids: string[]) => void;
   bulkDelete: (ids: string[]) => Promise<{ success: boolean; deletedCount: number; error?: string }>;
   bulkUpdateDate: (ids: string[], nuevaFechaEntrega: string) => Promise<{ success: boolean; updatedCount: number; error?: string }>;
+  bulkUpdateMachine: (ids: string[], maquinaImpresion: string) => Promise<{ success: boolean; updatedCount: number; error?: string }>;
   bulkArchive: (ids: string[], archived?: boolean) => Promise<{ success: boolean; updatedCount: number; error?: string }>;
 }
 
@@ -121,7 +122,7 @@ export const useBulkOperations = (): UseBulkOperationsReturn => {
       const response = await fetch(`${API_URL}/pedidos/bulk-update-date`, {
         method: 'PATCH',
         headers,
-        body: JSON.stringify({ ids, nuevaFechaEntrega }),
+        body: JSON.stringify({ ids, nuevaFechaEntrega: String(nuevaFechaEntrega) }),
         credentials: 'include',
       });
 
@@ -151,6 +152,73 @@ export const useBulkOperations = (): UseBulkOperationsReturn => {
       };
     } catch (error) {
       console.error('Error en bulkUpdateDate:', error);
+      return {
+        success: false,
+        updatedCount: 0,
+        error: error instanceof Error ? error.message : 'Error desconocido',
+      };
+    }
+  }, [clearSelection]);
+
+  const bulkUpdateMachine = useCallback(async (
+    ids: string[],
+    maquinaImpresion: string
+  ): Promise<{ success: boolean; updatedCount: number; error?: string }> => {
+    try {
+      console.log('🏭 bulkUpdateMachine - IDs a actualizar:', ids);
+      console.log('🏭 bulkUpdateMachine - Nueva máquina:', maquinaImpresion);
+      console.log('🏭 bulkUpdateMachine - Total de IDs:', ids.length);
+      
+      // Obtener usuario del localStorage para enviar en headers
+      const userString = localStorage.getItem('pigmea_user');
+      const user = userString ? JSON.parse(userString) : null;
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Agregar headers de autenticación si hay usuario
+      if (user) {
+        headers['x-user-id'] = user.id;
+        headers['x-user-role'] = user.role;
+        console.log('🏭 bulkUpdateMachine - Usuario:', user.id, user.role);
+      }
+      
+      console.log('🏭 bulkUpdateMachine - Enviando petición...');
+      
+      const response = await fetch(`${API_URL}/pedidos/bulk-update-machine`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ ids, maquinaImpresion }),
+        credentials: 'include',
+      });
+
+      if (response.status === 401) {
+        throw new Error('No autenticado. Por favor, inicia sesión nuevamente.');
+      }
+
+      if (response.status === 403) {
+        throw new Error('No tienes permisos para realizar esta operación.');
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Error del servidor' }));
+        throw new Error(errorData.error || `Error HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      console.log('🏭 bulkUpdateMachine - Respuesta del servidor:', data);
+      
+      // Limpiar selección después de actualizar
+      clearSelection();
+      
+      return {
+        success: true,
+        updatedCount: data.updatedCount || ids.length,
+      };
+    } catch (error) {
+      console.error('Error en bulkUpdateMachine:', error);
       return {
         success: false,
         updatedCount: 0,
@@ -234,6 +302,7 @@ export const useBulkOperations = (): UseBulkOperationsReturn => {
     selectAll,
     bulkDelete,
     bulkUpdateDate,
+    bulkUpdateMachine,
     bulkArchive,
   };
 };

@@ -2191,6 +2191,114 @@ app.patch('/api/pedidos/bulk-update-date', requirePermission('pedidos.edit'), as
     }
 });
 
+// PATCH /api/pedidos/bulk-update-machine - Actualizar máquina de impresión para múltiples pedidos
+app.patch('/api/pedidos/bulk-update-machine', requirePermission('pedidos.edit'), async (req, res) => {
+    try {
+        const { ids, maquinaImpresion } = req.body;
+        
+        console.log('🖨️ [BULK UPDATE MACHINE] Endpoint alcanzado');
+        console.log('🖨️ IDs recibidos:', ids);
+        console.log('🖨️ Nueva máquina:', maquinaImpresion);
+        
+        // Validación
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ 
+                error: 'Se requiere un array de IDs no vacío.' 
+            });
+        }
+
+        if (!maquinaImpresion) {
+            return res.status(400).json({ 
+                error: 'Se requiere una máquina válida.' 
+            });
+        }
+
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({ 
+                error: 'Base de datos no disponible' 
+            });
+        }
+
+        console.log(`🖨️ Actualizando máquina de impresión para ${ids.length} pedidos: ${ids.join(', ')}`);
+        console.log(`🖨️ Nueva máquina: ${maquinaImpresion}`);
+
+        // Actualizar cada pedido
+        let updatedCount = 0;
+        const updatedPedidos = [];
+        const errors = [];
+
+        for (const id of ids) {
+            try {
+                console.log(`  🔄 Procesando pedido ${id}...`);
+                
+                const pedido = await dbClient.findById(id);
+                if (!pedido) {
+                    console.warn(`  ⚠️ Pedido ${id} no encontrado, saltando...`);
+                    errors.push({ id, error: 'Pedido no encontrado' });
+                    continue;
+                }
+
+                console.log(`  📦 Pedido encontrado: ${pedido.numeroPedidoCliente}`);
+                console.log(`  🖨️ Máquina anterior: ${pedido.maquinaImpresion || 'N/A'}`);
+
+                // Actualizar el pedido con la nueva máquina
+                const updatedPedido = {
+                    ...pedido,
+                    maquinaImpresion: maquinaImpresion
+                };
+
+                const result = await dbClient.update(updatedPedido);
+                
+                if (result) {
+                    updatedCount++;
+                    console.log(`  ✅ Pedido ${id} actualizado exitosamente`);
+                    updatedPedidos.push({
+                        id: result.id,
+                        numeroPedidoCliente: result.numeroPedidoCliente,
+                        maquinaImpresion: result.maquinaImpresion
+                    });
+                } else {
+                    console.error(`  ❌ Error: update devolvió null para ${id}`);
+                    errors.push({ id, error: 'update devolvió null' });
+                }
+            } catch (error) {
+                console.error(`  ❌ Error actualizando pedido ${id}:`, error.message);
+                console.error(error.stack);
+                errors.push({ id, error: error.message });
+            }
+        }
+
+        // 🔥 EVENTO WEBSOCKET: Pedidos actualizados masivamente
+        broadcastToClients('pedidos-bulk-updated', {
+            pedidoIds: ids,
+            count: updatedCount,
+            field: 'maquina_impresion',
+            value: maquinaImpresion,
+            pedidos: updatedPedidos
+        });
+
+        console.log(`✅ ${updatedCount} de ${ids.length} pedidos actualizados exitosamente`);
+        if (errors.length > 0) {
+            console.log(`⚠️ ${errors.length} errores:`, errors);
+        }
+
+        res.status(200).json({ 
+            success: true,
+            updatedCount,
+            totalRequested: ids.length,
+            errors: errors.length > 0 ? errors : undefined,
+            message: `${updatedCount} pedidos actualizados exitosamente.` 
+        });
+        
+    } catch (error) {
+        console.error('❌ Error en bulk-update-machine:', error);
+        res.status(500).json({ 
+            error: 'Error interno del servidor al actualizar pedidos.',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
 // PATCH /api/pedidos/bulk-archive - Archivar/Desarchivar múltiples pedidos
 app.patch('/api/pedidos/bulk-archive', requirePermission('pedidos.edit'), async (req, res) => {
     try {

@@ -30,6 +30,7 @@ import PermissionsDebug from './components/PermissionsDebug';
 import BulkActionsToolbar from './components/BulkActionsToolbar';
 import DeleteConfirmationModal from './components/DeleteConfirmationModal';
 import BulkDateUpdateModal from './components/BulkDateUpdateModal';
+import BulkMachineUpdateModal from './components/BulkMachineUpdateModal';
 import ImportDataModal from './components/ImportDataModal';
 import { ToastContainer } from './components/Toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -81,6 +82,7 @@ const AppContent: React.FC = () => {
     // Estados para operaciones masivas
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showDateUpdateModal, setShowDateUpdateModal] = useState(false);
+    const [showMachineUpdateModal, setShowMachineUpdateModal] = useState(false);
 
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
         if (typeof window !== 'undefined' && localStorage.theme) {
@@ -221,6 +223,7 @@ const AppContent: React.FC = () => {
         selectAll,
         bulkDelete,
         bulkUpdateDate,
+        bulkUpdateMachine,
         bulkArchive,
     } = useBulkOperations();
 
@@ -598,6 +601,13 @@ const AppContent: React.FC = () => {
         console.log('🟢 handleBulkUpdateDate - nuevaFecha:', nuevaFecha);
         console.log('Total seleccionados:', ids.length);
         
+        // Asegurarse de que nuevaFecha sea un string válido
+        if (!nuevaFecha) {
+            console.error('Error: nuevaFecha es inválida o vacía');
+            alert('Error: La fecha seleccionada no es válida.');
+            return;
+        }
+
         const result = await bulkUpdateDate(ids, nuevaFecha);
         
         console.log('🟢 handleBulkUpdateDate - Resultado:', result);
@@ -647,6 +657,59 @@ const AppContent: React.FC = () => {
             setShowDateUpdateModal(false);
         } else {
             alert(`❌ Error al actualizar fechas: ${result.error}`);
+        }
+    };
+
+    const handleBulkUpdateMachine = async (nuevaMaquina: string) => {
+        const ids = [...selectedIds];
+        
+        // Validar límite de 30 pedidos
+        if (ids.length > 30) {
+            alert('⚠️ Por seguridad, no se pueden actualizar más de 30 pedidos a la vez.');
+            return;
+        }
+
+        const result = await bulkUpdateMachine(ids, nuevaMaquina);
+        
+        if (result.success) {
+            // Actualizar la lista de pedidos
+            setPedidos(prev => {
+                return prev.map(p => {
+                    if (ids.includes(p.id)) {
+                        return {
+                            ...p,
+                            maquinaImpresion: nuevaMaquina,
+                            historial: [
+                                ...(p.historial || []),
+                                {
+                                    timestamp: new Date().toISOString(),
+                                    usuario: user?.displayName || user?.username || currentUserRole,
+                                    accion: 'Actualización masiva de Máquina',
+                                    detalles: `Nueva máquina establecida: ${nuevaMaquina}`
+                                }
+                            ]
+                        };
+                    }
+                    return p;
+                });
+            });
+            
+            // Log de auditoría
+            logAction(`${result.updatedCount} pedidos actualizados con nueva máquina: ${nuevaMaquina}`);
+            
+            // Emitir actividad WebSocket
+            emitActivity('bulk-update-machine', { 
+                count: result.updatedCount,
+                pedidoIds: ids,
+                maquinaImpresion: nuevaMaquina
+            });
+            
+            // Mostrar toast de éxito
+            alert(`✅ ${result.updatedCount} ${result.updatedCount === 1 ? 'pedido actualizado' : 'pedidos actualizados'} exitosamente.`);
+            
+            setShowMachineUpdateModal(false);
+        } else {
+            alert(`❌ Error al actualizar máquinas: ${result.error}`);
         }
     };
 
@@ -885,6 +948,9 @@ const AppContent: React.FC = () => {
                             sortConfig={sortConfig}
                             onSort={handleSort}
                             highlightedPedidoId={highlightedPedidoId}
+                            selectedIds={selectedIds}
+                            onToggleSelection={toggleSelection}
+                            onSelectAll={selectAll}
                         />;
             case 'archived':
                 return <PedidoList 
@@ -897,6 +963,9 @@ const AppContent: React.FC = () => {
                             sortConfig={sortConfig}
                             onSort={handleSort}
                             highlightedPedidoId={highlightedPedidoId}
+                            selectedIds={selectedIds}
+                            onToggleSelection={toggleSelection}
+                            onSelectAll={selectAll}
                         />;
             case 'report':
                     if (currentUserRole !== 'Administrador') {
@@ -906,6 +975,10 @@ const AppContent: React.FC = () => {
                     pedidos={pedidos} 
                     auditLog={auditLog} 
                     onNavigateToPedido={navigateToPedido}
+                    onSelectPedido={setSelectedPedido}
+                    selectedIds={selectedIds}
+                    onToggleSelection={toggleSelection}
+                    onSelectAll={selectAll}
                 />;
             case 'operador':
                 return <OperadorView />;
@@ -1055,6 +1128,7 @@ const AppContent: React.FC = () => {
                 <BulkActionsToolbar
                     selectedCount={selectedIds.length}
                     onUpdateDate={() => setShowDateUpdateModal(true)}
+                    onUpdateMachine={() => setShowMachineUpdateModal(true)}
                     onDelete={() => setShowDeleteModal(true)}
                     onArchive={handleBulkArchive}
                     onCancel={clearSelection}
@@ -1072,6 +1146,13 @@ const AppContent: React.FC = () => {
                     pedidos={pedidos.filter(p => selectedIds.includes(p.id))}
                     onConfirm={handleBulkUpdateDate}
                     onCancel={() => setShowDateUpdateModal(false)}
+                />
+
+                <BulkMachineUpdateModal
+                    isOpen={showMachineUpdateModal}
+                    pedidos={pedidos.filter(p => selectedIds.includes(p.id))}
+                    onConfirm={handleBulkUpdateMachine}
+                    onCancel={() => setShowMachineUpdateModal(false)}
                 />
 
                 <ImportDataModal

@@ -16,6 +16,11 @@ import html2canvas from 'html2canvas';
 interface ReportViewProps {
     pedidos: Pedido[];
     onNavigateToPedido?: (pedido: Pedido) => void;
+    onSelectPedido?: (pedido: Pedido) => void;
+    auditLog?: any[]; // Optional for now
+    selectedIds?: string[];
+    onToggleSelection?: (id: string) => void;
+    onSelectAll?: (ids: string[]) => void;
 }
 
 // Special filter constants
@@ -30,7 +35,14 @@ const STORAGE_KEY_DATE_FIELD = 'planning_date_field';
 const STORAGE_KEY_STAGES = 'planning_selected_stages';
 const STORAGE_KEY_MACHINES = 'planning_selected_machines';
 
-const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) => {
+const ReportView: React.FC<ReportViewProps> = ({ 
+    pedidos, 
+    onNavigateToPedido, 
+    onSelectPedido,
+    selectedIds,
+    onToggleSelection,
+    onSelectAll
+}) => {
     // --- 1. State Management (Filters) ---
 
     // Load initial states from localStorage
@@ -52,7 +64,7 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
         return saved ? JSON.parse(saved) : [Etapa.PREPARACION, STAGE_LISTO_PARA_PRODUCCION];
     });
 
-    const allMachineOptions = ['Windmöller 1', 'Windmöller 3', 'GIAVE', 'DNT', 'Sin Asignar', 'ANON'];
+    const allMachineOptions = ['Windmöller 1', 'Windmöller 3', 'GIAVE', 'DNT', 'Sin Asignar'];
     const [selectedMachines, setSelectedMachines] = useState<string[]>(() => {
         const saved = localStorage.getItem(STORAGE_KEY_MACHINES);
         return saved ? JSON.parse(saved) : allMachineOptions;
@@ -177,8 +189,6 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
             // If vendor is DNT, it MUST go to DNT category, regardless of machine assignment.
             if (vendedorNombre.includes('DNT')) {
                 machineCategory = MACHINE_DNT;
-            } else if (p.anonimo) {
-                machineCategory = 'ANON';
             } else if (maquinaImp) {
                 // Check if known machine
                 const knownMachine = MAQUINAS_IMPRESION.find(m => m.id === maquinaImp || m.nombre === maquinaImp);
@@ -492,6 +502,16 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead className="bg-gray-50 dark:bg-gray-900">
                                 <tr>
+                                    {onSelectAll && (
+                                        <th scope="col" className="px-6 py-3 text-center w-10">
+                                            <input
+                                                type="checkbox"
+                                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                                checked={selectedPedidos.length > 0 && selectedPedidos.every(p => selectedIds?.includes(p.id))}
+                                                onChange={() => onSelectAll(selectedPedidos.map(p => p.id))}
+                                            />
+                                        </th>
+                                    )}
                                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pedido</th>
                                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cliente</th>
                                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Descripción</th>
@@ -515,9 +535,25 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
                                         return (
                                             <tr 
                                                 key={pedido.id} 
-                                                className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer group"
-                                                onClick={() => onNavigateToPedido && onNavigateToPedido(pedido)}
+                                                className={`hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer group ${selectedIds?.includes(pedido.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                                                onClick={() => {
+                                                    if (onSelectPedido) {
+                                                        onSelectPedido(pedido);
+                                                    } else if (onNavigateToPedido) {
+                                                        onNavigateToPedido(pedido);
+                                                    }
+                                                }}
                                             >
+                                                {onToggleSelection && (
+                                                    <td className="px-6 py-4 whitespace-nowrap text-center" onClick={(e) => e.stopPropagation()}>
+                                                        <input
+                                                            type="checkbox"
+                                                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                                            checked={selectedIds?.includes(pedido.id) || false}
+                                                            onChange={() => onToggleSelection(pedido.id)}
+                                                        />
+                                                    </td>
+                                                )}
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400">
                                                     {pedido.numeroPedidoCliente}
                                                 </td>
@@ -546,8 +582,8 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
                                     })
                                 ) : (
                                     <tr>
-                                        <td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400 italic">
-                                            No hay pedidos asignados a este bloque.
+                                        <td colSpan={onSelectAll ? 8 : 7} className="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400 italic">
+                                            No hay variables asignadas a este bloque.
                                         </td>
                                     </tr>
                                 )}
