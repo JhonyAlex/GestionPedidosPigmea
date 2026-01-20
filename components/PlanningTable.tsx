@@ -9,6 +9,9 @@ export interface WeeklyData {
     machines: {
         [key: string]: number; // e.g. "Windmöller 1": 120.5
     };
+    machinePedidos?: {
+        [key: string]: any[]; // Store related orders
+    };
     totalCapacity: number;
     totalLoad: number;
     freeCapacity: number;

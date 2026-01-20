@@ -4,6 +4,7 @@ import { WeeklyData } from './PlanningTable';
 interface PlanningChartProps {
     data: WeeklyData[];
     machineKeys: string[];
+    onBarClick?: (weekLabel: string, machineKey: string) => void;
 }
 
 const MACHINE_COLORS: Record<string, string> = {
@@ -24,7 +25,7 @@ const MACHINE_LABELS: Record<string, string> = {
     'ANON': 'ANON'
 };
 
-export const PlanningChart: React.FC<PlanningChartProps> = ({ data, machineKeys }) => {
+export const PlanningChart: React.FC<PlanningChartProps> = ({ data, machineKeys, onBarClick }) => {
     // Determine max value for scaling
     const allValues = data.flatMap(d => Object.values(d.machines));
     const maxValue = Math.max(...allValues, 10);
@@ -85,12 +86,13 @@ export const PlanningChart: React.FC<PlanningChartProps> = ({ data, machineKeys 
                                             )}
                                             {/* The Bar */}
                                             <div 
-                                                className="w-full transition-all duration-500 hover:opacity-80"
+                                                className={`w-full transition-all duration-500 hover:opacity-80 ${onBarClick ? 'cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-gray-400' : ''}`}
                                                 style={{ 
                                                     height: `${heightPercent}%`, 
                                                     backgroundColor: MACHINE_COLORS[key] || '#ccc' 
                                                 }}
                                                 title={`${MACHINE_LABELS[key]}: ${value.toFixed(2)}h`}
+                                                onClick={() => onBarClick && onBarClick(weekData.label, key)}
                                             ></div>
                                         </div>
                                     );

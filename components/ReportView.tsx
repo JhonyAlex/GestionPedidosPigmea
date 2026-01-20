@@ -53,6 +53,8 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
         return saved ? JSON.parse(saved) : allMachineOptions;
     });
 
+    const [selectedChartFilter, setSelectedChartFilter] = useState<{ weekLabel: string, machine: string } | null>(null);
+
     // --- Persistence Effects ---
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY_DATE_FILTER, dateFilter);
@@ -197,6 +199,14 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
                     weeklyGroups[weekKey].machines[machineCategory] = 0;
                 }
                 weeklyGroups[weekKey].machines[machineCategory] += hours;
+
+                if (weeklyGroups[weekKey].machinePedidos) {
+                     if (!weeklyGroups[weekKey].machinePedidos![machineCategory]) {
+                        weeklyGroups[weekKey].machinePedidos![machineCategory] = [];
+                     }
+                     weeklyGroups[weekKey].machinePedidos![machineCategory].push(p);
+                }
+
                 weeklyGroups[weekKey].totalLoad += hours;
             }
         });
@@ -236,6 +246,13 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
 
     }, [pedidos, selectedStages, selectedMachines, dateFilter, dateField, customDateRange]);
 
+    // Derived state for details table
+    const selectedPedidos = useMemo(() => {
+        if (!selectedChartFilter) return [];
+        const week = processedData.weeklyData.find(w => w.label === selectedChartFilter.weekLabel);
+        return week?.machinePedidos?.[selectedChartFilter.machine] || [];
+    }, [processedData, selectedChartFilter]);
+
 
     // --- 3. Render Helpers ---
 
@@ -249,6 +266,20 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
         setSelectedMachines(prev =>
             prev.includes(machine) ? prev.filter(m => m !== machine) : [...prev, machine]
         );
+    };
+
+    const handleBarClick = (weekLabel: string, machineKey: string) => {
+        setSelectedChartFilter({
+            weekLabel,
+            machine: machineKey
+        });
+
+        setTimeout(() => {
+            const element = document.getElementById('planning-details-table');
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 100);
     };
 
     return (
@@ -337,7 +368,100 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
             <PlanningChart 
                 data={processedData.weeklyData} 
                 machineKeys={processedData.machineKeys} 
+                onBarClick={handleBarClick}
             />
+
+            {/* --- Details Table (Filtered) --- */}
+            {selectedChartFilter && (
+                <div id="planning-details-table" className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden p-4 mt-6 animate-fade-in">
+                    <div className="flex justify-between items-center mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+                        <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                            <span className="w-2 h-6 bg-blue-500 rounded-sm"></span>
+                            Detalle: {selectedChartFilter.machine} - {selectedChartFilter.weekLabel}
+                            <span className="ml-2 text-sm font-normal text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
+                                {selectedPedidos.length} pedidos
+                            </span>
+                        </h3>
+                        <button 
+                            onClick={() => setSelectedChartFilter(null)}
+                            className="text-gray-500 hover:text-red-500 transition-colors p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                            title="Cerrar detalle"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead className="bg-gray-50 dark:bg-gray-900">
+                                <tr>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pedido</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cliente</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Descripción</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha Entrega</th>
+                                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Metros</th>
+                                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tiempo (h)</th>
+                                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                {selectedPedidos.length > 0 ? (
+                                    selectedPedidos.map((pedido) => {
+                                        // Calculate hours for display
+                                        let hours = 0;
+                                        if (pedido.tiempoProduccionPlanificado) {
+                                            hours = parseTimeToMinutes(pedido.tiempoProduccionPlanificado) / 60;
+                                        } else if (pedido.tiempoProduccionDecimal) {
+                                            hours = pedido.tiempoProduccionDecimal;
+                                        }
+                                        
+                                        return (
+                                            <tr key={pedido.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                                    {pedido.numeroPedidoCliente}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                                                    {pedido.cliente}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                                                    {pedido.producto || pedido.descripcion || '-'}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                                                    {pedido.nuevaFechaEntrega || pedido.fechaEntrega}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500 dark:text-gray-300">
+                                                    {Number(pedido.metros).toLocaleString()} m
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono text-gray-900 dark:text-white">
+                                                    {hours.toFixed(2)}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                    {onNavigateToPedido && (
+                                                        <button 
+                                                            onClick={() => onNavigateToPedido(pedido)}
+                                                            className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                                                        >
+                                                            Ver
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                ) : (
+                                    <tr>
+                                        <td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400 italic">
+                                            No hay pedidos asignados a este bloque.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
 
         </main>
     );
