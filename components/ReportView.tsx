@@ -1,519 +1,369 @@
-import React, { useMemo } from 'react';
-import { Pedido, Prioridad, Etapa, AuditEntry } from '../types';
-import { parseTimeToMinutes, calcularTiempoRealProduccion } from '../utils/kpi';
-import BarChart from './BarChart';
-import LineChart from './LineChart';
-import { formatDateTimeDDMMYYYY } from '../utils/date';
+import React, { useState, useMemo } from 'react';
+import { Pedido, Etapa, Prioridad } from '../types';
+import { DateFilterOption, getDateRange } from '../utils/date';
+import DateFilterCombined from './DateFilterCombined';
+import { MAQUINAS_IMPRESION, PREPARACION_SUB_ETAPAS_IDS, ETAPAS } from '../constants';
+import { parseTimeToMinutes } from '../utils/kpi';
 
 interface ReportViewProps {
     pedidos: Pedido[];
-    auditLog: AuditEntry[];
     onNavigateToPedido?: (pedido: Pedido) => void;
 }
 
-const ReportView: React.FC<ReportViewProps> = ({ pedidos, auditLog, onNavigateToPedido }) => {
-    const urgentPedidos = useMemo(() => {
-        return pedidos.filter(p => p.prioridad === Prioridad.URGENTE && p.etapaActual !== Etapa.ARCHIVADO && p.etapaActual !== Etapa.COMPLETADO);
-    }, [pedidos]);
+// Special filter constants
+const STAGE_LISTO_PARA_PRODUCCION = 'LISTO_PARA_PRODUCCION';
+const MACHINE_DNT = 'DNT';
+const MACHINE_SIN_ASIGNAR = 'SIN_ASIGNAR';
 
-    const completedPedidos = useMemo(() => {
-        return pedidos
-            .filter(p => p.etapaActual === Etapa.COMPLETADO || p.etapaActual === Etapa.ARCHIVADO)
-            .sort((a,b) => {
-                const dateA = new Date(a.fechaCreacion).getTime();
-                const dateB = new Date(b.fechaCreacion).getTime();
-                return dateA - dateB; // Sort by creation date ascending
-            });
-    }, [pedidos]);
+const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) => {
+    // --- 1. State Management (Filters) ---
+    
+    // Stage Filter
+    // Default: PREPARACION and LISTO_PARA_PRODUCCION
+    const [selectedStages, setSelectedStages] = useState<string[]>([
+        Etapa.PREPARACION, 
+        STAGE_LISTO_PARA_PRODUCCION
+    ]);
 
-    const performanceChartData = useMemo(() => {
-        // Group orders by week based on creation date
-        const weeklyData: { [key: string]: { planned: number[], real: number[], count: number, orders: string[] } } = {};
+    // Machine Filter
+    // Default: All machines + DNT + Sin Asignar
+    const [selectedMachines, setSelectedMachines] = useState<string[]>([
+        ...MAQUINAS_IMPRESION.map(m => m.id),
+        MACHINE_DNT,
+        MACHINE_SIN_ASIGNAR
+    ]);
+
+    // Date Filter
+    const [dateField, setDateField] = useState<keyof Pedido>('fechaEntrega');
+    const [dateFilter, setDateFilter] = useState<DateFilterOption>('all');
+    const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
+
+    // --- 2. Data Processing Engine ---
+
+    const processedData = useMemo(() => {
+        // 1. Filter by Date
         
-        completedPedidos.forEach(pedido => {
-            const creationDate = new Date(pedido.fechaCreacion);
-            const weekStart = new Date(creationDate);
-            weekStart.setDate(creationDate.getDate() - creationDate.getDay()); // Start of week (Sunday)
-            const weekKey = weekStart.toISOString().slice(0, 10); // YYYY-MM-DD format
-            
-            if (!weeklyData[weekKey]) {
-                weeklyData[weekKey] = { planned: [], real: [], count: 0, orders: [] };
-            }
-            
-            const plannedMinutes = parseTimeToMinutes(pedido.tiempoProduccionPlanificado);
-            const realMinutes = calcularTiempoRealProduccion(pedido);
-            
-            weeklyData[weekKey].planned.push(plannedMinutes);
-            weeklyData[weekKey].real.push(realMinutes);
-            weeklyData[weekKey].orders.push(pedido.numeroPedidoCliente);
-            weeklyData[weekKey].count++;
-        });
+        let filtered = pedidos;
 
-        // Calculate averages and prepare chart data
-        const sortedWeeks = Object.keys(weeklyData).sort();
-        const labels = sortedWeeks.map(weekKey => {
-            const date = new Date(weekKey);
-            const day = date.getDate();
-            const month = date.toLocaleDateString('es-ES', { month: 'short' });
-            const weekData = weeklyData[weekKey];
-            return `Sem ${day} ${month} (${weekData.count} pedidos)`;
-        });
+        if (dateFilter !== 'all') {
+             let startDate: Date | null = null;
+             let endDate: Date | null = null;
 
-        const plannedAvgs = sortedWeeks.map(weekKey => {
-            const data = weeklyData[weekKey].planned;
-            return data.length > 0 ? Math.round(data.reduce((a, b) => a + b, 0) / data.length) : 0;
-        });
-
-        const realAvgs = sortedWeeks.map(weekKey => {
-            const data = weeklyData[weekKey].real;
-            return data.length > 0 ? Math.round(data.reduce((a, b) => a + b, 0) / data.length) : 0;
-        });
-
-        const varianceData = realAvgs.map((real, index) => {
-            const planned = plannedAvgs[index];
-            return real - planned; // Positive = over planned, Negative = under planned
-        });
-
-        return {
-            labels,
-            datasets: [
-                {
-                    label: 'Tiempo Promedio Planificado (min)',
-                    data: plannedAvgs,
-                    borderColor: 'rgba(59, 130, 246, 1)',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    fill: false,
-                    tension: 0.1,
-                },
-                {
-                    label: 'Tiempo Promedio Real (min)',
-                    data: realAvgs,
-                    borderColor: 'rgba(239, 68, 68, 1)',
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    fill: false,
-                    tension: 0.1,
-                },
-                {
-                    label: 'Diferencia (Real - Plan) (min)',
-                    data: varianceData,
-                    borderColor: 'rgba(16, 185, 129, 1)',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    fill: false,
-                    tension: 0.1,
-                }
-            ]
-        };
-    }, [completedPedidos]);
-
-    // KPI Cards Data
-    const kpiData = useMemo(() => {
-        const totalPedidos = pedidos.length;
-        const completados = pedidos.filter(p => p.etapaActual === Etapa.COMPLETADO || p.etapaActual === Etapa.ARCHIVADO).length;
-        const enProceso = pedidos.filter(p => ![Etapa.COMPLETADO, Etapa.ARCHIVADO, Etapa.PENDIENTE].includes(p.etapaActual)).length;
-        const pendientes = pedidos.filter(p => p.etapaActual === Etapa.PENDIENTE).length;
-
-        const completadosList = pedidos.filter(p => p.etapaActual === Etapa.COMPLETADO || p.etapaActual === Etapa.ARCHIVADO);
-        const onTimeCount = completadosList.filter(p => {
-            const real = calcularTiempoRealProduccion(p);
-            const planned = parseTimeToMinutes(p.tiempoProduccionPlanificado);
-            return real <= planned;
-        }).length;
-        const onTimePercentage = completados > 0 ? Math.round((onTimeCount / completados) * 100) : 0;
-
-        const avgRealTime = completadosList.length > 0
-            ? Math.round(completadosList.reduce((sum, p) => sum + calcularTiempoRealProduccion(p), 0) / completadosList.length)
-            : 0;
-
-        return {
-            totalPedidos,
-            completados,
-            enProceso,
-            pendientes,
-            onTimePercentage,
-            avgRealTime
-        };
-    }, [pedidos]);
-
-    // Stage Analysis Data
-    const stageAnalysisData = useMemo(() => {
-        const stageTimes: { [key: string]: number[] } = {};
-        const allStages = Object.values(Etapa);
-
-        allStages.forEach(stage => {
-            stageTimes[stage] = [];
-        });
-
-        pedidos.forEach(pedido => {
-            pedido.etapasSecuencia.forEach((etapaInfo, index) => {
-                const startTime = new Date(etapaInfo.fecha).getTime();
-                const nextEtapa = pedido.etapasSecuencia[index + 1];
-                const endTime = nextEtapa ? new Date(nextEtapa.fecha).getTime() : new Date().getTime();
-                const duration = (endTime - startTime) / (1000 * 60); // minutes
-
-                if (stageTimes[etapaInfo.etapa]) {
-                    stageTimes[etapaInfo.etapa].push(duration);
-                }
-            });
-        });
-
-        const stageAvgTimes = Object.entries(stageTimes).map(([stage, times]) => ({
-            stage,
-            avgTime: times.length > 0 ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : 0,
-            count: times.length
-        })).filter(s => s.count > 0).sort((a, b) => b.avgTime - a.avgTime);
-
-        return {
-            labels: stageAvgTimes.map(s => s.stage.replace('IMPRESION_', '').replace('POST_', '')),
-            datasets: [{
-                label: 'Tiempo Promedio (min)',
-                data: stageAvgTimes.map(s => s.avgTime),
-                backgroundColor: 'rgba(147, 51, 234, 0.7)',
-            }]
-        };
-    }, [pedidos]);
-
-    // Monthly Trends Data
-    const monthlyTrendsData = useMemo(() => {
-        const monthlyData: { [key: string]: { completed: number; created: number } } = {};
-        const now = new Date();
-        const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-
-        // Initialize months
-        for (let i = 0; i < 6; i++) {
-            const date = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
-            const key = date.toISOString().slice(0, 7); // YYYY-MM
-            monthlyData[key] = { completed: 0, created: 0 };
+             if (dateFilter === 'custom' && customDateRange.start && customDateRange.end) {
+                 startDate = new Date(customDateRange.start);
+                 endDate = new Date(customDateRange.end);
+                 endDate.setHours(23, 59, 59, 999);
+             } else {
+                 const range = getDateRange(dateFilter);
+                 if (range) {
+                     startDate = range.start;
+                     endDate = range.end;
+                 }
+             }
+             
+             if (startDate && endDate) {
+                 const start = startDate.getTime();
+                 const end = endDate.getTime();
+                 filtered = filtered.filter(p => {
+                     const val = p[dateField];
+                     if (!val) return false;
+                     const d = new Date(val as string).getTime();
+                     return d >= start && d <= end;
+                 });
+             }
         }
 
-        pedidos.forEach(pedido => {
-            const createdMonth = new Date(pedido.fechaCreacion).toISOString().slice(0, 7);
-            if (monthlyData[createdMonth]) {
-                monthlyData[createdMonth].created++;
+        // 2. Filter by Stage & Machine + Normalize Data
+        const machineGroups: Record<string, { firm: number; variable: number; count: number }> = {};
+        const tableRows: any[] = []; // We'll store processed rows for the table
+
+        // Initialize machine groups with 0
+        selectedMachines.forEach(m => {
+            machineGroups[m] = { firm: 0, variable: 0, count: 0 };
+        });
+
+        filtered.forEach(p => {
+            // --- Stage Filtering ---
+            let matchesStage = false;
+            
+            // Logic for PREPARACION vs LISTO
+            const isPreparacion = p.etapaActual === Etapa.PREPARACION;
+            const isListo = isPreparacion && p.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION;
+            
+            if (selectedStages.includes(STAGE_LISTO_PARA_PRODUCCION) && isListo) {
+                matchesStage = true;
+            } else if (selectedStages.includes(Etapa.PREPARACION) && isPreparacion && !isListo) {
+                matchesStage = true;
+            } else if (selectedStages.includes(p.etapaActual) && !isPreparacion) { // Avoid double counting if PREPARACION selected but it's actually LISTO (handled above)
+                 matchesStage = true;
             }
 
-            if (pedido.etapaActual === Etapa.COMPLETADO || pedido.etapaActual === Etapa.ARCHIVADO) {
-                const completedDate = pedido.etapasSecuencia.slice(-1)[0]?.fecha;
-                if (completedDate) {
-                    const completedMonth = new Date(completedDate).toISOString().slice(0, 7);
-                    if (monthlyData[completedMonth]) {
-                        monthlyData[completedMonth].completed++;
-                    }
+            if (!matchesStage) return;
+
+            // --- Machine Normalization ---
+            let normalizedMachine = MACHINE_SIN_ASIGNAR;
+            
+            if (p.vendedorNombre === 'DNT' || (p.vendedorId && p.vendedorNombre?.includes('DNT'))) { // Robust check
+                normalizedMachine = MACHINE_DNT;
+            } else if (p.maquinaImpresion) {
+                // Check if the machine is one of our known machines
+                const knownMachine = MAQUINAS_IMPRESION.find(m => m.id === p.maquinaImpresion || m.nombre === p.maquinaImpresion);
+                if (knownMachine) {
+                    normalizedMachine = knownMachine.id;
+                } else {
+                     // Keep as is or map to unknown? For now, use the value if it's not empty
+                     normalizedMachine = p.maquinaImpresion; 
                 }
             }
-        });
 
-        const labels = Object.keys(monthlyData).sort();
-        return {
-            labels: labels.map(label => {
-                const [year, month] = label.split('-');
-                return `${month}/${year.slice(2)}`;
-            }),
-            datasets: [
-                {
-                    label: 'Pedidos Creados',
-                    data: labels.map(label => monthlyData[label].created),
-                    borderColor: 'rgba(59, 130, 246, 1)',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                },
-                {
-                    label: 'Pedidos Completados',
-                    data: labels.map(label => monthlyData[label].completed),
-                    borderColor: 'rgba(16, 185, 129, 1)',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            // --- Machine Filtering ---
+            if (!selectedMachines.includes(normalizedMachine)) return;
+
+            // --- Calculations ---
+            const hours = p.tiempoProduccionDecimal || (parseTimeToMinutes(p.tiempoProduccionPlanificado) / 60) || 0;
+            const isFirm = p.clicheDisponible === true;
+
+            // Update Groups (Accumulators)
+            if (machineGroups[normalizedMachine]) {
+                if (isFirm) {
+                    machineGroups[normalizedMachine].firm += hours;
+                } else {
+                    machineGroups[normalizedMachine].variable += hours;
                 }
-            ]
-        };
-    }, [pedidos]);
-
-    // User Performance Data
-    const userPerformanceData = useMemo(() => {
-        const userStats: { [key: string]: { actions: number; orders: Set<string> } } = {};
-
-        auditLog.forEach(log => {
-            if (!userStats[log.userRole]) {
-                userStats[log.userRole] = { actions: 0, orders: new Set() };
+                machineGroups[normalizedMachine].count += 1;
+            } else {
+                // If we found a machine that wasn't in the initial map (e.g. dynamic machine names), add it if selected
+                // But we initialized from selectedMachines, so this mostly handles if normalizedMachine is something else selected
+                 if (selectedMachines.includes(normalizedMachine)) {
+                     machineGroups[normalizedMachine] = { firm: isFirm ? hours : 0, variable: isFirm ? 0 : hours, count: 1 };
+                 }
             }
-            userStats[log.userRole].actions++;
 
-            // Extract order number from action if possible
-            const orderMatch = log.action.match(/#(\w+)/);
-            if (orderMatch) {
-                userStats[log.userRole].orders.add(orderMatch[1]);
-            }
+            // Add to Table Rows
+            tableRows.push({
+                ...p,
+                normalizedMachine,
+                calculatedHours: hours,
+                isFirm,
+                isListo
+            });
         });
 
-        const labels = Object.keys(userStats);
-        return {
-            labels,
-            datasets: [{
-                label: 'Acciones Realizadas',
-                data: labels.map(user => userStats[user].actions),
-                backgroundColor: 'rgba(245, 158, 11, 0.7)',
-            }]
-        };
-    }, [auditLog]);
+        return { machineGroups, tableRows };
 
-    // Client Analysis Data
-    const clientAnalysisData = useMemo(() => {
-        const clientStats: { [key: string]: { orders: number; totalMetros: number } } = {};
+    }, [pedidos, selectedStages, selectedMachines, dateFilter, dateField, customDateRange]);
 
-        pedidos.forEach(pedido => {
-            if (!clientStats[pedido.cliente]) {
-                clientStats[pedido.cliente] = { orders: 0, totalMetros: 0 };
-            }
-            clientStats[pedido.cliente].orders++;
-            clientStats[pedido.cliente].totalMetros += typeof pedido.metros === 'number' ? pedido.metros : 0;
-        });
 
-        const topClients = Object.entries(clientStats)
-            .sort(([,a], [,b]) => b.orders - a.orders)
-            .slice(0, 10);
+    // --- 3. Render Helpers ---
 
-        return {
-            labels: topClients.map(([client]) => client.length > 15 ? client.slice(0, 15) + '...' : client),
-            datasets: [{
-                label: 'Pedidos por Cliente',
-                data: topClients.map(([,stats]) => stats.orders),
-                backgroundColor: 'rgba(236, 72, 153, 0.7)',
-            }]
-        };
-    }, [pedidos]);
+    const toggleStage = (stage: string) => {
+        setSelectedStages(prev => 
+            prev.includes(stage) ? prev.filter(s => s !== stage) : [...prev, stage]
+        );
+    };
 
-    // Stage Status Data
-    const stageStatusData = useMemo(() => {
-        const materialNoDisponible = pedidos.filter(p => 
-            p.etapaActual === Etapa.PREPARACION && p.materialDisponible === false
-        ).length;
+    const toggleMachine = (machine: string) => {
+        setSelectedMachines(prev => 
+            prev.includes(machine) ? prev.filter(m => m !== machine) : [...prev, machine]
+        );
+    };
 
-        const pendienteCliche = pedidos.filter(p => 
-            p.etapaActual === Etapa.PREPARACION && p.clicheDisponible === false
-        ).length;
-
-        const etapasProduccion = [
-            { key: Etapa.PENDIENTE, label: 'Pendiente', count: pedidos.filter(p => p.etapaActual === Etapa.PENDIENTE).length },
-            { key: Etapa.IMPRESION_WM1, label: 'Impresión WM1', count: pedidos.filter(p => p.etapaActual === Etapa.IMPRESION_WM1).length },
-            { key: Etapa.IMPRESION_GIAVE, label: 'Impresión GIAVE', count: pedidos.filter(p => p.etapaActual === Etapa.IMPRESION_GIAVE).length },
-            { key: Etapa.IMPRESION_WM3, label: 'Impresión WM3', count: pedidos.filter(p => p.etapaActual === Etapa.IMPRESION_WM3).length },
-            { key: Etapa.IMPRESION_ANON, label: 'Impresión ANON', count: pedidos.filter(p => p.etapaActual === Etapa.IMPRESION_ANON).length },
-            { key: Etapa.POST_LAMINACION_SL2, label: 'Post Laminación SL2', count: pedidos.filter(p => p.etapaActual === Etapa.POST_LAMINACION_SL2).length },
-            { key: Etapa.POST_LAMINACION_NEXUS, label: 'Post Laminación NEXUS', count: pedidos.filter(p => p.etapaActual === Etapa.POST_LAMINACION_NEXUS).length },
-            { key: Etapa.POST_REBOBINADO_S2DT, label: 'Post Rebobinado S2DT', count: pedidos.filter(p => p.etapaActual === Etapa.POST_REBOBINADO_S2DT).length },
-            { key: Etapa.POST_REBOBINADO_PROSLIT, label: 'Post Rebobinado PROSLIT', count: pedidos.filter(p => p.etapaActual === Etapa.POST_REBOBINADO_PROSLIT).length },
-            { key: Etapa.POST_PERFORACION_MIC, label: 'Post Perforación MIC', count: pedidos.filter(p => p.etapaActual === Etapa.POST_PERFORACION_MIC).length },
-            { key: Etapa.POST_PERFORACION_MAC, label: 'Post Perforación MAC', count: pedidos.filter(p => p.etapaActual === Etapa.POST_PERFORACION_MAC).length },
-            { key: Etapa.POST_REBOBINADO_TEMAC, label: 'Post Rebobinado TEMAC', count: pedidos.filter(p => p.etapaActual === Etapa.POST_REBOBINADO_TEMAC).length },
-        ];
-
-        const antivahoPendiente = pedidos.filter(p => {
-            const etapasPost = [
-                Etapa.POST_LAMINACION_SL2, Etapa.POST_LAMINACION_NEXUS,
-                Etapa.POST_REBOBINADO_S2DT, Etapa.POST_REBOBINADO_PROSLIT,
-                Etapa.POST_PERFORACION_MIC, Etapa.POST_PERFORACION_MAC,
-                Etapa.POST_REBOBINADO_TEMAC
-            ];
-            return etapasPost.includes(p.etapaActual) && p.antivahoRealizado === false;
-        }).length;
-
-        return {
-            materialNoDisponible,
-            pendienteCliche,
-            etapasProduccion,
-            antivahoPendiente
-        };
-    }, [pedidos]);
+    // Calculate Totals for Footer
+    const totalHours = useMemo(() => {
+        return processedData.tableRows.reduce((sum, row) => sum + row.calculatedHours, 0);
+    }, [processedData.tableRows]);
 
     return (
-        <main className="flex-grow p-4 md:p-8 space-y-8">
-            {/* KPI Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center">
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Pedidos</h3>
-                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{kpiData.totalPedidos}</p>
+        <main className="flex-grow p-4 md:p-8 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Centro de Planificación</h1>
+            </div>
+
+            {/* --- Toolbar --- */}
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow space-y-4">
+                
+                {/* Stage Filters */}
+                <div>
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">Etapas</h3>
+                    <div className="flex flex-wrap gap-2">
+                        {[
+                            { id: Etapa.PREPARACION, label: 'Preparación (En Proceso)' },
+                            { id: STAGE_LISTO_PARA_PRODUCCION, label: 'Listo para Producción' },
+                            // Add other relevant stages commonly used in planning
+                            { id: Etapa.IMPRESION_WM1, label: 'Impresión' }, // Simplified for UI? Or show all?
+                            // For now let's show the specific ones requested + generic ones
+                             ...Object.values(Etapa).filter(e => e !== Etapa.PREPARACION && e !== Etapa.PENDIENTE && e !== Etapa.COMPLETADO && e !== Etapa.ARCHIVADO).map(e => ({ id: e, label: e.replace('IMPRESION_', '').replace('POST_', '') }))
+                        ].map(stage => (
+                            <button
+                                key={stage.id}
+                                onClick={() => toggleStage(stage.id)}
+                                className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                                    selectedStages.includes(stage.id)
+                                        ? 'bg-indigo-100 border-indigo-500 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300'
+                                        : 'bg-gray-50 border-gray-300 text-gray-600 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300'
+                                }`}
+                            >
+                                {stage.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center">
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Completados</h3>
-                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">{kpiData.completados}</p>
+
+                {/* Machine Filters */}
+                <div>
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">Máquinas</h3>
+                    <div className="flex flex-wrap gap-2">
+                        {[
+                            ...MAQUINAS_IMPRESION.map(m => ({ id: m.id, label: m.nombre })),
+                            { id: MACHINE_DNT, label: 'DNT (Virtual)' },
+                            { id: MACHINE_SIN_ASIGNAR, label: 'Sin Asignar' }
+                        ].map(machine => (
+                            <button
+                                key={machine.id}
+                                onClick={() => toggleMachine(machine.id)}
+                                className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                                    selectedMachines.includes(machine.id)
+                                        ? 'bg-blue-100 border-blue-500 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                                        : 'bg-gray-50 border-gray-300 text-gray-600 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300'
+                                }`}
+                            >
+                                {machine.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center">
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">En Proceso</h3>
-                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{kpiData.enProceso}</p>
-                </div>
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center">
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Pendientes</h3>
-                    <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">{kpiData.pendientes}</p>
-                </div>
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center">
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">% A Tiempo</h3>
-                    <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{kpiData.onTimePercentage}%</p>
-                </div>
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center">
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Tiempo Promedio</h3>
-                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{kpiData.avgRealTime}min</p>
+
+                {/* Date Filter */}
+                <div>
+                     <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">Rango de Fechas</h3>
+                     <DateFilterCombined
+                        dateField={dateField}
+                        dateFilter={dateFilter}
+                        customDateRange={customDateRange}
+                        onDateFieldChange={setDateField}
+                        onDateFilterChange={setDateFilter}
+                        onCustomDateChange={(e) => setCustomDateRange(prev => ({ ...prev, [e.target.name]: e.target.value }))}
+                     />
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Urgent Orders & Audit Log */}
-                <div className="lg:col-span-1 space-y-8">
-                    {/* Urgent Orders */}
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                        <h2 className="text-xl font-bold text-red-500 dark:text-red-400 mb-4">Pedidos Urgentes Activos</h2>
-                        {urgentPedidos.length > 0 ? (
-                             <ul className="space-y-3">
-                                {urgentPedidos.map(p => (
-                                    <li 
-                                        key={p.id} 
-                                        className="p-3 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer transition-colors duration-150"
-                                        onClick={() => onNavigateToPedido?.(p)}
-                                        role="button"
-                                        tabIndex={0}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                e.preventDefault();
-                                                onNavigateToPedido?.(p);
-                                            }
-                                        }}
-                                    >
-                                        <p className="font-semibold text-gray-800 dark:text-white">{p.numeroPedidoCliente}</p>
-                                        <p className="text-sm text-gray-600 dark:text-gray-300">{p.cliente}</p>
-                                        <p className="text-xs text-red-500 dark:text-red-400 mt-1">
-                                            ⚡ Urgente - Haz clic para navegar al pedido
-                                        </p>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="text-gray-500 dark:text-gray-400">No hay pedidos urgentes activos.</p>
-                        )}
-                    </div>
-                    {/* Audit Log */}
-                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                        <h2 className="text-xl font-bold text-indigo-500 dark:text-indigo-400 mb-4">Registro de Auditoría</h2>
-                        <div className="h-96 overflow-y-auto pr-2">
-                             <ul className="space-y-3 text-sm">
-                                {auditLog.map((log, index) => (
-                                    <li key={index} className="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-md">
-                                        <p className="font-mono text-gray-700 dark:text-gray-300">
-                                            <span className="font-semibold text-teal-600 dark:text-teal-400">{log.userRole}</span>: {log.action}
-                                        </p>
-                                        <p className="text-xs text-gray-500 mt-1">{formatDateTimeDDMMYYYY(log.timestamp)}</p>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-                {/* Performance Chart */}
-                <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                    <h2 className="text-xl font-bold text-blue-500 dark:text-blue-400 mb-4">
-                        Análisis Plan vs. Real por Semanas (Todos los Pedidos Completados)
-                    </h2>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        Comparación semanal de tiempos promedio planificados vs. reales para todos los pedidos completados, agrupados por fecha de creación.
-                        La línea verde muestra la diferencia: valores positivos indican tiempo superior al planificado.
-                    </p>
-                     <div className="h-[400px] w-full mb-4">
-                         <LineChart data={performanceChartData} />
-                     </div>
-                     
-                     {/* Performance Summary Cards */}
-                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                        <div className="bg-gray-50 dark:bg-gray-900/20 rounded-lg p-3 text-center">
-                            <h4 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Pedidos</h4>
-                            <p className="text-lg font-bold text-gray-800 dark:text-gray-300">
-                                {completedPedidos.length}
-                            </p>
-                        </div>
-                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center">
-                            <h4 className="text-sm font-medium text-blue-600 dark:text-blue-400">Promedio Plan</h4>
-                            <p className="text-lg font-bold text-blue-800 dark:text-blue-300">
-                                {performanceChartData.datasets[0]?.data?.length > 0 
-                                    ? Math.round(performanceChartData.datasets[0].data.reduce((a, b) => a + b, 0) / performanceChartData.datasets[0].data.length)
-                                    : 0
-                                } min
-                            </p>
-                        </div>
-                        <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 text-center">
-                            <h4 className="text-sm font-medium text-red-600 dark:text-red-400">Promedio Real</h4>
-                            <p className="text-lg font-bold text-red-800 dark:text-red-300">
-                                {performanceChartData.datasets[1]?.data?.length > 0 
-                                    ? Math.round(performanceChartData.datasets[1].data.reduce((a, b) => a + b, 0) / performanceChartData.datasets[1].data.length)
-                                    : 0
-                                } min
-                            </p>
-                        </div>
-                        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center">
-                            <h4 className="text-sm font-medium text-green-600 dark:text-green-400">Diferencia Promedio</h4>
-                            <p className="text-lg font-bold text-green-800 dark:text-green-300">
-                                {performanceChartData.datasets[2]?.data?.length > 0 
-                                    ? (() => {
-                                        const avgDiff = Math.round(performanceChartData.datasets[2].data.reduce((a, b) => a + b, 0) / performanceChartData.datasets[2].data.length);
-                                        return avgDiff >= 0 ? `+${avgDiff}` : `${avgDiff}`;
-                                    })()
-                                    : 0
-                                } min
-                            </p>
-                        </div>
-                     </div>
+            {/* --- Chart Section --- */}
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow h-96">
+                <h2 className="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-200">Carga de Máquina (Horas)</h2>
+                {/* Custom Stacked Bar Chart Implementation */}
+                <div className="flex h-64 items-end space-x-8 px-4 pb-4 border-b border-l border-gray-200 dark:border-gray-700">
+                    {Object.keys(processedData.machineGroups).map(machineKey => {
+                        const data = processedData.machineGroups[machineKey];
+                        const total = data.firm + data.variable;
+                        if (total === 0) return null; // Skip empty? Or show 0?
+                        
+                        // Scale (simple max based scaling for now, ideally dynamic)
+                        // Let's find global max first
+                        const maxHours = Math.max(...Object.values(processedData.machineGroups).map(d => d.firm + d.variable), 1);
+                        const heightPercent = (total / maxHours) * 100;
+                        const firmPercent = (data.firm / total) * 100;
+                        const variablePercent = (data.variable / total) * 100;
+
+                        return (
+                            <div key={machineKey} className="flex flex-col items-center flex-1 group relative">
+                                {/* Tooltip */}
+                                <div className="absolute bottom-full mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded p-2 z-10 w-32 text-center">
+                                    <div className="font-bold">{machineKey}</div>
+                                    <div>Total: {total.toFixed(1)}h</div>
+                                    <div className="text-green-400">Firme: {data.firm.toFixed(1)}h</div>
+                                    <div className="text-yellow-400">Var: {data.variable.toFixed(1)}h</div>
+                                    <div>Pedidos: {data.count}</div>
+                                </div>
+                                
+                                {/* Bar Container */}
+                                <div className="w-full max-w-[60px] flex flex-col-reverse bg-gray-100 dark:bg-gray-700 rounded overflow-hidden" style={{ height: `${heightPercent}%` }}>
+                                    {/* Firm Load (Bottom) */}
+                                    <div style={{ height: `${firmPercent}%` }} className="bg-green-500 w-full transition-all duration-500"></div>
+                                    {/* Variable Load (Top) */}
+                                    <div style={{ height: `${variablePercent}%` }} className="bg-yellow-400 w-full relative transition-all duration-500">
+                                         {/* Striped pattern overlay could go here */}
+                                         <div className="absolute inset-0 opacity-20 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNCIgaGVpZ2h0PSI0IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0xIDNMMCA0TDMgMkw0IDNMMSAzWiIgZmlsbD0iIzAwMCIvPjwvc3ZnPg==')]"></div>
+                                    </div>
+                                </div>
+                                <span className="mt-2 text-xs font-medium text-gray-600 dark:text-gray-400 rotate-0 truncate w-full text-center">{machineKey}</span>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
 
-            {/* Additional Reports */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Stage Analysis */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                    <h2 className="text-xl font-bold text-purple-500 dark:text-purple-400 mb-4">Análisis de Etapas (Cuellos de Botella)</h2>
-                    <div className="h-[400px] w-full">
-                        <BarChart data={stageAnalysisData} />
-                    </div>
+            {/* --- Detail Table --- */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                     <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-200">Detalle de Pedidos</h2>
                 </div>
-
-                {/* Monthly Trends */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                    <h2 className="text-xl font-bold text-cyan-500 dark:text-cyan-400 mb-4">Tendencias Mensuales</h2>
-                    <div className="h-[400px] w-full">
-                        <LineChart data={monthlyTrendsData} />
-                    </div>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* User Performance */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                    <h2 className="text-xl font-bold text-amber-500 dark:text-amber-400 mb-4">Rendimiento por Usuario</h2>
-                    <div className="h-[400px] w-full">
-                        <BarChart data={userPerformanceData} />
-                    </div>
-                </div>
-
-                {/* Client Analysis */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                    <h2 className="text-xl font-bold text-pink-500 dark:text-pink-400 mb-4">Análisis por Cliente (Top 10)</h2>
-                    <div className="h-[400px] w-full">
-                        <BarChart data={clientAnalysisData} />
-                    </div>
-                </div>
-            </div>
-
-            {/* Stage Status Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center">
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Material No Disponible</h3>
-                    <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stageStatusData.materialNoDisponible}</p>
-                </div>
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center">
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Pendiente Cliché</h3>
-                    <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{stageStatusData.pendienteCliche}</p>
-                </div>
-                {stageStatusData.etapasProduccion.map((etapa) => (
-                    <div key={etapa.key} className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center">
-                        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">{etapa.label}</h3>
-                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{etapa.count}</p>
-                    </div>
-                ))}
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center">
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Antivaho Pendiente</h3>
-                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{stageStatusData.antivahoPendiente}</p>
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead className="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Prioridad</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Pedido / Cliente</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Máquina</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Estado</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Etapa</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Horas</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Entrega</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            {processedData.tableRows
+                                .sort((a, b) => {
+                                    // Sort by Priority (Enum order needs helper or map)
+                                    const priorityOrder = { [Prioridad.URGENTE]: 1, [Prioridad.ALTA]: 2, [Prioridad.NORMAL]: 3, [Prioridad.BAJA]: 4 };
+                                    const diff = (priorityOrder[a.prioridad] || 99) - (priorityOrder[b.prioridad] || 99);
+                                    if (diff !== 0) return diff;
+                                    // Then by Date
+                                    return new Date(a.fechaEntrega).getTime() - new Date(b.fechaEntrega).getTime();
+                                })
+                                .map((pedido) => (
+                                <tr key={pedido.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer" onClick={() => onNavigateToPedido?.(pedido)}>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                            ${pedido.prioridad === Prioridad.URGENTE ? 'bg-red-100 text-red-800' : 
+                                              pedido.prioridad === Prioridad.ALTA ? 'bg-orange-100 text-orange-800' : 
+                                              'bg-green-100 text-green-800'}`}>
+                                            {pedido.prioridad}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="text-sm font-medium text-gray-900 dark:text-white">{pedido.numeroPedidoCliente}</div>
+                                        <div className="text-sm text-gray-500 dark:text-gray-400">{pedido.cliente}</div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                                        {pedido.normalizedMachine}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex items-center space-x-2">
+                                            <span title="Cliché" className={`w-3 h-3 rounded-full ${pedido.clicheDisponible ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                                            <span title="Material" className={`w-3 h-3 rounded-full ${pedido.materialDisponible ? 'bg-blue-500' : 'bg-gray-300'}`}></span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                                        {pedido.isListo ? 'Listo para Producción' : pedido.etapaActual.replace('IMPRESION_', '').replace('POST_', '')}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right font-mono">
+                                        {pedido.calculatedHours.toFixed(2)}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                                        {pedido.fechaEntrega}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                        {/* Footer Row */}
+                        <tfoot className="bg-gray-100 dark:bg-gray-700 font-semibold">
+                            <tr>
+                                <td colSpan={5} className="px-6 py-3 text-right text-sm text-gray-700 dark:text-gray-200">Total Horas Planificadas:</td>
+                                <td className="px-6 py-3 text-right text-sm text-gray-900 dark:text-white font-mono">{totalHours.toFixed(2)}</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
             </div>
         </main>
