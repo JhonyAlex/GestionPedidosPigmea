@@ -618,7 +618,42 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         setShowConfirmClose(false);
     };
 
-    // Manejar el cambio manual del checkbox "Horas Confirmadas"
+    const getAuthHeaders = useCallback(() => {
+        let userId = user?.id;
+        let userRole = user?.role;
+        let userPermissions = user?.permissions;
+
+        if (!userId || !userRole) {
+            const savedUser = localStorage.getItem('pigmea_user');
+            if (savedUser) {
+                try {
+                    const parsedUser = JSON.parse(savedUser);
+                    userId = userId || parsedUser.id;
+                    userRole = userRole || parsedUser.role;
+                    userPermissions = userPermissions || parsedUser.permissions;
+                } catch {
+                    return {};
+                }
+            }
+        }
+
+        const headers: Record<string, string> = {};
+
+        if (userId) {
+            headers['x-user-id'] = String(userId);
+        }
+
+        if (userRole) {
+            headers['x-user-role'] = userRole || 'OPERATOR';
+        }
+
+        if (userPermissions && Array.isArray(userPermissions)) {
+            headers['x-user-permissions'] = JSON.stringify(userPermissions);
+        }
+
+        return headers;
+    }, [user]);
+
     const handleHorasConfirmadasManualChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const newValue = e.target.checked;
         const previousValue = formData.horasConfirmadas;
@@ -632,6 +667,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...getAuthHeaders()
                 },
                 body: JSON.stringify({ horasConfirmadas: newValue })
             });
@@ -1701,29 +1737,14 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                         </div>
                                         <div>
                                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Compra Cliché</label>
-                                            <div className="flex items-center gap-2">
-                                                <input 
-                                                    type="date" 
-                                                    name="compraCliche" 
-                                                    value={formData.compraCliche || ''} 
-                                                    onChange={handleChange} 
-                                                    disabled={isReadOnly}
-                                                    className="flex-1 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
-                                                />
-                                                <div className="flex items-center h-[42px] px-3 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg" title="Horas Confirmadas">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        id="horasConfirmadas"
-                                                        checked={!!formData.horasConfirmadas} 
-                                                        onChange={handleHorasConfirmadasManualChange} 
-                                                        disabled={isReadOnly} 
-                                                        className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-50 cursor-pointer"
-                                                    />
-                                                    <label htmlFor="horasConfirmadas" className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none whitespace-nowrap">
-                                                        Horas conf.
-                                                    </label>
-                                                </div>
-                                            </div>
+                                            <input 
+                                                type="date" 
+                                                name="compraCliche" 
+                                                value={formData.compraCliche || ''} 
+                                                onChange={handleChange} 
+                                                disabled={isReadOnly}
+                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                            />
                                         </div>
                                         <div>
                                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Recepción Cliché</label>
@@ -1736,10 +1757,23 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                 className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
                                             />
                                         </div>
-                                        <div className="flex flex-col gap-2 pt-2">
+                                        <div className="flex flex-wrap items-center gap-6 pt-2">
                                             <div className="flex items-center">
                                                 <input type="checkbox" id="clicheDisponible" name="clicheDisponible" checked={!!formData.clicheDisponible} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                                 <label htmlFor="clicheDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Cliché Disponible</label>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <input 
+                                                    type="checkbox" 
+                                                    id="horasConfirmadas"
+                                                    checked={!!formData.horasConfirmadas} 
+                                                    onChange={handleHorasConfirmadasManualChange} 
+                                                    disabled={isReadOnly} 
+                                                    className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-50 cursor-pointer"
+                                                />
+                                                <label htmlFor="horasConfirmadas" className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                                                    Horas confirmadas
+                                                </label>
                                             </div>
                                         </div>
                                     </div>
