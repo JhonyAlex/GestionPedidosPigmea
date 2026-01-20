@@ -4869,6 +4869,29 @@ async function startServer() {
                 } else {
                     console.log('✅ Migración 032 ya aplicada previamente');
                 }
+
+                // ===== MIGRACIÓN 033: Checkbox Horas Confirmadas =====
+                const checkHorasQuery = `
+                    SELECT EXISTS (
+                        SELECT 1 
+                        FROM information_schema.columns 
+                        WHERE table_name = 'pedidos' 
+                        AND column_name = 'horas_confirmadas'
+                    ) as column_exists;
+                `;
+                const checkHorasResult = await dbClient.pool.query(checkHorasQuery);
+                const horasColumnExists = checkHorasResult.rows[0]?.column_exists;
+
+                if (!horasColumnExists) {
+                    console.log('📝 Aplicando migración 033: Checkbox Horas Confirmadas...');
+                    await dbClient.pool.query(`
+                        ALTER TABLE pedidos ADD COLUMN horas_confirmadas BOOLEAN DEFAULT false;
+                        COMMENT ON COLUMN pedidos.horas_confirmadas IS 'Indica si las horas de cliché han sido confirmadas';
+                    `);
+                    console.log('✅ Migración 033 aplicada exitosamente');
+                } else {
+                    console.log('✅ Migración 033 ya aplicada previamente');
+                }
             } catch (migrationError) {
                 console.error('⚠️ Error al aplicar migraciones automáticas:', migrationError.message);
                 // No detener el servidor, continuar con retrocompatibilidad
