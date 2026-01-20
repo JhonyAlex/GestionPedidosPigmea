@@ -37,7 +37,7 @@ const DateFilterCombined: React.FC<DateFilterCombinedProps> = ({
     onDateFieldChange,
     onDateFilterChange,
     onCustomDateChange,
-    align = 'right'
+    align = 'left'
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const panelRef = useRef<HTMLDivElement>(null);

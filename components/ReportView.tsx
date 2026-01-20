@@ -8,9 +8,10 @@ import { parseTimeToMinutes } from '../utils/kpi';
 import { PlanningTable, WeeklyData } from './PlanningTable';
 import { PlanningChart } from './PlanningChart';
 // @ts-ignore - jspdf types might be tricky
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 // @ts-ignore - jspdf-autotable types might be tricky
 import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 
 interface ReportViewProps {
     pedidos: Pedido[];
@@ -284,7 +285,7 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
         }, 100);
     };
 
-    const handleExportPDF = () => {
+    const handleExportPDF = async () => {
         const doc = new jsPDF();
 
         // --- Header ---
@@ -294,6 +295,33 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
         doc.setFontSize(10);
         doc.text(`Fecha de emisión: ${new Date().toLocaleDateString()}`, 14, 28);
         doc.text(`Filtro: ${dateFilter === 'all' ? 'Todos' : dateFilter}`, 14, 33);
+
+        let startY = 40;
+
+        // --- Chart Capture ---
+        const chartElement = document.getElementById('planning-chart-container');
+        if (chartElement) {
+            try {
+                const canvas = await html2canvas(chartElement, {
+                    scale: 2, // Improve quality
+                    useCORS: true,
+                    logging: false
+                });
+                
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = 180; // A4 width is ~210mm, leaving margins
+                const pageHeight = 295; 
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                // Add Image
+                doc.addImage(imgData, 'PNG', 15, startY, imgWidth, imgHeight);
+                startY += imgHeight + 10; // Move Y down for table
+            } catch (error) {
+                console.error("Error capturing chart for PDF", error);
+                doc.text('(Error al generar gráfico)', 14, startY);
+                startY += 10;
+            }
+        }
 
         // --- Table Data Preparation ---
         const tableColumn = [
@@ -325,9 +353,10 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
         autoTable(doc, {
             head: [tableColumn],
             body: tableRows,
-            startY: 40,
+            startY: startY,
             styles: { fontSize: 8 },
             headStyles: { fillColor: [66, 139, 202] }, // Blue-ish
+            margin: { top: 20 }
         });
 
         // --- Footer / Save ---
@@ -429,11 +458,13 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
             </div>
 
             {/* --- Planning Chart --- */}
-            <PlanningChart 
-                data={processedData.weeklyData} 
-                machineKeys={processedData.machineKeys} 
-                onBarClick={handleBarClick}
-            />
+            <div id="planning-chart-container">
+                <PlanningChart 
+                    data={processedData.weeklyData} 
+                    machineKeys={processedData.machineKeys} 
+                    onBarClick={handleBarClick}
+                />
+            </div>
 
             {/* --- Details Table (Filtered) --- */}
             {selectedChartFilter && (
