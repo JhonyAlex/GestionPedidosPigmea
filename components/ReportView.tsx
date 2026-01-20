@@ -415,8 +415,12 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
                                         }
                                         
                                         return (
-                                            <tr key={pedido.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                            <tr 
+                                                key={pedido.id} 
+                                                className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer group"
+                                                onClick={() => onNavigateToPedido && onNavigateToPedido(pedido)}
+                                            >
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400">
                                                     {pedido.numeroPedidoCliente}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
@@ -435,14 +439,9 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
                                                     {hours.toFixed(2)}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                    {onNavigateToPedido && (
-                                                        <button 
-                                                            onClick={() => onNavigateToPedido(pedido)}
-                                                            className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
-                                                        >
-                                                            Ver
-                                                        </button>
-                                                    )}
+                                                    <span className="text-indigo-600 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        Ver →
+                                                    </span>
                                                 </td>
                                             </tr>
                                         );
