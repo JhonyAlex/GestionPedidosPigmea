@@ -618,6 +618,45 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         setShowConfirmClose(false);
     };
 
+    // Manejar el cambio manual del checkbox "Horas Confirmadas"
+    const handleHorasConfirmadasManualChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newValue = e.target.checked;
+        const previousValue = formData.horasConfirmadas;
+        
+        // 1. Actualización optimista
+        setFormData(prev => ({ ...prev, horasConfirmadas: newValue }));
+
+        try {
+            // 2. Llamada al Backend (Sincronización en tiempo real)
+            const response = await fetch(`/api/pedidos/${pedido.id}/horas-confirmadas`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ horasConfirmadas: newValue })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Error al actualizar horas confirmadas');
+            }
+
+            // 3. Registrar en Historial
+            // Usamos el estado del pedido actual pero con el nuevo valor de horasConfirmadas para el registro
+            const pedidoStateForHistory = { ...pedido, horasConfirmadas: newValue };
+            const pedidoPreviousState = { ...pedido, horasConfirmadas: previousValue };
+            
+            // Nota: recordPedidoUpdate compara los objetos para detectar cambios.
+            // Pasamos un objeto base y uno modificado solo en este campo.
+            await recordPedidoUpdate(pedidoPreviousState, pedidoStateForHistory);
+            
+        } catch (error) {
+            console.error(error);
+            // Revertir en caso de error
+            setFormData(prev => ({ ...prev, horasConfirmadas: previousValue }));
+            alert('Error al actualizar el estado de Horas Confirmadas');
+        }
+    };
+
     const handleDataChange = (field: keyof Pedido, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
@@ -809,6 +848,16 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                 ...prev, 
                 clienteId: value,
                 cliente: clienteSeleccionado?.nombre || '' 
+            }));
+        } else if (name === "compraCliche") {
+            // Lógica de "Horas Confirmadas":
+            // 1. Si se ingresa una fecha, se marca automáticamente (auto-check).
+            // 2. El usuario puede desmarcarlo manualmente después (handled by manual change, here we just set initial state).
+            // 3. Si se borra la fecha, no forzamos nada (usuario tiene control).
+            setFormData(prev => ({
+                ...prev,
+                compraCliche: value,
+                horasConfirmadas: value ? true : prev.horasConfirmadas
             }));
         } else if (type === 'checkbox') {
             const { checked } = e.target as HTMLInputElement;
@@ -1652,14 +1701,29 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                         </div>
                                         <div>
                                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Compra Cliché</label>
-                                            <input 
-                                                type="date" 
-                                                name="compraCliche" 
-                                                value={formData.compraCliche || ''} 
-                                                onChange={handleChange} 
-                                                disabled={isReadOnly}
-                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
-                                            />
+                                            <div className="flex items-center gap-3">
+                                                <input 
+                                                    type="date" 
+                                                    name="compraCliche" 
+                                                    value={formData.compraCliche || ''} 
+                                                    onChange={handleChange} 
+                                                    disabled={isReadOnly}
+                                                    className="flex-1 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                                />
+                                                <div className="flex items-center bg-gray-100 dark:bg-gray-800 px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        id="horasConfirmadas"
+                                                        checked={!!formData.horasConfirmadas} 
+                                                        onChange={handleHorasConfirmadasManualChange} 
+                                                        disabled={isReadOnly} 
+                                                        className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-50 cursor-pointer"
+                                                    />
+                                                    <label htmlFor="horasConfirmadas" className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                                                        Horas conf.
+                                                    </label>
+                                                </div>
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Recepción Cliché</label>

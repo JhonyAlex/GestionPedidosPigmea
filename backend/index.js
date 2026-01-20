@@ -2534,6 +2534,41 @@ app.post('/api/pedidos', requirePermission('pedidos.create'), async (req, res) =
     }
 });
 
+// PATCH /api/pedidos/:id/horas-confirmadas - Actualizar solo horas_confirmadas
+app.patch('/api/pedidos/:id/horas-confirmadas', requirePermission('pedidos.edit'), async (req, res) => {
+    try {
+        const { horasConfirmadas } = req.body;
+        const pedidoId = req.params.id;
+        
+        const pedido = await dbClient.findById(pedidoId);
+        if (!pedido) {
+            return res.status(404).json({ message: 'Pedido no encontrado.' });
+        }
+
+        // Actualizar solo horas_confirmadas
+        const updatedPedido = {
+            ...pedido,
+            horasConfirmadas
+        };
+
+        await dbClient.update(updatedPedido);
+
+        // Broadcast event
+        broadcastToClients('pedido-updated', {
+            pedido: updatedPedido,
+            previousPedido: pedido,
+            changes: ['Horas Confirmadas'],
+            message: `Horas Confirmadas actualizado para pedido: ${updatedPedido.numeroPedidoCliente}`
+        });
+
+        res.status(200).json({ success: true, horasConfirmadas });
+
+    } catch (error) {
+        console.error(`Error updating horasConfirmadas for pedido ${req.params.id}:`, error);
+        res.status(500).json({ message: "Error interno del servidor." });
+    }
+});
+
 // PUT /api/pedidos/:id - Update an existing pedido
 // PUT /api/pedidos/:id - Actualizar un pedido existente
 app.put('/api/pedidos/:id', requirePermission('pedidos.edit'), async (req, res) => {
@@ -2924,12 +2959,35 @@ app.post('/api/admin/migrate', requirePermission('usuarios.admin'), async (req, 
                 results.push({ migration: 'mentioned_users', status: 'error', error: error.message });
             }
 
+            // ===== MIGRACIÓN 033: Checkbox Horas Confirmadas =====
+            try {
+                await client.query(`
+                    DO $$ 
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'pedidos' AND column_name = 'horas_confirmadas'
+                        ) THEN
+                            ALTER TABLE pedidos ADD COLUMN horas_confirmadas BOOLEAN DEFAULT false;
+                            COMMENT ON COLUMN pedidos.horas_confirmadas IS 'Indica si las horas de cliché han sido confirmadas';
+                            RAISE NOTICE 'Columna horas_confirmadas agregada';
+                        ELSE
+                            RAISE NOTICE 'Columna horas_confirmadas ya existe';
+                        END IF;
+                    END $$;
+                `);
+                results.push({ migration: 'horas_confirmadas', status: 'success' });
+            } catch (error) {
+                console.error('Error en migración horas_confirmadas:', error);
+                results.push({ migration: 'horas_confirmadas', status: 'error', error: error.message });
+            }
+
             // Verificar estado final
             const checkResult = await client.query(`
                 SELECT column_name 
                 FROM information_schema.columns 
                 WHERE table_name = 'pedidos' 
-                AND column_name IN ('nueva_fecha_entrega', 'numero_compra', 'vendedor', 'anonimo', 'compra_cliche', 'recepcion_cliche')
+                AND column_name IN ('nueva_fecha_entrega', 'numero_compra', 'vendedor', 'anonimo', 'compra_cliche', 'recepcion_cliche', 'horas_confirmadas')
                 ORDER BY column_name;
             `);
             

@@ -91,6 +91,7 @@ export interface Pedido {
     estadoCliché?: EstadoCliché;
     clicheInfoAdicional?: string; // Campo adicional para información de cliché (fecha, texto, etc.)
     compraCliche?: string; // Fecha de Compra Cliché (YYYY-MM-DD)
+    horasConfirmadas?: boolean; // Checkbox sincronizado con compraCliche
     recepcionCliche?: string; // Fecha de Recepción Cliché (YYYY-MM-DD)
     camisa?: string;
     antivaho?: boolean;

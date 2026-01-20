@@ -76,6 +76,8 @@ const diffPedidoChanges = (before: Pedido, after: Pedido): string[] => {
         { key: 'microperforado', label: 'Micro' },
         { key: 'macroperforado', label: 'Macro' },
         { key: 'anonimo', label: 'Anónimo' },
+        { key: 'compraCliche', label: 'Compra Cliché' },
+        { key: 'horasConfirmadas', label: 'Horas Confirmadas' },
     ];
 
     for (const field of fields) {

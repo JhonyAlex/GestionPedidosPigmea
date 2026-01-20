@@ -33,8 +33,8 @@ Si no es DNT, se revisa el campo `maquinaImpresion`.
 *   **Destino:** Columna correspondiente a la máquina detectada.
 
 ### Prioridad 4: Pedidos VARIABLES
-Si el pedido está en estado de cliché con los valores: `NUEVO` o `REPETICION CON CAMBIO`
-*   **Destino:** Columna **Sin Asignar** (visualizada a veces como "Pedidos VARIABLES" o "Sin Asignar").
+SOLO si el pedido está en estado de cliché con los valores: `NUEVO` o `REPETICION CON CAMBIO` este debe sumar a la columna **Variable**.
+*   si el pedido tiene marcado `HORAS CONFIRMADAS` o Tiene una fecha ingresada en el campo `Compra Cliché` este pedido pasaría a sumar normal a la columna correspondiente a la máquina detectada de la prioridad 3.
 
 ---
 
