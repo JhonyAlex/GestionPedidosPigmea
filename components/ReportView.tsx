@@ -7,6 +7,10 @@ import { MAQUINAS_IMPRESION, PREPARACION_SUB_ETAPAS_IDS, ETAPAS } from '../const
 import { parseTimeToMinutes } from '../utils/kpi';
 import { PlanningTable, WeeklyData } from './PlanningTable';
 import { PlanningChart } from './PlanningChart';
+// @ts-ignore - jspdf types might be tricky
+import jsPDF from 'jspdf';
+// @ts-ignore - jspdf-autotable types might be tricky
+import autoTable from 'jspdf-autotable';
 
 interface ReportViewProps {
     pedidos: Pedido[];
@@ -280,10 +284,71 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
         }, 100);
     };
 
+    const handleExportPDF = () => {
+        const doc = new jsPDF();
+
+        // --- Header ---
+        doc.setFontSize(18);
+        doc.text('Informe de Planificación - PIGMEA', 14, 20);
+        
+        doc.setFontSize(10);
+        doc.text(`Fecha de emisión: ${new Date().toLocaleDateString()}`, 14, 28);
+        doc.text(`Filtro: ${dateFilter === 'all' ? 'Todos' : dateFilter}`, 14, 33);
+
+        // --- Table Data Preparation ---
+        const tableColumn = [
+            'Semana', 
+            'Fechas', 
+            ...processedData.machineKeys, 
+            'Total Carga', 
+            'Capacidad', 
+            'Libres'
+        ];
+
+        const tableRows = processedData.weeklyData.map(row => {
+            const machineValues = processedData.machineKeys.map(key => 
+                (row.machines[key] || 0).toFixed(1)
+            );
+            
+            return [
+                row.label,
+                row.dateRange,
+                ...machineValues,
+                row.totalLoad.toFixed(1),
+                row.totalCapacity.toFixed(0),
+                row.freeCapacity.toFixed(1)
+            ];
+        });
+
+        // --- Generate Table ---
+        // @ts-ignore - jspdf-autotable types might conflict with jspdf instance
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: 40,
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [66, 139, 202] }, // Blue-ish
+        });
+
+        // --- Footer / Save ---
+        doc.save(`planificacion_pigmea_${new Date().toISOString().split('T')[0]}.pdf`);
+    };
+
     return (
         <main className="flex-grow p-4 md:p-8 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Centro de Planificación</h1>
+                <div className="flex items-center gap-4">
+                    <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Centro de Planificación</h1>
+                    <button
+                        onClick={handleExportPDF}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Exportar PDF
+                    </button>
+                </div>
                 
                 {/* Date Filter */}
                 <div className="bg-white dark:bg-gray-800 p-2 rounded-lg shadow">
