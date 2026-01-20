@@ -205,6 +205,9 @@ const ReportView: React.FC<ReportViewProps> = ({ pedidos, onNavigateToPedido }) 
                         weeklyGroups[weekKey].machinePedidos![machineCategory] = [];
                      }
                      weeklyGroups[weekKey].machinePedidos![machineCategory].push(p);
+                } else {
+                    // Fallback init if missing (though unlikely given line 151)
+                    weeklyGroups[weekKey].machinePedidos = { [machineCategory]: [p] };
                 }
 
                 weeklyGroups[weekKey].totalLoad += hours;
