@@ -8,11 +8,11 @@ interface PlanningChartProps {
 }
 
 const MACHINE_COLORS: Record<string, string> = {
-    'Windmöller 1': '#1e3a8a', // Azul más opaco (blue-900)
-    'Windmöller 3': '#7f1d1d', // Rojo más opaco (red-900)
-    'GIAVE': '#9a3412', // Naranja más opaco (orange-900)
-    'DNT': '#14532d', // Verde más opaco (green-900)
-    'VARIABLES': '#581c87' // Morado más opaco (purple-900)
+    'Windmöller 1': '#1e3a8a',    // Azul muy oscuro (blue-900)
+    'Windmöller 3': '#1e40af',    // Azul oscuro (blue-800)
+    'GIAVE': '#2563eb',           // Azul medio (blue-600)
+    'DNT': '#3b82f6',             // Azul estándar (blue-500)
+    'VARIABLES': '#60a5fa'        // Azul claro (blue-400)
 };
 
 const MACHINE_LABELS: Record<string, string> = {
