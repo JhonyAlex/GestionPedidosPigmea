@@ -274,7 +274,7 @@ NO uses markdown headers (###), solo texto plano con saltos de línea y bullets 
                 'X-Title': 'PIGMEA - Gestión de Pedidos'
             },
             body: JSON.stringify({
-                model: 'google/gemini-flash-1.5',
+                model: 'google/gemini-2.0-flash-exp:free', // Modelo gratis y rápido
                 messages: [
                     {
                         role: 'user',
