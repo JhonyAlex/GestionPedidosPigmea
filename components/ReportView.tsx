@@ -113,7 +113,6 @@ const ReportView: React.FC<ReportViewProps> = ({
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [analysisError, setAnalysisError] = useState<string | null>(null);
     const [showAnalysis, setShowAnalysis] = useState(false);
-    const [lastAnalysisFilters, setLastAnalysisFilters] = useState<string>('');
 
     // Custom Instructions State
     const [showCustomModal, setShowCustomModal] = useState(false);
@@ -121,20 +120,14 @@ const ReportView: React.FC<ReportViewProps> = ({
     const [isSavingInstructions, setIsSavingInstructions] = useState(false);
     const [socket, setSocket] = useState<Socket | null>(null);
 
-    // Detectar cambios en filtros y limpiar análisis
+    // Detectar cambios en filtros y limpiar análisis automáticamente
     useEffect(() => {
-        const currentFilters = JSON.stringify({
-            dateFilter,
-            dateField,
-            customDateRange,
-            selectedStages,
-            selectedMachines
-        });
-        
-        // Si hay un análisis visible y los filtros cambiaron, limpiarlo
-        if (showAnalysis && lastAnalysisFilters && lastAnalysisFilters !== currentFilters) {
+        // Si hay un análisis visible, limpiarlo cuando cambian los filtros
+        if (showAnalysis || aiAnalysis) {
+            console.log('🔄 Filtros cambiaron, limpiando análisis anterior');
             setShowAnalysis(false);
             setAiAnalysis(null);
+            setAnalysisError(null);
         }
     }, [dateFilter, dateField, customDateRange, selectedStages, selectedMachines]);
 
@@ -425,15 +418,6 @@ const ReportView: React.FC<ReportViewProps> = ({
                 selectedMachines,
                 customDateRange
             };
-
-            // Guardar filtros actuales para detectar cambios futuros
-            setLastAnalysisFilters(JSON.stringify({
-                dateFilter,
-                dateField,
-                customDateRange,
-                selectedStages,
-                selectedMachines
-            }));
 
             // Intentar obtener del cache primero
             const cached = await getAnalysisFromCache(request);
