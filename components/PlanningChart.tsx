@@ -87,24 +87,34 @@ export const PlanningChart: React.FC<PlanningChartProps> = ({ data, machineKeys,
                         {data.map((weekData, idx) => (
                             <div key={idx} className="flex flex-col items-center h-full justify-end" style={{ width: `${weekWidth - 8}px` }}>
                                 {/* Bar Group */}
-                                <div className="flex items-end gap-1 h-full w-full justify-center">
-                                    {sortedKeys.map(key => {
+                                <div className="flex items-end gap-1 h-full w-full justify-center relative">
+                                    {sortedKeys.map((key, keyIdx) => {
                                         const value = weekData.machines[key] || 0;
                                         const heightPercent = (value / maxValue) * 100;
                                         
                                         return (
-                                            <div key={key} className="relative flex flex-col justify-end h-full" style={{ width: `${100 / sortedKeys.length}%` }}>
-                                                {/* Value Label on Top */}
+                                            <div key={key} className="relative flex flex-col justify-end h-full group" style={{ width: `${100 / sortedKeys.length}%` }}>
+                                                {/* Value Label on Top - Positioned absolutely to avoid overlap */}
                                                 {value > 0 && (
-                                                    <div className="text-center mb-1 -mt-6">
-                                                        <span className="text-xs font-bold text-gray-800 bg-white px-1 py-0.5 rounded shadow-sm inline-block">
-                                                            {value.toFixed(2)}
-                                                        </span>
+                                                    <div 
+                                                        className="absolute left-1/2 -translate-x-1/2 pointer-events-none z-10"
+                                                        style={{ 
+                                                            bottom: `calc(${Math.max(heightPercent, 3)}% + 4px)`,
+                                                            whiteSpace: 'nowrap'
+                                                        }}
+                                                    >
+                                                        <div className="relative">
+                                                            <span className="text-[10px] font-bold text-gray-700 bg-white px-1.5 py-0.5 rounded shadow-md inline-block border border-gray-200 group-hover:bg-blue-50 group-hover:scale-110 transition-all">
+                                                                {value.toFixed(2)}
+                                                            </span>
+                                                            {/* Small arrow pointing down */}
+                                                            <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[3px] border-t-white"></div>
+                                                        </div>
                                                     </div>
                                                 )}
                                                 {/* The Bar */}
                                                 <div 
-                                                    className={`w-full rounded-t-md transition-all duration-300 hover:brightness-110 border-2 border-opacity-50 ${
+                                                    className={`w-full rounded-t-md transition-all duration-300 hover:brightness-110 border-2 border-opacity-50 relative ${
                                                         onBarClick ? 'cursor-pointer hover:scale-105 hover:shadow-lg' : ''
                                                     }`}
                                                     style={{ 
