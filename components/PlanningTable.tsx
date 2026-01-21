@@ -32,11 +32,11 @@ const MACHINE_COLUMN_HEADERS: Record<string, string> = {
 
 // Define colors for each machine column header
 const MACHINE_COLORS: Record<string, string> = {
-    'Windmöller 1': 'bg-blue-200 text-blue-900 border-blue-300', // WH-1
-    'Windmöller 3': 'bg-red-200 text-red-900 border-red-300', // WH-3
-    'GIAVE': 'bg-orange-200 text-orange-900 border-orange-300', // SUP GIAVE
-    'DNT': 'bg-green-200 text-green-900 border-green-300', // DNT
-    'VARIABLES': 'bg-purple-200 text-purple-900 border-purple-300', // VARIABLES
+    'Windmöller 1': 'bg-blue-900 text-white border-blue-950', // WH-1
+    'Windmöller 3': 'bg-red-900 text-white border-red-950', // WH-3
+    'GIAVE': 'bg-orange-900 text-white border-orange-950', // SUP GIAVE
+    'DNT': 'bg-green-900 text-white border-green-950', // DNT
+    'VARIABLES': 'bg-purple-900 text-white border-purple-950', // VARIABLES
 };
 
 export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys }) => {

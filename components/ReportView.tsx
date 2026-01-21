@@ -412,7 +412,9 @@ const ReportView: React.FC<ReportViewProps> = ({
 
         return {
             weeklyData: sortedWeeks,
-            machineKeys: selectedMachines // Use selected machines as keys for columns
+            machineKeys: selectedMachines.filter(m => 
+                ['Windmöller 1', 'Windmöller 3', 'GIAVE', 'DNT', 'VARIABLES'].includes(m)
+            ) // Filtrar solo máquinas permitidas, excluir ANON y Sin Asignar
         };
 
     }, [pedidos, selectedStages, selectedMachines, dateFilter, dateField, customDateRange]);
@@ -853,11 +855,11 @@ const ReportView: React.FC<ReportViewProps> = ({
                     <div className="flex flex-wrap gap-2">
                         {allMachineOptions.map(machine => {
                             const machineColors: Record<string, { active: string; inactive: string }> = {
-                                'Windmöller 1': { active: 'bg-blue-500 border-blue-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
-                                'Windmöller 3': { active: 'bg-red-500 border-red-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
-                                'GIAVE': { active: 'bg-orange-500 border-orange-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
-                                'DNT': { active: 'bg-green-500 border-green-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
-                                'VARIABLES': { active: 'bg-purple-500 border-purple-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                'Windmöller 1': { active: 'bg-blue-900 border-blue-950 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                'Windmöller 3': { active: 'bg-red-900 border-red-950 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                'GIAVE': { active: 'bg-orange-900 border-orange-950 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                'DNT': { active: 'bg-green-900 border-green-950 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                'VARIABLES': { active: 'bg-purple-900 border-purple-950 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
                             };
                             const colors = machineColors[machine] || { active: 'bg-gray-500 border-gray-600 text-white shadow-lg', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' };
                             return (
