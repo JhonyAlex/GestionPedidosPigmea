@@ -32,6 +32,7 @@ export const PlanningChart: React.FC<PlanningChartProps> = ({ data, machineKeys,
     const chartHeight = 450; // Increased from 300
     const weekWidth = 140; // Fixed width per week for better spacing
     const chartWidth = Math.max(data.length * weekWidth, 900); // Minimum 900px
+    const topPadding = 50; // Espacio para los valores superiores
 
     // Desired order for bars
     const desiredOrder = ['Windmöller 1', 'VARIABLES', 'Windmöller 3', 'GIAVE', 'DNT', 'ANON'];
@@ -66,14 +67,14 @@ export const PlanningChart: React.FC<PlanningChartProps> = ({ data, machineKeys,
             </div>
 
             {/* Scrollable Chart Container */}
-            <div className="overflow-x-auto overflow-y-visible border border-gray-200 rounded-lg bg-gray-50 p-4 pb-4">
-                <div className="relative pt-8" style={{ width: `${chartWidth}px`, height: `${chartHeight + 40}px` }}>
+            <div className="overflow-x-auto border border-gray-200 rounded-lg bg-gray-50 p-4">
+                <div className="relative" style={{ width: `${chartWidth}px`, height: `${chartHeight + topPadding + 60}px`, paddingTop: `${topPadding}px`, paddingBottom: '60px' }}>
                     {/* Y-Axis Grid Lines */}
                     {[0, 0.2, 0.4, 0.6, 0.8, 1].map(ratio => {
                         const value = (maxValue * (1 - ratio)).toFixed(1);
                         const top = ratio * 100;
                         return (
-                            <div key={ratio} className="absolute w-full flex items-center" style={{ top: `calc(${top}% + 32px)` }}>
+                            <div key={ratio} className="absolute w-full flex items-center" style={{ top: `calc(${top}% + ${topPadding}px)` }}>
                                 <span className="text-sm font-mono font-semibold text-gray-600 bg-white px-2 py-1 rounded shadow-sm w-16 text-right mr-3 -mt-2">
                                     {value}h
                                 </span>
@@ -83,7 +84,7 @@ export const PlanningChart: React.FC<PlanningChartProps> = ({ data, machineKeys,
                     })}
 
                     {/* Bars Area */}
-                    <div className="absolute flex items-end ml-20 pl-4 pb-16 gap-2" style={{ top: '32px', bottom: '0', left: '0', right: '0' }}>
+                    <div className="absolute flex items-end ml-20 pl-4 gap-2" style={{ top: `${topPadding}px`, bottom: '60px', left: '0', right: '0' }}>
                         {data.map((weekData, idx) => (
                             <div key={idx} className="flex flex-col items-center h-full justify-end" style={{ width: `${weekWidth - 8}px` }}>
                                 {/* Bar Group */}
