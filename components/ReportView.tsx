@@ -510,6 +510,33 @@ const ReportView: React.FC<ReportViewProps> = ({
         }, 100);
     };
 
+    // Función helper para procesar formato Markdown en texto
+    const parseMarkdownText = (text: string): React.ReactNode[] => {
+        const parts: React.ReactNode[] = [];
+        let lastIndex = 0;
+        
+        // Regex para encontrar **texto** (negrita)
+        const boldRegex = /\*\*(.*?)\*\*/g;
+        let match;
+        
+        while ((match = boldRegex.exec(text)) !== null) {
+            // Agregar texto antes del match
+            if (match.index > lastIndex) {
+                parts.push(text.substring(lastIndex, match.index));
+            }
+            // Agregar texto en negrita
+            parts.push(<strong key={`bold-${match.index}`} className="font-semibold text-gray-900 dark:text-white">{match[1]}</strong>);
+            lastIndex = match.index + match[0].length;
+        }
+        
+        // Agregar texto restante
+        if (lastIndex < text.length) {
+            parts.push(text.substring(lastIndex));
+        }
+        
+        return parts.length > 0 ? parts : [text];
+    };
+
     // Función para renderizar el análisis con mejor formato
     const renderAnalysis = (text: string) => {
         // Dividir por líneas
@@ -552,7 +579,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                         }`}>
                                             {icon}
                                         </span>
-                                        <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{content}</span>
+                                        <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{parseMarkdownText(content)}</span>
                                     </div>
                                 );
                             }
@@ -564,7 +591,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                         <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 text-white text-xs font-bold flex items-center justify-center">
                                             {num}
                                         </span>
-                                        <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{rest.join('.').trim()}</span>
+                                        <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{parseMarkdownText(rest.join('.').trim())}</span>
                                     </div>
                                 );
                             }
@@ -572,7 +599,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                             else if (line.trim()) {
                                 return (
                                     <p key={idx} className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-2">
-                                        {line}
+                                        {parseMarkdownText(line)}
                                     </p>
                                 );
                             }
