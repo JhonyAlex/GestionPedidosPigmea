@@ -24,7 +24,8 @@ import html2canvas from 'html2canvas';
  * CLASIFICACIÓN POR PRIORIDAD (orden estricto):
  * 
  * 1. DNT (Máxima prioridad)
- *    - Si vendedorNombre contiene "DNT" → Columna DNT
+ *    - Si vendedorNombre O cliente contiene "DNT" → Columna DNT
+ *    - Esta regla invalida todas las demás (máquina, variables, etc.)
  * 
  * 2. (ANÓNIMOS - eliminado según spec)
  * 
@@ -222,11 +223,12 @@ const ReportView: React.FC<ReportViewProps> = ({
             // ============================================================================
             let machineCategory = MACHINE_VARIABLES; // Default fallback
             const vendedorNombre = p.vendedorNombre?.trim().toUpperCase() || '';
+            const clienteNombre = p.cliente?.trim().toUpperCase() || '';
             const maquinaImp = p.maquinaImpresion?.trim() || '';
 
             // --- PRIORIDAD 1: DNT (MÁXIMA PRIORIDAD) ---
-            // Si el nombre del vendedor contiene "DNT", va a columna DNT sin importar la máquina
-            if (vendedorNombre.includes('DNT')) {
+            // Si el nombre del vendedor O del cliente contiene "DNT", va a columna DNT sin importar la máquina
+            if (vendedorNombre.includes('DNT') || clienteNombre.includes('DNT')) {
                 machineCategory = MACHINE_DNT;
             }
             // --- PRIORIDAD 3: Máquina Asignada (Identificada) ---

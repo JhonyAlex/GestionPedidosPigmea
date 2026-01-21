@@ -15,9 +15,11 @@ Cada pedido filtrado se asigna a **una sola categoría** siguiendo un orden de p
 ### Prioridad 1: DNT (Externa)
 Esta es la regla más fuerte. Un pedido se asigna a la columna **DNT** si cumple **cualquiera** de estas condiciones:
 *   El nombre del **Vendedor** contiene la cadena de texto `"DNT"`.
-*   *(Nota: Anteriormente se verificaba también si la máquina asignada contenía "DNT", pero actualmente la prioridad absoluta es el Vendedor).*
+*   El nombre del **Cliente** contiene la cadena de texto `"DNT"`.
 
-> **Fórmula:** Si `pedido.vendedorNombre` incluye "DNT" → Columna **DNT**.
+**Esta regla invalida todas las demás** (máquina asignada, variables, etc.). Si un pedido cumple esta condición, sus horas cuentan SOLO en la columna DNT.
+
+> **Fórmula:** Si `pedido.vendedorNombre` O `pedido.cliente` incluye "DNT" → Columna **DNT**.
 
 ### Prioridad 2: Pedidos Anónimos (No se incluyen ya se eliminó)
 Si no es DNT, se verifica si el pedido está marcado como anónimo.
