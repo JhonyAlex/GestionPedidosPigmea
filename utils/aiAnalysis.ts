@@ -47,11 +47,7 @@ export async function generateProductionAnalysis(request: AnalysisRequest): Prom
         // Llamar al backend en lugar de OpenRouter directamente
         const response = await fetch('/api/analysis/generate', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                // Headers de autenticación se agregan automáticamente por getAuthHeaders
-                ...getAuthHeaders()
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
                 weeklyData: request.weeklyData,
                 machineKeys: request.machineKeys,
@@ -81,21 +77,24 @@ export async function generateProductionAnalysis(request: AnalysisRequest): Prom
 
 /**
  * Función auxiliar para obtener headers de autenticación
- * (debe importarse del hook de autenticación o implementarse aquí)
+ * Compatible con el sistema de autenticación del proyecto
  */
 function getAuthHeaders(): Record<string, string> {
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+    };
     
-    // Obtener token del localStorage
-    const token = localStorage.getItem('token');
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-    
-    // Obtener userId del localStorage
-    const userId = localStorage.getItem('userId');
-    if (userId) {
-        headers['X-User-ID'] = userId;
+    if (typeof window !== 'undefined') {
+        const savedUser = localStorage.getItem('pigmea_user');
+        if (savedUser) {
+            try {
+                const user = JSON.parse(savedUser);
+                headers['x-user-id'] = String(user.id);
+                headers['x-user-role'] = user.role || 'OPERATOR';
+            } catch (error) {
+                console.warn('Error parsing user from localStorage:', error);
+            }
+        }
     }
     
     return headers;
