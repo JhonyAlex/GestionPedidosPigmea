@@ -513,22 +513,42 @@ const ReportView: React.FC<ReportViewProps> = ({
                     </h3>
                     <div className="flex flex-wrap gap-2">
                         {[
+                            // Etapas Pre-Producción
                             { id: Etapa.PREPARACION, label: 'Preparación', color: 'amber' },
                             { id: STAGE_LISTO_PARA_PRODUCCION, label: 'Listo para Producción', color: 'emerald' },
-                            { id: Etapa.IMPRESION_WM1, label: 'Impresión', color: 'cyan' },
-                            { id: Etapa.COMPLETADO, label: 'Completados', color: 'teal' },
-                            ...Object.values(Etapa)
-                                .filter(e => e !== Etapa.PREPARACION && e !== Etapa.PENDIENTE && e !== Etapa.COMPLETADO && e !== Etapa.ARCHIVADO && e !== Etapa.IMPRESION_WM1)
-                                .map(e => ({ id: e, label: e.replace('IMPRESION_', '').replace('POST_', '').replace('_', ' '), color: 'slate' }))
+                            
+                            // Etapas de Impresión
+                            { id: Etapa.IMPRESION_WM1, label: 'Windmöller 1', color: 'cyan' },
+                            { id: Etapa.IMPRESION_WM3, label: 'Windmöller 3', color: 'cyan' },
+                            { id: Etapa.IMPRESION_GIAVE, label: 'GIAVE', color: 'cyan' },
+                            { id: Etapa.IMPRESION_ANON, label: 'ANON', color: 'cyan' },
+                            
+                            // Etapas Post-Impresión - Laminación
+                            { id: Etapa.POST_LAMINACION_SL2, label: 'Laminación SL2', color: 'indigo' },
+                            { id: Etapa.POST_LAMINACION_NEXUS, label: 'Laminación NEXUS', color: 'indigo' },
+                            
+                            // Etapas Post-Impresión - Rebobinado
+                            { id: Etapa.POST_REBOBINADO_S2DT, label: 'Rebobinado S2DT', color: 'purple' },
+                            { id: Etapa.POST_REBOBINADO_PROSLIT, label: 'Rebobinado PROSLIT', color: 'purple' },
+                            { id: Etapa.POST_REBOBINADO_TEMAC, label: 'Rebobinado TEMAC', color: 'purple' },
+                            
+                            // Etapas Post-Impresión - Perforación
+                            { id: Etapa.POST_PERFORACION_MIC, label: 'Perforación MIC', color: 'pink' },
+                            { id: Etapa.POST_PERFORACION_MAC, label: 'Perforación MAC', color: 'pink' },
+                            
+                            // Estado Final
+                            { id: Etapa.COMPLETADO, label: 'Completados', color: 'green' },
                         ].map(stage => {
                             const stageColors: Record<string, { active: string; inactive: string }> = {
                                 'amber': { active: 'bg-amber-100 border-amber-600 text-amber-900 shadow-sm', inactive: 'bg-white border-amber-300 text-amber-700 hover:bg-amber-50' },
                                 'emerald': { active: 'bg-emerald-100 border-emerald-600 text-emerald-900 shadow-sm', inactive: 'bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50' },
                                 'cyan': { active: 'bg-cyan-100 border-cyan-600 text-cyan-900 shadow-sm', inactive: 'bg-white border-cyan-300 text-cyan-700 hover:bg-cyan-50' },
-                                'teal': { active: 'bg-teal-100 border-teal-600 text-teal-900 shadow-sm', inactive: 'bg-white border-teal-300 text-teal-700 hover:bg-teal-50' },
-                                'slate': { active: 'bg-slate-100 border-slate-600 text-slate-900 shadow-sm', inactive: 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50' },
+                                'indigo': { active: 'bg-indigo-100 border-indigo-600 text-indigo-900 shadow-sm', inactive: 'bg-white border-indigo-300 text-indigo-700 hover:bg-indigo-50' },
+                                'purple': { active: 'bg-purple-100 border-purple-600 text-purple-900 shadow-sm', inactive: 'bg-white border-purple-300 text-purple-700 hover:bg-purple-50' },
+                                'pink': { active: 'bg-pink-100 border-pink-600 text-pink-900 shadow-sm', inactive: 'bg-white border-pink-300 text-pink-700 hover:bg-pink-50' },
+                                'green': { active: 'bg-green-100 border-green-600 text-green-900 shadow-sm', inactive: 'bg-white border-green-300 text-green-700 hover:bg-green-50' },
                             };
-                            const colors = stageColors[stage.color] || stageColors['slate'];
+                            const colors = stageColors[stage.color] || stageColors['cyan'];
                             return (
                                 <button
                                     key={stage.id}
