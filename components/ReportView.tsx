@@ -7,12 +7,14 @@ import { MAQUINAS_IMPRESION, PREPARACION_SUB_ETAPAS_IDS, ETAPAS } from '../const
 import { parseTimeToMinutes } from '../utils/kpi';
 import { PlanningTable, WeeklyData } from './PlanningTable';
 import { PlanningChart } from './PlanningChart';
+import CustomAnalysisModal from './CustomAnalysisModal';
 // @ts-ignore - jspdf types might be tricky
 import { jsPDF } from 'jspdf';
 // @ts-ignore - jspdf-autotable types might be tricky
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import { generateProductionAnalysis, saveAnalysisToCache, getAnalysisFromCache } from '../utils/aiAnalysis';
+import { io, Socket } from 'socket.io-client';
 
 /**
  * =============================================================================
@@ -113,6 +115,12 @@ const ReportView: React.FC<ReportViewProps> = ({
     const [showAnalysis, setShowAnalysis] = useState(false);
     const [lastAnalysisFilters, setLastAnalysisFilters] = useState<string>('');
 
+    // Custom Instructions State
+    const [showCustomModal, setShowCustomModal] = useState(false);
+    const [customInstructions, setCustomInstructions] = useState<string>('');
+    const [isSavingInstructions, setIsSavingInstructions] = useState(false);
+    const [socket, setSocket] = useState<Socket | null>(null);
+
     // Detectar cambios en filtros y limpiar análisis
     useEffect(() => {
         const currentFilters = JSON.stringify({
@@ -146,6 +154,50 @@ const ReportView: React.FC<ReportViewProps> = ({
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY_MACHINES, JSON.stringify(selectedMachines));
     }, [selectedMachines]);
+
+    // --- Cargar instrucciones personalizadas y configurar Socket.IO ---
+    useEffect(() => {
+        // Cargar instrucciones
+        const loadInstructions = async () => {
+            try {
+                const response = await fetch('/api/analysis/instructions');
+                const data = await response.json();
+                setCustomInstructions(data.instructions || '');
+            } catch (error) {
+                console.error('Error loading custom instructions:', error);
+            }
+        };
+        loadInstructions();
+
+        // Configurar Socket.IO para sincronización en tiempo real
+        const API_BASE = process.env.NODE_ENV === 'production' 
+            ? window.location.origin 
+            : 'http://localhost:8080';
+        
+        const socketInstance = io(API_BASE, {
+            transports: ['websocket', 'polling']
+        });
+
+        socketInstance.on('connect', () => {
+            console.log('🔌 Conectado a Socket.IO para instrucciones de análisis');
+        });
+
+        socketInstance.on('analysis-instructions-updated', (data: { instructions: string }) => {
+            console.log('📡 Instrucciones actualizadas desde otro usuario');
+            setCustomInstructions(data.instructions);
+            // Limpiar análisis actual si está visible
+            if (showAnalysis) {
+                setShowAnalysis(false);
+                setAiAnalysis(null);
+            }
+        });
+
+        setSocket(socketInstance);
+
+        return () => {
+            socketInstance.disconnect();
+        };
+    }, []);
 
 
     // --- 2. Data Processing Engine ---
@@ -408,6 +460,41 @@ const ReportView: React.FC<ReportViewProps> = ({
         }
     };
 
+    const handleSaveInstructions = async (instructions: string) => {
+        setIsSavingInstructions(true);
+        try {
+            const savedUser = localStorage.getItem('pigmea_user');
+            const user = savedUser ? JSON.parse(savedUser) : null;
+            
+            const response = await fetch('/api/analysis/instructions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': user?.id || '',
+                    'x-user-role': user?.role || 'OPERATOR'
+                },
+                body: JSON.stringify({ instructions })
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al guardar instrucciones');
+            }
+
+            setCustomInstructions(instructions);
+            setShowCustomModal(false);
+            
+            // Limpiar análisis actual para forzar regeneración
+            setShowAnalysis(false);
+            setAiAnalysis(null);
+
+        } catch (error) {
+            console.error('Error saving instructions:', error);
+            alert('Error al guardar instrucciones personalizadas');
+        } finally {
+            setIsSavingInstructions(false);
+        }
+    };
+
 
     // --- 4. Render Helpers ---
 
@@ -606,6 +693,22 @@ const ReportView: React.FC<ReportViewProps> = ({
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div className="flex items-center gap-4">
                     <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Centro de Planificación</h1>
+                    
+                    {/* Custom Instructions Button */}
+                    <button
+                        onClick={() => setShowCustomModal(true)}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 text-gray-700 dark:text-gray-300 text-xs font-medium rounded-md transition-all shadow-sm hover:shadow-md group"
+                        title="Personalizar instrucciones de análisis"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-gray-500 group-hover:text-purple-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span className="hidden sm:inline">Personalizar</span>
+                        {customInstructions && (
+                            <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse"></span>
+                        )}
+                    </button>
                     
                     {/* AI Analysis Button - Discreto */}
                     <button
@@ -935,6 +1038,15 @@ const ReportView: React.FC<ReportViewProps> = ({
                     </div>
                 </div>
             )}
+
+            {/* Custom Analysis Instructions Modal */}
+            <CustomAnalysisModal
+                isOpen={showCustomModal}
+                onClose={() => setShowCustomModal(false)}
+                currentInstructions={customInstructions}
+                onSave={handleSaveInstructions}
+                isSaving={isSavingInstructions}
+            />
 
         </main>
     );

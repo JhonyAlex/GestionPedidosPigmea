@@ -213,10 +213,27 @@ app.get('/api/health', (req, res) => {
 // ============================================================================
 app.post('/api/analysis/generate', requireAuth, async (req, res) => {
     try {
-        const { weeklyData, machineKeys, dateFilter, selectedStages } = req.body;
+        const { weeklyData, machineKeys, dateFilter, selectedStages, detailedPedidos } = req.body;
 
         if (!weeklyData || !Array.isArray(weeklyData)) {
             return res.status(400).json({ error: 'weeklyData es requerido y debe ser un array' });
+        }
+
+        // Obtener instrucciones personalizadas
+        let customInstructions = '';
+        try {
+            const instructionsQuery = `
+                SELECT instructions
+                FROM analysis_instructions
+                ORDER BY id DESC
+                LIMIT 1
+            `;
+            const instructionsResult = await dbClient.pool.query(instructionsQuery);
+            if (instructionsResult.rows.length > 0) {
+                customInstructions = instructionsResult.rows[0].instructions || '';
+            }
+        } catch (error) {
+            console.warn('No se pudieron obtener instrucciones personalizadas:', error);
         }
 
         // Preparar resumen de datos para el prompt
@@ -275,7 +292,9 @@ FORMATO:
 - Usa ⚠️ para advertencias críticas
 - Usa ✅ para oportunidades positivas
 - NO uses headers markdown (###), solo texto con "Título:" al inicio de secciones
-- Sé directo, profesional y accionable`;
+- Sé directo, profesional y accionable
+
+${customInstructions ? `\n⚡ INSTRUCCIONES PERSONALIZADAS (PRIORIDAD MÁXIMA):\n${customInstructions}\n\nAsegúrate de responder ESPECÍFICAMENTE a estas instrucciones personalizadas además del análisis estándar.` : ''}`;
 
         // Llamar a OpenRouter con el API key seguro
         const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -334,6 +353,80 @@ FORMATO:
             error: 'Error al generar análisis',
             details: error.message 
         });
+    }
+});
+
+// ============================================================================
+// Custom Analysis Instructions Endpoints
+// ============================================================================
+
+// Obtener instrucciones personalizadas
+app.get('/api/analysis/instructions', async (req, res) => {
+    try {
+        const query = `
+            SELECT instructions, updated_at, updated_by
+            FROM analysis_instructions
+            ORDER BY id DESC
+            LIMIT 1
+        `;
+        
+        const result = await dbClient.pool.query(query);
+        
+        if (result.rows.length === 0) {
+            return res.json({ 
+                instructions: '',
+                updatedAt: null,
+                updatedBy: null
+            });
+        }
+        
+        res.json({
+            instructions: result.rows[0].instructions || '',
+            updatedAt: result.rows[0].updated_at,
+            updatedBy: result.rows[0].updated_by
+        });
+        
+    } catch (error) {
+        console.error('Error al obtener instrucciones personalizadas:', error);
+        res.status(500).json({ error: 'Error al obtener instrucciones' });
+    }
+});
+
+// Guardar instrucciones personalizadas
+app.post('/api/analysis/instructions', requireAuth, async (req, res) => {
+    try {
+        const { instructions } = req.body;
+        const userId = req.headers['x-user-id'];
+        
+        if (instructions === undefined) {
+            return res.status(400).json({ error: 'instructions es requerido' });
+        }
+        
+        // Insertar nueva versión de instrucciones
+        const query = `
+            INSERT INTO analysis_instructions (instructions, updated_by)
+            VALUES ($1, $2)
+            RETURNING id, instructions, updated_at, updated_by
+        `;
+        
+        const result = await dbClient.pool.query(query, [instructions, userId]);
+        
+        // Emitir evento Socket.IO para sincronizar con otros usuarios
+        io.emit('analysis-instructions-updated', {
+            instructions: instructions,
+            updatedAt: result.rows[0].updated_at,
+            updatedBy: userId
+        });
+        
+        res.json({
+            success: true,
+            instructions: result.rows[0].instructions,
+            updatedAt: result.rows[0].updated_at
+        });
+        
+    } catch (error) {
+        console.error('Error al guardar instrucciones personalizadas:', error);
+        res.status(500).json({ error: 'Error al guardar instrucciones' });
     }
 });
 
