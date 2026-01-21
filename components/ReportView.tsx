@@ -893,7 +893,6 @@ const ReportView: React.FC<ReportViewProps> = ({
                             { id: Etapa.IMPRESION_WM1, label: 'Windmöller 1', color: 'cyan' },
                             { id: Etapa.IMPRESION_WM3, label: 'Windmöller 3', color: 'cyan' },
                             { id: Etapa.IMPRESION_GIAVE, label: 'GIAVE', color: 'cyan' },
-                            { id: Etapa.IMPRESION_ANON, label: 'ANON', color: 'cyan' },
                             
                             // Etapas Post-Impresión - Laminación
                             { id: Etapa.POST_LAMINACION_SL2, label: 'Laminación SL2', color: 'indigo' },
