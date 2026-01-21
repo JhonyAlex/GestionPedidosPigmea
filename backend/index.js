@@ -986,6 +986,11 @@ function detectChanges(previousPedido, updatedPedido) {
         changes.push(`Velocidad Posible: ${previousPedido.velocidadPosible || 'Sin definir'} → ${updatedPedido.velocidadPosible || 'Sin definir'} m/min`);
     }
     
+    // Cambios en horas confirmadas
+    if (previousPedido.horasConfirmadas !== updatedPedido.horasConfirmadas) {
+        changes.push(`Horas Confirmadas: ${previousPedido.horasConfirmadas ? 'Sí' : 'No'} → ${updatedPedido.horasConfirmadas ? 'Sí' : 'No'}`);
+    }
+    
     return changes;
 }
 

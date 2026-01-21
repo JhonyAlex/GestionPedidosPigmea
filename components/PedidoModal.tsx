@@ -654,43 +654,10 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         return headers;
     }, [user]);
 
-    const handleHorasConfirmadasManualChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleHorasConfirmadasManualChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newValue = e.target.checked;
-        const previousValue = formData.horasConfirmadas;
-        
-        // 1. Actualización optimista
+        // Solo actualizar el estado local, el guardado se hará al presionar "Guardar"
         setFormData(prev => ({ ...prev, horasConfirmadas: newValue }));
-
-        try {
-            // 2. Llamada al Backend (Sincronización en tiempo real)
-            const response = await fetch(`/api/pedidos/${pedido.id}/horas-confirmadas`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...getAuthHeaders()
-                },
-                body: JSON.stringify({ horasConfirmadas: newValue })
-            });
-            
-            if (!response.ok) {
-                throw new Error('Error al actualizar horas confirmadas');
-            }
-
-            // 3. Registrar en Historial
-            // Usamos el estado del pedido actual pero con el nuevo valor de horasConfirmadas para el registro
-            const pedidoStateForHistory = { ...pedido, horasConfirmadas: newValue };
-            const pedidoPreviousState = { ...pedido, horasConfirmadas: previousValue };
-            
-            // Nota: recordPedidoUpdate compara los objetos para detectar cambios.
-            // Pasamos un objeto base y uno modificado solo en este campo.
-            await recordPedidoUpdate(pedidoPreviousState, pedidoStateForHistory);
-            
-        } catch (error) {
-            console.error(error);
-            // Revertir en caso de error
-            setFormData(prev => ({ ...prev, horasConfirmadas: previousValue }));
-            alert('Error al actualizar el estado de Horas Confirmadas');
-        }
     };
 
     const handleDataChange = (field: keyof Pedido, value: any) => {
