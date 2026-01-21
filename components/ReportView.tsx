@@ -13,6 +13,38 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 
+/**
+ * =============================================================================
+ * ReportView - Centro de Planificación
+ * =============================================================================
+ * 
+ * Este componente implementa la lógica de clasificación y cálculo de pedidos
+ * según las especificaciones estrictas de CALCULO_REPORTES.md
+ * 
+ * CLASIFICACIÓN POR PRIORIDAD (orden estricto):
+ * 
+ * 1. DNT (Máxima prioridad)
+ *    - Si vendedorNombre contiene "DNT" → Columna DNT
+ * 
+ * 2. (ANÓNIMOS - eliminado según spec)
+ * 
+ * 3. Máquina Asignada
+ *    - Si tiene maquinaImpresion conocida (WM1, WM3, GIAVE)
+ *    - EXCEPTO si cumple condiciones de PRIORIDAD 4
+ * 
+ * 4. VARIABLES
+ *    - Si estado de cliché es "NUEVO" o "REPETICIÓN CON CAMBIO"
+ *    - Y NO tiene horasConfirmadas = true
+ *    - Y NO tiene fecha en compraCliche
+ *    - O si no tiene máquina asignada
+ * 
+ * CÁLCULO DE CAPACIDAD LIBRE:
+ * LIBRES = 180 - WH1 - WH3 - DNT
+ * (GIAVE y VARIABLES no restan capacidad)
+ * 
+ * =============================================================================
+ */
+
 interface ReportViewProps {
     pedidos: Pedido[];
     onNavigateToPedido?: (pedido: Pedido) => void;
@@ -26,8 +58,8 @@ interface ReportViewProps {
 // Special filter constants
 const STAGE_LISTO_PARA_PRODUCCION = 'LISTO_PARA_PRODUCCION';
 const MACHINE_DNT = 'DNT';
-const MACHINE_SIN_ASIGNAR = 'Sin Asignar';
-const CAPACITY_PER_WEEK = 120; // Assuming 120 hours capacity per week per machine
+const MACHINE_VARIABLES = 'VARIABLES'; // Renamed from "Sin Asignar" per spec
+const CAPACITY_BASE = 180; // Fixed capacity base per spec (180 hours/week)
 
 // Storage Keys
 const STORAGE_KEY_DATE_FILTER = 'planning_date_filter';
@@ -64,7 +96,7 @@ const ReportView: React.FC<ReportViewProps> = ({
         return saved ? JSON.parse(saved) : [Etapa.PREPARACION, STAGE_LISTO_PARA_PRODUCCION];
     });
 
-    const allMachineOptions = ['Windmöller 1', 'Windmöller 3', 'GIAVE', 'DNT', 'Sin Asignar'];
+    const allMachineOptions = ['Windmöller 1', 'Windmöller 3', 'GIAVE', 'DNT', 'VARIABLES'];
     const [selectedMachines, setSelectedMachines] = useState<string[]>(() => {
         const saved = localStorage.getItem(STORAGE_KEY_MACHINES);
         return saved ? JSON.parse(saved) : allMachineOptions;
@@ -114,9 +146,16 @@ const ReportView: React.FC<ReportViewProps> = ({
             filterEnd = dateRange.end;
         }
 
-        // Filter orders
+        // ============================================================================
+        // FILTRADO INICIAL DE PEDIDOS (según CALCULO_REPORTES.md)
+        // Se incluyen pedidos de todas las etapas EXCEPTO Archivados
+        // Se filtran por rango de fechas según el campo seleccionado
+        // ============================================================================
         const filteredPedidos = pedidos.filter(p => {
-            // 1. Stage Filtering
+            // 1. Excluir archivados
+            if (p.etapaActual === Etapa.ARCHIVADO) return false;
+
+            // 2. Stage Filtering
             const isPreparacion = p.etapaActual === Etapa.PREPARACION;
             const isListo = isPreparacion && p.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION;
             
@@ -127,7 +166,7 @@ const ReportView: React.FC<ReportViewProps> = ({
 
             if (!stageMatch) return false;
 
-            // 2. Date Filtering
+            // 3. Date Filtering
             if (dateFilter !== 'all') {
                 const dateVal = p[dateField];
                 if (!dateVal) return false; // If filtering by date and date is missing, exclude it
@@ -142,9 +181,7 @@ const ReportView: React.FC<ReportViewProps> = ({
         });
 
         filteredPedidos.forEach(p => {
-            // Determine Week based on Delivery Date (or the selected date field?)
-            // Usually planning is grouped by Delivery Date regardless of the filter, OR grouped by the filtered date.
-            // Let's group by the selected dateField to match the view context
+            // Determine Week based on selected date field
             const dateStr = p[dateField] as string || p.fechaEntrega || p.fechaCreacion; 
             if (!dateStr) return;
 
@@ -180,34 +217,62 @@ const ReportView: React.FC<ReportViewProps> = ({
                 });
             }
 
-            // Determine Machine Category
-            let machineCategory = MACHINE_SIN_ASIGNAR;
+            // ============================================================================
+            // CLASSIFICATION LOGIC - Following CALCULO_REPORTES.md Strict Priority Order
+            // ============================================================================
+            let machineCategory = MACHINE_VARIABLES; // Default fallback
             const vendedorNombre = p.vendedorNombre?.trim().toUpperCase() || '';
             const maquinaImp = p.maquinaImpresion?.trim() || '';
 
-            // CRITICAL: DNT priority rule. 
-            // If vendor is DNT, it MUST go to DNT category, regardless of machine assignment.
+            // --- PRIORIDAD 1: DNT (MÁXIMA PRIORIDAD) ---
+            // Si el nombre del vendedor contiene "DNT", va a columna DNT sin importar la máquina
             if (vendedorNombre.includes('DNT')) {
                 machineCategory = MACHINE_DNT;
-            } else if (maquinaImp) {
-                // Check if known machine
+            }
+            // --- PRIORIDAD 3: Máquina Asignada (Identificada) ---
+            // Si no es DNT, verificar si tiene máquina asignada conocida
+            else if (maquinaImp) {
                 const knownMachine = MAQUINAS_IMPRESION.find(m => m.id === maquinaImp || m.nombre === maquinaImp);
                 if (knownMachine) {
-                    machineCategory = knownMachine.nombre; // Use Name for display
+                    // --- PRIORIDAD 4: VARIABLES ---
+                    // SOLO si cumple TODAS estas condiciones, va a VARIABLES:
+                    // 1. Estado de cliché es "NUEVO" o "REPETICION CON CAMBIO"
+                    // 2. NO tiene "horasConfirmadas" = true
+                    // 3. NO tiene fecha en "compraCliche"
+                    const esEstadoVariable = p.estadoCliché === 'NUEVO' || p.estadoCliché === 'REPETICIÓN CON CAMBIO';
+                    const noTieneHorasConfirmadas = !p.horasConfirmadas;
+                    const noTieneCompraCliché = !p.compraCliche;
+
+                    if (esEstadoVariable && noTieneHorasConfirmadas && noTieneCompraCliché) {
+                        machineCategory = MACHINE_VARIABLES;
+                    } else {
+                        // Si tiene máquina y NO cumple condiciones de VARIABLE, va a su máquina
+                        machineCategory = knownMachine.nombre;
+                    }
                 } else {
-                    machineCategory = maquinaImp; // Use as is if not in list but defined
+                    // Máquina no reconocida, usar el valor tal cual
+                    machineCategory = maquinaImp;
                 }
-            } else {
-                // If empty machine, it goes to "Sin Asignar" (Pedidos VARIABLES)
-                machineCategory = MACHINE_SIN_ASIGNAR;
+            }
+            // Si no tiene vendedor DNT, ni máquina asignada → VARIABLES
+            else {
+                machineCategory = MACHINE_VARIABLES;
             }
 
             // ONLY process if machine is in selected machines
             if (selectedMachines.includes(machineCategory)) {
-                // Calculate Hours
+                // ============================================================================
+                // CÁLCULO DE TIEMPO DE PRODUCCIÓN (según CALCULO_REPORTES.md)
+                // 1. Intentar leer tiempoProduccionPlanificado (formato "HH:MM")
+                // 2. Si no existe o es 0, usar tiempoProduccionDecimal
+                // 3. Si ambos faltan, asumir 0 horas
+                // ============================================================================
+                let hours = 0;
+                
                 const planificadoStr = p.tiempoProduccionPlanificado || '00:00';
-                let hours = parseTimeToMinutes(planificadoStr) / 60;
-                // Fallback to decimal if planificado is 0/empty but decimal exists
+                hours = parseTimeToMinutes(planificadoStr) / 60;
+                
+                // Fallback: Si planificado es 0 o vacío, usar decimal
                 if ((!hours || hours === 0) && p.tiempoProduccionDecimal) {
                     hours = p.tiempoProduccionDecimal;
                 }
@@ -238,18 +303,17 @@ const ReportView: React.FC<ReportViewProps> = ({
         });
 
         // Calculate Free Capacity
-        // New Formula requested: 180 - WH1 - WH3 - DNT = Libres
-        const FIXED_CAPACITY_BASE = 180;
-
+        // Fórmula según CALCULO_REPORTES.md: LIBRES = 180 - WH1 - WH3 - DNT
         sortedWeeks.forEach(group => {
-            group.totalCapacity = FIXED_CAPACITY_BASE;
+            group.totalCapacity = CAPACITY_BASE;
             
             const wh1 = group.machines['Windmöller 1'] || 0;
             const wh3 = group.machines['Windmöller 3'] || 0;
             const dnt = group.machines['DNT'] || 0;
             
-            // Formula: 180 - WH1 - WH3 - DNT
-            group.freeCapacity = FIXED_CAPACITY_BASE - wh1 - wh3 - dnt;
+            // Fórmula: 180 - WH1 - WH3 - DNT
+            // GIAVE y VARIABLES NO restan capacidad
+            group.freeCapacity = CAPACITY_BASE - wh1 - wh3 - dnt;
         });
 
         return {
@@ -583,7 +647,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                 ) : (
                                     <tr>
                                         <td colSpan={onSelectAll ? 8 : 7} className="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400 italic">
-                                            No hay variables asignadas a este bloque.
+                                            No hay pedidos asignados a esta categoría.
                                         </td>
                                     </tr>
                                 )}

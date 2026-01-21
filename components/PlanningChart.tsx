@@ -12,7 +12,7 @@ const MACHINE_COLORS: Record<string, string> = {
     'Windmöller 3': '#c0504d', // Red
     'GIAVE': '#f79646', // Orange
     'DNT': '#9bbb59', // Green
-    'Sin Asignar': '#8064a2', // Purple (or use a blue variant)
+    'VARIABLES': '#8064a2', // Purple
     'ANON': '#4bacc6' // Cyan
 };
 
@@ -21,7 +21,7 @@ const MACHINE_LABELS: Record<string, string> = {
     'Windmöller 3': 'WH-3',
     'GIAVE': 'SUP GIAVE',
     'DNT': 'DNT',
-    'Sin Asignar': 'Pedidos VARIABLES',
+    'VARIABLES': 'VARIABLES',
     'ANON': 'ANON'
 };
 
@@ -32,7 +32,7 @@ export const PlanningChart: React.FC<PlanningChartProps> = ({ data, machineKeys,
     const chartHeight = 300;
 
     // Desired order for bars
-    const desiredOrder = ['Windmöller 1', 'Sin Asignar', 'Windmöller 3', 'GIAVE', 'DNT', 'ANON'];
+    const desiredOrder = ['Windmöller 1', 'VARIABLES', 'Windmöller 3', 'GIAVE', 'DNT', 'ANON'];
     const sortedKeys = [...machineKeys].sort((a, b) => {
         const indexA = desiredOrder.indexOf(a);
         const indexB = desiredOrder.indexOf(b);
