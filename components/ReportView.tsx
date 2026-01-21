@@ -528,7 +528,7 @@ const ReportView: React.FC<ReportViewProps> = ({
     const renderAnalysis = (text: string) => {
         // Dividir por líneas
         const lines = text.split('\n');
-        const elements: JSX.Element[] = [];
+        const elements: React.ReactElement[] = [];
         let currentSection: string[] = [];
         let sectionIndex = 0;
 
