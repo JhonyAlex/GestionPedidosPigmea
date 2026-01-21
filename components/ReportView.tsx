@@ -70,6 +70,7 @@ const STORAGE_KEY_DATE_FILTER = 'planning_date_filter';
 const STORAGE_KEY_DATE_FIELD = 'planning_date_field';
 const STORAGE_KEY_STAGES = 'planning_selected_stages';
 const STORAGE_KEY_MACHINES = 'planning_selected_machines';
+const STORAGE_KEY_CUSTOM_DATE_RANGE = 'planning_custom_date_range';
 
 const ReportView: React.FC<ReportViewProps> = ({ 
     pedidos, 
@@ -90,9 +91,19 @@ const ReportView: React.FC<ReportViewProps> = ({
         return (localStorage.getItem(STORAGE_KEY_DATE_FIELD) as keyof Pedido) || 'nuevaFechaEntrega';
     });
 
-    const [customDateRange, setCustomDateRange] = useState({
-        start: new Date().toISOString().split('T')[0],
-        end: new Date().toISOString().split('T')[0]
+    const [customDateRange, setCustomDateRange] = useState(() => {
+        const saved = localStorage.getItem(STORAGE_KEY_CUSTOM_DATE_RANGE);
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                console.error('Error parsing saved custom date range:', e);
+            }
+        }
+        return {
+            start: new Date().toISOString().split('T')[0],
+            end: new Date().toISOString().split('T')[0]
+        };
     });
 
     const [selectedStages, setSelectedStages] = useState<string[]>(() => {
@@ -162,6 +173,10 @@ const ReportView: React.FC<ReportViewProps> = ({
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY_MACHINES, JSON.stringify(selectedMachines));
     }, [selectedMachines]);
+
+    useEffect(() => {
+        localStorage.setItem(STORAGE_KEY_CUSTOM_DATE_RANGE, JSON.stringify(customDateRange));
+    }, [customDateRange]);
 
     // --- Cargar instrucciones personalizadas y configurar Socket.IO ---
     useEffect(() => {
