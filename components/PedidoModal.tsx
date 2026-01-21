@@ -494,9 +494,14 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
             
             // 📝 Registrar acción en el historial ANTES de guardar
             try {
+                console.log('📝 [HISTORIAL] Registrando cambios:', {
+                    before: { horasConfirmadas: pedido.horasConfirmadas },
+                    after: { horasConfirmadas: pedidoActualizado.horasConfirmadas }
+                });
                 await recordPedidoUpdate(pedido, pedidoActualizado);
+                console.log('✅ [HISTORIAL] Cambios registrados exitosamente');
             } catch (error) {
-                console.error('Error al registrar acción en historial:', error);
+                console.error('❌ [HISTORIAL] Error al registrar acción en historial:', error);
                 // No bloqueamos el guardado por errores de historial
             }
             
