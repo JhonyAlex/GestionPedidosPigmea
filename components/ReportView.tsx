@@ -468,56 +468,79 @@ const ReportView: React.FC<ReportViewProps> = ({
             </div>
 
             {/* --- Toolbar --- */}
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow space-y-6">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow space-y-6">
                 
-                {/* Filters Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    
-                    {/* Machine Filters */}
-                    <div>
-                        <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">Máquinas</h3>
-                        <div className="flex flex-wrap gap-2">
-                            {allMachineOptions.map(machine => (
+                {/* Machine Filters */}
+                <div>
+                    <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                        </svg>
+                        Máquinas / Categorías
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                        {allMachineOptions.map(machine => {
+                            const machineColors: Record<string, { active: string; inactive: string }> = {
+                                'Windmöller 1': { active: 'bg-blue-100 border-blue-600 text-blue-800 shadow-sm', inactive: 'bg-white border-blue-300 text-blue-600 hover:bg-blue-50' },
+                                'Windmöller 3': { active: 'bg-red-100 border-red-600 text-red-800 shadow-sm', inactive: 'bg-white border-red-300 text-red-600 hover:bg-red-50' },
+                                'GIAVE': { active: 'bg-orange-100 border-orange-600 text-orange-800 shadow-sm', inactive: 'bg-white border-orange-300 text-orange-600 hover:bg-orange-50' },
+                                'DNT': { active: 'bg-green-100 border-green-600 text-green-800 shadow-sm', inactive: 'bg-white border-green-300 text-green-600 hover:bg-green-50' },
+                                'VARIABLES': { active: 'bg-purple-100 border-purple-600 text-purple-800 shadow-sm', inactive: 'bg-white border-purple-300 text-purple-600 hover:bg-purple-50' },
+                            };
+                            const colors = machineColors[machine] || { active: 'bg-gray-100 border-gray-600 text-gray-800', inactive: 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50' };
+                            return (
                                 <button
                                     key={machine}
                                     onClick={() => toggleMachine(machine)}
-                                    className={`px-3 py-1 text-xs rounded-full border transition-colors ${
-                                        selectedMachines.includes(machine)
-                                            ? 'bg-blue-100 border-blue-500 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                                            : 'bg-gray-50 border-gray-300 text-gray-600 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300'
+                                    className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all ${
+                                        selectedMachines.includes(machine) ? colors.active : colors.inactive
                                     }`}
                                 >
                                     {machine}
                                 </button>
-                            ))}
-                        </div>
+                            );
+                        })}
                     </div>
+                </div>
 
-                    {/* Stage Filters */}
-                    <div>
-                        <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">Etapas</h3>
-                        <div className="flex flex-wrap gap-2">
-                            {[
-                                { id: Etapa.PREPARACION, label: 'Preparación' },
-                                { id: STAGE_LISTO_PARA_PRODUCCION, label: 'Listo para Producción' },
-                                { id: Etapa.IMPRESION_WM1, label: 'Impresión' }, 
-                                ...Object.values(Etapa)
-                                    .filter(e => e !== Etapa.PREPARACION && e !== Etapa.PENDIENTE && e !== Etapa.COMPLETADO && e !== Etapa.ARCHIVADO && e !== Etapa.IMPRESION_WM1)
-                                    .map(e => ({ id: e, label: e.replace('IMPRESION_', '').replace('POST_', '') }))
-                            ].map(stage => (
+                {/* Stage Filters */}
+                <div>
+                    <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        Etapas del Proceso
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                        {[
+                            { id: Etapa.PREPARACION, label: 'Preparación', color: 'amber' },
+                            { id: STAGE_LISTO_PARA_PRODUCCION, label: 'Listo para Producción', color: 'emerald' },
+                            { id: Etapa.IMPRESION_WM1, label: 'Impresión', color: 'cyan' },
+                            { id: Etapa.COMPLETADO, label: 'Completados', color: 'teal' },
+                            ...Object.values(Etapa)
+                                .filter(e => e !== Etapa.PREPARACION && e !== Etapa.PENDIENTE && e !== Etapa.COMPLETADO && e !== Etapa.ARCHIVADO && e !== Etapa.IMPRESION_WM1)
+                                .map(e => ({ id: e, label: e.replace('IMPRESION_', '').replace('POST_', '').replace('_', ' '), color: 'slate' }))
+                        ].map(stage => {
+                            const stageColors: Record<string, { active: string; inactive: string }> = {
+                                'amber': { active: 'bg-amber-100 border-amber-600 text-amber-900 shadow-sm', inactive: 'bg-white border-amber-300 text-amber-700 hover:bg-amber-50' },
+                                'emerald': { active: 'bg-emerald-100 border-emerald-600 text-emerald-900 shadow-sm', inactive: 'bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50' },
+                                'cyan': { active: 'bg-cyan-100 border-cyan-600 text-cyan-900 shadow-sm', inactive: 'bg-white border-cyan-300 text-cyan-700 hover:bg-cyan-50' },
+                                'teal': { active: 'bg-teal-100 border-teal-600 text-teal-900 shadow-sm', inactive: 'bg-white border-teal-300 text-teal-700 hover:bg-teal-50' },
+                                'slate': { active: 'bg-slate-100 border-slate-600 text-slate-900 shadow-sm', inactive: 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50' },
+                            };
+                            const colors = stageColors[stage.color] || stageColors['slate'];
+                            return (
                                 <button
                                     key={stage.id}
                                     onClick={() => toggleStage(stage.id)}
-                                    className={`px-3 py-1 text-xs rounded-full border transition-colors ${
-                                        selectedStages.includes(stage.id)
-                                            ? 'bg-indigo-100 border-indigo-500 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300'
-                                            : 'bg-gray-50 border-gray-300 text-gray-600 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300'
+                                    className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all ${
+                                        selectedStages.includes(stage.id) ? colors.active : colors.inactive
                                     }`}
                                 >
                                     {stage.label}
                                 </button>
-                            ))}
-                        </div>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
