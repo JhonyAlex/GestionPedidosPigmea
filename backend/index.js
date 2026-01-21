@@ -2345,19 +2345,29 @@ app.patch('/api/pedidos/bulk-archive', requirePermission('pedidos.edit'), async 
                 }
 
                 console.log(`  📦 Pedido encontrado: ${pedido.numeroPedidoCliente}`);
-                console.log(`  📦 Estado anterior: ${pedido.archivado ? 'Archivado' : 'Activo'}`);
+                console.log(`  📦 Estado anterior: ${pedido.etapaActual}`);
 
-                // Actualizar el pedido con el nuevo estado
+                // Actualizar el pedido con el nuevo estado y etapa
                 const updatedPedido = {
                     ...pedido,
-                    archivado: archived
+                    etapaActual: archived ? 'ARCHIVADO' : 'COMPLETADO',
+                    archivado: archived,
+                    historial: [
+                        ...(pedido.historial || []),
+                        {
+                            timestamp: new Date().toISOString(),
+                            usuario: req.headers['x-user-id'] || 'Sistema',
+                            accion: archived ? 'Archivado masivo' : 'Desarchivado masivo',
+                            detalles: `Pedido ${archived ? 'archivado' : 'desarchivado'} mediante operación masiva`
+                        }
+                    ]
                 };
 
                 const result = await dbClient.update(updatedPedido);
                 
                 if (result) {
                     updatedCount++;
-                    console.log(`  ✅ Pedido ${id} ${archived ? 'archivado' : 'desarchivado'} exitosamente`);
+                    console.log(`  ✅ Pedido ${id} ${archived ? 'archivado' : 'desarchivado'} exitosamente - Nueva etapa: ${result.etapaActual}`);
                     updatedPedidos.push({
                         id: result.id,
                         numeroPedidoCliente: result.numeroPedidoCliente,

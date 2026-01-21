@@ -725,6 +725,7 @@ const AppContent: React.FC = () => {
                 if (ids.includes(p.id)) {
                     return {
                         ...p,
+                        etapaActual: Etapa.ARCHIVADO,
                         archivado: true,
                         historial: [
                             ...(p.historial || []),
