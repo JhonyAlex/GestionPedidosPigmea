@@ -408,6 +408,92 @@ const ReportView: React.FC<ReportViewProps> = ({
         }, 100);
     };
 
+    // Función para renderizar el análisis con mejor formato
+    const renderAnalysis = (text: string) => {
+        // Dividir por líneas
+        const lines = text.split('\n');
+        const elements: JSX.Element[] = [];
+        let currentSection: string[] = [];
+        let sectionIndex = 0;
+
+        const flushSection = () => {
+            if (currentSection.length > 0) {
+                elements.push(
+                    <div key={`section-${sectionIndex++}`} className="mb-4">
+                        {currentSection.map((line, idx) => {
+                            // Headers (texto que termina en :)
+                            if (line.trim().endsWith(':') && line.trim().length < 50) {
+                                return (
+                                    <h4 key={idx} className="font-bold text-purple-700 dark:text-purple-300 text-base mb-2 flex items-center gap-2">
+                                        <span className="w-1 h-4 bg-purple-500 rounded"></span>
+                                        {line.replace(':', '')}
+                                    </h4>
+                                );
+                            }
+                            // Bullets (líneas que empiezan con • o -)
+                            else if (line.trim().startsWith('•') || line.trim().startsWith('-') || line.trim().startsWith('→')) {
+                                const icon = line.trim().startsWith('→') ? '→' : line.trim().startsWith('⚠️') ? '⚠️' : '✓';
+                                const content = line.replace(/^[•\-→⚠️]\s*/, '').trim();
+                                const isWarning = line.includes('⚠️') || content.toLowerCase().includes('urgente') || content.toLowerCase().includes('crítico');
+                                const isPositive = line.includes('✅') || content.toLowerCase().includes('oportunidad') || content.toLowerCase().includes('disponible');
+                                
+                                return (
+                                    <div key={idx} className={`flex items-start gap-2 mb-2 pl-2 py-1.5 rounded ${
+                                        isWarning ? 'bg-amber-50 dark:bg-amber-900/20 border-l-2 border-amber-400' :
+                                        isPositive ? 'bg-green-50 dark:bg-green-900/20 border-l-2 border-green-400' :
+                                        'bg-gray-50 dark:bg-gray-800/50 border-l-2 border-gray-300 dark:border-gray-600'
+                                    }`}>
+                                        <span className={`text-lg flex-shrink-0 ${
+                                            isWarning ? 'text-amber-600' :
+                                            isPositive ? 'text-green-600' :
+                                            'text-purple-500'
+                                        }`}>
+                                            {icon}
+                                        </span>
+                                        <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{content}</span>
+                                    </div>
+                                );
+                            }
+                            // Números al inicio (1., 2., etc)
+                            else if (/^\d+\./.test(line.trim())) {
+                                const [num, ...rest] = line.split('.');
+                                return (
+                                    <div key={idx} className="flex items-start gap-3 mb-2">
+                                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 text-white text-xs font-bold flex items-center justify-center">
+                                            {num}
+                                        </span>
+                                        <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{rest.join('.').trim()}</span>
+                                    </div>
+                                );
+                            }
+                            // Texto normal
+                            else if (line.trim()) {
+                                return (
+                                    <p key={idx} className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-2">
+                                        {line}
+                                    </p>
+                                );
+                            }
+                            return null;
+                        })}
+                    </div>
+                );
+                currentSection = [];
+            }
+        };
+
+        lines.forEach((line) => {
+            if (line.trim() === '') {
+                flushSection();
+            } else {
+                currentSection.push(line);
+            }
+        });
+        flushSection();
+
+        return elements;
+    };
+
     const handleExportPDF = async () => {
         const doc = new jsPDF();
 
@@ -568,7 +654,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                         </button>
                     </div>
                     
-                    <div className="p-5">
+                    <div className="p-6">
                         {analysisError ? (
                             <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -580,10 +666,8 @@ const ReportView: React.FC<ReportViewProps> = ({
                                 </div>
                             </div>
                         ) : (
-                            <div className="prose prose-sm dark:prose-invert max-w-none">
-                                <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
-                                    {aiAnalysis}
-                                </div>
+                            <div className="space-y-4">
+                                {renderAnalysis(aiAnalysis || '')}
                             </div>
                         )}
                     </div>

@@ -247,15 +247,35 @@ CONTEXTO:
 - LIBRES: Horas disponibles (180 - WM1 - WM3 - DNT)
 
 INSTRUCCIONES:
-Genera un análisis gerencial BREVE (máximo 200 palabras) que:
-1. Identifique el balance de carga entre máquinas
-2. Señale semanas con sobrecarga o baja utilización
-3. Destaque pedidos VARIABLES que requieren asignación
-4. Sugiera acciones concretas para optimizar producción
-5. Mencione oportunidades en horas LIBRES
+Genera un análisis gerencial ESTRUCTURADO (máximo 250 palabras) que incluya:
 
-Usa tono profesional pero cercano. Sé directo y accionable. Usa bullets o párrafos cortos.
-NO uses markdown headers (###), solo texto plano con saltos de línea y bullets si es necesario.`;
+Balance de Carga:
+• Identificar máquinas con sobrecarga (>85% capacidad) o baja utilización (<50%)
+• Mencionar diferencias significativas entre WM1 y WM3
+• Destacar oportunidades de redistribución
+
+Pedidos Variables:
+• Cantidad de horas en categoría VARIABLES
+• Impacto en la planificación si no se asignan pronto
+→ Acción específica requerida
+
+Oportunidades:
+• Horas LIBRES disponibles y cómo aprovecharlas
+• Sugerencias para adelantar producción o mantenimiento
+
+Recomendaciones:
+1. Primera acción prioritaria (específica y medible)
+2. Segunda acción importante
+3. Tercera acción si aplica
+
+FORMATO:
+- Usa bullets (•) para listas
+- Usa números (1., 2., 3.) para recomendaciones
+- Usa flechas (→) para acciones urgentes
+- Usa ⚠️ para advertencias críticas
+- Usa ✅ para oportunidades positivas
+- NO uses headers markdown (###), solo texto con "Título:" al inicio de secciones
+- Sé directo, profesional y accionable`;
 
         // Llamar a OpenRouter con el API key seguro
         const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
