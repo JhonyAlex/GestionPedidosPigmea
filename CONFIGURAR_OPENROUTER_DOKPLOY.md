@@ -31,8 +31,12 @@ OPENROUTER_API_KEY
 
 **Valor:**
 ```
-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
+TU_API_KEY_DE_OPENROUTER_AQUI
 ```
+
+> ⚠️ **IMPORTANTE**: Obtén tu API key desde [OpenRouter.ai](https://openrouter.ai/keys)
+> 
+> **NUNCA** subas el API key real a GitHub/GitLab. Solo configúralo en Dokploy.
 
 **Scope/Ámbito:**
 - ✅ Solo para el **servicio del backend** (Node.js)
