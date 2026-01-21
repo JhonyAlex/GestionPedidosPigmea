@@ -8,12 +8,11 @@ interface PlanningChartProps {
 }
 
 const MACHINE_COLORS: Record<string, string> = {
-    'Windmöller 1': '#4f81bd', // Blue (Excel-like)
-    'Windmöller 3': '#c0504d', // Red
-    'GIAVE': '#f79646', // Orange
-    'DNT': '#9bbb59', // Green
-    'VARIABLES': '#8064a2', // Purple
-    'ANON': '#4bacc6' // Cyan
+    'Windmöller 1': '#1e40af', // Azul corporativo profesional
+    'Windmöller 3': '#991b1b', // Rojo corporativo profesional
+    'GIAVE': '#c2410c', // Naranja corporativo profesional
+    'DNT': '#15803d', // Verde corporativo profesional
+    'VARIABLES': '#6d28d9' // Morado corporativo profesional
 };
 
 const MACHINE_LABELS: Record<string, string> = {
@@ -21,8 +20,7 @@ const MACHINE_LABELS: Record<string, string> = {
     'Windmöller 3': 'WH-3',
     'GIAVE': 'SUP GIAVE',
     'DNT': 'DNT',
-    'VARIABLES': 'VARIABLES',
-    'ANON': 'ANON'
+    'VARIABLES': 'VARIABLES'
 };
 
 export const PlanningChart: React.FC<PlanningChartProps> = ({ data, machineKeys, onBarClick }) => {
@@ -36,7 +34,7 @@ export const PlanningChart: React.FC<PlanningChartProps> = ({ data, machineKeys,
     const bottomPadding = 80; // Espacio para etiquetas inferiores
 
     // Desired order for bars
-    const desiredOrder = ['Windmöller 1', 'VARIABLES', 'Windmöller 3', 'GIAVE', 'DNT', 'ANON'];
+    const desiredOrder = ['Windmöller 1', 'VARIABLES', 'Windmöller 3', 'GIAVE', 'DNT'];
     const sortedKeys = [...machineKeys].sort((a, b) => {
         const indexA = desiredOrder.indexOf(a);
         const indexB = desiredOrder.indexOf(b);

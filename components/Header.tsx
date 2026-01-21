@@ -329,8 +329,8 @@ const Header: React.FC<HeaderProps> = ({
                                     onClick={() => onViewChange('report')}
                                     className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-all flex items-center gap-1.5 ${
                                         currentView === 'report'
-                                            ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg'
-                                            : 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600 shadow-md'
+                                            ? 'bg-gradient-to-r from-indigo-600 to-blue-700 text-white shadow-lg'
+                                            : 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white hover:from-indigo-700 hover:to-blue-700 shadow-md'
                                     }`}
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
@@ -465,8 +465,8 @@ const Header: React.FC<HeaderProps> = ({
                                                     onViewChange('report');
                                                     setShowBurgerMenu(false);
                                                 }}
-                                                className={`w-full text-left px-4 py-2 text-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors flex items-center gap-2 ${
-                                                    currentView === 'report' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-semibold' : 'text-purple-600 dark:text-purple-400 font-medium'
+                                                className={`w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors flex items-center gap-2 ${
+                                                    currentView === 'report' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-semibold' : 'text-indigo-600 dark:text-indigo-400 font-medium'
                                                 }`}
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">

@@ -133,6 +133,19 @@ const ReportView: React.FC<ReportViewProps> = ({
         }
     }, [dateFilter, dateField, customDateRange, selectedStages, selectedMachines]);
 
+    // Detectar cambios en instrucciones personalizadas y limpiar análisis
+    useEffect(() => {
+        // Limpiar análisis cuando cambian las instrucciones personalizadas
+        if (aiAnalysis) {
+            console.log('📝 Instrucciones personalizadas cambiaron, limpiando análisis anterior');
+            setShowAnalysis(false);
+            setAiAnalysis(null);
+            setAnalysisError(null);
+            // Limpiar cache para permitir regeneración con nuevas instrucciones
+            clearAnalysisCache();
+        }
+    }, [customInstructions]);
+
     // --- Persistence Effects ---
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY_DATE_FILTER, dateFilter);
@@ -560,8 +573,8 @@ const ReportView: React.FC<ReportViewProps> = ({
                             // Headers (texto que termina en :)
                             if (line.trim().endsWith(':') && line.trim().length < 50) {
                                 return (
-                                    <h4 key={idx} className="font-bold text-purple-700 dark:text-purple-300 text-base mb-2 flex items-center gap-2">
-                                        <span className="w-1 h-4 bg-purple-500 rounded"></span>
+                                    <h4 key={idx} className="font-bold text-indigo-800 dark:text-indigo-300 text-base mb-2 flex items-center gap-2">
+                                        <span className="w-1 h-4 bg-indigo-600 rounded"></span>
                                         {line.replace(':', '')}
                                     </h4>
                                 );
@@ -595,7 +608,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                 const [num, ...rest] = line.split('.');
                                 return (
                                     <div key={idx} className="flex items-start gap-3 mb-2">
-                                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 text-white text-xs font-bold flex items-center justify-center">
+                                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-indigo-600 to-blue-700 text-white text-xs font-bold flex items-center justify-center">
                                             {num}
                                         </span>
                                         <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{parseMarkdownText(rest.join('.').trim())}</span>
@@ -717,16 +730,16 @@ const ReportView: React.FC<ReportViewProps> = ({
                     {/* Custom Instructions Button */}
                     <button
                         onClick={() => setShowCustomModal(true)}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 text-gray-700 dark:text-gray-300 text-xs font-medium rounded-md transition-all shadow-sm hover:shadow-md group"
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:border-indigo-500 dark:hover:border-indigo-400 text-gray-700 dark:text-gray-300 text-xs font-medium rounded-md transition-all shadow-sm hover:shadow-md group"
                         title="Personalizar instrucciones de análisis"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-gray-500 group-hover:text-purple-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-gray-500 group-hover:text-indigo-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                         <span className="hidden sm:inline">Personalizar</span>
                         {customInstructions && (
-                            <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse"></span>
+                            <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-pulse"></span>
                         )}
                     </button>
                     
@@ -734,7 +747,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                     <button
                         onClick={handleGenerateAnalysis}
                         disabled={isAnalyzing || processedData.weeklyData.length === 0}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 disabled:from-gray-400 disabled:to-gray-500 text-white text-xs font-medium rounded-md transition-all shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-blue-700 hover:from-indigo-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 text-white text-xs font-medium rounded-md transition-all shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
                         title="Generar análisis gerencial con IA"
                     >
                         {isAnalyzing ? (
