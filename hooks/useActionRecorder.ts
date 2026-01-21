@@ -51,11 +51,6 @@ const etapaTitle = (etapa: Pedido['etapaActual']) => {
 
 const diffPedidoChanges = (before: Pedido, after: Pedido): string[] => {
     const changes: string[] = [];
-    
-    console.log('🔍 [DIFF] Comparando pedidos:', {
-        before: { horasConfirmadas: before.horasConfirmadas },
-        after: { horasConfirmadas: after.horasConfirmadas }
-    });
 
     // 1) Movimiento / etapa
     if (before.etapaActual !== after.etapaActual) {
@@ -90,21 +85,13 @@ const diffPedidoChanges = (before: Pedido, after: Pedido): string[] => {
         const afterValue = after[field.key];
         if (shallowEqual(beforeValue, afterValue)) continue;
         if (beforeValue === afterValue) continue;
-        
-        const change = `${field.label}: ${safeString(beforeValue)} → ${safeString(afterValue)}`;
-        changes.push(change);
-        
-        if (field.key === 'horasConfirmadas') {
-            console.log('🔍 [DIFF] Cambio detectado en horasConfirmadas:', change);
-        }
+        changes.push(`${field.label}: ${safeString(beforeValue)} → ${safeString(afterValue)}`);
     }
 
     // Arrays (resumen por conteo/preview)
     if (!shallowEqual(before.numerosCompra, after.numerosCompra)) {
         changes.push(`Nº compra: ${safeString(before.numerosCompra)} → ${safeString(after.numerosCompra)}`);
     }
-    
-    console.log('🔍 [DIFF] Total de cambios detectados:', changes.length, changes);
 
     return changes;
 };

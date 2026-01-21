@@ -3528,6 +3528,121 @@ app.get('/api/produccion/metraje/:pedidoId', requireAuth, async (req, res) => {
     }
 });
 
+// === RUTAS DE HISTORIAL DE ACTIVIDAD ===
+
+// POST /api/action-history - Crear nueva entrada en el historial
+app.post('/api/action-history', async (req, res) => {
+    try {
+        const action = req.body;
+        
+        if (!action.id || !action.contextId || !action.contextType || !action.type) {
+            return res.status(400).json({ message: 'Faltan campos requeridos' });
+        }
+
+        const query = `
+            INSERT INTO action_history (
+                id, context_id, context_type, action_type, payload, 
+                timestamp, user_id, user_name, description
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            ON CONFLICT (id) DO NOTHING
+            RETURNING *;
+        `;
+
+        const values = [
+            action.id,
+            action.contextId,
+            action.contextType,
+            action.type,
+            JSON.stringify(action.payload || {}),
+            action.timestamp,
+            action.userId,
+            action.userName,
+            action.description
+        ];
+
+        const result = await dbClient.pool.query(query, values);
+        
+        if (result.rowCount === 0) {
+            return res.status(409).json({ message: 'Acción ya existe' });
+        }
+
+        console.log(`✅ Historial guardado: ${action.contextType} ${action.contextId} - ${action.type}`);
+        res.status(201).json(result.rows[0]);
+        
+    } catch (error) {
+        console.error('Error al guardar historial:', error);
+        res.status(500).json({ message: 'Error al guardar historial de actividad' });
+    }
+});
+
+// GET /api/action-history/:contextId - Obtener historial de un contexto específico
+app.get('/api/action-history/:contextId', async (req, res) => {
+    try {
+        const { contextId } = req.params;
+        const { contextType, limit } = req.query;
+
+        let query = `
+            SELECT 
+                id, context_id as "contextId", context_type as "contextType",
+                action_type as "type", payload, timestamp,
+                user_id as "userId", user_name as "userName", description
+            FROM action_history
+            WHERE context_id = $1
+        `;
+        
+        const values = [contextId];
+        let paramIndex = 2;
+
+        if (contextType) {
+            query += ` AND context_type = $${paramIndex}`;
+            values.push(contextType);
+            paramIndex++;
+        }
+
+        query += ` ORDER BY timestamp DESC`;
+
+        if (limit) {
+            query += ` LIMIT $${paramIndex}`;
+            values.push(parseInt(limit, 10));
+        }
+
+        const result = await dbClient.pool.query(query, values);
+        
+        res.status(200).json(result.rows);
+        
+    } catch (error) {
+        console.error('Error al obtener historial:', error);
+        res.status(500).json({ message: 'Error al obtener historial de actividad' });
+    }
+});
+
+// GET /api/action-history/user/:userId - Obtener historial de un usuario
+app.get('/api/action-history/user/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { limit } = req.query;
+
+        const query = `
+            SELECT 
+                id, context_id as "contextId", context_type as "contextType",
+                action_type as "type", payload, timestamp,
+                user_id as "userId", user_name as "userName", description
+            FROM action_history
+            WHERE user_id = $1
+            ORDER BY timestamp DESC
+            LIMIT $2;
+        `;
+
+        const result = await dbClient.pool.query(query, [userId, parseInt(limit, 10) || 50]);
+        
+        res.status(200).json(result.rows);
+        
+    } catch (error) {
+        console.error('Error al obtener historial del usuario:', error);
+        res.status(500).json({ message: 'Error al obtener historial del usuario' });
+    }
+});
+
 // === RUTAS DE CLIENTES ===
 
 
