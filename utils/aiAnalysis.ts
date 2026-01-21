@@ -34,14 +34,21 @@ interface AnalysisResponse {
  */
 function generateDataHash(data: AnalysisRequest): string {
     const str = JSON.stringify({
-        weeks: data.weeklyData.length,
+        // Incluir datos completos de carga por semana y máquina
+        weeklyData: data.weeklyData.map(w => ({
+            label: w.label,
+            machines: w.machines,
+            freeCapacity: w.freeCapacity,
+            totalLoad: w.totalLoad
+        })),
         machines: data.machineKeys.sort(),
         filter: data.dateFilter,
         stages: data.selectedStages?.sort(),
         selectedMachines: data.selectedMachines?.sort(),
         dateRange: data.customDateRange
     });
-    return btoa(str).substring(0, 20);
+    // Usar hash completo para evitar colisiones
+    return btoa(str);
 }
 
 /**
@@ -174,5 +181,21 @@ export async function getAnalysisFromCache(request: AnalysisRequest): Promise<st
     } catch (error) {
         console.error('Error reading analysis from cache:', error);
         return null;
+    }
+}
+
+/**
+ * Limpia todo el cache de análisis
+ */
+export async function clearAnalysisCache(): Promise<void> {
+    try {
+        const db = await openDB();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        await store.clear();
+        db.close();
+        console.log('🗑️ Cache de análisis limpiado');
+    } catch (error) {
+        console.error('Error clearing analysis cache:', error);
     }
 }

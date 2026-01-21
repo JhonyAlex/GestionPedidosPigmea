@@ -13,7 +13,7 @@ import { jsPDF } from 'jspdf';
 // @ts-ignore - jspdf-autotable types might be tricky
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
-import { generateProductionAnalysis, saveAnalysisToCache, getAnalysisFromCache } from '../utils/aiAnalysis';
+import { generateProductionAnalysis, saveAnalysisToCache, getAnalysisFromCache, clearAnalysisCache } from '../utils/aiAnalysis';
 import { io, Socket } from 'socket.io-client';
 
 /**
@@ -128,6 +128,8 @@ const ReportView: React.FC<ReportViewProps> = ({
             setShowAnalysis(false);
             setAiAnalysis(null);
             setAnalysisError(null);
+            // Limpiar cache para forzar regeneración con datos actuales
+            clearAnalysisCache();
         }
     }, [dateFilter, dateField, customDateRange, selectedStages, selectedMachines]);
 
