@@ -313,7 +313,7 @@ ${customInstructions ? `\n⚡ INSTRUCCIONES PERSONALIZADAS (PRIORIDAD MÁXIMA):\
                 'X-Title': 'PIGMEA - Gestión de Pedidos'
             },
             body: JSON.stringify({
-                model: 'google/gemini-flash-1.5-8b', // Gemini 1.5 Flash 8B - Rápido y económico
+                model: 'google/gemini-2.0-flash-exp:free', // Gemini 2.0 Flash (más reciente, gratis)
                 messages: [
                     {
                         role: 'user',
