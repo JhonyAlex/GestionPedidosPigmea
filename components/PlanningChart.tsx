@@ -29,10 +29,11 @@ export const PlanningChart: React.FC<PlanningChartProps> = ({ data, machineKeys,
     // Determine max value for scaling
     const allValues = data.flatMap(d => Object.values(d.machines));
     const maxValue = Math.max(...allValues, 10);
-    const chartHeight = 450; // Increased from 300
+    const chartHeight = 500; // Altura fija del área de barras
     const weekWidth = 140; // Fixed width per week for better spacing
     const chartWidth = Math.max(data.length * weekWidth, 900); // Minimum 900px
-    const topPadding = 50; // Espacio para los valores superiores
+    const topPadding = 60; // Espacio para los valores superiores (aumentado)
+    const bottomPadding = 80; // Espacio para etiquetas inferiores
 
     // Desired order for bars
     const desiredOrder = ['Windmöller 1', 'VARIABLES', 'Windmöller 3', 'GIAVE', 'DNT', 'ANON'];
@@ -67,14 +68,25 @@ export const PlanningChart: React.FC<PlanningChartProps> = ({ data, machineKeys,
             </div>
 
             {/* Scrollable Chart Container */}
-            <div className="overflow-x-auto overflow-y-visible border border-gray-200 rounded-lg bg-gray-50 p-4">
-                <div className="relative" style={{ width: `${chartWidth}px`, minHeight: `${chartHeight + topPadding + 60}px`, paddingTop: `${topPadding}px`, paddingBottom: '60px' }}>
+            <div className="overflow-x-auto border border-gray-200 rounded-lg bg-gray-50 p-4">
+                {/* Contenedor con altura FIJA total para evitar scroll vertical */}
+                <div 
+                    className="relative" 
+                    style={{ 
+                        width: `${chartWidth}px`, 
+                        height: `${topPadding + chartHeight + bottomPadding}px` 
+                    }}
+                >
                     {/* Y-Axis Grid Lines */}
                     {[0, 0.2, 0.4, 0.6, 0.8, 1].map(ratio => {
                         const value = (maxValue * (1 - ratio)).toFixed(1);
-                        const top = ratio * 100;
+                        const yPosition = topPadding + (ratio * chartHeight);
                         return (
-                            <div key={ratio} className="absolute w-full flex items-center" style={{ top: `calc(${top}% + ${topPadding}px)` }}>
+                            <div 
+                                key={ratio} 
+                                className="absolute w-full flex items-center" 
+                                style={{ top: `${yPosition}px` }}
+                            >
                                 <span className="text-sm font-mono font-semibold text-gray-600 bg-white px-2 py-1 rounded shadow-sm w-16 text-right mr-3 -mt-2">
                                     {value}h
                                 </span>
@@ -84,7 +96,15 @@ export const PlanningChart: React.FC<PlanningChartProps> = ({ data, machineKeys,
                     })}
 
                     {/* Bars Area */}
-                    <div className="absolute flex items-end ml-20 pl-4 gap-2" style={{ top: `${topPadding}px`, bottom: '60px', left: '0', right: '0' }}>
+                    <div 
+                        className="absolute flex items-end ml-20 pl-4 gap-2" 
+                        style={{ 
+                            top: `${topPadding}px`, 
+                            height: `${chartHeight}px`,
+                            left: '0', 
+                            right: '0' 
+                        }}
+                    >
                         {data.map((weekData, idx) => (
                             <div key={idx} className="flex flex-col items-center h-full justify-end" style={{ width: `${weekWidth - 8}px` }}>
                                 {/* Bar Group */}
@@ -92,6 +112,7 @@ export const PlanningChart: React.FC<PlanningChartProps> = ({ data, machineKeys,
                                     {sortedKeys.map((key, keyIdx) => {
                                         const value = weekData.machines[key] || 0;
                                         const heightPercent = (value / maxValue) * 100;
+                                        const barHeightPx = (heightPercent / 100) * chartHeight;
                                         
                                         return (
                                             <div key={key} className="relative flex flex-col justify-end h-full group" style={{ width: `${100 / sortedKeys.length}%` }}>
@@ -100,7 +121,7 @@ export const PlanningChart: React.FC<PlanningChartProps> = ({ data, machineKeys,
                                                     <div 
                                                         className="absolute left-1/2 -translate-x-1/2 pointer-events-none z-10"
                                                         style={{ 
-                                                            bottom: `calc(${Math.max(heightPercent, 3)}% + 4px)`,
+                                                            bottom: `${Math.max(barHeightPx, 8) + 6}px`,
                                                             whiteSpace: 'nowrap'
                                                         }}
                                                     >
@@ -131,14 +152,26 @@ export const PlanningChart: React.FC<PlanningChartProps> = ({ data, machineKeys,
                                         );
                                     })}
                                 </div>
-                                {/* X-Axis Label */}
-                                <div className="mt-3 text-center w-full">
-                                    <div className="text-xs font-bold text-gray-700 mb-0.5">
-                                        Semana {weekData.week}
-                                    </div>
-                                    <div className="text-xs text-gray-500 leading-tight">
-                                        {weekData.dateRange}
-                                    </div>
+                            </div>
+                        ))}
+                    </div>
+                    
+                    {/* X-Axis Labels - Positioned below chart area */}
+                    <div 
+                        className="absolute flex ml-20 pl-4 gap-2" 
+                        style={{ 
+                            top: `${topPadding + chartHeight + 10}px`,
+                            left: '0',
+                            right: '0'
+                        }}
+                    >
+                        {data.map((weekData, idx) => (
+                            <div key={idx} className="text-center" style={{ width: `${weekWidth - 8}px` }}>
+                                <div className="text-xs font-bold text-gray-700 mb-0.5">
+                                    Semana {weekData.week}
+                                </div>
+                                <div className="text-xs text-gray-500 leading-tight">
+                                    {weekData.dateRange}
                                 </div>
                             </div>
                         ))}
