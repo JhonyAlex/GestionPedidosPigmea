@@ -294,7 +294,7 @@ FORMATO:
                 'X-Title': 'PIGMEA - Gestión de Pedidos'
             },
             body: JSON.stringify({
-                model: 'google/gemini-2.0-flash-exp:free', // Modelo gratis y rápido
+                model: 'google/gemini-pro-1.5', // Gemini 1.5 Pro - Más potente y preciso
                 messages: [
                     {
                         role: 'user',
@@ -302,7 +302,7 @@ FORMATO:
                     }
                 ],
                 temperature: 0.7,
-                max_tokens: 500
+                max_tokens: 600 // Más tokens para análisis detallado
             })
         });
 

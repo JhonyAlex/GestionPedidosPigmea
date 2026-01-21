@@ -111,6 +111,24 @@ const ReportView: React.FC<ReportViewProps> = ({
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [analysisError, setAnalysisError] = useState<string | null>(null);
     const [showAnalysis, setShowAnalysis] = useState(false);
+    const [lastAnalysisFilters, setLastAnalysisFilters] = useState<string>('');
+
+    // Detectar cambios en filtros y limpiar análisis
+    useEffect(() => {
+        const currentFilters = JSON.stringify({
+            dateFilter,
+            dateField,
+            customDateRange,
+            selectedStages,
+            selectedMachines
+        });
+        
+        // Si hay un análisis visible y los filtros cambiaron, limpiarlo
+        if (showAnalysis && lastAnalysisFilters && lastAnalysisFilters !== currentFilters) {
+            setShowAnalysis(false);
+            setAiAnalysis(null);
+        }
+    }, [dateFilter, dateField, customDateRange, selectedStages, selectedMachines]);
 
     // --- Persistence Effects ---
     useEffect(() => {
@@ -351,8 +369,19 @@ const ReportView: React.FC<ReportViewProps> = ({
                 weeklyData: processedData.weeklyData,
                 machineKeys: processedData.machineKeys,
                 dateFilter,
-                selectedStages
+                selectedStages,
+                selectedMachines,
+                customDateRange
             };
+
+            // Guardar filtros actuales para detectar cambios futuros
+            setLastAnalysisFilters(JSON.stringify({
+                dateFilter,
+                dateField,
+                customDateRange,
+                selectedStages,
+                selectedMachines
+            }));
 
             // Intentar obtener del cache primero
             const cached = await getAnalysisFromCache(request);

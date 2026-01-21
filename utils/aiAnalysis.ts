@@ -19,6 +19,8 @@ interface AnalysisRequest {
     machineKeys: string[];
     dateFilter: string;
     selectedStages: string[];
+    selectedMachines?: string[];
+    customDateRange?: { start: string; end: string };
 }
 
 interface AnalysisResponse {
@@ -34,7 +36,10 @@ function generateDataHash(data: AnalysisRequest): string {
     const str = JSON.stringify({
         weeks: data.weeklyData.length,
         machines: data.machineKeys.sort(),
-        filter: data.dateFilter
+        filter: data.dateFilter,
+        stages: data.selectedStages?.sort(),
+        selectedMachines: data.selectedMachines?.sort(),
+        dateRange: data.customDateRange
     });
     return btoa(str).substring(0, 20);
 }
