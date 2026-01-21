@@ -51,14 +51,14 @@ const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
 
   return (
     <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 animate-slide-up max-w-[95vw]">
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-2xl border border-blue-400 px-6 py-4">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-gray-200 dark:border-gray-700 px-6 py-4">
         <div className="flex flex-col sm:flex-row items-center gap-4">
           {/* Contador */}
-          <div className="flex items-center gap-3 bg-white/20 backdrop-blur-sm rounded-xl px-4 py-2 min-w-fit">
-            <div className="bg-white text-blue-600 rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg shadow-md">
+          <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl px-4 py-2 min-w-fit">
+            <div className="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg shadow-md">
               {selectedCount}
             </div>
-            <span className="text-white font-semibold whitespace-nowrap">
+            <span className="text-gray-800 dark:text-gray-200 font-semibold whitespace-nowrap">
               {selectedCount === 1 ? 'pedido seleccionado' : 'pedidos seleccionados'}
             </span>
           </div>
@@ -102,11 +102,11 @@ const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
             </button>
 
             {/* Separador visual */}
-            <div className="h-8 w-px bg-white/30 hidden sm:block"></div>
+            <div className="h-8 w-px bg-gray-300 dark:bg-gray-600 hidden sm:block"></div>
 
             <button
               onClick={onCancel}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl border border-white/30"
+              className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl border border-gray-300 dark:border-gray-600"
               title="Cancelar selección"
             >
               <XMarkIcon />

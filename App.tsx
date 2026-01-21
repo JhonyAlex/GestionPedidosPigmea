@@ -29,6 +29,7 @@ import UserManagement from './components/UserManagement';
 import PermissionsDebug from './components/PermissionsDebug';
 import BulkActionsToolbar from './components/BulkActionsToolbar';
 import DeleteConfirmationModal from './components/DeleteConfirmationModal';
+import BulkArchiveConfirmationModal from './components/BulkArchiveConfirmationModal';
 import BulkDateUpdateModal from './components/BulkDateUpdateModal';
 import BulkMachineUpdateModal from './components/BulkMachineUpdateModal';
 import ImportDataModal from './components/ImportDataModal';
@@ -81,6 +82,7 @@ const AppContent: React.FC = () => {
     
     // Estados para operaciones masivas
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showArchiveModal, setShowArchiveModal] = useState(false);
     const [showDateUpdateModal, setShowDateUpdateModal] = useState(false);
     const [showMachineUpdateModal, setShowMachineUpdateModal] = useState(false);
 
@@ -715,7 +717,6 @@ const AppContent: React.FC = () => {
 
     const handleBulkArchive = async () => {
         const ids = [...selectedIds];
-        const selectedPedidos = pedidos.filter(p => ids.includes(p.id));
         const result = await bulkArchive(ids, true);
         
         if (result.success) {
@@ -751,6 +752,10 @@ const AppContent: React.FC = () => {
             
             // Mostrar toast de éxito
             alert(`✅ ${result.updatedCount} ${result.updatedCount === 1 ? 'pedido archivado' : 'pedidos archivados'} exitosamente.`);
+            
+            // Limpiar selección y cerrar modal
+            clearSelection();
+            setShowArchiveModal(false);
         } else {
             alert(`❌ Error al archivar pedidos: ${result.error}`);
         }
@@ -1130,7 +1135,7 @@ const AppContent: React.FC = () => {
                     onUpdateDate={() => setShowDateUpdateModal(true)}
                     onUpdateMachine={() => setShowMachineUpdateModal(true)}
                     onDelete={() => setShowDeleteModal(true)}
-                    onArchive={handleBulkArchive}
+                    onArchive={() => setShowArchiveModal(true)}
                     onCancel={clearSelection}
                 />
                 
@@ -1139,6 +1144,13 @@ const AppContent: React.FC = () => {
                     pedidos={pedidos.filter(p => selectedIds.includes(p.id))}
                     onConfirm={handleBulkDelete}
                     onCancel={() => setShowDeleteModal(false)}
+                />
+
+                <BulkArchiveConfirmationModal
+                    isOpen={showArchiveModal}
+                    pedidos={pedidos.filter(p => selectedIds.includes(p.id))}
+                    onConfirm={handleBulkArchive}
+                    onCancel={() => setShowArchiveModal(false)}
                 />
 
                 <BulkDateUpdateModal
