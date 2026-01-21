@@ -67,8 +67,8 @@ export const PlanningChart: React.FC<PlanningChartProps> = ({ data, machineKeys,
             </div>
 
             {/* Scrollable Chart Container */}
-            <div className="overflow-x-auto border border-gray-200 rounded-lg bg-gray-50 p-4">
-                <div className="relative" style={{ width: `${chartWidth}px`, height: `${chartHeight + topPadding + 60}px`, paddingTop: `${topPadding}px`, paddingBottom: '60px' }}>
+            <div className="overflow-x-auto overflow-y-visible border border-gray-200 rounded-lg bg-gray-50 p-4">
+                <div className="relative" style={{ width: `${chartWidth}px`, minHeight: `${chartHeight + topPadding + 60}px`, paddingTop: `${topPadding}px`, paddingBottom: '60px' }}>
                     {/* Y-Axis Grid Lines */}
                     {[0, 0.2, 0.4, 0.6, 0.8, 1].map(ratio => {
                         const value = (maxValue * (1 - ratio)).toFixed(1);
