@@ -310,10 +310,10 @@ ${customInstructions ? `\n⚡ INSTRUCCIONES PERSONALIZADAS (PRIORIDAD MÁXIMA):\
                 'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
                 'Content-Type': 'application/json',
                 'HTTP-Referer': 'https://planning.pigmea.click',
-                'X-Title': 'PIGMEA - Gestión de Pedidos'
+                'X-Title': 'PIGMEA Planning'
             },
             body: JSON.stringify({
-                model: 'google/gemini-3-flash-preview', 
+                model: 'google/gemini-3-flash-preview',
                 messages: [
                     {
                         role: 'user',
@@ -321,15 +321,20 @@ ${customInstructions ? `\n⚡ INSTRUCCIONES PERSONALIZADAS (PRIORIDAD MÁXIMA):\
                     }
                 ],
                 temperature: 0.7,
-                max_tokens: 600 // Más tokens para análisis detallado
+                max_tokens: 600
             })
         });
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('OpenRouter API Error:', response.status, errorText);
+            console.error('🚨 OpenRouter API Error:');
+            console.error('   Status:', response.status);
+            console.error('   Response:', errorText);
+            console.error('   Model:', 'google/gemini-3-flash-preview');
+            console.error('   API Key prefix:', OPENROUTER_API_KEY.substring(0, 15) + '...');
             return res.status(response.status).json({ 
-                error: `Error del servicio de IA: ${response.status}` 
+                error: `Error del servicio de IA: ${response.status}`,
+                details: errorText
             });
         }
 
