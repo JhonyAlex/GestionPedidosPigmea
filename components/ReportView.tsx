@@ -12,6 +12,7 @@ import { jsPDF } from 'jspdf';
 // @ts-ignore - jspdf-autotable types might be tricky
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
+import { generateProductionAnalysis, saveAnalysisToCache, getAnalysisFromCache } from '../utils/aiAnalysis';
 
 /**
  * =============================================================================
@@ -104,6 +105,12 @@ const ReportView: React.FC<ReportViewProps> = ({
     });
 
     const [selectedChartFilter, setSelectedChartFilter] = useState<{ weekLabel: string, machine: string } | null>(null);
+
+    // AI Analysis State
+    const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [analysisError, setAnalysisError] = useState<string | null>(null);
+    const [showAnalysis, setShowAnalysis] = useState(false);
 
     // --- Persistence Effects ---
     useEffect(() => {
@@ -333,7 +340,47 @@ const ReportView: React.FC<ReportViewProps> = ({
     }, [processedData, selectedChartFilter]);
 
 
-    // --- 3. Render Helpers ---
+    // --- 3. AI Analysis Functions ---
+
+    const handleGenerateAnalysis = async () => {
+        setIsAnalyzing(true);
+        setAnalysisError(null);
+        
+        try {
+            const request = {
+                weeklyData: processedData.weeklyData,
+                machineKeys: processedData.machineKeys,
+                dateFilter,
+                selectedStages
+            };
+
+            // Intentar obtener del cache primero
+            const cached = await getAnalysisFromCache(request);
+            if (cached) {
+                setAiAnalysis(cached);
+                setShowAnalysis(true);
+                setIsAnalyzing(false);
+                return;
+            }
+
+            // Generar nuevo análisis
+            const analysis = await generateProductionAnalysis(request);
+            setAiAnalysis(analysis);
+            setShowAnalysis(true);
+
+            // Guardar en cache
+            await saveAnalysisToCache(request, analysis);
+
+        } catch (error) {
+            console.error('Error generating analysis:', error);
+            setAnalysisError(error instanceof Error ? error.message : 'Error desconocido');
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+
+    // --- 4. Render Helpers ---
 
     const toggleStage = (stage: string) => {
         setSelectedStages(prev => 
@@ -444,6 +491,32 @@ const ReportView: React.FC<ReportViewProps> = ({
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div className="flex items-center gap-4">
                     <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Centro de Planificación</h1>
+                    
+                    {/* AI Analysis Button - Discreto */}
+                    <button
+                        onClick={handleGenerateAnalysis}
+                        disabled={isAnalyzing || processedData.weeklyData.length === 0}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 disabled:from-gray-400 disabled:to-gray-500 text-white text-xs font-medium rounded-md transition-all shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+                        title="Generar análisis gerencial con IA"
+                    >
+                        {isAnalyzing ? (
+                            <>
+                                <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Analizando...
+                            </>
+                        ) : (
+                            <>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                </svg>
+                                Análisis IA
+                            </>
+                        )}
+                    </button>
+
                     <button
                         onClick={handleExportPDF}
                         className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
@@ -468,6 +541,54 @@ const ReportView: React.FC<ReportViewProps> = ({
                     />
                 </div>
             </div>
+
+            {/* --- AI Analysis Panel (Collapsible) --- */}
+            {showAnalysis && (aiAnalysis || analysisError) && (
+                <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-gray-800 dark:to-gray-850 rounded-lg shadow-md border border-purple-200 dark:border-purple-900 overflow-hidden animate-fade-in">
+                    <div className="flex items-start justify-between p-4 border-b border-purple-200 dark:border-purple-800 bg-white/50 dark:bg-gray-900/50">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center flex-shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-gray-800 dark:text-white">Análisis Gerencial</h3>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Generado con IA • {new Date().toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setShowAnalysis(false)}
+                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+                            title="Cerrar análisis"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div className="p-5">
+                        {analysisError ? (
+                            <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium text-red-800 dark:text-red-300">Error al generar análisis</p>
+                                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">{analysisError}</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="prose prose-sm dark:prose-invert max-w-none">
+                                <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                                    {aiAnalysis}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* --- Toolbar --- */}
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow space-y-6">

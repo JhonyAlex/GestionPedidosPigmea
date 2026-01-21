@@ -208,6 +208,115 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// ============================================================================
+// AI Analysis Endpoint - Proxy to OpenRouter
+// ============================================================================
+app.post('/api/analysis/generate', requireAuth, async (req, res) => {
+    try {
+        const { weeklyData, machineKeys, dateFilter, selectedStages } = req.body;
+
+        if (!weeklyData || !Array.isArray(weeklyData)) {
+            return res.status(400).json({ error: 'weeklyData es requerido y debe ser un array' });
+        }
+
+        // Preparar resumen de datos para el prompt
+        const summary = weeklyData.map(week => ({
+            semana: week.label,
+            fechas: week.dateRange,
+            wm1: week.machines['Windmöller 1'] || 0,
+            wm3: week.machines['Windmöller 3'] || 0,
+            giave: week.machines['GIAVE'] || 0,
+            dnt: week.machines['DNT'] || 0,
+            variables: week.machines['VARIABLES'] || 0,
+            totalCarga: week.totalLoad,
+            libres: week.freeCapacity,
+            capacidad: week.totalCapacity
+        }));
+
+        const prompt = `Eres un gerente de producción experto analizando datos de planificación de una empresa de impresión flexográfica (PIGMEA).
+
+DATOS ACTUALES:
+${JSON.stringify(summary, null, 2)}
+
+CONTEXTO:
+- Capacidad base: 180 horas/semana
+- Máquinas principales: Windmöller 1 (WM1), Windmöller 3 (WM3)
+- Máquinas secundarias: GIAVE
+- DNT: Pedidos urgentes de cliente especial
+- VARIABLES: Pedidos sin máquina asignada o con datos incompletos (clichés nuevos pendientes)
+- LIBRES: Horas disponibles (180 - WM1 - WM3 - DNT)
+
+INSTRUCCIONES:
+Genera un análisis gerencial BREVE (máximo 200 palabras) que:
+1. Identifique el balance de carga entre máquinas
+2. Señale semanas con sobrecarga o baja utilización
+3. Destaque pedidos VARIABLES que requieren asignación
+4. Sugiera acciones concretas para optimizar producción
+5. Mencione oportunidades en horas LIBRES
+
+Usa tono profesional pero cercano. Sé directo y accionable. Usa bullets o párrafos cortos.
+NO uses markdown headers (###), solo texto plano con saltos de línea y bullets si es necesario.`;
+
+        // Llamar a OpenRouter con el API key seguro
+        const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+        
+        if (!OPENROUTER_API_KEY) {
+            console.error('OPENROUTER_API_KEY no está configurada en las variables de entorno');
+            return res.status(500).json({ error: 'Servicio de análisis no configurado' });
+        }
+
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://planning.pigmea.click',
+                'X-Title': 'PIGMEA - Gestión de Pedidos'
+            },
+            body: JSON.stringify({
+                model: 'google/gemini-flash-1.5',
+                messages: [
+                    {
+                        role: 'user',
+                        content: prompt
+                    }
+                ],
+                temperature: 0.7,
+                max_tokens: 500
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('OpenRouter API Error:', response.status, errorText);
+            return res.status(response.status).json({ 
+                error: `Error del servicio de IA: ${response.status}` 
+            });
+        }
+
+        const data = await response.json();
+        
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            console.error('Respuesta inválida de OpenRouter:', data);
+            return res.status(500).json({ error: 'Respuesta inválida del servicio de IA' });
+        }
+
+        const analysis = data.choices[0].message.content.trim();
+
+        res.json({ 
+            analysis,
+            timestamp: Date.now()
+        });
+
+    } catch (error) {
+        console.error('Error en /api/analysis/generate:', error);
+        res.status(500).json({ 
+            error: 'Error al generar análisis',
+            details: error.message 
+        });
+    }
+});
+
 // TEMPORAL: Debug endpoint para consultar usuarios
 app.get('/api/debug/users', async (req, res) => {
     try {
