@@ -481,18 +481,18 @@ const ReportView: React.FC<ReportViewProps> = ({
                     <div className="flex flex-wrap gap-2">
                         {allMachineOptions.map(machine => {
                             const machineColors: Record<string, { active: string; inactive: string }> = {
-                                'Windmöller 1': { active: 'bg-blue-100 border-blue-600 text-blue-800 shadow-sm', inactive: 'bg-white border-blue-300 text-blue-600 hover:bg-blue-50' },
-                                'Windmöller 3': { active: 'bg-red-100 border-red-600 text-red-800 shadow-sm', inactive: 'bg-white border-red-300 text-red-600 hover:bg-red-50' },
-                                'GIAVE': { active: 'bg-orange-100 border-orange-600 text-orange-800 shadow-sm', inactive: 'bg-white border-orange-300 text-orange-600 hover:bg-orange-50' },
-                                'DNT': { active: 'bg-green-100 border-green-600 text-green-800 shadow-sm', inactive: 'bg-white border-green-300 text-green-600 hover:bg-green-50' },
-                                'VARIABLES': { active: 'bg-purple-100 border-purple-600 text-purple-800 shadow-sm', inactive: 'bg-white border-purple-300 text-purple-600 hover:bg-purple-50' },
+                                'Windmöller 1': { active: 'bg-blue-500 border-blue-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                'Windmöller 3': { active: 'bg-red-500 border-red-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                'GIAVE': { active: 'bg-orange-500 border-orange-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                'DNT': { active: 'bg-green-500 border-green-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                'VARIABLES': { active: 'bg-purple-500 border-purple-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
                             };
-                            const colors = machineColors[machine] || { active: 'bg-gray-100 border-gray-600 text-gray-800', inactive: 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50' };
+                            const colors = machineColors[machine] || { active: 'bg-gray-500 border-gray-600 text-white shadow-lg', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' };
                             return (
                                 <button
                                     key={machine}
                                     onClick={() => toggleMachine(machine)}
-                                    className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all ${
+                                    className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all duration-200 ${
                                         selectedMachines.includes(machine) ? colors.active : colors.inactive
                                     }`}
                                 >
@@ -540,20 +540,20 @@ const ReportView: React.FC<ReportViewProps> = ({
                             { id: Etapa.COMPLETADO, label: 'Completados', color: 'green' },
                         ].map(stage => {
                             const stageColors: Record<string, { active: string; inactive: string }> = {
-                                'amber': { active: 'bg-amber-100 border-amber-600 text-amber-900 shadow-sm', inactive: 'bg-white border-amber-300 text-amber-700 hover:bg-amber-50' },
-                                'emerald': { active: 'bg-emerald-100 border-emerald-600 text-emerald-900 shadow-sm', inactive: 'bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50' },
-                                'cyan': { active: 'bg-cyan-100 border-cyan-600 text-cyan-900 shadow-sm', inactive: 'bg-white border-cyan-300 text-cyan-700 hover:bg-cyan-50' },
-                                'indigo': { active: 'bg-indigo-100 border-indigo-600 text-indigo-900 shadow-sm', inactive: 'bg-white border-indigo-300 text-indigo-700 hover:bg-indigo-50' },
-                                'purple': { active: 'bg-purple-100 border-purple-600 text-purple-900 shadow-sm', inactive: 'bg-white border-purple-300 text-purple-700 hover:bg-purple-50' },
-                                'pink': { active: 'bg-pink-100 border-pink-600 text-pink-900 shadow-sm', inactive: 'bg-white border-pink-300 text-pink-700 hover:bg-pink-50' },
-                                'green': { active: 'bg-green-100 border-green-600 text-green-900 shadow-sm', inactive: 'bg-white border-green-300 text-green-700 hover:bg-green-50' },
+                                'amber': { active: 'bg-amber-500 border-amber-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                'emerald': { active: 'bg-emerald-500 border-emerald-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                'cyan': { active: 'bg-cyan-500 border-cyan-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                'indigo': { active: 'bg-indigo-500 border-indigo-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                'purple': { active: 'bg-purple-500 border-purple-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                'pink': { active: 'bg-pink-500 border-pink-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                'green': { active: 'bg-green-500 border-green-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
                             };
                             const colors = stageColors[stage.color] || stageColors['cyan'];
                             return (
                                 <button
                                     key={stage.id}
                                     onClick={() => toggleStage(stage.id)}
-                                    className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all ${
+                                    className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all duration-200 ${
                                         selectedStages.includes(stage.id) ? colors.active : colors.inactive
                                     }`}
                                 >
