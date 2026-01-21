@@ -50,69 +50,67 @@ const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
   if (selectedCount < 1) return null;
 
   return (
-    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 animate-slide-up">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl border-2 border-gray-300 dark:border-gray-600 px-6 py-4">
-        <div className="flex items-center gap-4">
+    <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 animate-slide-up max-w-[95vw]">
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-2xl border border-blue-400 px-6 py-4">
+        <div className="flex flex-col sm:flex-row items-center gap-4">
           {/* Contador */}
-          <div className="flex items-center gap-2">
-            <div className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">
+          <div className="flex items-center gap-3 bg-white/20 backdrop-blur-sm rounded-xl px-4 py-2 min-w-fit">
+            <div className="bg-white text-blue-600 rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg shadow-md">
               {selectedCount}
             </div>
-            <span className="text-gray-700 dark:text-gray-200 font-medium">
-              {selectedCount === 1 ? 'seleccionado' : 'seleccionados'}
+            <span className="text-white font-semibold whitespace-nowrap">
+              {selectedCount === 1 ? 'pedido seleccionado' : 'pedidos seleccionados'}
             </span>
           </div>
 
-          {/* Separador */}
-          <div className="h-8 w-px bg-gray-300 dark:bg-gray-600"></div>
-
           {/* Botones de acción */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <button
               onClick={onUpdateDate}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200 font-medium"
-              title="Cambiar Nueva Fecha de Entrega"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-blue-50 text-blue-700 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:scale-105 group"
+              title="Cambiar fecha de entrega"
             >
               <CalendarIcon />
-              <span className="hidden sm:inline">Cambiar Nueva Fecha de Entrega</span>
-              <span className="sm:hidden">Fecha</span>
+              <span className="text-sm">Nueva Fecha</span>
             </button>
 
             <button
               onClick={onUpdateMachine}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors duration-200 font-medium"
-              title="Cambiar Máquina de Impresión"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-indigo-50 text-indigo-700 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:scale-105 group"
+              title="Cambiar máquina de impresión"
             >
               <MachineIcon />
-              <span className="hidden sm:inline">Cambiar Máquina</span>
-              <span className="sm:hidden">Máquina</span>
+              <span className="text-sm">Máquina</span>
             </button>
 
             <button
               onClick={onArchive}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors duration-200 font-medium"
-              title="Archivar seleccionados"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-purple-50 text-purple-700 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:scale-105 group"
+              title="Archivar pedidos seleccionados"
             >
               <ArchiveIcon />
-              <span className="hidden sm:inline">Archivar</span>
+              <span className="text-sm">Archivar</span>
             </button>
 
             <button
               onClick={onDelete}
-              className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors duration-200 font-medium"
-              title="Eliminar seleccionados"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-red-50 text-red-700 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:scale-105 group"
+              title="Eliminar pedidos seleccionados"
             >
               <TrashIcon />
-              <span className="hidden sm:inline">Eliminar</span>
+              <span className="text-sm">Eliminar</span>
             </button>
+
+            {/* Separador visual */}
+            <div className="h-8 w-px bg-white/30 hidden sm:block"></div>
 
             <button
               onClick={onCancel}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors duration-200 font-medium"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl border border-white/30"
               title="Cancelar selección"
             >
               <XMarkIcon />
-              <span className="hidden sm:inline">Cancelar</span>
+              <span className="text-sm">Cancelar</span>
             </button>
           </div>
         </div>
