@@ -256,14 +256,12 @@ const Header: React.FC<HeaderProps> = ({
     const operationViews: { id: ViewType; label: string }[] = [
         { id: 'operador', label: 'Operador' },
         { id: 'list', label: 'Lista' },
-        { id: 'archived', label: 'Archivados' },
     ];
 
     // Vistas de gestión (requieren permisos)
     const managementViews: { id: ViewType; label: string, permission?: () => boolean }[] = [
         { id: 'clientes', label: 'Clientes', permission: canViewClientes },
         { id: 'vendedores', label: 'Vendedores', permission: canViewClientes },
-        { id: 'report', label: 'Reportes', permission: canViewReports },
         { id: 'permissions-debug', label: '🔍 Debug Permisos', permission: canAccessAdmin },
     ];
 
@@ -281,7 +279,7 @@ const Header: React.FC<HeaderProps> = ({
                         <UserInfo />
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                         {/* Navegación Principal - Etapas de Trabajo */}
                         <div className="hidden lg:flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
                             {workViews.map(view => (
@@ -295,17 +293,52 @@ const Header: React.FC<HeaderProps> = ({
                             ))}
                         </div>
 
+                        {/* Separador visual */}
+                        <div className="hidden lg:block w-px h-8 bg-gray-300 dark:bg-gray-600"></div>
+
                         {/* Vistas Secundarias */}
-                        <div className="hidden md:flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                        <div className="hidden md:flex items-center gap-1.5">
                             {operationViews.map(view => (
                                 <button
                                     key={view.id}
                                     onClick={() => onViewChange(view.id)}
-                                    className={`px-2 py-1 text-xs font-medium rounded transition-colors ${currentView === view.id ? 'bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/10'}`}
+                                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${currentView === view.id ? 'bg-gray-800 dark:bg-gray-700 text-white shadow' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
                                 >
                                     {view.label}
                                 </button>
                             ))}
+                            
+                            {/* Botón Archivados - Más visible */}
+                            <button
+                                onClick={() => onViewChange('archived')}
+                                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+                                    currentView === 'archived' 
+                                        ? 'bg-gray-800 dark:bg-gray-700 text-white shadow' 
+                                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600'
+                                }`}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5m6 4.125 2.25 2.25m0 0 2.25 2.25M12 13.875l2.25-2.25M12 13.875l-2.25 2.25M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
+                                </svg>
+                                Archivados
+                            </button>
+
+                            {/* Botón Reportes - Destacado */}
+                            {canViewReports() && (
+                                <button
+                                    onClick={() => onViewChange('report')}
+                                    className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-all flex items-center gap-1.5 ${
+                                        currentView === 'report'
+                                            ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg'
+                                            : 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600 shadow-md'
+                                    }`}
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+                                    </svg>
+                                    Reportes
+                                </button>
+                            )}
                         </div>
 
                         {/* Notificaciones y Actividad */}
@@ -376,7 +409,76 @@ const Header: React.FC<HeaderProps> = ({
 
                             {/* Dropdown del Menú */}
                             {showBurgerMenu && (
-                                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
+                                <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
+                                    {/* Vistas Rápidas - Visible en móvil */}
+                                    <div className="md:hidden">
+                                        <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Vistas</div>
+                                        {workViews.map(view => (
+                                            <button
+                                                key={view.id}
+                                                onClick={() => {
+                                                    onViewChange(view.id);
+                                                    setShowBurgerMenu(false);
+                                                }}
+                                                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                                                    currentView === view.id ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                                }`}
+                                            >
+                                                {view.label}
+                                            </button>
+                                        ))}
+                                        {operationViews.map(view => (
+                                            <button
+                                                key={view.id}
+                                                onClick={() => {
+                                                    onViewChange(view.id);
+                                                    setShowBurgerMenu(false);
+                                                }}
+                                                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                                                    currentView === view.id ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                                }`}
+                                            >
+                                                {view.label}
+                                            </button>
+                                        ))}
+                                        
+                                        {/* Archivados en móvil */}
+                                        <button
+                                            onClick={() => {
+                                                onViewChange('archived');
+                                                setShowBurgerMenu(false);
+                                            }}
+                                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 ${
+                                                currentView === 'archived' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                            }`}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5m6 4.125 2.25 2.25m0 0 2.25 2.25M12 13.875l2.25-2.25M12 13.875l-2.25 2.25M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
+                                            </svg>
+                                            Archivados
+                                        </button>
+
+                                        {/* Reportes en móvil */}
+                                        {canViewReports() && (
+                                            <button
+                                                onClick={() => {
+                                                    onViewChange('report');
+                                                    setShowBurgerMenu(false);
+                                                }}
+                                                className={`w-full text-left px-4 py-2 text-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors flex items-center gap-2 ${
+                                                    currentView === 'report' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-semibold' : 'text-purple-600 dark:text-purple-400 font-medium'
+                                                }`}
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+                                                </svg>
+                                                Reportes
+                                            </button>
+                                        )}
+                                        
+                                        <div className="my-2 border-t border-gray-200 dark:border-gray-700"></div>
+                                    </div>
+
                                     {/* Vistas de Gestión */}
                                     <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Gestión</div>
                                     {managementViews.map(view => {
