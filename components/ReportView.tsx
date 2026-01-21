@@ -270,14 +270,21 @@ const ReportView: React.FC<ReportViewProps> = ({
             // Initialize week group if not exists
             if (!weeklyGroups[weekKey]) {
                 const { start, end } = getWeekDateRange(year, weekNum);
-                const startStr = start.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-                const endStr = end.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+                
+                // Calcular lunes a viernes SOLO para visualización
+                // (los cálculos siguen usando la semana completa lunes-domingo)
+                const monday = new Date(start);
+                const friday = new Date(start);
+                friday.setDate(monday.getDate() + 4); // Lunes + 4 días = Viernes
+                
+                const mondayStr = monday.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+                const fridayStr = friday.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
                 
                 weeklyGroups[weekKey] = {
                     week: weekNum,
                     year: year,
                     label: `SEMANA ${weekNum} (${year})`,
-                    dateRange: `${startStr} al ${endStr}`,
+                    dateRange: `${mondayStr} al ${fridayStr}`, // Mostrar lunes a viernes
                     machines: {},
                     machinePedidos: {},
                     totalCapacity: 0,
