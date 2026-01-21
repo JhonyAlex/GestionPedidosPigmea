@@ -116,12 +116,17 @@ Si usas otra plataforma (Heroku, Vercel, Railway, etc.), solo necesitas agregar 
 
 ### ¿Puedo cambiar el modelo de IA?
 
-Sí, edita el archivo `backend/index.js` y cambia:
+Sí, edita el archivo `backend/index.js` en la línea ~278 y cambia:
 ```javascript
-model: 'google/gemini-flash-1.5'
+model: 'google/gemini-2.0-flash-exp:free'
 ```
 
-Por otro modelo disponible en OpenRouter.
+Modelos recomendados en OpenRouter:
+- `google/gemini-2.0-flash-exp:free` (Gratis, rápido) ✅ Actual
+- `google/gemini-flash-1.5-8b` (Económico)
+- `meta-llama/llama-3.2-3b-instruct:free` (Gratis, alternativo)
+
+Ver más en: [OpenRouter Models](https://openrouter.ai/models)
 
 ### ¿Cómo sé cuánto estoy gastando?
 
