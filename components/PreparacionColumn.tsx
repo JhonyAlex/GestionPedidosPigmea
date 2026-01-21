@@ -57,7 +57,7 @@ const PreparacionColumn: React.FC<PreparacionColumnProps> = ({
                         <div
                             ref={provided.innerRef}
                             {...provided.droppableProps}
-                            className={`flex-grow p-4 transition-colors duration-150 ease-in-out ${snapshot.isDraggingOver ? 'bg-gray-300 dark:bg-gray-700' : 'bg-gray-200 dark:bg-gray-800'} rounded-b-xl overflow-y-auto min-h-[300px] max-h-[600px]`}
+                            className={`flex-grow p-4 transition-colors duration-150 ease-in-out ${snapshot.isDraggingOver ? 'bg-gray-300 dark:bg-gray-700' : 'bg-gray-200 dark:bg-gray-800'} rounded-b-xl overflow-y-auto min-h-[300px] max-h-[1200px]`}
                         >
                             {pedidos.map((pedido, index) => (
                                 <Draggable key={pedido.id} draggableId={pedido.id} index={index}>
