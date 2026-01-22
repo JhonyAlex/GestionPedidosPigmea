@@ -1350,24 +1350,28 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Cliente</label>
-                                                <select 
-                                                    name="clienteId" 
-                                                    value={formData.clienteId || ''} 
-                                                    onChange={handleChange} 
-                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                                <SearchableSelect
+                                                    name="clienteId"
+                                                    value={formData.clienteId || ''}
+                                                    onChange={(value) => {
+                                                        if (value === 'add_new_cliente') {
+                                                            setIsClienteModalOpen(true);
+                                                        } else {
+                                                            setFormData(prev => ({ ...prev, clienteId: value }));
+                                                        }
+                                                    }}
+                                                    options={clientes.map(c => ({
+                                                        id: c.id,
+                                                        label: c.nombre,
+                                                        isInactive: (c.estado || '').toLowerCase() !== 'activo'
+                                                    }))}
+                                                    placeholder={isLoadingClientes ? 'Cargando clientes...' : 'Seleccione un cliente'}
                                                     disabled={isReadOnly || isLoadingClientes}
-                                                >
-                                                    <option value="">
-                                                        {isLoadingClientes ? 'Cargando clientes...' : 'Seleccione un cliente'}
-                                                    </option>
-                                                    {clientes
-                                                        .sort((a, b) => a.nombre.localeCompare(b.nombre))
-                                                        .map(cliente => (
-                                                            <option key={cliente.id} value={cliente.id}>{cliente.nombre}</option>
-                                                        ))
-                                                    }
-                                                    {!isReadOnly && <option value="add_new_cliente">-- Crear nuevo cliente --</option>}
-                                                </select>
+                                                    allowCreate={!isReadOnly}
+                                                    createLabel="-- Crear nuevo cliente --"
+                                                    onCreateNew={() => setIsClienteModalOpen(true)}
+                                                    showActiveOnly={false}
+                                                />
                                             </div>
                                             <div>
                                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">N° Pedido Cliente</label>
