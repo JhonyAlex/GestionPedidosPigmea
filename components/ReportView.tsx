@@ -521,6 +521,23 @@ const ReportView: React.FC<ReportViewProps> = ({
 
     // --- 4. Render Helpers ---
 
+    // Función para formatear fechas de yyyy-mm-dd a dd-mm-yyyy
+    const formatDateToDDMMYYYY = (dateString: string | undefined): string => {
+        if (!dateString) return '-';
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString; // Si no es válida, devolver original
+            
+            const day = date.getDate().toString().padStart(2, '0');
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const year = date.getFullYear();
+            
+            return `${day}-${month}-${year}`;
+        } catch (error) {
+            return dateString; // En caso de error, devolver original
+        }
+    };
+
     const toggleStage = (stage: string) => {
         setSelectedStages(prev => 
             prev.includes(stage) ? prev.filter(s => s !== stage) : [...prev, stage]
@@ -1059,7 +1076,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                                     {pedido.producto || pedido.descripcion || '-'}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                                                    {pedido.nuevaFechaEntrega || pedido.fechaEntrega}
+                                                    {formatDateToDDMMYYYY(pedido.nuevaFechaEntrega || pedido.fechaEntrega)}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500 dark:text-gray-300">
                                                     {Number(pedido.metros).toLocaleString()} m
