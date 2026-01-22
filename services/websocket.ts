@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import { Pedido, UserRole, Notification } from '../types';
+import { logger } from '../utils/logger';
 
 // Tipos para los eventos WebSocket
 export interface WebSocketEvents {
@@ -31,11 +32,11 @@ export interface WebSocketEvents {
   'material-deleted': (data: { materialId: number; pedidoId?: string; material?: any }) => void;
   'material-assigned': (data: { pedidoId: string; materialId: number; material: any }) => void;
   'material-unassigned': (data: { pedidoId: string; materialId: number; material: any }) => void;
-  
+
   // Eventos de templates de observaciones
   'observacion-template-updated': (template: { id: number; text: string; usageCount: number; lastUsed: string; createdAt: string }) => void;
   'observacion-template-deleted': (data: { id: number }) => void;
-  
+
   // Eventos de locks de pedido
   'lock-pedido': (data: { pedidoId: string; userId: string; username: string }) => void;
   'unlock-pedido': (data: { pedidoId: string; userId: string }) => void;
@@ -64,7 +65,7 @@ export interface WebSocketEvents {
   'cliente-locked': (data: { clienteId: string; userId: string; username: string; lockedAt: string }) => void;
   'cliente-unlocked': (data: { clienteId: string }) => void;
   'cliente-locks-updated': (data: { locks: any[] }) => void;
-  
+
   // Eventos de locks de vendedor
   'lock-vendedor': (data: { vendedorId: string; userId: string; username: string }) => void;
   'unlock-vendedor': (data: { vendedorId: string; userId: string }) => void;
@@ -75,12 +76,12 @@ export interface WebSocketEvents {
   'vendedor-locked': (data: { vendedorId: string; userId: string; username: string; lockedAt: string }) => void;
   'vendedor-unlocked': (data: { vendedorId: string }) => void;
   'vendedor-locks-updated': (data: { locks: any[] }) => void;
-  
+
   // Eventos de versionado y actualizaciones
   'server-version': (data: { version: string; buildTime: string }) => void;
   'app-updated': (data: { version: string; buildTime: string }) => void;
   'request-version': () => void;
-  
+
   // Eventos del cliente
   authenticate: (data: { userId: string; userRole: UserRole; displayName?: string }) => void;
   'user-activity': (data: { activity: string; data?: any }) => void;
@@ -114,26 +115,26 @@ class WebSocketService {
   private notificationListeners: ((notifications: NotificationData[]) => void)[] = [];
   private connectedUsers: ConnectedUser[] = [];
   private connectedUsersListeners: ((users: ConnectedUser[]) => void)[] = [];
-  
+
   // Callbacks para sincronización de datos en tiempo real
   private pedidoCreatedListeners: ((pedido: Pedido) => void)[] = [];
   private pedidoUpdatedListeners: ((pedido: Pedido) => void)[] = [];
   private pedidoDeletedListeners: ((pedidoId: string) => void)[] = [];
-  
+
   // Callbacks para comentarios en tiempo real
   private commentAddedListeners: ((comment: any) => void)[] = [];
   private commentDeletedListeners: ((data: { commentId: string; pedidoId: string }) => void)[] = [];
-  
+
   // Callbacks para clientes en tiempo real
   private clienteCreatedListeners: ((data: any) => void)[] = [];
   private clienteUpdatedListeners: ((data: any) => void)[] = [];
   private clienteDeletedListeners: ((data: any) => void)[] = [];
-  
+
   // Callbacks para vendedores en tiempo real
   private vendedorCreatedListeners: ((data: any) => void)[] = [];
   private vendedorUpdatedListeners: ((data: any) => void)[] = [];
   private vendedorDeletedListeners: ((data: any) => void)[] = [];
-  
+
   // Control de visibilidad de pestaña y sincronización
   private isPageVisible = true;
   private lastActivityTime = Date.now();
@@ -280,10 +281,10 @@ class WebSocketService {
   private connect() {
     try {
       // Detectar la URL del servidor
-      const isDevelopment = typeof window !== 'undefined' && 
-                           (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-      const serverUrl = isDevelopment 
-        ? 'http://localhost:8080' 
+      const isDevelopment = typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+      const serverUrl = isDevelopment
+        ? 'http://localhost:8080'
         : window.location.origin;
 
       this.socket = io(serverUrl, {
@@ -365,7 +366,7 @@ class WebSocketService {
         cache: 'no-cache',
         timeout: 3000
       } as any);
-      
+
       if (response.ok) {
         console.log('✅ Conectividad restaurada, reintentando conexión WebSocket...');
         this.forceReconnection();
@@ -419,14 +420,14 @@ class WebSocketService {
       this.isOnline = true;
       this.reconnectAttempts = 0;
       this.stopConnectionTest(); // Detener pruebas cuando ya estamos conectados
-      
+
       // Limpiar notificaciones de desconexión anteriores
-      this.notifications = this.notifications.filter(n => 
-        n.type !== 'warning' && n.type !== 'error' || 
+      this.notifications = this.notifications.filter(n =>
+        n.type !== 'warning' && n.type !== 'error' ||
         !n.message.includes('conexión') && !n.message.includes('internet')
       );
       this.notificationListeners.forEach(callback => callback(this.notifications));
-      
+
       this.addNotification({
         type: 'success',
         title: 'Conectado',
@@ -438,7 +439,7 @@ class WebSocketService {
 
     this.socket.on('disconnect', (reason) => {
       this.isConnected = false;
-      
+
       // Solo mostrar mensaje si no es por pérdida de internet
       if (this.isOnline) {
         this.addNotification({
@@ -455,7 +456,7 @@ class WebSocketService {
 
     this.socket.on('connect_error', (error) => {
       this.reconnectAttempts++;
-      
+
       // Solo mostrar error después de varios intentos fallidos
       if (this.reconnectAttempts >= this.maxReconnectAttempts) {
         this.addNotification({
@@ -475,15 +476,15 @@ class WebSocketService {
       this.isOnline = true;
       this.reconnectAttempts = 0;
       this.stopConnectionTest(); // Detener pruebas cuando ya estamos conectados
-      
+
       // ✅ Limpiar TODAS las notificaciones de desconexión inmediatamente
-      this.notifications = this.notifications.filter(n => 
+      this.notifications = this.notifications.filter(n =>
         !(n.type === 'warning' && (n.title === 'Desconectado' || n.message.includes('Conexión en tiempo real perdida'))) &&
         !(n.type === 'error' && n.message.includes('conexión')) &&
         !(n.type === 'info' && n.message.includes('internet'))
       );
       this.notificationListeners.forEach(callback => callback(this.notifications));
-      
+
       // Mostrar mensaje de éxito
       this.addNotification({
         type: 'success',
@@ -518,7 +519,7 @@ class WebSocketService {
         autoClose: true,
         duration: 5000
       });
-      
+
       // Notificar a los listeners para sincronización automática
       this.notifyPedidoCreatedListeners(data.pedido);
     });
@@ -534,7 +535,7 @@ class WebSocketService {
           duration: 4000
         });
       }
-      
+
       // Notificar a los listeners para sincronización automática
       this.notifyPedidoUpdatedListeners(data.pedido);
     });
@@ -548,18 +549,18 @@ class WebSocketService {
         autoClose: true,
         duration: 4000
       });
-      
+
       // Notificar a los listeners para sincronización automática
       this.notifyPedidoDeletedListeners(data.pedidoId);
     });
 
     // Eventos de usuarios
     this.socket.on('user-connected', (data) => {
-      console.log('👤 Usuario conectado:', data);
-      console.log('📋 Lista de usuarios actualizada:', data.connectedUsers);
+      logger.debug('👤 Usuario conectado:', data);
+      logger.debug('📋 Lista de usuarios actualizada:', data.connectedUsers);
       this.connectedUsers = data.connectedUsers;
       this.notifyConnectedUsersListeners();
-      
+
       this.addNotification({
         type: 'info',
         title: 'Usuario conectado',
@@ -570,11 +571,11 @@ class WebSocketService {
     });
 
     this.socket.on('user-disconnected', (data) => {
-      console.log('👤 Usuario desconectado:', data);
-      console.log('📋 Lista de usuarios actualizada:', data.connectedUsers);
+      logger.debug('👤 Usuario desconectado:', data);
+      logger.debug('📋 Lista de usuarios actualizada:', data.connectedUsers);
       this.connectedUsers = data.connectedUsers;
       this.notifyConnectedUsersListeners();
-      
+
       this.addNotification({
         type: 'info',
         title: 'Usuario desconectado',
@@ -585,7 +586,7 @@ class WebSocketService {
     });
 
     this.socket.on('users-list', (data) => {
-      console.log('📋 Lista completa de usuarios recibida:', data.connectedUsers);
+      logger.debug('📋 Lista completa de usuarios recibida:', data.connectedUsers);
       this.connectedUsers = data.connectedUsers;
       this.notifyConnectedUsersListeners();
     });
@@ -673,7 +674,7 @@ class WebSocketService {
     };
 
     this.notifications.unshift(newNotification);
-    
+
     // Limitar a las últimas 50 notificaciones
     if (this.notifications.length > 50) {
       this.notifications = this.notifications.slice(0, 50);
@@ -700,7 +701,7 @@ class WebSocketService {
 
   public subscribeToNotifications(listener: (notifications: NotificationData[]) => void) {
     this.notificationListeners.push(listener);
-    
+
     // Cleanup function
     return () => {
       this.notificationListeners = this.notificationListeners.filter(l => l !== listener);
@@ -709,7 +710,7 @@ class WebSocketService {
 
   public subscribeToConnectedUsers(listener: (users: ConnectedUser[]) => void) {
     this.connectedUsersListeners.push(listener);
-    
+
     // Cleanup function
     return () => {
       this.connectedUsersListeners = this.connectedUsersListeners.filter(l => l !== listener);
@@ -721,8 +722,8 @@ class WebSocketService {
   }
 
   private notifyConnectedUsersListeners() {
-    console.log(`🔔 Notificando a ${this.connectedUsersListeners.length} listeners de usuarios conectados`);
-    console.log('📊 Usuarios actuales:', this.connectedUsers.map(u => ({ userId: u.userId, displayName: u.displayName })));
+    logger.debug(`🔔 Notificando a ${this.connectedUsersListeners.length} listeners de usuarios conectados`);
+    logger.debug('📊 Usuarios actuales:', this.connectedUsers.map(u => ({ userId: u.userId, displayName: u.displayName })));
     this.connectedUsersListeners.forEach(listener => listener([...this.connectedUsers]));
   }
 
@@ -913,7 +914,7 @@ class WebSocketService {
     this.notificationListeners = [];
     this.connectedUsersListeners = [];
     this.pageRefreshCallbacks = [];
-    
+
     if (this.inactivityTimeout) {
       clearTimeout(this.inactivityTimeout);
       this.inactivityTimeout = null;

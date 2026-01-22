@@ -7,7 +7,7 @@ class PostgreSQLClient {
         this.isHealthy = false; // 🔴 NUEVO: Estado de salud de la conexión
         this.lastHealthCheck = null;
         this.healthCheckInterval = 5000; // Verificar cada 5 segundos
-        
+
         // Priorizar DATABASE_URL que es el estándar en producción
         if (process.env.DATABASE_URL) {
             this.config = {
@@ -57,15 +57,15 @@ class PostgreSQLClient {
         try {
             const client = await Promise.race([
                 this.pool.connect(),
-                new Promise((_, reject) => 
+                new Promise((_, reject) =>
                     setTimeout(() => reject(new Error('Health check timeout')), 2000)
                 )
             ]);
-            
+
             // Ejecutar una consulta simple para verificar que la BD responde
             await client.query('SELECT 1');
             client.release();
-            
+
             this.isHealthy = true;
             this.lastHealthCheck = Date.now();
             return true;
@@ -73,13 +73,13 @@ class PostgreSQLClient {
             console.error('❌ Health check falló:', error.message);
             this.isHealthy = false;
             this.lastHealthCheck = Date.now();
-            
+
             // En producción, marcar como no inicializado para bloquear operaciones
             if (process.env.NODE_ENV === 'production') {
                 this.isInitialized = false;
                 console.error('🚨 PRODUCCIÓN: Marcando BD como no disponible');
             }
-            
+
             return false;
         }
     }
@@ -87,12 +87,12 @@ class PostgreSQLClient {
     // 🔴 NUEVO: Obtener si la BD está saludable (con cache de 5 segundos)
     async isConnectionHealthy() {
         const now = Date.now();
-        
+
         // Si nunca hemos hecho un health check o han pasado más de 5 segundos, verificar
         if (!this.lastHealthCheck || (now - this.lastHealthCheck) > this.healthCheckInterval) {
             await this.checkHealth();
         }
-        
+
         return this.isHealthy;
     }
 
@@ -284,38 +284,38 @@ class PostgreSQLClient {
 
     async init() {
         const isProduction = process.env.NODE_ENV === 'production';
-        
+
         try {
             this.pool = new Pool(this.config);
-            
+
             // 🔴 NUEVO: Listeners de eventos del pool para diagnóstico
             this.setupPoolEventListeners();
-            
+
             // Probar la conexión con timeout
             const client = await Promise.race([
                 this.pool.connect(),
-                new Promise((_, reject) => 
+                new Promise((_, reject) =>
                     setTimeout(() => reject(new Error('Timeout de conexión (5s)')), 5000)
                 )
             ]);
-            
+
             console.log('✅ PostgreSQL conectado correctamente');
             console.log(`   - Host: ${this.config.host || this.config.connectionString?.split('@')[1]?.split('/')[0]}`);
             console.log(`   - Database: ${this.config.database || 'desde DATABASE_URL'}`);
             console.log(`   - Max connections: ${this.config.max}`);
             client.release();
-            
+
             // Crear las tablas si no existen
             await this.createTables();
             this.isInitialized = true;
             this.isHealthy = true; // 🔴 NUEVO: Marcar como saludable al inicio
-            
+
             // 🔴 NUEVO: Iniciar health checks periódicos
             this.startHealthCheckInterval();
-            
+
         } catch (error) {
             console.error('❌ Error conectando a PostgreSQL:', error.message);
-            
+
             // 🔴 EN PRODUCCIÓN: FALLAR INMEDIATAMENTE - NO PERMITIR QUE EL SISTEMA FUNCIONE SIN BD
             if (isProduction) {
                 console.error('🚨 ERROR CRÍTICO EN PRODUCCIÓN: La base de datos NO está disponible');
@@ -324,9 +324,9 @@ class PostgreSQLClient {
                 this.isInitialized = false;
                 throw new Error('CRITICAL: Database connection failed in production');
             }
-            
+
             // Si el error es específicamente de clave foránea o columnas faltantes, intentar recuperación
-            if (error.message.includes('foreign key constraint') || 
+            if (error.message.includes('foreign key constraint') ||
                 error.message.includes('audit_logs_user_id_fkey') ||
                 error.message.includes('column') && error.message.includes('does not exist')) {
                 console.log('🔄 Intentando recuperación con estructura simplificada...');
@@ -339,14 +339,14 @@ class PostgreSQLClient {
                     console.error('❌ Fallo en recuperación:', recoveryError.message);
                 }
             }
-            
+
             throw error;
         }
     }
 
     async createTablesWithoutAuditLogs() {
         const client = await this.pool.connect();
-        
+
         try {
             console.log('🔧 Creando tablas esenciales con estructura compatible...');
 
@@ -425,7 +425,7 @@ class PostgreSQLClient {
             `);
 
             console.log('✅ Tablas esenciales creadas sin problemas');
-            
+
         } finally {
             client.release();
         }
@@ -586,7 +586,7 @@ class PostgreSQLClient {
 
     async createTables() {
         const client = await this.pool.connect();
-        
+
         try {
             console.log('🔧 Iniciando creación/verificación de tablas...');
 
@@ -922,7 +922,7 @@ class PostgreSQLClient {
 
             console.log('🎉 Todas las tablas han sido verificadas/creadas exitosamente');
 
-            
+
         } finally {
             client.release();
         }
@@ -1088,19 +1088,19 @@ class PostgreSQLClient {
                 WHERE table_name = 'pedidos' 
                 AND table_schema = 'public'
             `);
-            
+
             const existingColumns = columnsResult.rows.map(row => row.column_name);
-            
+
             // Lista base de columnas que siempre deben existir
             const baseColumns = [
                 'id', 'numero_pedido_cliente', 'cliente', 'fecha_pedido', 'fecha_entrega',
                 'etapa_actual', 'prioridad', 'secuencia_pedido', 'cantidad_piezas',
                 'observaciones', 'datos_tecnicos', 'antivaho', 'camisa', 'data', 'cliente_id'
             ];
-            
+
             // Columnas opcionales que pueden no existir
             const optionalColumns = ['nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'vendedor_id', 'cliche_info_adicional', 'anonimo', 'compra_cliche', 'recepcion_cliche', 'observaciones_material', 'microperforado', 'macroperforado', 'anonimo_post_impresion', 'tiempo_produccion_decimal'];
-            
+
             // Construir lista de columnas a insertar
             const columnsToInsert = baseColumns.filter(col => existingColumns.includes(col));
             optionalColumns.forEach(col => {
@@ -1108,7 +1108,7 @@ class PostgreSQLClient {
                     columnsToInsert.push(col);
                 }
             });
-            
+
             // Construir lista de valores correspondientes
             const baseValues = [
                 pedido.id,
@@ -1127,17 +1127,17 @@ class PostgreSQLClient {
                 JSON.stringify(pedido),
                 pedido.clienteId || null
             ];
-            
+
             const values = [...baseValues];
-            
+
             // Agregar valores opcionales solo si las columnas existen
             if (existingColumns.includes('nueva_fecha_entrega')) {
                 values.push(pedido.nuevaFechaEntrega ? new Date(pedido.nuevaFechaEntrega) : null);
             }
             if (existingColumns.includes('numeros_compra')) {
                 // Convertir array de strings a JSONB
-                const numerosCompraJson = pedido.numerosCompra && Array.isArray(pedido.numerosCompra) 
-                    ? JSON.stringify(pedido.numerosCompra) 
+                const numerosCompraJson = pedido.numerosCompra && Array.isArray(pedido.numerosCompra)
+                    ? JSON.stringify(pedido.numerosCompra)
                     : '[]';
                 values.push(numerosCompraJson);
             }
@@ -1174,10 +1174,10 @@ class PostgreSQLClient {
             if (existingColumns.includes('tiempo_produccion_decimal')) {
                 values.push(pedido.tiempoProduccionDecimal || null);
             }
-            
+
             // Construir placeholders para los valores
             const placeholders = columnsToInsert.map((_, index) => `$${index + 1}`).join(', ');
-            
+
             const query = `
                 INSERT INTO pedidos (${columnsToInsert.join(', ')})
                 VALUES (${placeholders})
@@ -1227,7 +1227,7 @@ class PostgreSQLClient {
                 WHERE table_name = 'pedidos' 
                 AND column_name IN ('nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'vendedor_id', 'cliche_info_adicional', 'anonimo', 'compra_cliche', 'recepcion_cliche', 'observaciones_material', 'tiempo_produccion_decimal', 'horas_confirmadas')
             `);
-            
+
             const existingColumns = columnsResult.rows.map(row => row.column_name);
             const hasNuevaFecha = existingColumns.includes('nueva_fecha_entrega');
             const hasNumerosCompra = existingColumns.includes('numeros_compra');
@@ -1296,8 +1296,8 @@ class PostgreSQLClient {
             if (hasNumerosCompra) {
                 updateFields.push(`numeros_compra = $${paramIndex++}`);
                 // Convertir array de strings a JSONB
-                const numerosCompraJson = pedido.numerosCompra && Array.isArray(pedido.numerosCompra) 
-                    ? JSON.stringify(pedido.numerosCompra) 
+                const numerosCompraJson = pedido.numerosCompra && Array.isArray(pedido.numerosCompra)
+                    ? JSON.stringify(pedido.numerosCompra)
                     : '[]';
                 values.push(numerosCompraJson);
             }
@@ -1389,8 +1389,8 @@ class PostgreSQLClient {
                 RETURNING *;
             `;
 
-            console.log(`🔄 Actualizando pedido ${pedido.id} con columnas disponibles:`, 
-                      `nueva_fecha_entrega=${hasNuevaFecha}, numeros_compra=${hasNumerosCompra}, vendedor=${hasVendedor}, cliche_info=${hasClicheInfo}, anonimo=${hasAnonimo}`);
+            console.log(`🔄 Actualizando pedido ${pedido.id} con columnas disponibles:`,
+                `nueva_fecha_entrega=${hasNuevaFecha}, numeros_compra=${hasNumerosCompra}, vendedor=${hasVendedor}, cliche_info=${hasClicheInfo}, anonimo=${hasAnonimo}`);
 
             const result = await client.query(query, values);
             if (result.rowCount === 0) throw new Error(`Pedido ${pedido.id} no encontrado para actualizar`);
@@ -1406,16 +1406,16 @@ class PostgreSQLClient {
         }
 
         const client = await this.pool.connect();
-        
+
         try {
             const result = await client.query('SELECT data FROM pedidos WHERE id = $1', [id]);
-            
+
             if (result.rows.length === 0) {
                 return null;
             }
-            
+
             return result.rows[0].data;
-            
+
         } finally {
             client.release();
         }
@@ -1427,11 +1427,11 @@ class PostgreSQLClient {
         }
 
         const client = await this.pool.connect();
-        
+
         try {
             const result = await client.query('SELECT data FROM pedidos ORDER BY secuencia_pedido DESC');
             return result.rows.map(row => row.data);
-            
+
         } finally {
             client.release();
         }
@@ -1468,7 +1468,7 @@ class PostgreSQLClient {
 
         const offset = (page - 1) * limit;
         const client = await this.pool.connect();
-        
+
         try {
             let query = 'SELECT data FROM pedidos WHERE 1=1';
             const params = [];
@@ -1478,7 +1478,7 @@ class PostgreSQLClient {
             if (!incluirArchivados) {
                 query += ` AND (estado IS NULL OR estado != 'ARCHIVADO')`;
             }
-            
+
             // Filtro: Excluir archivados por etapa (legacy)
             if (!incluirArchivados) {
                 query += ` AND data->>'etapaActual' != 'ARCHIVADO'`;
@@ -1556,7 +1556,7 @@ class PostgreSQLClient {
                     totalPages: Math.ceil(total / limit)
                 }
             };
-            
+
         } finally {
             client.release();
         }
@@ -1568,16 +1568,16 @@ class PostgreSQLClient {
         }
 
         const client = await this.pool.connect();
-        
+
         try {
             const result = await client.query('DELETE FROM pedidos WHERE id = $1', [id]);
-            
+
             if (result.rowCount === 0) {
                 throw new Error(`Pedido ${id} no encontrado para eliminar`);
             }
-            
+
             return true;
-            
+
         } finally {
             client.release();
         }
@@ -1589,10 +1589,10 @@ class PostgreSQLClient {
         }
 
         const client = await this.pool.connect();
-        
+
         try {
             await client.query('DELETE FROM pedidos');
-            
+
         } finally {
             client.release();
         }
@@ -1604,16 +1604,16 @@ class PostgreSQLClient {
         }
 
         const client = await this.pool.connect();
-        
+
         try {
             await client.query('BEGIN');
-            
+
             for (const pedido of pedidos) {
                 await this.create(pedido);
             }
-            
+
             await client.query('COMMIT');
-            
+
         } catch (error) {
             await client.query('ROLLBACK');
             throw error;
@@ -1628,7 +1628,7 @@ class PostgreSQLClient {
         }
 
         const client = await this.pool.connect();
-        
+
         try {
             const query = `
                 SELECT data FROM pedidos 
@@ -1644,11 +1644,11 @@ class PostgreSQLClient {
                     observaciones ILIKE $1
                 ORDER BY secuencia_pedido DESC
             `;
-            
+
             const searchPattern = `%${searchTerm}%`;
             const result = await client.query(query, [searchPattern]);
             return result.rows.map(row => row.data);
-            
+
         } finally {
             client.release();
         }
@@ -1790,10 +1790,10 @@ class PostgreSQLClient {
         const client = await this.pool.connect();
         try {
             console.log('🔍 createCliente - Datos recibidos:', JSON.stringify(clienteData, null, 2));
-            
+
             // Comenzar transacción
             await client.query('BEGIN');
-            
+
             const query = `
                 INSERT INTO clientes (nombre, razon_social, cif, telefono, email, direccion_fiscal, codigo_postal, poblacion, provincia, pais, persona_contacto, notas, estado)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
@@ -1816,10 +1816,10 @@ class PostgreSQLClient {
                 clienteData.notas || clienteData.observaciones || null,
                 clienteData.estado || 'Activo'
             ];
-            
+
             console.log('🔍 createCliente - Query:', query);
             console.log('🔍 createCliente - Values:', values);
-            
+
             const result = await client.query(query, values);
             const newCliente = result.rows[0];
 
@@ -1849,7 +1849,7 @@ class PostgreSQLClient {
                 newCliente.observaciones = newCliente.notas;
                 delete newCliente.notas;
             }
-            
+
             console.log('✅ Cliente creado exitosamente:', newCliente.id);
             return newCliente;
         } catch (error) {
@@ -1865,10 +1865,10 @@ class PostgreSQLClient {
         const client = await this.pool.connect();
         try {
             console.log('🔍 updateCliente - Datos recibidos:', JSON.stringify(clienteData, null, 2));
-            
+
             // Comenzar transacción
             await client.query('BEGIN');
-            
+
             // Obtener el cliente anterior para auditoría
             const previousResult = await client.query('SELECT * FROM clientes WHERE id = $1', [id]);
             if (previousResult.rowCount === 0) {
@@ -1876,14 +1876,14 @@ class PostgreSQLClient {
                 throw new Error(`Cliente con ID ${id} no encontrado.`);
             }
             const previousCliente = previousResult.rows[0];
-            
+
             const setParts = [];
             const values = [];
             let valueIndex = 1;
 
             // Crear objeto limpio solo con campos válidos y mapeo correcto
             const cleanData = {};
-            
+
             // Mapeo directo de campos que coinciden
             const directFields = ['nombre', 'razon_social', 'cif', 'telefono', 'email', 'codigo_postal', 'poblacion', 'provincia', 'pais', 'persona_contacto', 'estado', 'fecha_baja'];
             directFields.forEach(field => {
@@ -1891,16 +1891,16 @@ class PostgreSQLClient {
                     cleanData[field] = clienteData[field];
                 }
             });
-            
+
             // Mapeo específico de campos con nombres diferentes
             if (clienteData.direccion !== undefined || clienteData.direccion_fiscal !== undefined) {
                 cleanData.direccion_fiscal = clienteData.direccion_fiscal || clienteData.direccion;
             }
-            
+
             if (clienteData.observaciones !== undefined || clienteData.notas !== undefined) {
                 cleanData.notas = clienteData.notas || clienteData.observaciones;
             }
-            
+
             console.log('🔄 updateCliente - Datos mapeados:', JSON.stringify(cleanData, null, 2));
 
             // Construir query con solo campos válidos
@@ -1924,7 +1924,7 @@ class PostgreSQLClient {
                 WHERE id = $${valueIndex}
                 RETURNING *;
             `;
-            
+
             console.log('🔍 Query SQL:', query);
             console.log('🔍 Values:', values);
 
@@ -1934,12 +1934,12 @@ class PostgreSQLClient {
             // 📝 AUDITORÍA: Registrar cambios en historial
             const changedBy = clienteData._changedBy || 'Sistema';
             const userRole = clienteData._userRole || 'SYSTEM';
-            
+
             // Auditar cada campo modificado
             for (const field in cleanData) {
                 const oldValue = previousCliente[field];
                 const newValue = cleanData[field];
-                
+
                 if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
                     await this.logClienteHistory(
                         client,
@@ -1967,7 +1967,7 @@ class PostgreSQLClient {
                 updatedCliente.observaciones = updatedCliente.notas;
                 delete updatedCliente.notas;
             }
-            
+
             console.log('✅ Cliente actualizado exitosamente:', updatedCliente.id);
             return updatedCliente;
         } catch (error) {
@@ -2015,7 +2015,7 @@ class PostgreSQLClient {
             }
 
             const having = whereClauses.length > 0 ? `HAVING ${whereClauses.join(' AND ')}` : '';
-            
+
             const validSortColumns = ['nombre', 'cif', 'poblacion', 'created_at', 'total_pedidos', 'pedidos_activos'];
             const safeSortBy = validSortColumns.includes(sortBy) ? sortBy : 'nombre';
             const safeSortOrder = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
@@ -2248,7 +2248,7 @@ class PostgreSQLClient {
             `;
 
             const result = await client.query(query, queryParams);
-            
+
             // Transformar los pedidos para que tengan el formato esperado
             const pedidos = result.rows.map(row => {
                 const pedidoData = row.data || {};
@@ -2330,7 +2330,7 @@ class PostgreSQLClient {
             `;
 
             const result = await client.query(query, [clienteIds]);
-            
+
             // Crear un mapa con los resultados
             const statsMap = {};
             result.rows.forEach(row => {
@@ -2380,12 +2380,12 @@ class PostgreSQLClient {
     async deleteClientePermanently(id, deletePedidos = false) {
         if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
-        
+
         try {
             await client.query('BEGIN');
-            
+
             let pedidosEliminadosIds = [];
-            
+
             // Si se solicita eliminar los pedidos también
             if (deletePedidos) {
                 // Primero eliminamos los comentarios de los pedidos del cliente
@@ -2395,13 +2395,13 @@ class PostgreSQLClient {
                         SELECT id FROM pedidos WHERE cliente_id = $1
                     )
                 `, [id]);
-                
+
                 // Luego eliminamos los pedidos del cliente y guardamos sus IDs
                 const deletePedidosResult = await client.query(
                     'DELETE FROM pedidos WHERE cliente_id = $1 RETURNING id',
                     [id]
                 );
-                
+
                 pedidosEliminadosIds = deletePedidosResult.rows.map(row => row.id);
                 console.log(`Eliminados ${deletePedidosResult.rowCount} pedidos del cliente ${id}`, pedidosEliminadosIds);
             } else {
@@ -2411,30 +2411,30 @@ class PostgreSQLClient {
                      WHERE cliente_id = $1 AND etapa_actual NOT IN ('COMPLETADO', 'ARCHIVADO', 'CANCELADO')`,
                     [id]
                 );
-                
+
                 if (parseInt(pedidosCheck.rows[0].count) > 0) {
                     throw new Error('No se puede eliminar el cliente porque tiene pedidos activos. Elimínelo con sus pedidos o archívelo.');
                 }
-                
+
                 // Desvinculamos los pedidos históricos del cliente
                 await client.query(
                     'UPDATE pedidos SET cliente_id = NULL WHERE cliente_id = $1',
                     [id]
                 );
             }
-            
+
             // Finalmente, eliminamos el cliente
             const deleteResult = await client.query(
                 'DELETE FROM clientes WHERE id = $1 RETURNING *',
                 [id]
             );
-            
+
             if (deleteResult.rows.length === 0) {
                 throw new Error('Cliente no encontrado');
             }
-            
+
             await client.query('COMMIT');
-            
+
             return {
                 cliente: deleteResult.rows[0],
                 pedidosEliminados: deletePedidos,
@@ -2489,7 +2489,7 @@ class PostgreSQLClient {
                     v.nombre ASC;
             `;
             const result = await client.query(query);
-            
+
             // Transformar snake_case a camelCase y usar el activo calculado
             return result.rows.map(row => ({
                 id: row.id,
@@ -2526,7 +2526,7 @@ class PostgreSQLClient {
         try {
             // Comenzar transacción
             await client.query('BEGIN');
-            
+
             const query = `
                 INSERT INTO vendedores (nombre, email, telefono, activo)
                 VALUES ($1, $2, $3, $4)
@@ -2538,10 +2538,10 @@ class PostgreSQLClient {
                 vendedorData.telefono || null,
                 vendedorData.activo !== undefined ? vendedorData.activo : true
             ];
-            
+
             const result = await client.query(query, values);
             const newVendedor = result.rows[0];
-            
+
             // 📝 AUDITORÍA: Registrar creación en historial
             const changedBy = vendedorData._changedBy || 'Sistema';
             const userRole = vendedorData._userRole || 'SYSTEM';
@@ -2556,10 +2556,10 @@ class PostgreSQLClient {
                 null,
                 `Vendedor creado: ${newVendedor.nombre}`
             );
-            
+
             // Confirmar transacción
             await client.query('COMMIT');
-            
+
             return newVendedor;
         } catch (error) {
             await client.query('ROLLBACK');
@@ -2575,7 +2575,7 @@ class PostgreSQLClient {
         try {
             // Comenzar transacción
             await client.query('BEGIN');
-            
+
             // Obtener el vendedor anterior para auditoría
             const previousResult = await client.query('SELECT * FROM vendedores WHERE id = $1', [id]);
             if (previousResult.rowCount === 0) {
@@ -2583,14 +2583,14 @@ class PostgreSQLClient {
                 throw new Error(`Vendedor con ID ${id} no encontrado.`);
             }
             const previousVendedor = previousResult.rows[0];
-            
+
             const setParts = [];
             const values = [];
             let valueIndex = 1;
 
             const validFields = ['nombre', 'email', 'telefono', 'activo'];
             const updatedFields = {};
-            
+
             validFields.forEach(field => {
                 if (vendedorData[field] !== undefined) {
                     setParts.push(`${field} = $${valueIndex++}`);
@@ -2614,16 +2614,16 @@ class PostgreSQLClient {
 
             const result = await client.query(query, values);
             const updatedVendedor = result.rows[0];
-            
+
             // 📝 AUDITORÍA: Registrar cambios en historial
             const changedBy = vendedorData._changedBy || 'Sistema';
             const userRole = vendedorData._userRole || 'SYSTEM';
-            
+
             // Auditar cada campo modificado
             for (const field in updatedFields) {
                 const oldValue = previousVendedor[field];
                 const newValue = updatedFields[field];
-                
+
                 if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
                     await this.logVendedorHistory(
                         client,
@@ -2638,10 +2638,10 @@ class PostgreSQLClient {
                     );
                 }
             }
-            
+
             // Confirmar transacción
             await client.query('COMMIT');
-            
+
             return updatedVendedor;
         } catch (error) {
             await client.query('ROLLBACK');
@@ -2704,7 +2704,7 @@ class PostgreSQLClient {
             `;
 
             const result = await client.query(query, queryParams);
-            
+
             // Transformar los pedidos para que tengan el formato esperado
             const pedidos = result.rows.map(row => {
                 const pedidoData = row.data || {};
@@ -2786,7 +2786,7 @@ class PostgreSQLClient {
             `;
 
             const result = await client.query(query, [vendedorIds]);
-            
+
             // Crear un mapa con los resultados
             const statsMap = {};
             result.rows.forEach(row => {
@@ -2916,7 +2916,7 @@ class PostgreSQLClient {
         const client = await this.pool.connect();
         try {
             await client.query('BEGIN');
-            
+
             // Intenta matchear por nombre de cliente exacto
             const updateResult = await client.query(`
                 UPDATE pedidos p
@@ -2924,7 +2924,7 @@ class PostgreSQLClient {
                 FROM clientes c
                 WHERE p.cliente_id IS NULL AND p.cliente = c.nombre;
             `);
-            
+
             await client.query('COMMIT');
             return { updatedCount: updateResult.rowCount };
         } catch (error) {
@@ -2938,61 +2938,61 @@ class PostgreSQLClient {
     async hasPermission(userId, permissionId, userFromRequest = null) {
         try {
             console.log(`🔍 Verificando permiso '${permissionId}' para usuario ID: ${userId}`);
-            
+
             // Verificar que la BD está disponible
             if (!this.isInitialized) {
                 console.error(`🚨 BD no disponible - rechazando verificación de permisos`);
                 throw new Error('Base de datos no disponible');
             }
-            
+
             const userRole = userFromRequest?.role || 'OPERATOR';
             if (userRole === 'Administrador' || userRole === 'ADMIN') {
                 console.log(`👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS`);
                 return true;
             }
-            
+
             let user = await this.getAdminUserById(userId);
-            
+
             if (!user) {
                 let legacyUser = await this.findLegacyUserById(userId);
-                
+
                 if (legacyUser) {
                     console.log(`👤 Usuario legacy encontrado: ${legacyUser.username}, rol: ${legacyUser.role}`);
-                    
+
                     if (legacyUser.role === 'ADMIN' || legacyUser.role === 'Administrador') {
                         console.log(`👑 Usuario administrador legacy - TODOS LOS PERMISOS CONCEDIDOS`);
                         return true;
                     }
-                    
+
                     const defaultPermissions = this.getDefaultPermissionsForRole(legacyUser.role);
-                    const hasPermission = defaultPermissions.some(perm => 
+                    const hasPermission = defaultPermissions.some(perm =>
                         perm.permissionId === permissionId && perm.enabled
                     );
-                    
+
                     console.log(`✅ Permiso '${permissionId}' ${hasPermission ? 'PERMITIDO' : 'DENEGADO'} para usuario legacy`);
                     return hasPermission;
                 }
-                
+
                 console.error(`❌ Usuario ${userId} no encontrado en la base de datos`);
                 throw new Error('Usuario no encontrado');
             }
-            
+
             console.log(`👤 Usuario encontrado: ${user.username}, rol: ${user.role}`);
-            
+
             if (user.role === 'ADMIN' || user.role === 'Administrador') {
                 console.log(`👑 Usuario administrador con BD - TODOS LOS PERMISOS CONCEDIDOS`);
                 return true;
             }
-            
+
             const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId);
-            
+
             if (isValidUUID && this.isInitialized) {
                 try {
                     const result = await this.pool.query(
                         'SELECT enabled FROM user_permissions WHERE user_id = $1 AND permission_id = $2',
                         [userId, permissionId]
                     );
-                    
+
                     if (result.rows.length > 0) {
                         const hasPermission = result.rows[0].enabled;
                         console.log(`✅ Permiso específico encontrado en BD: ${hasPermission ? 'PERMITIDO' : 'DENEGADO'}`);
@@ -3002,16 +3002,16 @@ class PostgreSQLClient {
                     console.log(`⚠️ Error consultando user_permissions: ${queryError.message}`);
                 }
             }
-            
+
             console.log(`🔧 Usando permisos por defecto para rol: ${user.role}`);
             const defaultPermissions = this.getDefaultPermissionsForRole(user.role);
-            const hasPermission = defaultPermissions.some(perm => 
+            const hasPermission = defaultPermissions.some(perm =>
                 perm.permissionId === permissionId && perm.enabled
             );
-            
+
             console.log(`✅ Permiso '${permissionId}' ${hasPermission ? 'PERMITIDO' : 'DENEGADO'} por defecto`);
             return hasPermission;
-            
+
         } catch (error) {
             console.error('Error verificando permiso:', error);
             console.log(`🔧 Error en verificación de permisos, permitiendo acceso por seguridad`);
@@ -3024,7 +3024,7 @@ class PostgreSQLClient {
             'pedidos.create', 'pedidos.view', 'pedidos.edit', 'pedidos.delete',
             'clientes.view', 'clientes.create', 'clientes.edit', 'clientes.delete',
             'vendedores.view', 'vendedores.create', 'vendedores.edit', 'vendedores.delete',
-            'usuarios.admin', 'usuarios.view', 'usuarios.create', 'usuarios.delete', 
+            'usuarios.admin', 'usuarios.view', 'usuarios.create', 'usuarios.delete',
             'reportes.view', 'reportes.export', 'datos.import',
             'configuracion.admin', 'configuracion.view',
             'permisos.admin', 'auditoria.view',
@@ -3047,7 +3047,7 @@ class PostgreSQLClient {
                 break;
             case 'SUPERVISOR':
             case 'Supervisor':
-                const supervisorPermissions = allPermissions.filter(p => 
+                const supervisorPermissions = allPermissions.filter(p =>
                     !['usuarios.delete', 'backup.admin', 'restore.admin', 'permisos.admin'].includes(p)
                 );
                 supervisorPermissions.forEach(permission => {
@@ -3091,14 +3091,14 @@ class PostgreSQLClient {
     }
 
     // === HEALTH CHECKS PERIÓDICOS ===
-    
+
     // 🔴 NUEVO: Configurar listeners de eventos del pool
     // 🔴 NUEVO: Verificar si las tablas críticas existen
     async verifyTablesExist() {
         if (!this.isInitialized || !this.pool) {
             return false;
         }
-        
+
         const client = await this.pool.connect();
         try {
             // Verificar que la tabla admin_users existe
@@ -3109,7 +3109,7 @@ class PostgreSQLClient {
                     AND table_name = 'admin_users'
                 ) as table_exists;
             `);
-            
+
             return result.rows[0].table_exists;
         } catch (error) {
             console.error('❌ Error verificando existencia de tablas:', error.message);
@@ -3123,14 +3123,14 @@ class PostgreSQLClient {
     async ensureTablesExist() {
         try {
             const tablesExist = await this.verifyTablesExist();
-            
+
             if (!tablesExist) {
                 console.warn('⚠️ Tablas críticas no existen - iniciando recreación automática...');
                 await this.createTables();
                 console.log('✅ Tablas recreadas exitosamente');
                 return true;
             }
-            
+
             return true;
         } catch (error) {
             console.error('❌ Error en autocuración de tablas:', error.message);
@@ -3140,22 +3140,22 @@ class PostgreSQLClient {
 
     setupPoolEventListeners() {
         if (!this.pool) return;
-        
+
         // Evento: Cuando se adquiere un cliente del pool
         this.pool.on('acquire', () => {
             const totalCount = this.pool.totalCount;
             const idleCount = this.pool.idleCount;
             const waitingCount = this.pool.waitingCount;
-            
+
             // Solo loguear si hay VERDADERO problema:
             // - Hay peticiones esperando en cola (presión inmediata), O
             // - Más del 60% del pool está en uso Y menos del 20% está idle
             const poolUsagePercentage = (totalCount / this.config.max) * 100;
             const idlePercentage = totalCount > 0 ? (idleCount / totalCount) * 100 : 100;
-            
+
             const highUsage = poolUsagePercentage > 60 && idlePercentage < 20;
             const hasQueue = waitingCount > 0;
-            
+
             if (hasQueue || highUsage) {
                 console.warn(`⚠️ Pool de conexiones bajo presión`);
                 console.warn(`   - Total: ${totalCount}/${this.config.max} (${poolUsagePercentage.toFixed(1)}% uso)`);
@@ -3163,13 +3163,13 @@ class PostgreSQLClient {
                 console.warn(`   - Waiting: ${waitingCount}`);
             }
         });
-        
+
         // Evento: Error en el pool
         this.pool.on('error', (err, client) => {
             console.error('❌ ERROR EN POOL DE CONEXIONES:', err.message);
             console.error('   - Código:', err.code);
             console.error('   - Timestamp:', new Date().toISOString());
-            
+
             // Errores comunes y su significado
             if (err.code === 'ECONNREFUSED') {
                 console.error('   🔴 CAUSA: PostgreSQL no está corriendo o no es accesible');
@@ -3182,7 +3182,7 @@ class PostgreSQLClient {
             } else if (err.code === '57P01') {
                 console.error('   🔴 CAUSA: PostgreSQL está en proceso de shutdown');
             }
-            
+
             // En producción, marcar como no saludable
             if (process.env.NODE_ENV === 'production') {
                 this.isHealthy = false;
@@ -3190,12 +3190,12 @@ class PostgreSQLClient {
                 console.error('🚨 PRODUCCIÓN: Marcando BD como no disponible debido a error');
             }
         });
-        
+
         // Evento: Cliente removido del pool
         this.pool.on('remove', () => {
             // Cliente removido del pool (silencioso)
         });
-        
+
         // Evento: Nuevo cliente conectado
         this.pool.on('connect', () => {
             const isDev = process.env.NODE_ENV !== 'production';
@@ -3208,24 +3208,24 @@ class PostgreSQLClient {
                 console.log('🔗 Nueva conexión al pool establecida');
             }
         });
-        
+
         console.log('👂 Event listeners del pool configurados');
     }
-    
+
     // 🔴 NUEVO: Iniciar verificaciones periódicas de salud
     startHealthCheckInterval() {
         // Verificar cada 10 segundos si la conexión sigue viva
         this.healthCheckTimer = setInterval(async () => {
             const isHealthy = await this.checkHealth();
-            
+
             if (!isHealthy && process.env.NODE_ENV === 'production') {
                 console.error('🚨 PRODUCCIÓN: Conexión a BD perdida - sistema en modo degradado');
             }
         }, 10000); // Cada 10 segundos
-        
+
         console.log('🔄 Health checks periódicos iniciados (cada 10s)');
     }
-    
+
     // 🔴 NUEVO: Detener health checks (para shutdown limpio)
     stopHealthCheckInterval() {
         if (this.healthCheckTimer) {
@@ -3236,7 +3236,7 @@ class PostgreSQLClient {
     }
 
     // === MÉTODOS PARA NOTIFICACIONES ===
-    
+
     /**
      * Crear una nueva notificación en la base de datos
      * @param {Object} notification - Datos de la notificación
@@ -3262,7 +3262,7 @@ class PostgreSQLClient {
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 RETURNING *
             `;
-            
+
             const values = [
                 notification.id,
                 notification.type,
@@ -3276,11 +3276,14 @@ class PostgreSQLClient {
             ];
 
             const result = await client.query(query, values);
-            
+
             // Después de crear, mantener solo las últimas 50 notificaciones por usuario
             await this.cleanupOldNotifications(notification.userId, client);
-            
-            console.log(`✅ Notificación creada: ${notification.id} (${notification.type})`);
+
+            // ✅ Solo loguear en desarrollo
+            if (process.env.NODE_ENV !== 'production') {
+                console.log(`✅ Notificación creada: ${notification.id} (${notification.type})`);
+            }
             return this.mapNotificationFromDB(result.rows[0]);
         } catch (error) {
             console.error('❌ Error al crear notificación:', error);
@@ -3304,7 +3307,7 @@ class PostgreSQLClient {
         const client = await this.pool.connect();
         try {
             let query, values;
-            
+
             if (userId) {
                 // Obtener notificaciones para el usuario específico + notificaciones globales (user_id = null)
                 query = `
@@ -3326,8 +3329,12 @@ class PostgreSQLClient {
             }
 
             const result = await client.query(query, values);
-            console.log(`✅ ${result.rows.length} notificaciones obtenidas para usuario: ${userId || 'GLOBAL'}`);
-            
+
+            // ✅ Solo loguear en desarrollo
+            if (process.env.NODE_ENV !== 'production') {
+                console.log(`✅ ${result.rows.length} notificaciones obtenidas para usuario: ${userId || 'GLOBAL'}`);
+            }
+
             return result.rows.map(row => this.mapNotificationFromDB(row));
         } catch (error) {
             console.error('❌ Error al obtener notificaciones:', error);
@@ -3356,14 +3363,17 @@ class PostgreSQLClient {
                 WHERE id = $1 AND (user_id IS NULL OR user_id = $2)
                 RETURNING *
             `;
-            
+
             const result = await client.query(query, [notificationId, userId]);
-            
+
             if (result.rows.length === 0) {
                 throw new Error(`Notificación ${notificationId} no encontrada o no pertenece al usuario`);
             }
 
-            console.log(`✅ Notificación ${notificationId} marcada como leída`);
+            // ✅ Solo loguear en desarrollo
+            if (process.env.NODE_ENV !== 'production') {
+                console.log(`✅ Notificación ${notificationId} marcada como leída`);
+            }
             return this.mapNotificationFromDB(result.rows[0]);
         } catch (error) {
             console.error('❌ Error al marcar notificación como leída:', error);
@@ -3390,10 +3400,13 @@ class PostgreSQLClient {
                 SET read = true
                 WHERE (user_id IS NULL OR user_id = $1) AND read = false
             `;
-            
+
             const result = await client.query(query, [userId]);
-            
-            console.log(`✅ ${result.rowCount} notificaciones marcadas como leídas para usuario: ${userId}`);
+
+            // ✅ Solo loguear en desarrollo
+            if (process.env.NODE_ENV !== 'production') {
+                console.log(`✅ ${result.rowCount} notificaciones marcadas como leídas para usuario: ${userId}`);
+            }
             return result.rowCount;
         } catch (error) {
             console.error('❌ Error al marcar todas las notificaciones como leídas:', error);
@@ -3420,14 +3433,17 @@ class PostgreSQLClient {
                 DELETE FROM notifications 
                 WHERE id = $1 AND (user_id IS NULL OR user_id = $2)
             `;
-            
+
             const result = await client.query(query, [notificationId, userId]);
-            
+
             if (result.rowCount === 0) {
                 throw new Error(`Notificación ${notificationId} no encontrada o no pertenece al usuario`);
             }
 
-            console.log(`✅ Notificación ${notificationId} eliminada`);
+            // ✅ Solo loguear en desarrollo
+            if (process.env.NODE_ENV !== 'production') {
+                console.log(`✅ Notificación ${notificationId} eliminada`);
+            }
             return true;
         } catch (error) {
             console.error('❌ Error al eliminar notificación:', error);
@@ -3451,7 +3467,7 @@ class PostgreSQLClient {
 
         try {
             let query;
-            
+
             if (userId) {
                 query = `
                     DELETE FROM notifications 
@@ -3475,7 +3491,7 @@ class PostgreSQLClient {
                 `;
                 await client.query(query);
             }
-            
+
             console.log(`🧹 Notificaciones antiguas limpiadas para usuario: ${userId || 'GLOBAL'}`);
         } catch (error) {
             console.error('❌ Error al limpiar notificaciones antiguas:', error);
@@ -3508,7 +3524,7 @@ class PostgreSQLClient {
     }
 
     // === GESTIÓN DE MATERIALES ===
-    
+
     /**
      * Obtener todos los materiales
      * @returns {Promise<Array>} - Lista de materiales
@@ -3532,7 +3548,7 @@ class PostgreSQLClient {
                 FROM materiales
                 ORDER BY created_at DESC
             `;
-            
+
             const result = await client.query(query);
             return result.rows;
         } catch (error) {
@@ -3567,13 +3583,13 @@ class PostgreSQLClient {
                 FROM materiales
                 WHERE id = $1
             `;
-            
+
             const result = await client.query(query, [id]);
-            
+
             if (result.rowCount === 0) {
                 throw new Error(`Material con ID ${id} no encontrado`);
             }
-            
+
             return result.rows[0];
         } catch (error) {
             console.error(`❌ Error al obtener material ${id}:`, error);
@@ -3612,14 +3628,14 @@ class PostgreSQLClient {
                     created_at AS "createdAt",
                     updated_at AS "updatedAt"
             `;
-            
+
             const values = [
                 materialData.numero,
                 materialData.descripcion || null,
                 materialData.pendienteRecibir !== undefined ? materialData.pendienteRecibir : true,
                 materialData.pendienteGestion !== undefined ? materialData.pendienteGestion : true
             ];
-            
+
             const result = await client.query(query, values);
             console.log(`✅ Material creado: ${result.rows[0].numero}`);
             return result.rows[0];
@@ -3651,7 +3667,7 @@ class PostgreSQLClient {
             if (updates.pendienteRecibir === false) {
                 updates.pendienteGestion = false;
             }
-            
+
             const query = `
                 UPDATE materiales
                 SET 
@@ -3670,7 +3686,7 @@ class PostgreSQLClient {
                     created_at AS "createdAt",
                     updated_at AS "updatedAt"
             `;
-            
+
             const values = [
                 updates.numero,
                 updates.descripcion,
@@ -3678,13 +3694,13 @@ class PostgreSQLClient {
                 updates.pendienteGestion,
                 id
             ];
-            
+
             const result = await client.query(query, values);
-            
+
             if (result.rowCount === 0) {
                 throw new Error(`Material con ID ${id} no encontrado`);
             }
-            
+
             console.log(`✅ Material actualizado: ${result.rows[0].numero}`);
             return result.rows[0];
         } catch (error) {
@@ -3718,17 +3734,17 @@ class PostgreSQLClient {
 
             // Primero eliminar relaciones con pedidos
             await client.query('DELETE FROM pedidos_materiales WHERE material_id = $1', [id]);
-            
+
             // Luego eliminar el material
             const result = await client.query('DELETE FROM materiales WHERE id = $1 RETURNING numero', [id]);
-            
+
             if (result.rowCount === 0) {
                 throw new Error(`Material con ID ${id} no encontrado`);
             }
-            
+
             await client.query('COMMIT');
             console.log(`✅ Material eliminado: ${result.rows[0].numero}`);
-            
+
             // Devolver pedidoId para sincronización de caché
             return { pedidoId };
         } catch (error) {
@@ -3767,9 +3783,9 @@ class PostgreSQLClient {
                 WHERE pm.pedido_id = $1
                 ORDER BY m.created_at ASC
             `;
-            
+
             const result = await client.query(query, [pedidoId]);
-            
+
             // 🔍 DEBUG: Log de valores para debugging
             if (result.rows.length > 0) {
                 console.log(`📦 Materiales para pedido ${pedidoId}:`, result.rows.map(r => ({
@@ -3779,7 +3795,7 @@ class PostgreSQLClient {
                     pendienteGestion: r.pendienteGestion
                 })));
             }
-            
+
             return result.rows;
         } catch (error) {
             console.error(`❌ Error al obtener materiales del pedido ${pedidoId}:`, error);
@@ -3807,7 +3823,7 @@ class PostgreSQLClient {
                 VALUES ($1, $2)
                 ON CONFLICT (pedido_id, material_id) DO NOTHING
             `;
-            
+
             await client.query(query, [pedidoId, materialId]);
             console.log(`✅ Material ${materialId} asignado al pedido ${pedidoId}`);
         } catch (error) {
@@ -3835,7 +3851,7 @@ class PostgreSQLClient {
                 DELETE FROM pedidos_materiales 
                 WHERE pedido_id = $1 AND material_id = $2
             `;
-            
+
             await client.query(query, [pedidoId, materialId]);
             console.log(`✅ Material ${materialId} desasignado del pedido ${pedidoId}`);
         } catch (error) {
@@ -3870,7 +3886,7 @@ class PostgreSQLClient {
                 WHERE is_active = true
                 ORDER BY usage_count DESC, last_used DESC
             `;
-            
+
             const result = await client.query(query);
             return result.rows;
         } catch (error) {
@@ -3906,7 +3922,7 @@ class PostgreSQLClient {
                 ORDER BY usage_count DESC, last_used DESC
                 LIMIT 10
             `;
-            
+
             const result = await client.query(query, [`%${searchTerm}%`]);
             return result.rows;
         } catch (error) {
@@ -3951,7 +3967,7 @@ class PostgreSQLClient {
                     last_used AS "lastUsed",
                     created_at AS "createdAt"
             `;
-            
+
             const result = await client.query(query, [trimmedText]);
             console.log(`✅ Template de observación guardado/actualizado: "${trimmedText.substring(0, 30)}..."`);
             return result.rows[0];
@@ -3981,13 +3997,13 @@ class PostgreSQLClient {
                 WHERE id = $1
                 RETURNING id, text
             `;
-            
+
             const result = await client.query(query, [id]);
-            
+
             if (result.rowCount === 0) {
                 throw new Error(`Template con ID ${id} no encontrado`);
             }
-            
+
             console.log(`✅ Template de observación eliminado: ID ${id}`);
             return result.rows[0];
         } catch (error) {
@@ -4002,7 +4018,7 @@ class PostgreSQLClient {
     async close() {
         // Detener health checks antes de cerrar
         this.stopHealthCheckInterval();
-        
+
         if (this.pool) {
             console.log('🔄 Cerrando conexiones a PostgreSQL...');
             await this.pool.end();

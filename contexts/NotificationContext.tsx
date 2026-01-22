@@ -35,6 +35,27 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         };
     }, [user]);
 
+    // ✅ NUEVO: Retry con exponential backoff para resiliencia
+    const refreshWithRetry = useCallback(async (retries = 3, baseDelay = 1000) => {
+        for (let i = 0; i < retries; i++) {
+            try {
+                await refreshNotifications();
+                return; // Success, exit
+            } catch (error) {
+                const isLastAttempt = i === retries - 1;
+
+                if (isLastAttempt) {
+                    console.error('❌ Failed to refresh notifications after', retries, 'attempts:', error);
+                    // No lanzar error, solo loguear - el sistema puede seguir funcionando con notificaciones antiguas
+                } else {
+                    const delay = baseDelay * Math.pow(2, i);
+                    console.log(`⚠️ Retry ${i + 1}/${retries} after ${delay}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+    }, []);
+
     // Cargar notificaciones desde el backend
     const refreshNotifications = useCallback(async () => {
         if (!user) {
@@ -207,28 +228,19 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
             socket.on('notification-deleted', handleNotificationDeleted);
         }
 
-        // Por ahora, solo refrescamos periódicamente si el usuario está activo
-        const intervalId = setInterval(() => {
-            if (document.visibilityState === 'visible') {
-                refreshNotifications();
+        // ✅ OPTIMIZACIÓN: Eliminado polling redundante
+        // El sistema ahora depende 100% de WebSocket para actualizaciones en tiempo real
+        // Solo refrescamos cuando WebSocket se reconecta después de desconexión
 
-                // Intentar reconectar listeners si el socket se conectó después
-                if (!socket && websocketService.isWebSocketConnected()) {
-                    try {
-                        socket = websocketService.getSocket();
-                        socket.on('notification', handleNewNotification);
-                        socket.on('notification-read', handleNotificationRead);
-                        socket.on('notifications-read-all', handleNotificationsReadAll);
-                        socket.on('notification-deleted', handleNotificationDeleted);
-                    } catch (e) {
-                        // Ignorar
-                    }
-                }
-            }
-        }, 30000); // Refrescar cada 30 segundos si la pestaña está visible
+        const handlePageReturn = () => {
+            // Refrescar con retry cuando el usuario regresa después de inactividad
+            refreshWithRetry();
+        };
+
+        const unsubscribe = websocketService.subscribeToPageReturn(handlePageReturn);
 
         return () => {
-            clearInterval(intervalId);
+            unsubscribe();
             if (socket) {
                 socket.off('notification', handleNewNotification);
                 socket.off('notification-read', handleNotificationRead);
@@ -236,7 +248,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
                 socket.off('notification-deleted', handleNotificationDeleted);
             }
         };
-    }, [user, refreshNotifications]);
+    }, [user, refreshNotifications, refreshWithRetry]);
 
     const value: NotificationContextType = {
         notifications,
