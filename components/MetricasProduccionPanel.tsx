@@ -1,5 +1,6 @@
 import React from 'react';
 import { EstadisticasOperador } from '../types';
+import { formatMetros } from '../utils/date';
 
 interface MetricasProduccionPanelProps {
     estadisticas: EstadisticasOperador;
@@ -43,7 +44,7 @@ export function MetricasProduccionPanel({ estadisticas }: MetricasProduccionPane
         },
         {
             titulo: 'Metros Producidos',
-            valor: `${estadisticas.metrosProducidosHoy.toFixed(0)}m`,
+            valor: `${formatMetros(estadisticas.metrosProducidosHoy)} m`,
             icon: '📏',
             color: 'bg-purple-100 dark:bg-purple-900/30 border-purple-300 dark:border-purple-700'
         },

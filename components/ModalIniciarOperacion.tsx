@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { PedidoConProduccion } from '../types';
+import { formatMetros } from '../utils/date';
 
 interface Maquina {
     id: string;
@@ -47,7 +48,7 @@ export function ModalIniciarOperacion({ pedido, maquinas, onConfirmar, onCancela
                         <div className="grid grid-cols-2 gap-3 text-sm">
                             <div>
                                 <span className="text-gray-500 dark:text-gray-400">Metros:</span>
-                                <span className="ml-2 font-semibold">{pedido.metros}m</span>
+                                <span className="ml-2 font-semibold">{formatMetros(pedido.metros)} m</span>
                             </div>
                             {pedido.producto && (
                                 <div>

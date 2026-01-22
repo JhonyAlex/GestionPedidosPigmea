@@ -7,7 +7,7 @@ import { ETAPAS, PRIORIDAD_COLORS, KANBAN_FUNNELS } from '../constants';
 import { puedeAvanzarSecuencia, estaFueraDeSecuencia } from '../utils/etapaLogic';
 import { SparklesIcon } from './Icons';
 import { usePermissions } from '../hooks/usePermissions';
-import { formatDateDDMMYYYY } from '../utils/date';
+import { formatDateDDMMYYYY, formatMetros } from '../utils/date';
 
 interface PedidoListProps {
     pedidos: Pedido[];
@@ -181,7 +181,7 @@ const PedidoRow: React.FC<{
                 </span>
             </td>
             <td className="px-6 py-4 text-gray-900 dark:text-white w-36">{ETAPAS[pedido.etapaActual].title}</td>
-            <td className="px-6 py-4 text-right text-gray-900 dark:text-white w-24">{pedido.metros} m</td>
+            <td className="px-6 py-4 text-right text-gray-900 dark:text-white w-24">{formatMetros(pedido.metros)} m</td>
             <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-28">{pedido.tiempoProduccionPlanificado}</td>
             <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-28">{formatDateDDMMYYYY(pedido.fechaEntrega)}</td>
             <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-32">{pedido.nuevaFechaEntrega ? formatDateDDMMYYYY(pedido.nuevaFechaEntrega) : '-'}</td>

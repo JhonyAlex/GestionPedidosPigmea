@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Vendedor } from '../types/vendedor';
 import { Pedido } from '../types';
 import { Icons } from './Icons';
-import { formatDateDDMMYYYY } from '../utils/date';
+import { formatDateDDMMYYYY, formatMetros } from '../utils/date';
 import { useAuth } from '../contexts/AuthContext';
 
 interface VendedorDetailModalProps {
@@ -216,7 +216,7 @@ const VendedorDetailModal: React.FC<VendedorDetailModalProps> = ({ isOpen, onClo
                                     )}
                                     <div className="flex items-center gap-2">
                                         <Icons.Ruler className="h-4 w-4" />
-                                        <span>{pedido.metros} metros</span>
+                                        <span>{formatMetros(pedido.metros)} metros</span>
                                     </div>
                                 </div>
                             </div>

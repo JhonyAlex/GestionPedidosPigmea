@@ -6,7 +6,7 @@ import { puedeAvanzarSecuencia, estaFueraDeSecuencia } from '../utils/etapaLogic
 import { SparklesIcon } from './Icons';
 import { usePermissions } from '../hooks/usePermissions';
 import { useMaterialesManager } from '../hooks/useMaterialesManager';
-import { formatDateDDMMYYYY } from '../utils/date';
+import { formatDateDDMMYYYY, formatMetros } from '../utils/date';
 import LockIndicator from './LockIndicator';
 import webSocketService from '../services/websocket';
 
@@ -849,7 +849,7 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                         </span>
                     )}
                     <span className="flex items-center" title="Metros">
-                        <RulerIcon /> {pedido.metros} m
+                        <RulerIcon /> {formatMetros(pedido.metros)} m
                     </span>
                 </div>
             </div>

@@ -3,7 +3,7 @@ import { Cliente } from '../hooks/useClientesManager';
 import { Pedido } from '../types';
 import { Icons } from './Icons';
 import { clienteService } from '../services/clienteService';
-import { formatDateDDMMYYYY } from '../utils/date';
+import { formatDateDDMMYYYY, formatMetros } from '../utils/date';
 
 interface ClienteDetailModalProps {
     isOpen: boolean;
@@ -182,7 +182,7 @@ const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose
                                     )}
                                     <div className="flex items-center gap-2">
                                         <Icons.Ruler className="h-4 w-4" />
-                                        <span>{pedido.metros} metros</span>
+                                        <span>{formatMetros(pedido.metros)} metros</span>
                                     </div>
                                 </div>
                             </div>
@@ -337,7 +337,7 @@ const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose
                                             <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
                                                 <p className="text-sm text-gray-600 dark:text-gray-400">Metros Producidos</p>
                                                 <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                                                    {Number(estadisticas.metros_producidos || 0).toLocaleString()}
+                                                    {formatMetros(Number(estadisticas.metros_producidos || 0))}
                                                 </p>
                                             </div>
                                         </div>

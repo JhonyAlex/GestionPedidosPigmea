@@ -113,7 +113,7 @@ const ListoProduccionView: React.FC<ListoProduccionViewProps> = ({
                         {pedidosListos.length} pedidos listos
                     </span>
                     <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {metricas.metrosTotal.toLocaleString()} m · {formatearTiempo(metricas.tiempoTotal)}
+                        {formatMetros(metricas.metrosTotal)} m · {formatearTiempo(metricas.tiempoTotal)}
                     </span>
                 </div>
                 {onToggleSelection && (
@@ -182,7 +182,7 @@ const ListoProduccionView: React.FC<ListoProduccionViewProps> = ({
                                         <td className="px-3 py-3 text-gray-700 dark:text-gray-300 truncate max-w-[180px]" title={pedido.desarrollo}>{pedido.desarrollo}</td>
                                         <td className="px-3 py-3 text-gray-800 dark:text-gray-200 whitespace-nowrap">{pedido.maquinaImpresion || 'Sin asignar'}</td>
                                         <td className="px-3 py-3 text-gray-700 dark:text-gray-300 truncate max-w-[140px]" title={pedido.vendedorNombre || 'Sin vendedor'}>{pedido.vendedorNombre || 'Sin vendedor'}</td>
-                                        <td className="px-3 py-3 text-center text-gray-800 dark:text-gray-200">{metrosValor.toLocaleString()} m</td>
+                                        <td className="px-3 py-3 text-center text-gray-800 dark:text-gray-200">{formatMetros(metrosValor)} m</td>
                                         <td className="px-3 py-3 text-center text-gray-800 dark:text-gray-200">{pedido.tiempoProduccionPlanificado || formatearTiempo(pedido.tiempoProduccionDecimal || 0)}</td>
                                         <td className="px-3 py-3 text-center">
                                             <span className={`inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full text-white ${prioridadColor.replace('border', 'bg').replace('-500', '-700')}`}>
@@ -271,7 +271,7 @@ const ListoProduccionView: React.FC<ListoProduccionViewProps> = ({
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-600 dark:text-gray-400">Metros Totales:</span>
-                                    <span className="font-bold text-gray-900 dark:text-white">{metricas.metrosTotal.toLocaleString()} m</span>
+                                    <span className="font-bold text-gray-900 dark:text-white">{formatMetros(metricas.metrosTotal)} m</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-600 dark:text-gray-400">Tiempo Total:</span>

@@ -138,3 +138,25 @@ export const formatDateTimeDDMMYYYY = (date: Date | string | number): string => 
     
     return `${day}/${month}/${year} ${hours}:${minutes}`;
 };
+
+/**
+ * Formatea metros sin decimales y con separador de miles
+ * Ejemplo: 12591 -> "12.591", 3820 -> "3.820"
+ */
+export const formatMetros = (metros: number | string | undefined): string => {
+    if (metros === undefined || metros === null || metros === '') {
+        return '0';
+    }
+    
+    const metrosNum = typeof metros === 'number' ? metros : Number(metros);
+    
+    if (isNaN(metrosNum)) {
+        return '0';
+    }
+    
+    // Redondear a entero (sin decimales)
+    const metrosEntero = Math.round(metrosNum);
+    
+    // Formatear con separador de miles (punto para español)
+    return metrosEntero.toLocaleString('es-ES');
+};

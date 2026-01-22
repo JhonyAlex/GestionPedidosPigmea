@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Pedido, Etapa, Prioridad } from '../types';
-import { DateFilterOption, getDateRange } from '../utils/date';
+import { DateFilterOption, getDateRange, formatMetros } from '../utils/date';
 import { getWeekNumber, getWeekDateRange } from '../utils/weekUtils';
 import DateFilterCombined from './DateFilterCombined';
 import { MAQUINAS_IMPRESION, PREPARACION_SUB_ETAPAS_IDS, ETAPAS } from '../constants';
@@ -1227,7 +1227,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                                     {formatDateToDDMMYYYY(pedido.nuevaFechaEntrega || pedido.fechaEntrega)}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500 dark:text-gray-300">
-                                                    {Number(pedido.metros).toLocaleString()} m
+                                                    {formatMetros(pedido.metros)} m
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono text-gray-900 dark:text-white">
                                                     {hours.toFixed(2)}

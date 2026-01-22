@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { Pedido, Etapa } from '../types';
 import { ETAPAS, PREPARACION_COLUMNS } from '../constants';
 import { useDebounce } from '../hooks/useDebounce';
+import { formatMetros } from '../utils/date';
 
 interface GlobalSearchDropdownProps {
     searchTerm: string;
@@ -194,7 +195,7 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
                                             )}
                                             <div>
                                                 <span className="font-semibold text-gray-900 dark:text-white">Metros:</span>{' '}
-                                                <span className="text-gray-800 dark:text-gray-200">{pedido.metros.toLocaleString()}</span>
+                                                <span className="text-gray-800 dark:text-gray-200">{formatMetros(pedido.metros)}</span>
                                             </div>
                                         </div>
 
