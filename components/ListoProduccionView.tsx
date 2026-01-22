@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Pedido, UserRole, Etapa, Prioridad } from '../types';
 import { PREPARACION_COLUMNS, PREPARACION_SUB_ETAPAS_IDS, PRIORIDAD_COLORS } from '../constants';
 import PreparacionColumn from './PreparacionColumn';
+import { formatMetros } from '../utils/date';
 
 interface ListoProduccionViewProps {
     pedidos: Pedido[];
