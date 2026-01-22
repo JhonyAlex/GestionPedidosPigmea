@@ -1310,30 +1310,33 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                             {activeTab === 'detalles' && (
                         <>
                          {pedido.etapaActual !== Etapa.PREPARACION && (
-                             <div className="bg-gray-100 dark:bg-gray-900/50 rounded-lg p-4 mb-6">
-                                <h3 className="text-lg font-semibold text-indigo-500 dark:text-indigo-300 mb-3">Análisis de Rendimiento y Tiempos</h3>
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-center">
-                                    <div>
-                                        <div className="text-xs text-gray-600 dark:text-gray-400">T. Planificado</div>
-                                        <div className="text-xl font-bold">{performanceData.planificado}</div>
+                             <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900/30 dark:to-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-700 p-5 mb-6 shadow-sm">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-indigo-500 dark:text-indigo-400">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wide">Análisis de Rendimiento</h3>
+                                </div>
+                                <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+                                    <div className="bg-white dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                                        <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Planificado</div>
+                                        <div className="text-sm font-bold text-gray-900 dark:text-white">{performanceData.planificado}</div>
                                     </div>
-                                    <div>
-                                        <div className="text-xs text-gray-600 dark:text-gray-400">T. de Trabajo Real</div>
-                                        <div className="text-xl font-bold">{performanceData.realTrabajo}</div>
+                                    <div className="bg-white dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                                        <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Trabajo Real</div>
+                                        <div className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{performanceData.realTrabajo}</div>
                                     </div>
-                                    <div>
-                                        <div className="text-xs text-gray-600 dark:text-gray-400">Desviación (min)</div>
-                                        <div className={`text-xl font-bold ${performanceData.desviacionColor}`}>{performanceData.desviacion}</div>
+                                    <div className="bg-white dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                                        <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Desviación</div>
+                                        <div className={`text-sm font-bold ${performanceData.desviacionColor}`}>{performanceData.desviacion} min</div>
                                     </div>
-                                    <div className="col-span-2 md:col-span-3 lg:col-span-2 grid grid-cols-2 gap-4 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 mt-2 pt-2 lg:mt-0 lg:pt-0 lg:pl-4">
-                                        <div>
-                                            <div className="text-xs text-gray-600 dark:text-gray-400">T. Total de Producción</div>
-                                            <div className="text-xl font-bold">{performanceData.tiempoTotalOEtapa}</div>
-                                        </div>
-                                        <div>
-                                        <div className="text-xs text-gray-600 dark:text-gray-400">Fecha Finalización</div>
-                                        <div className="text-base font-semibold">{pedido.fechaFinalizacion ? formatDateTimeDDMMYYYY(pedido.fechaFinalizacion) : 'N/A'}</div>
+                                    <div className="bg-white dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                                        <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Tiempo Producción</div>
+                                        <div className="text-xs font-semibold text-gray-900 dark:text-white leading-tight">{performanceData.tiempoTotalOEtapa}</div>
                                     </div>
+                                    <div className="bg-white dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                                        <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Finalización</div>
+                                        <div className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 leading-tight">{pedido.fechaFinalizacion ? formatDateTimeDDMMYYYY(pedido.fechaFinalizacion) : 'N/A'}</div>
                                     </div>
                                 </div>
                             </div>
