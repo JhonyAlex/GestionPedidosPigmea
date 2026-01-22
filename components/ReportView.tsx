@@ -119,6 +119,12 @@ const ReportView: React.FC<ReportViewProps> = ({
 
     const [selectedChartFilter, setSelectedChartFilter] = useState<{ weekLabel: string, machine: string } | null>(null);
 
+    // Sorting State for Details Table
+    type SortColumn = 'pedido' | 'cliente' | 'descripcion' | 'fecha' | 'metros' | 'tiempo';
+    type SortDirection = 'asc' | 'desc';
+    const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
+    const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
     // AI Analysis State
     const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -434,12 +440,63 @@ const ReportView: React.FC<ReportViewProps> = ({
 
     }, [pedidos, selectedStages, selectedMachines, dateFilter, dateField, customDateRange]);
 
-    // Derived state for details table
+    // Derived state for details table with sorting
     const selectedPedidos = useMemo(() => {
         if (!selectedChartFilter) return [];
         const week = processedData.weeklyData.find(w => w.label === selectedChartFilter.weekLabel);
-        return week?.machinePedidos?.[selectedChartFilter.machine] || [];
-    }, [processedData, selectedChartFilter]);
+        let pedidos = week?.machinePedidos?.[selectedChartFilter.machine] || [];
+        
+        // Apply sorting if a column is selected
+        if (sortColumn) {
+            pedidos = [...pedidos].sort((a, b) => {
+                let compareResult = 0;
+                
+                switch (sortColumn) {
+                    case 'pedido':
+                        compareResult = (a.numeroPedidoCliente || '').localeCompare(b.numeroPedidoCliente || '');
+                        break;
+                    case 'cliente':
+                        compareResult = (a.cliente || '').localeCompare(b.cliente || '');
+                        break;
+                    case 'descripcion':
+                        const descA = a.producto || a.descripcion || '';
+                        const descB = b.producto || b.descripcion || '';
+                        compareResult = descA.localeCompare(descB);
+                        break;
+                    case 'fecha':
+                        const dateA = new Date(a.nuevaFechaEntrega || a.fechaEntrega || 0);
+                        const dateB = new Date(b.nuevaFechaEntrega || b.fechaEntrega || 0);
+                        compareResult = dateA.getTime() - dateB.getTime();
+                        break;
+                    case 'metros':
+                        compareResult = (Number(a.metros) || 0) - (Number(b.metros) || 0);
+                        break;
+                    case 'tiempo':
+                        // Calculate hours for comparison
+                        let hoursA = 0;
+                        if (a.tiempoProduccionPlanificado) {
+                            hoursA = parseTimeToMinutes(a.tiempoProduccionPlanificado) / 60;
+                        } else if (a.tiempoProduccionDecimal) {
+                            hoursA = a.tiempoProduccionDecimal;
+                        }
+                        
+                        let hoursB = 0;
+                        if (b.tiempoProduccionPlanificado) {
+                            hoursB = parseTimeToMinutes(b.tiempoProduccionPlanificado) / 60;
+                        } else if (b.tiempoProduccionDecimal) {
+                            hoursB = b.tiempoProduccionDecimal;
+                        }
+                        
+                        compareResult = hoursA - hoursB;
+                        break;
+                }
+                
+                return sortDirection === 'asc' ? compareResult : -compareResult;
+            });
+        }
+        
+        return pedidos;
+    }, [processedData, selectedChartFilter, sortColumn, sortDirection]);
 
 
     // --- 3. AI Analysis Functions ---
@@ -556,12 +613,49 @@ const ReportView: React.FC<ReportViewProps> = ({
             machine: machineKey
         });
 
+        // Reset sorting when changing filter
+        setSortColumn(null);
+        setSortDirection('asc');
+
         setTimeout(() => {
             const element = document.getElementById('planning-details-table');
             if (element) {
                 element.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }, 100);
+    };
+
+    // Handler for column header clicks
+    const handleColumnSort = (column: SortColumn) => {
+        if (sortColumn === column) {
+            // Toggle direction if same column
+            setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+        } else {
+            // New column, default to ascending
+            setSortColumn(column);
+            setSortDirection('asc');
+        }
+    };
+
+    // Render sort indicator
+    const renderSortIndicator = (column: SortColumn) => {
+        if (sortColumn !== column) {
+            return (
+                <svg className="w-4 h-4 ml-1 text-gray-400 opacity-0 group-hover:opacity-50 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
+            );
+        }
+        
+        return sortDirection === 'asc' ? (
+            <svg className="w-4 h-4 ml-1 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            </svg>
+        ) : (
+            <svg className="w-4 h-4 ml-1 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+        );
     };
 
     // Función helper para procesar formato Markdown en texto
@@ -1024,12 +1118,66 @@ const ReportView: React.FC<ReportViewProps> = ({
                                             />
                                         </th>
                                     )}
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pedido</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cliente</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Descripción</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha Entrega</th>
-                                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Metros</th>
-                                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tiempo (h)</th>
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                        onClick={() => handleColumnSort('pedido')}
+                                    >
+                                        <div className="flex items-center">
+                                            Pedido
+                                            {renderSortIndicator('pedido')}
+                                        </div>
+                                    </th>
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                        onClick={() => handleColumnSort('cliente')}
+                                    >
+                                        <div className="flex items-center">
+                                            Cliente
+                                            {renderSortIndicator('cliente')}
+                                        </div>
+                                    </th>
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                        onClick={() => handleColumnSort('descripcion')}
+                                    >
+                                        <div className="flex items-center">
+                                            Descripción
+                                            {renderSortIndicator('descripcion')}
+                                        </div>
+                                    </th>
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                        onClick={() => handleColumnSort('fecha')}
+                                    >
+                                        <div className="flex items-center">
+                                            Fecha Entrega
+                                            {renderSortIndicator('fecha')}
+                                        </div>
+                                    </th>
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                        onClick={() => handleColumnSort('metros')}
+                                    >
+                                        <div className="flex items-center justify-end">
+                                            Metros
+                                            {renderSortIndicator('metros')}
+                                        </div>
+                                    </th>
+                                    <th
+                                        scope="col"
+                                        className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                        onClick={() => handleColumnSort('tiempo')}
+                                    >
+                                        <div className="flex items-center justify-end">
+                                            Tiempo (h)
+                                            {renderSortIndicator('tiempo')}
+                                        </div>
+                                    </th>
                                     <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acción</th>
                                 </tr>
                             </thead>
