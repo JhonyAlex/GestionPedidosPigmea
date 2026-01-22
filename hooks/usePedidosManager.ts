@@ -421,6 +421,11 @@ export const usePedidosManager = (
                             : e
                     );
                 }
+                
+                // ✅ Establecer fecha de finalización cuando el pedido pasa a COMPLETADO
+                if (modifiedPedido.etapaActual === Etapa.COMPLETADO && !modifiedPedido.fechaFinalizacion) {
+                    modifiedPedido.fechaFinalizacion = new Date().toISOString();
+                }
             }
             
             if (newHistoryEntries.length > 0) {

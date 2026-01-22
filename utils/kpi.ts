@@ -51,6 +51,23 @@ export const formatMinutesToHHMM = (totalMinutes: number): string => {
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 };
 
+/**
+ * Formats total minutes into days and minutes format.
+ * @param totalMinutes The total minutes.
+ * @returns A string in "X días, Y minutos" format.
+ */
+export const formatMinutesToDaysAndMinutes = (totalMinutes: number): string => {
+    if (totalMinutes < 0) totalMinutes = 0;
+    const days = Math.floor(totalMinutes / (60 * 24));
+    const remainingMinutes = Math.round(totalMinutes % (60 * 24));
+    
+    if (days === 0) {
+        return `${remainingMinutes} min`;
+    }
+    
+    return `${days} día(s), ${remainingMinutes} min`;
+};
+
 
 /**
  * Calculates the total real production time in minutes for an order.
@@ -107,6 +124,46 @@ export const calculateTotalProductionTime = (startDate: string, endDate: string)
     const hours = Math.round(totalHours % 24);
     
     return `${days} día(s), ${hours} hora(s)`;
+};
+
+/**
+ * Calculates the total production time or returns current stage name if not in production.
+ * @param pedido The order object.
+ * @returns Total production time string or current stage name.
+ */
+export const getTiempoTotalOEtapa = (pedido: Pedido): string => {
+    // Check if the order is in a production stage
+    const isInProduction = ETAPAS_PRODUCCION.includes(pedido.etapaActual);
+    
+    if (!isInProduction) {
+        // Return current stage name from ETAPAS constant
+        return ETAPAS[pedido.etapaActual]?.title || pedido.etapaActual;
+    }
+    
+    // If in production and has completion time, show it
+    if (pedido.tiempoTotalProduccion) {
+        return pedido.tiempoTotalProduccion;
+    }
+    
+    // If currently in production, calculate time from first production stage to now
+    const sortedTimeline = [...pedido.etapasSecuencia].sort((a, b) => 
+        new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
+    );
+    
+    const firstProductionStage = sortedTimeline.find(e => ETAPAS_PRODUCCION.includes(e.etapa));
+    
+    if (firstProductionStage) {
+        const start = new Date(firstProductionStage.fecha).getTime();
+        const now = new Date().getTime();
+        const durationMillis = now - start;
+        const totalHours = durationMillis / (1000 * 60 * 60);
+        const days = Math.floor(totalHours / 24);
+        const hours = Math.round(totalHours % 24);
+        
+        return `${days} día(s), ${hours} hora(s)`;
+    }
+    
+    return 'En Progreso';
 };
 
 // --- PDF Generation ---

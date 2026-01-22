@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Pedido, Prioridad, Etapa, UserRole, TipoImpresion, EstadoCliché } from '../types';
-import { calcularTiempoRealProduccion, parseTimeToMinutes, formatMinutesToHHMM } from '../utils/kpi';
+import { calcularTiempoRealProduccion, parseTimeToMinutes, formatMinutesToHHMM, formatMinutesToDaysAndMinutes, getTiempoTotalOEtapa } from '../utils/kpi';
 import { formatDateTimeDDMMYYYY } from '../utils/date';
 import { puedeAvanzarSecuencia, estaFueraDeSecuencia } from '../utils/etapaLogic';
 import { ETAPAS, KANBAN_FUNNELS, PREPARACION_COLUMNS, PREPARACION_SUB_ETAPAS_IDS } from '../constants';
@@ -997,10 +997,11 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         const desviacionMin = tiempoRealMin - tiempoPlanificadoMin;
 
         return {
-            realTrabajo: formatMinutesToHHMM(tiempoRealMin),
+            realTrabajo: formatMinutesToDaysAndMinutes(tiempoRealMin),
             planificado: pedido.tiempoProduccionPlanificado,
             desviacion: desviacionMin,
             desviacionColor: desviacionMin <= 0 ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400',
+            tiempoTotalOEtapa: getTiempoTotalOEtapa(pedido),
         }
     }, [pedido]);
     
@@ -1327,7 +1328,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                     <div className="col-span-2 md:col-span-3 lg:col-span-2 grid grid-cols-2 gap-4 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 mt-2 pt-2 lg:mt-0 lg:pt-0 lg:pl-4">
                                         <div>
                                             <div className="text-xs text-gray-600 dark:text-gray-400">T. Total de Producción</div>
-                                            <div className="text-xl font-bold">{pedido.tiempoTotalProduccion || 'En Progreso'}</div>
+                                            <div className="text-xl font-bold">{performanceData.tiempoTotalOEtapa}</div>
                                         </div>
                                         <div>
                                         <div className="text-xs text-gray-600 dark:text-gray-400">Fecha Finalización</div>
