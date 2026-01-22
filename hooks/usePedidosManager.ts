@@ -683,7 +683,7 @@ export const usePedidosManager = (
         }
     };
 
-    const handleUpdatePedidoEtapa = async (pedido: Pedido, newEtapa: Etapa) => {
+    const handleUpdatePedidoEtapa = async (pedido: Pedido, newEtapa: Etapa, newSubEtapa?: string | null) => {
         const fromPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual);
         const toImpresion = KANBAN_FUNNELS.IMPRESION.stages.includes(newEtapa);
 
@@ -706,6 +706,12 @@ export const usePedidosManager = (
 
         // Proceed with the stage change
         updatedPedido.etapaActual = newEtapa;
+        // Sub-etapa solo aplica a PreparaciÃ³n
+        if (newEtapa === Etapa.PREPARACION) {
+            updatedPedido.subEtapaActual = newSubEtapa ?? pedido.subEtapaActual;
+        } else {
+            updatedPedido.subEtapaActual = undefined;
+        }
         await handleSavePedido(updatedPedido);
     };
 

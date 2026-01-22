@@ -15,7 +15,7 @@ type ProcessDragEndArgs = {
   logAction: (action: string, pedidoId?: string) => void;
   setPedidos: React.Dispatch<React.SetStateAction<Pedido[]>>;
   handleSavePedido: (pedido: Pedido) => Promise<any>;
-  handleUpdatePedidoEtapa: (pedido: Pedido, newEtapa: Etapa) => Promise<void>;
+    handleUpdatePedidoEtapa: (pedido: Pedido, newEtapa: Etapa, newSubEtapa?: string | null) => Promise<void>;
   setSortConfig: (key: keyof Pedido, direction?: 'ascending' | 'descending') => void;
 };
 

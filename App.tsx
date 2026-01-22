@@ -32,6 +32,7 @@ import DeleteConfirmationModal from './components/DeleteConfirmationModal';
 import BulkArchiveConfirmationModal from './components/BulkArchiveConfirmationModal';
 import BulkDateUpdateModal from './components/BulkDateUpdateModal';
 import BulkMachineUpdateModal from './components/BulkMachineUpdateModal';
+import BulkStageUpdateModal from './components/BulkStageUpdateModal';
 import ImportDataModal from './components/ImportDataModal';
 import { ToastContainer } from './components/Toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -85,6 +86,7 @@ const AppContent: React.FC = () => {
     const [showArchiveModal, setShowArchiveModal] = useState(false);
     const [showDateUpdateModal, setShowDateUpdateModal] = useState(false);
     const [showMachineUpdateModal, setShowMachineUpdateModal] = useState(false);
+    const [showStageUpdateModal, setShowStageUpdateModal] = useState(false);
 
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
         if (typeof window !== 'undefined' && localStorage.theme) {
@@ -715,6 +717,53 @@ const AppContent: React.FC = () => {
         }
     };
 
+    const handleBulkUpdateStage = async (nuevaEtapa: Etapa, nuevaSubEtapa?: string | null) => {
+        const ids = [...selectedIds];
+        const pedidosSeleccionados = pedidos.filter(p => ids.includes(p.id));
+
+        if (!nuevaEtapa) {
+            alert('Selecciona una etapa válida.');
+            return;
+        }
+
+        try {
+            // ðŸš€ Actualización optimista: mover visualmente antes de guardar
+            setPedidos(prev => prev.map(p => {
+                if (!ids.includes(p.id)) return p;
+                if (p.etapaActual === nuevaEtapa && (!nuevaSubEtapa || p.subEtapaActual === nuevaSubEtapa)) return p;
+                return {
+                    ...p,
+                    etapaActual: nuevaEtapa,
+                    subEtapaActual: nuevaEtapa === Etapa.PREPARACION ? (nuevaSubEtapa ?? p.subEtapaActual) : undefined
+                };
+            }));
+
+            let updatedCount = 0;
+            for (const pedido of pedidosSeleccionados) {
+                if (pedido.etapaActual === nuevaEtapa && (!nuevaSubEtapa || pedido.subEtapaActual === nuevaSubEtapa)) continue;
+                await handleUpdatePedidoEtapa(pedido, nuevaEtapa, nuevaEtapa === Etapa.PREPARACION ? nuevaSubEtapa : null);
+                updatedCount++;
+            }
+
+            if (updatedCount > 0) {
+                logAction(`${updatedCount} pedidos movidos a ${ETAPAS[nuevaEtapa].title} en operación masiva.`);
+                emitActivity('bulk-stage-update', { 
+                    count: updatedCount,
+                    pedidoIds: ids,
+                    etapa: nuevaEtapa,
+                    subEtapa: nuevaSubEtapa || null
+                });
+            }
+
+            alert(`✅ ${updatedCount} ${updatedCount === 1 ? 'pedido movido' : 'pedidos movidos'} a ${ETAPAS[nuevaEtapa].title}.`);
+        } catch (error) {
+            console.error('Error al cambiar etapa masivamente:', error);
+            alert('Error al cambiar de etapa. Revisa la consola para más detalles.');
+        } finally {
+            setShowStageUpdateModal(false);
+        }
+    };
+
     const handleBulkArchive = async () => {
         const ids = [...selectedIds];
         const result = await bulkArchive(ids, true);
@@ -1136,6 +1185,7 @@ const AppContent: React.FC = () => {
                     selectedCount={selectedIds.length}
                     onUpdateDate={() => setShowDateUpdateModal(true)}
                     onUpdateMachine={() => setShowMachineUpdateModal(true)}
+                    onUpdateStage={() => setShowStageUpdateModal(true)}
                     onDelete={() => setShowDeleteModal(true)}
                     onArchive={() => setShowArchiveModal(true)}
                     onCancel={clearSelection}
@@ -1167,6 +1217,13 @@ const AppContent: React.FC = () => {
                     pedidos={pedidos.filter(p => selectedIds.includes(p.id))}
                     onConfirm={handleBulkUpdateMachine}
                     onCancel={() => setShowMachineUpdateModal(false)}
+                />
+
+                <BulkStageUpdateModal
+                    isOpen={showStageUpdateModal}
+                    pedidos={pedidos.filter(p => selectedIds.includes(p.id))}
+                    onConfirm={handleBulkUpdateStage}
+                    onCancel={() => setShowStageUpdateModal(false)}
                 />
 
                 <ImportDataModal
