@@ -157,6 +157,16 @@ export const formatMetros = (metros: number | string | undefined): string => {
     // Redondear a entero (sin decimales)
     const metrosEntero = Math.round(metrosNum);
     
-    // Formatear con separador de miles (punto para español)
-    return metrosEntero.toLocaleString('es-ES');
+    // Formatear con separador de miles usando punto (estilo español)
+    // Implementación manual para garantizar consistencia
+    const metrosStr = metrosEntero.toString();
+    const partes: string[] = [];
+    
+    // Dividir en grupos de 3 dígitos desde el final
+    for (let i = metrosStr.length; i > 0; i -= 3) {
+        const start = Math.max(0, i - 3);
+        partes.unshift(metrosStr.slice(start, i));
+    }
+    
+    return partes.join('.');
 };
