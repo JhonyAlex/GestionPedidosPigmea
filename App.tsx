@@ -851,6 +851,7 @@ const AppContent: React.FC = () => {
                         selectedIds={selectedIds}
                         isSelectionActive={isSelectionActive}
                         onToggleSelection={toggleSelection}
+                        onSelectAll={selectAll}
                     />
                 );
             case 'clientes':
