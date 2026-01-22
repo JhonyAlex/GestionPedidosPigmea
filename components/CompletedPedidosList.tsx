@@ -36,7 +36,6 @@ const CompletedPedidosList: React.FC<CompletedPedidosListProps> = ({ pedidos, on
                                 <tr>
                                     <th scope="col" className="px-4 py-2">N° Pedido</th>
                                     <th scope="col" className="px-4 py-2">Cliente</th>
-                                    <th scope="col" className="px-4 py-2">Nº Compra</th>
                                     <th scope="col" className="px-4 py-2">Camisa</th>
                                     <th scope="col" className="px-4 py-2">F. Entrega</th>
                                     <th scope="col" className="px-4 py-2">F. Finalización</th>
@@ -57,23 +56,6 @@ const CompletedPedidosList: React.FC<CompletedPedidosListProps> = ({ pedidos, on
                                                     >
                                                         <th scope="row" className="px-4 py-2 font-medium text-gray-900 dark:text-white whitespace-nowrap">{pedido.numeroPedidoCliente}</th>
                                                         <td className="px-4 py-2">{pedido.cliente}</td>
-                                                        <td className="px-4 py-2">
-                                                            {pedido.numerosCompra && pedido.numerosCompra.length > 0 ? (
-                                                                pedido.numerosCompra.length === 1 ? (
-                                                                    pedido.numerosCompra[0]
-                                                                ) : (
-                                                                    <div className="flex flex-col gap-0.5">
-                                                                        {pedido.numerosCompra.map((numero, index) => (
-                                                                            numero && (
-                                                                                <span key={index} className="text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded">
-                                                                                    #{index + 1}: {numero}
-                                                                                </span>
-                                                                            )
-                                                                        ))}
-                                                                    </div>
-                                                                )
-                                                            ) : '-'}
-                                                        </td>
                                                         <td className="px-4 py-2">{pedido.camisa || '-'}</td>
                                                         <td className="px-4 py-2">{formatDateDDMMYYYY(pedido.fechaEntrega)}</td>
                                                         <td className="px-4 py-2">{pedido.fechaFinalizacion ? formatDateDDMMYYYY(pedido.fechaFinalizacion) : 'N/A'}</td>
