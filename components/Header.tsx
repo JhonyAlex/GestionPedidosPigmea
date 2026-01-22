@@ -8,6 +8,7 @@ import UserInfo from './UserInfo';
 import WeekFilter from './WeekFilter';
 import DateFilterCombined from './DateFilterCombined';
 import GlobalSearchDropdown from './GlobalSearchDropdown';
+import SearchableMultiSelect from './SearchableMultiSelect';
 import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -156,8 +157,6 @@ const Header: React.FC<HeaderProps> = ({
     const [showBurgerMenu, setShowBurgerMenu] = useState(false);
     const [showActivityPanel, setShowActivityPanel] = useState(false);
     const [showMaquinaDropdown, setShowMaquinaDropdown] = useState(false);
-    const [showVendedorDropdown, setShowVendedorDropdown] = useState(false);
-    const [showClienteDropdown, setShowClienteDropdown] = useState(false);
         // Al abrir (y mientras esté abierto), marcar como leído para que el badge baje a 0
         useEffect(() => {
             if (!showActivityPanel) return;
@@ -167,19 +166,15 @@ const Header: React.FC<HeaderProps> = ({
 
     const searchContainerRef = useRef<HTMLDivElement>(null);
     const burgerMenuRef = useRef<HTMLDivElement>(null);
-    const vendedorDropdownRef = useRef<HTMLDivElement>(null)
-    const maquinaDropdownRef = useRef<HTMLDivElement>(null);;
-    const clienteDropdownRef = useRef<HTMLDivElement>(null);
+    const maquinaDropdownRef = useRef<HTMLDivElement>(null);
 
     // Resetear el estado cuando cambie la vista
     useEffect(() => {
         if (currentView !== 'list') {
             setIsStageFiltersCollapsed(false);
         }
-        // Cerrar dropdowns cuando cambia la vista
+        // Cerrar dropdown de máquina cuando cambia la vista
         setShowMaquinaDropdown(false);
-        setShowVendedorDropdown(false);
-        setShowClienteDropdown(false);
     }, [currentView]);
 
     // Cerrar dropdown y menú hamburguesa al hacer click fuera
@@ -201,13 +196,7 @@ const Header: React.FC<HeaderProps> = ({
                 setShowBurgerMenu(false);
             }
 
-            // Cerrar dropdowns de vendedor y cliente
-            if (vendedorDropdownRef.current && !vendedorDropdownRef.current.contains(target)) {
-                setShowVendedorDropdown(false);
-            }
-            if (clienteDropdownRef.current && !clienteDropdownRef.current.contains(target)) {
-                setShowClienteDropdown(false);
-            }
+            // Cerrar dropdown de máquina
             if (maquinaDropdownRef.current && !maquinaDropdownRef.current.contains(target)) {
                 setShowMaquinaDropdown(false);
             }
@@ -655,169 +644,40 @@ const Header: React.FC<HeaderProps> = ({
 
                         {/* Filtro Multi-Select de Vendedor */}
                         {onVendedorToggle && (
-                            <div ref={vendedorDropdownRef} className="relative">
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setShowVendedorDropdown(prev => !prev);
-                                    }}
-                                    className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-1.5"
-                                    disabled={vendedoresLoading}
-                                >
-                                    <span>👤 Vendedor</span>
-                                    {selectedVendedores.length > 0 && (
-                                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-indigo-600 dark:bg-indigo-500 rounded-full">
-                                            {selectedVendedores.length}
-                                        </span>
-                                    )}
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </button>
-                                {showVendedorDropdown && (
-                                    <div className="absolute z-50 mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-64 overflow-y-auto">
-                                        <div className="p-2 border-b border-gray-200 dark:border-gray-700">
-                                            <label className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedVendedores.length === 0}
-                                                    onChange={() => onVendedorToggle('all')}
-                                                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                                                />
-                                                <span className="text-sm font-medium text-gray-900 dark:text-white">Todos</span>
-                                            </label>
-                                        </div>
-                                        <div className="p-2">
-                                            <label className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedVendedores.includes('sin_asignar')}
-                                                    onChange={() => onVendedorToggle('sin_asignar')}
-                                                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                                                />
-                                                <span className="text-sm text-gray-700 dark:text-gray-300 italic">Sin asignar</span>
-                                            </label>
-                                            {vendedores
-                                                .sort((a, b) => {
-                                                    // Primero activos, luego inactivos, ambos alfabéticamente
-                                                    if (a.activo !== b.activo) return a.activo ? -1 : 1;
-                                                    return a.nombre.localeCompare(b.nombre);
-                                                })
-                                                .map(vendedor => (
-                                                    <label 
-                                                        key={`vendedor-${vendedor.id}`} 
-                                                        className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedVendedores.includes(vendedor.id)}
-                                                            onChange={(e) => {
-                                                                e.stopPropagation();
-                                                                onVendedorToggle(vendedor.id);
-                                                            }}
-                                                            onClick={(e) => e.stopPropagation()}
-                                                            className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                                                        />
-                                                        <span className={`text-sm ${
-                                                            vendedor.activo 
-                                                                ? 'text-gray-900 dark:text-white' 
-                                                                : 'text-gray-500 dark:text-gray-500 italic line-through'
-                                                        }`}>
-                                                            {vendedor.nombre}{!vendedor.activo && ' (Inactivo)'}
-                                                        </span>
-                                                    </label>
-                                                ))
-                                            }
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                            <SearchableMultiSelect
+                                selectedIds={selectedVendedores}
+                                onToggle={onVendedorToggle}
+                                options={vendedores.map(v => ({
+                                    id: v.id,
+                                    label: v.nombre,
+                                    isInactive: !v.activo
+                                }))}
+                                placeholder="Vendedor"
+                                icon="👤"
+                                disabled={vendedoresLoading}
+                                allowSelectAll={true}
+                                allowUnassigned={true}
+                                unassignedLabel="Sin asignar"
+                            />
                         )}
 
                         {/* Filtro Multi-Select de Cliente */}
                         {onClienteToggle && (
-                            <div ref={clienteDropdownRef} className="relative">
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setShowClienteDropdown(prev => !prev);
-                                    }}
-                                    className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-1.5"
-                                    disabled={clientesLoading}
-                                >
-                                    <span>🏢 Cliente</span>
-                                    {selectedClientes.length > 0 && (
-                                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-indigo-600 dark:bg-indigo-500 rounded-full">
-                                            {selectedClientes.length}
-                                        </span>
-                                    )}
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </button>
-                                {showClienteDropdown && (
-                                    <div className="absolute z-50 mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-64 overflow-y-auto">
-                                        <div className="p-2 border-b border-gray-200 dark:border-gray-700">
-                                            <label className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedClientes.length === 0}
-                                                    onChange={() => onClienteToggle('all')}
-                                                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                                                />
-                                                <span className="text-sm font-medium text-gray-900 dark:text-white">Todos</span>
-                                            </label>
-                                        </div>
-                                        <div className="p-2">
-                                            <label className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedClientes.includes('sin_asignar')}
-                                                    onChange={() => onClienteToggle('sin_asignar')}
-                                                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                                                />
-                                                <span className="text-sm text-gray-700 dark:text-gray-300 italic">Sin asignar</span>
-                                            </label>
-                                            {clientes
-                                                .sort((a, b) => {
-                                                    // Primero activos, luego inactivos, ambos alfabéticamente
-                                                    const aActivo = (a.estado || '').toLowerCase() === 'activo' ? 0 : 1;
-                                                    const bActivo = (b.estado || '').toLowerCase() === 'activo' ? 0 : 1;
-                                                    if (aActivo !== bActivo) return aActivo - bActivo;
-                                                    return a.nombre.localeCompare(b.nombre);
-                                                })
-                                                .map(cliente => {
-                                                    const esActivo = (cliente.estado || '').toLowerCase() === 'activo';
-                                                    return (
-                                                        <label 
-                                                            key={`cliente-${cliente.id}`} 
-                                                            className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
-                                                        >
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={selectedClientes.includes(cliente.id)}
-                                                                onChange={(e) => {
-                                                                    e.stopPropagation();
-                                                                    onClienteToggle(cliente.id);
-                                                                }}
-                                                                onClick={(e) => e.stopPropagation()}
-                                                                className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                                                            />
-                                                            <span className={`text-sm ${
-                                                                esActivo
-                                                                    ? 'text-gray-900 dark:text-white' 
-                                                                    : 'text-gray-500 dark:text-gray-500 italic line-through'
-                                                            }`}>
-                                                                {cliente.nombre}{!esActivo && ' (Inactivo)'}
-                                                            </span>
-                                                        </label>
-                                                    );
-                                                })
-                                            }
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                            <SearchableMultiSelect
+                                selectedIds={selectedClientes}
+                                onToggle={onClienteToggle}
+                                options={clientes.map(c => ({
+                                    id: c.id,
+                                    label: c.nombre,
+                                    isInactive: (c.estado || '').toLowerCase() !== 'activo'
+                                }))}
+                                placeholder="Cliente"
+                                icon="🏢"
+                                disabled={clientesLoading}
+                                allowSelectAll={true}
+                                allowUnassigned={true}
+                                unassignedLabel="Sin asignar"
+                            />
                         )}
 
                         {/* Filtro Multi-Select de Máquina (solo en preparacion y listoProduccion) */}

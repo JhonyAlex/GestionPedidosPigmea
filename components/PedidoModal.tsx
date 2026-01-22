@@ -8,6 +8,7 @@ import SequenceBuilder from './SequenceBuilder';
 import SeccionDatosTecnicosDeMaterial from './SeccionDatosTecnicosDeMaterial';
 import CommentSystem from './comments/CommentSystem';
 import ObservacionesAutocomplete from './ObservacionesAutocomplete';
+import SearchableSelect from './SearchableSelect';
 // import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../contexts/AuthContext';
 import { useVendedoresManager } from '../hooks/useVendedoresManager';
@@ -1570,40 +1571,59 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
 
                                         <div>
                                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Vendedor</label>
-                                            {!showVendedorInput ? (
-                                                <select name="vendedorId" value={formData.vendedorId || ''} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50">
-                                                    <option value="">Seleccione un vendedor</option>
-                                                    {vendedores.filter(v => v.activo).map(vendedor => (
-                                                        <option key={vendedor.id} value={vendedor.id}>{vendedor.nombre}</option>
-                                                    ))}
-                                                    {!isReadOnly && <option value="add_new_vendedor">-- Crear nuevo vendedor --</option>}
-                                                </select>
-                                            ) : (
-                                                <div className="flex gap-2">
-                                                    <input 
-                                                        type="text" 
-                                                        value={nuevoVendedor} 
-                                                        onChange={(e) => setNuevoVendedor(e.target.value)}
-                                                        placeholder="Nombre del vendedor"
-                                                        className="flex-1 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
-                                                        autoFocus
-                                                    />
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={handleAddVendedor}
-                                                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
-                                                        title="Guardar vendedor"
-                                                    >
-                                                        ✓
-                                                    </button>
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={handleCancelVendedor}
-                                                        className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
-                                                        title="Cancelar"
-                                                    >
-                                                        ✕
-                                                    </button>
+                                            <SearchableSelect
+                                                name="vendedorId"
+                                                value={formData.vendedorId || ''}
+                                                onChange={(value) => {
+                                                    if (value === 'add_new_vendedor') {
+                                                        setShowVendedorInput(true);
+                                                    } else {
+                                                        setFormData(prev => ({ ...prev, vendedorId: value }));
+                                                    }
+                                                }}
+                                                options={vendedores.map(v => ({
+                                                    id: v.id,
+                                                    label: v.nombre,
+                                                    isInactive: !v.activo,
+                                                    disabled: !v.activo && !isReadOnly
+                                                }))}
+                                                placeholder="Seleccione un vendedor"
+                                                disabled={isReadOnly}
+                                                allowCreate={!isReadOnly}
+                                                createLabel="-- Crear nuevo vendedor --"
+                                                onCreateNew={() => setShowVendedorInput(true)}
+                                                showActiveOnly={false}
+                                            />
+                                            
+                                            {/* Modal inline para crear vendedor */}
+                                            {showVendedorInput && (
+                                                <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                                    <div className="flex gap-2">
+                                                        <input 
+                                                            type="text" 
+                                                            value={nuevoVendedor} 
+                                                            onChange={(e) => setNuevoVendedor(e.target.value)}
+                                                            placeholder="Nombre del vendedor"
+                                                            className="flex-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-sm"
+                                                            autoFocus
+                                                        />
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={handleAddVendedor}
+                                                            className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg transition-colors text-sm"
+                                                            title="Guardar vendedor"
+                                                        >
+                                                            ✓
+                                                        </button>
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={handleCancelVendedor}
+                                                            className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg transition-colors text-sm"
+                                                            title="Cancelar"
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>

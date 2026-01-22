@@ -4,6 +4,7 @@ import { KANBAN_FUNNELS, ETAPAS } from '../constants';
 import SequenceBuilder from './SequenceBuilder';
 import SeccionDatosTecnicosDeMaterial from './SeccionDatosTecnicosDeMaterial';
 import ObservacionesAutocomplete from './ObservacionesAutocomplete';
+import SearchableSelect from './SearchableSelect';
 import { useClientesManager, ClienteCreateRequest } from '../hooks/useClientesManager';
 import { useVendedoresManager } from '../hooks/useVendedoresManager';
 import { VendedorCreateRequest } from '../types/vendedor';
@@ -503,24 +504,32 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                                 Cliente <span className="text-red-500">*</span>
                                                 {clientePreseleccionado && <span className="ml-2 text-green-600 dark:text-green-400">(Preseleccionado)</span>}
                                             </label>
-                                            <select 
-                                                name="cliente" 
-                                                value={formData.cliente} 
-                                                onChange={handleChange} 
+                                            <SearchableSelect
+                                                name="cliente"
+                                                value={formData.cliente}
+                                                onChange={(value) => {
+                                                    if (value === 'add_new_cliente') {
+                                                        setIsClienteModalOpen(true);
+                                                    } else {
+                                                        handleChange({ target: { name: 'cliente', value } } as any);
+                                                    }
+                                                }}
+                                                options={clientes.map(c => ({
+                                                    id: c.nombre,
+                                                    label: c.nombre,
+                                                    isInactive: (c.estado || '').toLowerCase() !== 'activo'
+                                                }))}
+                                                placeholder="Seleccione un cliente"
                                                 disabled={!!clientePreseleccionado}
-                                                className={`w-full border rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                                                    clientePreseleccionado 
-                                                        ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700 text-gray-700 dark:text-gray-300 cursor-not-allowed' 
-                                                        : 'bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600'
-                                                }`}
-                                                required
-                                            >
-                                                <option value="">Seleccione un cliente</option>
-                                                {clientes.map(cliente => (
-                                                    <option key={cliente.id} value={cliente.nombre}>{cliente.nombre}</option>
-                                                ))}
-                                                <option value="add_new_cliente">-- Crear nuevo cliente --</option>
-                                            </select>
+                                                required={true}
+                                                allowCreate={true}
+                                                createLabel="-- Crear nuevo cliente --"
+                                                onCreateNew={() => setIsClienteModalOpen(true)}
+                                                className={clientePreseleccionado 
+                                                    ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700' 
+                                                    : ''}
+                                                showActiveOnly={false}
+                                            />
                                         </div>
 
                                         <div>
@@ -768,18 +777,28 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
 
                                         <div>
                                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Vendedor</label>
-                                            <select 
-                                                name="vendedorId" 
-                                                value={formData.vendedorId} 
-                                                onChange={handleChange} 
-                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
-                                            >
-                                                <option value="">Seleccione un vendedor</option>
-                                                {vendedores.filter(v => v.activo).map(vendedor => (
-                                                    <option key={vendedor.id} value={vendedor.id}>{vendedor.nombre}</option>
-                                                ))}
-                                                <option value="add_new_vendedor">-- Crear nuevo vendedor --</option>
-                                            </select>
+                                            <SearchableSelect
+                                                name="vendedorId"
+                                                value={formData.vendedorId}
+                                                onChange={(value) => {
+                                                    if (value === 'add_new_vendedor') {
+                                                        setIsVendedorModalOpen(true);
+                                                    } else {
+                                                        handleChange({ target: { name: 'vendedorId', value } } as any);
+                                                    }
+                                                }}
+                                                options={vendedores.map(v => ({
+                                                    id: v.id,
+                                                    label: v.nombre,
+                                                    isInactive: !v.activo,
+                                                    disabled: !v.activo
+                                                }))}
+                                                placeholder="Seleccione un vendedor"
+                                                allowCreate={true}
+                                                createLabel="-- Crear nuevo vendedor --"
+                                                onCreateNew={() => setIsVendedorModalOpen(true)}
+                                                showActiveOnly={false}
+                                            />
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-4">
