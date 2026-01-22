@@ -6,6 +6,7 @@ export interface WeeklyData {
     year: number;
     label: string;
     dateRange: string;
+    weekStartDate: Date; // Fecha real de inicio de la semana (lunes) para ordenamiento cronológico
     machines: {
         [key: string]: number; // e.g. "Windmöller 1": 120.5
     };
@@ -51,10 +52,10 @@ export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys 
     // Calculate totals
     const totals: Record<string, number> = {};
     let totalFree = 0;
-    
+
     // Initialize totals
     sortedKeys.forEach(k => totals[k] = 0);
-    
+
     data.forEach(row => {
         sortedKeys.forEach(key => {
             totals[key] += row.machines[key] || 0;
@@ -74,9 +75,9 @@ export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys 
                             Fechas
                         </th>
                         {sortedKeys.map(key => (
-                            <th 
-                                key={key} 
-                                scope="col" 
+                            <th
+                                key={key}
+                                scope="col"
                                 className={`px-3 py-3.5 text-center text-sm font-bold border-r border-gray-200 ${MACHINE_COLORS[key] || 'bg-gray-100 text-gray-900'}`}
                             >
                                 {MACHINE_COLUMN_HEADERS[key] || key}
@@ -101,9 +102,8 @@ export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys 
                                     {row.machines[key]?.toFixed(2) || '0.00'}
                                 </td>
                             ))}
-                            <td className={`whitespace-nowrap px-3 py-4 text-sm text-center font-bold border-l-2 border-gray-300 font-mono ${
-                                row.freeCapacity < 0 ? 'text-red-600 bg-red-100' : 'text-green-600'
-                            }`}>
+                            <td className={`whitespace-nowrap px-3 py-4 text-sm text-center font-bold border-l-2 border-gray-300 font-mono ${row.freeCapacity < 0 ? 'text-red-600 bg-red-100' : 'text-green-600'
+                                }`}>
                                 {row.freeCapacity.toFixed(2)}
                             </td>
                         </tr>

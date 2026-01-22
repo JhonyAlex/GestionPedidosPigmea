@@ -72,9 +72,9 @@ const STORAGE_KEY_STAGES = 'planning_selected_stages';
 const STORAGE_KEY_MACHINES = 'planning_selected_machines';
 const STORAGE_KEY_CUSTOM_DATE_RANGE = 'planning_custom_date_range';
 
-const ReportView: React.FC<ReportViewProps> = ({ 
-    pedidos, 
-    onNavigateToPedido, 
+const ReportView: React.FC<ReportViewProps> = ({
+    pedidos,
+    onNavigateToPedido,
     onSelectPedido,
     selectedIds,
     onToggleSelection,
@@ -199,10 +199,10 @@ const ReportView: React.FC<ReportViewProps> = ({
         loadInstructions();
 
         // Configurar Socket.IO para sincronización en tiempo real
-        const API_BASE = process.env.NODE_ENV === 'production' 
-            ? window.location.origin 
+        const API_BASE = process.env.NODE_ENV === 'production'
+            ? window.location.origin
             : 'http://localhost:8080';
-        
+
         const socketInstance = io(API_BASE, {
             transports: ['websocket', 'polling']
         });
@@ -265,7 +265,7 @@ const ReportView: React.FC<ReportViewProps> = ({
             // 2. Stage Filtering
             const isPreparacion = p.etapaActual === Etapa.PREPARACION;
             const isListo = isPreparacion && p.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION;
-            
+
             let stageMatch = false;
             if (selectedStages.includes(STAGE_LISTO_PARA_PRODUCCION) && isListo) stageMatch = true;
             else if (selectedStages.includes(Etapa.PREPARACION) && isPreparacion && !isListo) stageMatch = true;
@@ -289,7 +289,7 @@ const ReportView: React.FC<ReportViewProps> = ({
 
         filteredPedidos.forEach(p => {
             // Determine Week based on selected date field
-            const dateStr = p[dateField] as string || p.fechaEntrega || p.fechaCreacion; 
+            const dateStr = p[dateField] as string || p.fechaEntrega || p.fechaCreacion;
             if (!dateStr) return;
 
             const date = new Date(dateStr);
@@ -297,28 +297,29 @@ const ReportView: React.FC<ReportViewProps> = ({
 
             const weekNum = getWeekNumber(date);
             const year = date.getFullYear();
-            
+
             // Generate grouping key (YYYY-WW)
             const weekKey = `${year}-${weekNum.toString().padStart(2, '0')}`;
 
             // Initialize week group if not exists
             if (!weeklyGroups[weekKey]) {
                 const { start, end } = getWeekDateRange(year, weekNum);
-                
+
                 // Calcular lunes a viernes SOLO para visualización
                 // (los cálculos siguen usando la semana completa lunes-domingo)
                 const monday = new Date(start);
                 const friday = new Date(start);
                 friday.setDate(monday.getDate() + 4); // Lunes + 4 días = Viernes
-                
+
                 const mondayStr = monday.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
                 const fridayStr = friday.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-                
+
                 weeklyGroups[weekKey] = {
                     week: weekNum,
                     year: year,
                     label: `SEMANA ${weekNum} (${year})`,
                     dateRange: `${mondayStr} al ${fridayStr}`, // Mostrar lunes a viernes
+                    weekStartDate: new Date(start), // Fecha real de inicio para ordenamiento cronológico
                     machines: {},
                     machinePedidos: {},
                     totalCapacity: 0,
@@ -383,10 +384,10 @@ const ReportView: React.FC<ReportViewProps> = ({
                 // 3. Si ambos faltan, asumir 0 horas
                 // ============================================================================
                 let hours = 0;
-                
+
                 const planificadoStr = p.tiempoProduccionPlanificado || '00:00';
                 hours = parseTimeToMinutes(planificadoStr) / 60;
-                
+
                 // Fallback: Si planificado es 0 o vacío, usar decimal
                 if ((!hours || hours === 0) && p.tiempoProduccionDecimal) {
                     hours = p.tiempoProduccionDecimal;
@@ -411,21 +412,20 @@ const ReportView: React.FC<ReportViewProps> = ({
             }
         });
 
-        // Convert to Array and Sort by Week
+        // Convert to Array and Sort by Week Start Date (chronological order)
         const sortedWeeks = Object.values(weeklyGroups).sort((a, b) => {
-            if (a.year !== b.year) return a.year - b.year;
-            return a.week - b.week;
+            return a.weekStartDate.getTime() - b.weekStartDate.getTime();
         });
 
         // Calculate Free Capacity
         // Fórmula según CALCULO_REPORTES.md: LIBRES = 180 - WH1 - WH3 - DNT
         sortedWeeks.forEach(group => {
             group.totalCapacity = CAPACITY_BASE;
-            
+
             const wh1 = group.machines['Windmöller 1'] || 0;
             const wh3 = group.machines['Windmöller 3'] || 0;
             const dnt = group.machines['DNT'] || 0;
-            
+
             // Fórmula: 180 - WH1 - WH3 - DNT
             // GIAVE y VARIABLES NO restan capacidad
             group.freeCapacity = CAPACITY_BASE - wh1 - wh3 - dnt;
@@ -433,7 +433,7 @@ const ReportView: React.FC<ReportViewProps> = ({
 
         return {
             weeklyData: sortedWeeks,
-            machineKeys: selectedMachines.filter(m => 
+            machineKeys: selectedMachines.filter(m =>
                 ['Windmöller 1', 'Windmöller 3', 'GIAVE', 'DNT', 'VARIABLES'].includes(m)
             ) // Filtrar solo máquinas permitidas, excluir ANON y Sin Asignar
         };
@@ -445,12 +445,12 @@ const ReportView: React.FC<ReportViewProps> = ({
         if (!selectedChartFilter) return [];
         const week = processedData.weeklyData.find(w => w.label === selectedChartFilter.weekLabel);
         let pedidos = week?.machinePedidos?.[selectedChartFilter.machine] || [];
-        
+
         // Apply sorting if a column is selected
         if (sortColumn) {
             pedidos = [...pedidos].sort((a, b) => {
                 let compareResult = 0;
-                
+
                 switch (sortColumn) {
                     case 'pedido':
                         compareResult = (a.numeroPedidoCliente || '').localeCompare(b.numeroPedidoCliente || '');
@@ -479,22 +479,22 @@ const ReportView: React.FC<ReportViewProps> = ({
                         } else if (a.tiempoProduccionDecimal) {
                             hoursA = a.tiempoProduccionDecimal;
                         }
-                        
+
                         let hoursB = 0;
                         if (b.tiempoProduccionPlanificado) {
                             hoursB = parseTimeToMinutes(b.tiempoProduccionPlanificado) / 60;
                         } else if (b.tiempoProduccionDecimal) {
                             hoursB = b.tiempoProduccionDecimal;
                         }
-                        
+
                         compareResult = hoursA - hoursB;
                         break;
                 }
-                
+
                 return sortDirection === 'asc' ? compareResult : -compareResult;
             });
         }
-        
+
         return pedidos;
     }, [processedData, selectedChartFilter, sortColumn, sortDirection]);
 
@@ -504,7 +504,7 @@ const ReportView: React.FC<ReportViewProps> = ({
     const handleGenerateAnalysis = async () => {
         setIsAnalyzing(true);
         setAnalysisError(null);
-        
+
         try {
             const request = {
                 weeklyData: processedData.weeklyData,
@@ -545,7 +545,7 @@ const ReportView: React.FC<ReportViewProps> = ({
         try {
             const savedUser = localStorage.getItem('pigmea_user');
             const user = savedUser ? JSON.parse(savedUser) : null;
-            
+
             const response = await fetch('/api/analysis/instructions', {
                 method: 'POST',
                 headers: {
@@ -562,7 +562,7 @@ const ReportView: React.FC<ReportViewProps> = ({
 
             setCustomInstructions(instructions);
             setShowCustomModal(false);
-            
+
             // Limpiar análisis actual para forzar regeneración
             setShowAnalysis(false);
             setAiAnalysis(null);
@@ -584,11 +584,11 @@ const ReportView: React.FC<ReportViewProps> = ({
         try {
             const date = new Date(dateString);
             if (isNaN(date.getTime())) return dateString; // Si no es válida, devolver original
-            
+
             const day = date.getDate().toString().padStart(2, '0');
             const month = (date.getMonth() + 1).toString().padStart(2, '0');
             const year = date.getFullYear();
-            
+
             return `${day}-${month}-${year}`;
         } catch (error) {
             return dateString; // En caso de error, devolver original
@@ -596,7 +596,7 @@ const ReportView: React.FC<ReportViewProps> = ({
     };
 
     const toggleStage = (stage: string) => {
-        setSelectedStages(prev => 
+        setSelectedStages(prev =>
             prev.includes(stage) ? prev.filter(s => s !== stage) : [...prev, stage]
         );
     };
@@ -646,7 +646,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                 </svg>
             );
         }
-        
+
         return sortDirection === 'asc' ? (
             <svg className="w-4 h-4 ml-1 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
@@ -662,11 +662,11 @@ const ReportView: React.FC<ReportViewProps> = ({
     const parseMarkdownText = (text: string): React.ReactNode[] => {
         const parts: React.ReactNode[] = [];
         let lastIndex = 0;
-        
+
         // Regex para encontrar **texto** (negrita)
         const boldRegex = /\*\*(.*?)\*\*/g;
         let match;
-        
+
         while ((match = boldRegex.exec(text)) !== null) {
             // Agregar texto antes del match
             if (match.index > lastIndex) {
@@ -676,12 +676,12 @@ const ReportView: React.FC<ReportViewProps> = ({
             parts.push(<strong key={`bold-${match.index}`} className="font-semibold text-gray-900 dark:text-white">{match[1]}</strong>);
             lastIndex = match.index + match[0].length;
         }
-        
+
         // Agregar texto restante
         if (lastIndex < text.length) {
             parts.push(text.substring(lastIndex));
         }
-        
+
         return parts.length > 0 ? parts : [text];
     };
 
@@ -713,18 +713,16 @@ const ReportView: React.FC<ReportViewProps> = ({
                                 const content = line.replace(/^[•\-→⚠️]\s*/, '').trim();
                                 const isWarning = line.includes('⚠️') || content.toLowerCase().includes('urgente') || content.toLowerCase().includes('crítico');
                                 const isPositive = line.includes('✅') || content.toLowerCase().includes('oportunidad') || content.toLowerCase().includes('disponible');
-                                
+
                                 return (
-                                    <div key={idx} className={`flex items-start gap-2 mb-2 pl-2 py-1.5 rounded ${
-                                        isWarning ? 'bg-amber-50 dark:bg-amber-900/20 border-l-2 border-amber-400' :
-                                        isPositive ? 'bg-green-50 dark:bg-green-900/20 border-l-2 border-green-400' :
-                                        'bg-gray-50 dark:bg-gray-800/50 border-l-2 border-gray-300 dark:border-gray-600'
-                                    }`}>
-                                        <span className={`text-lg flex-shrink-0 ${
-                                            isWarning ? 'text-amber-600' :
-                                            isPositive ? 'text-green-600' :
-                                            'text-purple-500'
+                                    <div key={idx} className={`flex items-start gap-2 mb-2 pl-2 py-1.5 rounded ${isWarning ? 'bg-amber-50 dark:bg-amber-900/20 border-l-2 border-amber-400' :
+                                            isPositive ? 'bg-green-50 dark:bg-green-900/20 border-l-2 border-green-400' :
+                                                'bg-gray-50 dark:bg-gray-800/50 border-l-2 border-gray-300 dark:border-gray-600'
                                         }`}>
+                                        <span className={`text-lg flex-shrink-0 ${isWarning ? 'text-amber-600' :
+                                                isPositive ? 'text-green-600' :
+                                                    'text-purple-500'
+                                            }`}>
                                             {icon}
                                         </span>
                                         <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{parseMarkdownText(content)}</span>
@@ -777,7 +775,7 @@ const ReportView: React.FC<ReportViewProps> = ({
         // --- Header ---
         doc.setFontSize(18);
         doc.text('Informe de Planificación - PIGMEA', 14, 20);
-        
+
         doc.setFontSize(10);
         doc.text(`Fecha de emisión: ${new Date().toLocaleDateString()}`, 14, 28);
         doc.text(`Filtro: ${dateFilter === 'all' ? 'Todos' : dateFilter}`, 14, 33);
@@ -793,12 +791,12 @@ const ReportView: React.FC<ReportViewProps> = ({
                     useCORS: true,
                     logging: false
                 });
-                
+
                 const imgData = canvas.toDataURL('image/png');
                 const imgWidth = 180; // A4 width is ~210mm, leaving margins
-                const pageHeight = 295; 
+                const pageHeight = 295;
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                
+
                 // Add Image
                 doc.addImage(imgData, 'PNG', 15, startY, imgWidth, imgHeight);
                 startY += imgHeight + 10; // Move Y down for table
@@ -811,19 +809,19 @@ const ReportView: React.FC<ReportViewProps> = ({
 
         // --- Table Data Preparation ---
         const tableColumn = [
-            'Semana', 
-            'Fechas', 
-            ...processedData.machineKeys, 
-            'Total Carga', 
-            'Capacidad', 
+            'Semana',
+            'Fechas',
+            ...processedData.machineKeys,
+            'Total Carga',
+            'Capacidad',
             'Libres'
         ];
 
         const tableRows = processedData.weeklyData.map(row => {
-            const machineValues = processedData.machineKeys.map(key => 
+            const machineValues = processedData.machineKeys.map(key =>
                 (row.machines[key] || 0).toFixed(1)
             );
-            
+
             return [
                 row.label,
                 row.dateRange,
@@ -854,7 +852,7 @@ const ReportView: React.FC<ReportViewProps> = ({
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div className="flex items-center gap-4">
                     <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Centro de Planificación</h1>
-                    
+
                     {/* Custom Instructions Button */}
                     <button
                         onClick={() => setShowCustomModal(true)}
@@ -870,7 +868,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                             <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-pulse"></span>
                         )}
                     </button>
-                    
+
                     {/* AI Analysis Button - Discreto */}
                     <button
                         onClick={handleGenerateAnalysis}
@@ -906,7 +904,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                         Exportar PDF
                     </button>
                 </div>
-                
+
                 {/* Date Filter */}
                 <div className="bg-white dark:bg-gray-800 p-2 rounded-lg shadow">
                     <DateFilterCombined
@@ -946,7 +944,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                             </svg>
                         </button>
                     </div>
-                    
+
                     <div className="p-6">
                         {analysisError ? (
                             <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
@@ -969,7 +967,7 @@ const ReportView: React.FC<ReportViewProps> = ({
 
             {/* --- Toolbar --- */}
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow space-y-6">
-                
+
                 {/* Machine Filters */}
                 <div>
                     <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
@@ -992,9 +990,8 @@ const ReportView: React.FC<ReportViewProps> = ({
                                 <button
                                     key={machine}
                                     onClick={() => toggleMachine(machine)}
-                                    className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all duration-200 ${
-                                        selectedMachines.includes(machine) ? colors.active : colors.inactive
-                                    }`}
+                                    className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all duration-200 ${selectedMachines.includes(machine) ? colors.active : colors.inactive
+                                        }`}
                                 >
                                     {machine}
                                 </button>
@@ -1016,25 +1013,25 @@ const ReportView: React.FC<ReportViewProps> = ({
                             // Etapas Pre-Producción
                             { id: Etapa.PREPARACION, label: 'Preparación', color: 'amber' },
                             { id: STAGE_LISTO_PARA_PRODUCCION, label: 'Listo para Producción', color: 'emerald' },
-                            
+
                             // Etapas de Impresión
                             { id: Etapa.IMPRESION_WM1, label: 'Windmöller 1', color: 'cyan' },
                             { id: Etapa.IMPRESION_WM3, label: 'Windmöller 3', color: 'cyan' },
                             { id: Etapa.IMPRESION_GIAVE, label: 'GIAVE', color: 'cyan' },
-                            
+
                             // Etapas Post-Impresión - Laminación
                             { id: Etapa.POST_LAMINACION_SL2, label: 'Laminación SL2', color: 'indigo' },
                             { id: Etapa.POST_LAMINACION_NEXUS, label: 'Laminación NEXUS', color: 'indigo' },
-                            
+
                             // Etapas Post-Impresión - Rebobinado
                             { id: Etapa.POST_REBOBINADO_S2DT, label: 'Rebobinado S2DT', color: 'purple' },
                             { id: Etapa.POST_REBOBINADO_PROSLIT, label: 'Rebobinado PROSLIT', color: 'purple' },
                             { id: Etapa.POST_REBOBINADO_TEMAC, label: 'Rebobinado TEMAC', color: 'purple' },
-                            
+
                             // Etapas Post-Impresión - Perforación
                             { id: Etapa.POST_PERFORACION_MIC, label: 'Perforación MIC', color: 'pink' },
                             { id: Etapa.POST_PERFORACION_MAC, label: 'Perforación MAC', color: 'pink' },
-                            
+
                             // Estado Final
                             { id: Etapa.COMPLETADO, label: 'Completados', color: 'green' },
                         ].map(stage => {
@@ -1052,9 +1049,8 @@ const ReportView: React.FC<ReportViewProps> = ({
                                 <button
                                     key={stage.id}
                                     onClick={() => toggleStage(stage.id)}
-                                    className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all duration-200 ${
-                                        selectedStages.includes(stage.id) ? colors.active : colors.inactive
-                                    }`}
+                                    className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all duration-200 ${selectedStages.includes(stage.id) ? colors.active : colors.inactive
+                                        }`}
                                 >
                                     {stage.label}
                                 </button>
@@ -1067,17 +1063,17 @@ const ReportView: React.FC<ReportViewProps> = ({
             {/* --- Planning Table --- */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden p-4">
                 <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Planificación Semanal</h2>
-                <PlanningTable 
-                    data={processedData.weeklyData} 
-                    machineKeys={processedData.machineKeys} 
+                <PlanningTable
+                    data={processedData.weeklyData}
+                    machineKeys={processedData.machineKeys}
                 />
             </div>
 
             {/* --- Planning Chart --- */}
             <div id="planning-chart-container">
-                <PlanningChart 
-                    data={processedData.weeklyData} 
-                    machineKeys={processedData.machineKeys} 
+                <PlanningChart
+                    data={processedData.weeklyData}
+                    machineKeys={processedData.machineKeys}
                     onBarClick={handleBarClick}
                 />
             </div>
@@ -1093,7 +1089,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                 {selectedPedidos.length} pedidos
                             </span>
                         </h3>
-                        <button 
+                        <button
                             onClick={() => setSelectedChartFilter(null)}
                             className="text-gray-500 hover:text-red-500 transition-colors p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                             title="Cerrar detalle"
@@ -1191,10 +1187,10 @@ const ReportView: React.FC<ReportViewProps> = ({
                                         } else if (pedido.tiempoProduccionDecimal) {
                                             hours = pedido.tiempoProduccionDecimal;
                                         }
-                                        
+
                                         return (
-                                            <tr 
-                                                key={pedido.id} 
+                                            <tr
+                                                key={pedido.id}
                                                 className={`hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer group ${selectedIds?.includes(pedido.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
                                                 onClick={() => {
                                                     if (onSelectPedido) {
