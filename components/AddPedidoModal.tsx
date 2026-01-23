@@ -509,7 +509,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                                 value={formData.cliente}
                                                 onChange={(value) => {
                                                     if (value === 'add_new_cliente') {
-                                                        setIsClienteModalOpen(true);
+                                                        setClienteModalOpen(true);
                                                     } else {
                                                         handleChange({ target: { name: 'cliente', value } } as any);
                                                     }
@@ -524,7 +524,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                                 required={true}
                                                 allowCreate={true}
                                                 createLabel="-- Crear nuevo cliente --"
-                                                onCreateNew={() => setIsClienteModalOpen(true)}
+                                                onCreateNew={() => setClienteModalOpen(true)}
                                                 className={clientePreseleccionado 
                                                     ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700' 
                                                     : ''}
@@ -782,7 +782,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                                 value={formData.vendedorId}
                                                 onChange={(value) => {
                                                     if (value === 'add_new_vendedor') {
-                                                        setIsVendedorModalOpen(true);
+                                                        setVendedorModalOpen(true);
                                                     } else {
                                                         handleChange({ target: { name: 'vendedorId', value } } as any);
                                                     }
@@ -796,7 +796,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                                 placeholder="Seleccione un vendedor"
                                                 allowCreate={true}
                                                 createLabel="-- Crear nuevo vendedor --"
-                                                onCreateNew={() => setIsVendedorModalOpen(true)}
+                                                onCreateNew={() => setVendedorModalOpen(true)}
                                                 showActiveOnly={false}
                                             />
                                         </div>

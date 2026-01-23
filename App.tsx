@@ -988,6 +988,9 @@ const AppContent: React.FC = () => {
                                     onArchiveToggle={handleArchiveToggle}
                                     currentUserRole={currentUserRole}
                                     highlightedPedidoId={highlightedPedidoId}
+                                    selectedIds={selectedIds}
+                                    onToggleSelection={toggleSelection}
+                                    onSelectAll={selectAll}
                                 />
                             </div>
                         </section>

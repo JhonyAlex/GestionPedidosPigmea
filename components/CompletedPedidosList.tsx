@@ -13,10 +13,23 @@ interface CompletedPedidosListProps {
     onArchiveToggle: (pedido: Pedido) => void;
     currentUserRole: UserRole;
     highlightedPedidoId: string | null;
+    selectedIds?: string[];
+    onToggleSelection?: (id: string) => void;
+    onSelectAll?: (ids: string[]) => void;
 }
 
-const CompletedPedidosList: React.FC<CompletedPedidosListProps> = ({ pedidos, onSelectPedido, onArchiveToggle, currentUserRole, highlightedPedidoId }) => {
+const CompletedPedidosList: React.FC<CompletedPedidosListProps> = ({
+    pedidos,
+    onSelectPedido,
+    onArchiveToggle,
+    currentUserRole,
+    highlightedPedidoId,
+    selectedIds = [],
+    onToggleSelection,
+    onSelectAll
+}) => {
     const { canArchivePedidos } = usePermissions();
+    const allSelected = pedidos.length > 0 && pedidos.every(p => selectedIds.includes(p.id));
     
     return (
         <div className="flex flex-col bg-gray-200 dark:bg-gray-800 rounded-xl shadow-lg h-full">
@@ -34,6 +47,16 @@ const CompletedPedidosList: React.FC<CompletedPedidosListProps> = ({ pedidos, on
                         <table className="w-full text-sm text-left text-gray-600 dark:text-gray-300">
                             <thead className="text-xs text-gray-700 dark:text-gray-400 uppercase bg-gray-300/50 dark:bg-gray-700/50">
                                 <tr>
+                                    {onToggleSelection && (
+                                        <th scope="col" className="px-3 py-2 w-10 text-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={allSelected}
+                                                onChange={() => onSelectAll && onSelectAll(pedidos.map(p => p.id))}
+                                                className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                            />
+                                        </th>
+                                    )}
                                     <th scope="col" className="px-4 py-2">N° Pedido</th>
                                     <th scope="col" className="px-4 py-2">Cliente</th>
                                     <th scope="col" className="px-4 py-2">Camisa</th>
@@ -52,8 +75,18 @@ const CompletedPedidosList: React.FC<CompletedPedidosListProps> = ({ pedidos, on
                                                         ref={provided.innerRef}
                                                         {...provided.draggableProps}
                                                         {...provided.dragHandleProps}
-                                                        className={`border-b border-gray-300 dark:border-gray-700 hover:bg-gray-300/50 dark:hover:bg-gray-900/50 ${snapshot.isDragging ? 'shadow-2xl' : ''} ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''}`}
+                                                        className={`border-b border-gray-300 dark:border-gray-700 hover:bg-gray-300/50 dark:hover:bg-gray-900/50 ${snapshot.isDragging ? 'shadow-2xl' : ''} ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''} ${selectedIds.includes(pedido.id) ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}
                                                     >
+                                                        {onToggleSelection && (
+                                                            <td className="px-3 py-2 w-10 text-center" onClick={(e) => e.stopPropagation()}>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={selectedIds.includes(pedido.id)}
+                                                                    onChange={() => onToggleSelection(pedido.id)}
+                                                                    className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                                                />
+                                                            </td>
+                                                        )}
                                                         <th scope="row" className="px-4 py-2 font-medium text-gray-900 dark:text-white whitespace-nowrap">{pedido.numeroPedidoCliente}</th>
                                                         <td className="px-4 py-2">{pedido.cliente}</td>
                                                         <td className="px-4 py-2">{pedido.camisa || '-'}</td>
