@@ -790,8 +790,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                                 options={vendedores.map(v => ({
                                                     id: v.id,
                                                     label: v.nombre,
-                                                    isInactive: !v.activo,
-                                                    disabled: !v.activo
+                                                    isInactive: !v.activo
                                                 }))}
                                                 placeholder="Seleccione un vendedor"
                                                 allowCreate={true}

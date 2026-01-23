@@ -1589,7 +1589,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                     id: v.id,
                                                     label: v.nombre,
                                                     isInactive: !v.activo,
-                                                    disabled: !v.activo && !isReadOnly
+                                                    disabled: false
                                                 }))}
                                                 placeholder="Seleccione un vendedor"
                                                 disabled={isReadOnly}
