@@ -109,10 +109,23 @@ const SeccionDatosTecnicosDeMaterial: React.FC<SeccionDatosTecnicosProps> = ({
     }, [formData.materialConsumo, formData.materialConsumoCantidad, formData.materialDisponible, onDataChange, onAutoSave]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
+        const { name, value, type } = e.target;
+
+        // Sincronizar cantidad de materiales con los arrays asociados para evitar restos ocultos
+        if (name === 'materialConsumoCantidad') {
+            const parsedCount = value === '' ? null : parseInt(value, 10);
+            const safeCount = Number.isFinite(parsedCount as number) ? parsedCount : null;
+            const targetLength = safeCount ?? 0;
+
+            onDataChange('materialConsumoCantidad', safeCount);
+            onDataChange('materialConsumo', (formData.materialConsumo || []).slice(0, targetLength));
+            onDataChange('numerosCompra', (formData.numerosCompra || []).slice(0, targetLength));
+            return;
+        }
+
         let parsedValue: string | number | null = value;
 
-        if (e.target.type === 'number') {
+        if (type === 'number') {
             parsedValue = value === '' ? null : parseFloat(value);
         }
 
