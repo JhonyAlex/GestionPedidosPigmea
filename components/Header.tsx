@@ -220,8 +220,9 @@ const Header: React.FC<HeaderProps> = ({
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
+        const normalizedValue = normalizeSearchValue(value);
         onSearch(value);
-        setShowSearchDropdown(normalizeSearchValue(value).length > 0);
+        setShowSearchDropdown(prev => prev || normalizedValue.length > 0);
     };
 
     const handleSelectPedido = (pedido: Pedido) => {
@@ -785,8 +786,9 @@ const Header: React.FC<HeaderProps> = ({
                             <GlobalSearchDropdown
                                 searchTerm={searchTerm}
                                 onSearchChange={(value) => {
+                                    const normalizedValue = normalizeSearchValue(value);
                                     onSearch(value);
-                                    setShowSearchDropdown(normalizeSearchValue(value).length > 0);
+                                    setShowSearchDropdown(prev => prev || normalizedValue.length > 0);
                                 }}
                                 results={searchResults}
                                 onSelectPedido={handleSelectPedido}
