@@ -407,6 +407,10 @@ app.post('/api/analysis/instructions', requireAuth, async (req, res) => {
             return res.status(400).json({ error: 'instructions es requerido' });
         }
 
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({ error: 'Base de datos no disponible' });
+        }
+
         // Insertar nueva versión de instrucciones
         const query = `
             INSERT INTO analysis_instructions (instructions, updated_by)
@@ -1516,6 +1520,10 @@ app.get('/api/users/active', requireAuth, async (req, res) => {
                 error: 'Service Unavailable',
                 message: 'El sistema no está disponible. Por favor, contacte al administrador.'
             });
+        }
+
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({ error: 'Base de datos no disponible' });
         }
 
         // Obtener solo usuarios activos de admin_users
@@ -3803,6 +3811,10 @@ app.post('/api/action-history', async (req, res) => {
             RETURNING *;
         `;
 
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({ error: 'Base de datos no disponible' });
+        }
+
         const values = [
             action.id,
             action.contextId,
@@ -5232,20 +5244,24 @@ app.post('/api/comments', requireAuth, async (req, res) => {
         // Emitir evento WebSocket del comentario
         io.emit('comment:added', newComment);
 
-        // Log de auditoría
-        await dbClient.pool.query(`
-            INSERT INTO audit_logs (user_id, username, action, module, details, ip_address, user_agent, affected_resource)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        `, [
-            validUserId,
-            finalUsername,
-            'COMMENT_CREATED',
-            'COMMENTS',
-            `Comentario agregado al pedido ${pedidoId}${mentionedUsers.length > 0 ? ` mencionando a ${mentionedUsers.length} usuario(s)` : ''}`,
-            req.ip,
-            req.get('User-Agent'),
-            newComment.id
-        ]);
+        // Log de auditoría - no bloquear si falla
+        try {
+            await dbClient.pool.query(`
+                INSERT INTO audit_logs (user_id, username, action, module, details, ip_address, user_agent, affected_resource)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            `, [
+                validUserId,
+                finalUsername,
+                'COMMENT_CREATED',
+                'COMMENTS',
+                `Comentario agregado al pedido ${pedidoId}${mentionedUsers.length > 0 ? ` mencionando a ${mentionedUsers.length} usuario(s)` : ''}`,
+                req.ip,
+                req.get('User-Agent'),
+                newComment.id
+            ]);
+        } catch (auditError) {
+            console.error('⚠️ Error en audit log (no crítico):', auditError.message);
+        }
 
         res.status(201).json({
             success: true,
@@ -5310,20 +5326,24 @@ app.delete('/api/comments/:commentId', requireAuth, async (req, res) => {
             pedidoId: comment.pedido_id
         });
 
-        // Log de auditoría
-        await dbClient.pool.query(`
-            INSERT INTO audit_logs (user_id, username, action, module, details, ip_address, user_agent, affected_resource)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        `, [
-            userFromToken.id,
-            userFromToken.username,
-            'COMMENT_DELETED',
-            'COMMENTS',
-            `Comentario eliminado del pedido ${comment.pedido_id}`,
-            req.ip,
-            req.get('User-Agent'),
-            commentId
-        ]);
+        // Log de auditoría - no bloquear si falla
+        try {
+            await dbClient.pool.query(`
+                INSERT INTO audit_logs (user_id, username, action, module, details, ip_address, user_agent, affected_resource)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            `, [
+                userFromToken.id,
+                userFromToken.username,
+                'COMMENT_DELETED',
+                'COMMENTS',
+                `Comentario eliminado del pedido ${comment.pedido_id}`,
+                req.ip,
+                req.get('User-Agent'),
+                commentId
+            ]);
+        } catch (auditError) {
+            console.error('⚠️ Error en audit log (no crítico):', auditError.message);
+        }
 
         res.json({
             success: true,

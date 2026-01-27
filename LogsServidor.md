@@ -1,97 +1,97 @@
-2026-01-27T11:27:41.788Z psql:/app/database/migrations/001-add-clientes-system.sql:59: NOTICE:  relation "idx_clientes_estado" already exists, skipping
-2026-01-27T11:27:41.788Z CREATE INDEX
-2026-01-27T11:27:41.788Z CREATE INDEX
-2026-01-27T11:27:41.788Z psql:/app/database/migrations/001-add-clientes-system.sql:60: NOTICE:  relation "idx_clientes_created_at" already exists, skipping
-2026-01-27T11:27:41.790Z DROP TRIGGER
-2026-01-27T11:27:41.792Z CREATE TRIGGER
-2026-01-27T11:27:41.793Z COMMENT
-2026-01-27T11:27:41.810Z DO
-2026-01-27T11:27:41.825Z psql:/app/database/migrations/001-add-clientes-system.sql:137: NOTICE:  Se han migrado 0 nuevos clientes desde la tabla de pedidos.
-2026-01-27T11:27:41.827Z DO
-2026-01-27T11:27:41.827Z psql:/app/database/migrations/001-add-clientes-system.sql:137: NOTICE:  Se han actualizado las referencias de cliente_id en la tabla de pedidos.
-2026-01-27T11:27:41.829Z CREATE FUNCTION
-2026-01-27T11:27:41.830Z COMMENT
-2026-01-27T11:27:41.832Z psql:/app/database/migrations/001-add-clientes-system.sql:177: NOTICE:  Permisos otorgados al rol pigmea_user.
-2026-01-27T11:27:41.833Z DO
-2026-01-27T11:27:41.838Z ✅ Migración 'Crear Tabla de Clientes' aplicada.
-2026-01-27T11:27:41.838Z 🚀 Migraciones completadas. Iniciando servidor Node.js...
-2026-01-27T11:27:41.956Z [dotenv@17.2.2] injecting env (5) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
-2026-01-27T11:27:42.402Z 🔄 Intentando conectar a PostgreSQL...
-2026-01-27T11:27:42.403Z 👂 Event listeners del pool configurados
-2026-01-27T11:27:42.470Z 🔗 Nueva conexión al pool establecida
-2026-01-27T11:27:42.471Z ✅ PostgreSQL conectado correctamente
-2026-01-27T11:27:42.471Z - Host: control-produccin-pigmea-gestionpedidosdb-vcfcjc:5432
-2026-01-27T11:27:42.472Z - Database: desde DATABASE_URL
-2026-01-27T11:27:42.472Z - Max connections: 50
-2026-01-27T11:27:42.475Z 🔧 Iniciando creación/verificación de tablas...
-2026-01-27T11:27:42.478Z ✅ Extensión uuid-ossp verificada
-2026-01-27T11:27:42.479Z ✅ Tabla admin_users verificada
-2026-01-27T11:27:42.503Z 📋 Columnas existentes en admin_users: id, username, password_hash, role, is_active, created_at, updated_at, last_login_at, email, first_name, last_name, permissions, last_login, last_activity, ip_address, user_agent
-2026-01-27T11:27:42.511Z ✅ Constraint de rol actualizado
-2026-01-27T11:27:42.511Z 🔄 Verificando usuarios existentes...
-2026-01-27T11:27:42.513Z ✅ Todos los usuarios ya están actualizados
-2026-01-27T11:27:42.513Z ✅ Columnas de admin_users verificadas
-2026-01-27T11:27:42.519Z ✅ Tabla user_permissions verificada
-2026-01-27T11:27:42.519Z ✅ Tabla pedidos verificada (creada por migración)
-2026-01-27T11:27:42.521Z ✅ Tabla users verificada
-2026-01-27T11:27:42.523Z ✅ Tabla audit_log verificada
-2026-01-27T11:27:42.525Z ⚠️ Tabla audit_logs y clave foránea procesadas (puede haber avisos)
-2026-01-27T11:27:42.526Z ✅ Tabla pedido_comments creada
-2026-01-27T11:27:42.527Z ✅ Tabla vendedores creada
-2026-01-27T11:27:42.532Z ✅ Índices verificados
-2026-01-27T11:27:42.538Z ✅ Triggers configurados
-2026-01-27T11:27:42.551Z ✅ Columna vendedor_id verificada/creada
-2026-01-27T11:27:42.551Z 🎉 Todas las tablas han sido verificadas/creadas exitosamente
-2026-01-27T11:27:42.551Z 🔄 Health checks periódicos iniciados (cada 10s)
-2026-01-27T11:27:42.551Z 🐘 PostgreSQL conectado exitosamente
-2026-01-27T11:27:42.551Z ✅ dbClient compartido con middlewares
-2026-01-27T11:27:42.551Z 🔄 Verificando y aplicando migraciones pendientes...
-2026-01-27T11:27:42.556Z ✅ Migración 032 ya aplicada previamente
-2026-01-27T11:27:42.561Z ✅ Migración 033 ya aplicada previamente
-2026-01-27T11:27:42.573Z 🚀 Servidor iniciado en puerto 8080
-2026-01-27T11:27:42.573Z ✅ PostgreSQL conectado - Sistema operativo
-2026-01-27T11:28:33.342Z 📨 [1] GET /api/audit - User: 4 - 2026-01-27T11:28:33.340Z
-2026-01-27T11:28:33.344Z 📨 [2] GET /api/pedidos - User: 4 - 2026-01-27T11:28:33.343Z
-2026-01-27T11:28:33.364Z 🔗 Nueva conexión al pool establecida
-2026-01-27T11:28:33.438Z 📊 [2026-01-27T11:28:33.438Z] GET /api/pedidos (LEGACY) - Total: 715 pedidos
-2026-01-27T11:28:33.605Z 📨 [3] GET /api/vendedores - User: 4 - 2026-01-27T11:28:33.605Z
-2026-01-27T11:28:33.611Z 🔍 Verificando permiso 'vendedores.view' para usuario ID: 4
-2026-01-27T11:28:33.611Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
-2026-01-27T11:28:33.615Z 📨 [4] GET /api/clientes/simple - User: 4 - 2026-01-27T11:28:33.615Z
-2026-01-27T11:28:33.618Z 🔍 Verificando permiso 'clientes.view' para usuario ID: 4
-2026-01-27T11:28:33.618Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
-2026-01-27T11:28:33.622Z 📨 [5] GET /api/notifications - User: 4 - 2026-01-27T11:28:33.622Z
-2026-01-27T11:28:33.644Z 📊 [getAllClientesSimple] Total clientes encontrados: 117
-2026-01-27T11:28:33.672Z 🔗 Nueva conexión al pool establecida
-2026-01-27T11:28:34.347Z 📨 [7] GET /api/materiales - User: 4 - 2026-01-27T11:28:34.346Z
-2026-01-27T11:28:34.376Z ✅ Materiales obtenidos: 257
-2026-01-27T11:28:39.418Z 📨 [8] GET /api/pedidos - User: 4 - 2026-01-27T11:28:39.417Z
-2026-01-27T11:28:39.425Z 📨 [9] GET /api/audit - User: 4 - 2026-01-27T11:28:39.423Z
-2026-01-27T11:28:39.550Z 📊 [2026-01-27T11:28:39.549Z] GET /api/pedidos (LEGACY) - Total: 715 pedidos
-2026-01-27T11:28:39.631Z 📨 [11] GET /api/vendedores - User: 4 - 2026-01-27T11:28:39.631Z
-2026-01-27T11:28:39.632Z 🔍 Verificando permiso 'vendedores.view' para usuario ID: 4
-2026-01-27T11:28:39.632Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
-2026-01-27T11:28:39.644Z 📨 [12] GET /api/clientes/simple - User: 4 - 2026-01-27T11:28:39.643Z
-2026-01-27T11:28:39.644Z 🔍 Verificando permiso 'clientes.view' para usuario ID: 4
-2026-01-27T11:28:39.644Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
-2026-01-27T11:28:39.647Z 📨 [13] GET /api/notifications - User: 4 - 2026-01-27T11:28:39.645Z
-2026-01-27T11:28:39.669Z 📊 [getAllClientesSimple] Total clientes encontrados: 117
-2026-01-27T11:28:40.653Z 📨 [14] GET /api/materiales - User: 4 - 2026-01-27T11:28:40.652Z
-2026-01-27T11:28:40.662Z ✅ Materiales obtenidos: 257
-2026-01-27T11:28:44.418Z 📨 [15] GET /api/analysis/instructions - User: anonymous - 2026-01-27T11:28:44.418Z
-2026-01-27T11:28:45.748Z 📨 [16] GET /api/analytics/summary - User: 4 - 2026-01-27T11:28:45.748Z
-2026-01-27T11:28:45.751Z ⚠️ Pool de conexiones bajo presión
-2026-01-27T11:28:45.751Z - Total: 3/50 (6.0% uso)
-2026-01-27T11:28:45.751Z - Idle: 2 (66.7%)
-2026-01-27T11:28:45.751Z - Waiting: 5
-2026-01-27T11:28:45.751Z ⚠️ Pool de conexiones bajo presión
-2026-01-27T11:28:45.751Z - Total: 3/50 (6.0% uso)
-2026-01-27T11:28:45.751Z - Idle: 1 (33.3%)
-2026-01-27T11:28:45.751Z - Waiting: 4
-2026-01-27T11:28:45.752Z ⚠️ Pool de conexiones bajo presión
-2026-01-27T11:28:45.752Z - Total: 3/50 (6.0% uso)
-2026-01-27T11:28:45.752Z - Idle: 0 (0.0%)
-2026-01-27T11:28:45.752Z - Waiting: 3
-2026-01-27T11:28:45.786Z 🔗 Nueva conexión al pool establecida
-2026-01-27T11:28:45.797Z 🔗 Nueva conexión al pool establecida
-2026-01-27T11:28:45.801Z 🔗 Nueva conexión al pool establecida
+2026-01-27T11:33:57.532Z COMMENT
+2026-01-27T11:33:57.533Z COMMENT
+2026-01-27T11:33:57.534Z COMMENT
+2026-01-27T11:33:57.535Z COMMENT
+2026-01-27T11:33:57.537Z COMMENT
+2026-01-27T11:33:57.538Z COMMENT
+2026-01-27T11:33:57.539Z COMMENT
+2026-01-27T11:33:57.540Z COMMENT
+2026-01-27T11:33:57.541Z COMMENT
+2026-01-27T11:33:57.542Z COMMENT
+2026-01-27T11:33:57.543Z COMMENT
+2026-01-27T11:33:57.544Z psql:/app/database/migrations/001-add-clientes-system.sql:58: NOTICE:  relation "idx_clientes_nombre" already exists, skipping
+2026-01-27T11:33:57.544Z CREATE INDEX
+2026-01-27T11:33:57.545Z CREATE INDEX
+2026-01-27T11:33:57.545Z psql:/app/database/migrations/001-add-clientes-system.sql:59: NOTICE:  relation "idx_clientes_estado" already exists, skipping
+2026-01-27T11:33:57.546Z CREATE INDEX
+2026-01-27T11:33:57.546Z psql:/app/database/migrations/001-add-clientes-system.sql:60: NOTICE:  relation "idx_clientes_created_at" already exists, skipping
+2026-01-27T11:33:57.548Z DROP TRIGGER
+2026-01-27T11:33:57.550Z CREATE TRIGGER
+2026-01-27T11:33:57.551Z COMMENT
+2026-01-27T11:33:57.569Z DO
+2026-01-27T11:33:57.582Z psql:/app/database/migrations/001-add-clientes-system.sql:137: NOTICE:  Se han migrado 0 nuevos clientes desde la tabla de pedidos.
+2026-01-27T11:33:57.583Z psql:/app/database/migrations/001-add-clientes-system.sql:137: NOTICE:  Se han actualizado las referencias de cliente_id en la tabla de pedidos.
+2026-01-27T11:33:57.583Z DO
+2026-01-27T11:33:57.585Z CREATE FUNCTION
+2026-01-27T11:33:57.586Z COMMENT
+2026-01-27T11:33:57.589Z psql:/app/database/migrations/001-add-clientes-system.sql:177: NOTICE:  Permisos otorgados al rol pigmea_user.
+2026-01-27T11:33:57.592Z DO
+2026-01-27T11:33:57.592Z ✅ Migración 'Crear Tabla de Clientes' aplicada.
+2026-01-27T11:33:57.593Z 🚀 Migraciones completadas. Iniciando servidor Node.js...
+2026-01-27T11:33:57.798Z [dotenv@17.2.2] injecting env (5) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+2026-01-27T11:33:58.321Z 🔄 Intentando conectar a PostgreSQL...
+2026-01-27T11:33:58.321Z 👂 Event listeners del pool configurados
+2026-01-27T11:33:58.402Z 🔗 Nueva conexión al pool establecida
+2026-01-27T11:33:58.404Z ✅ PostgreSQL conectado correctamente
+2026-01-27T11:33:58.405Z - Host: control-produccin-pigmea-gestionpedidosdb-vcfcjc:5432
+2026-01-27T11:33:58.405Z - Database: desde DATABASE_URL
+2026-01-27T11:33:58.405Z - Max connections: 50
+2026-01-27T11:33:58.407Z 🔧 Iniciando creación/verificación de tablas...
+2026-01-27T11:33:58.412Z ✅ Extensión uuid-ossp verificada
+2026-01-27T11:33:58.416Z ✅ Tabla admin_users verificada
+2026-01-27T11:33:58.441Z 📋 Columnas existentes en admin_users: id, username, password_hash, role, is_active, created_at, updated_at, last_login_at, email, first_name, last_name, permissions, last_login, last_activity, ip_address, user_agent
+2026-01-27T11:33:58.448Z ✅ Constraint de rol actualizado
+2026-01-27T11:33:58.450Z 🔄 Verificando usuarios existentes...
+2026-01-27T11:33:58.454Z ✅ Todos los usuarios ya están actualizados
+2026-01-27T11:33:58.454Z ✅ Columnas de admin_users verificadas
+2026-01-27T11:33:58.465Z ✅ Tabla user_permissions verificada
+2026-01-27T11:33:58.466Z ✅ Tabla pedidos verificada (creada por migración)
+2026-01-27T11:33:58.467Z ✅ Tabla users verificada
+2026-01-27T11:33:58.468Z ✅ Tabla audit_log verificada
+2026-01-27T11:33:58.473Z ⚠️ Tabla audit_logs y clave foránea procesadas (puede haber avisos)
+2026-01-27T11:33:58.474Z ✅ Tabla pedido_comments creada
+2026-01-27T11:33:58.475Z ✅ Tabla vendedores creada
+2026-01-27T11:33:58.478Z ✅ Índices verificados
+2026-01-27T11:33:58.489Z ✅ Triggers configurados
+2026-01-27T11:33:58.506Z ✅ Columna vendedor_id verificada/creada
+2026-01-27T11:33:58.506Z 🎉 Todas las tablas han sido verificadas/creadas exitosamente
+2026-01-27T11:33:58.508Z 🔄 Health checks periódicos iniciados (cada 10s)
+2026-01-27T11:33:58.508Z 🐘 PostgreSQL conectado exitosamente
+2026-01-27T11:33:58.509Z ✅ dbClient compartido con middlewares
+2026-01-27T11:33:58.509Z 🔄 Verificando y aplicando migraciones pendientes...
+2026-01-27T11:33:58.518Z ✅ Migración 032 ya aplicada previamente
+2026-01-27T11:33:58.524Z ✅ Migración 033 ya aplicada previamente
+2026-01-27T11:33:58.532Z 🚀 Servidor iniciado en puerto 8080
+2026-01-27T11:33:58.532Z ✅ PostgreSQL conectado - Sistema operativo
+2026-01-27T11:35:24.791Z 📨 [2] GET /api/audit - User: 4 - 2026-01-27T11:35:24.790Z
+2026-01-27T11:35:24.798Z 📨 [3] GET /api/pedidos - User: 4 - 2026-01-27T11:35:24.797Z
+2026-01-27T11:35:24.894Z 📊 [2026-01-27T11:35:24.894Z] GET /api/pedidos (LEGACY) - Total: 715 pedidos
+2026-01-27T11:35:24.991Z 🔗 Nueva conexión al pool establecida
+2026-01-27T11:35:24.996Z 🔗 Nueva conexión al pool establecida
+2026-01-27T11:35:25.055Z 📨 [4] GET /api/vendedores - User: 4 - 2026-01-27T11:35:25.054Z
+2026-01-27T11:35:25.060Z 🔍 Verificando permiso 'vendedores.view' para usuario ID: 4
+2026-01-27T11:35:25.060Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
+2026-01-27T11:35:25.063Z 📨 [5] GET /api/notifications - User: 4 - 2026-01-27T11:35:25.063Z
+2026-01-27T11:35:25.069Z 📨 [6] GET /api/clientes/simple - User: 4 - 2026-01-27T11:35:25.067Z
+2026-01-27T11:35:25.070Z 🔍 Verificando permiso 'clientes.view' para usuario ID: 4
+2026-01-27T11:35:25.070Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
+2026-01-27T11:35:25.104Z 📊 [getAllClientesSimple] Total clientes encontrados: 117
+2026-01-27T11:35:26.139Z 📨 [7] GET /api/materiales - User: 4 - 2026-01-27T11:35:26.138Z
+2026-01-27T11:35:26.157Z ✅ Materiales obtenidos: 257
+2026-01-27T11:35:31.668Z 📨 [8] GET /api/analysis/instructions - User: anonymous - 2026-01-27T11:35:31.667Z
+2026-01-27T11:35:32.910Z 📨 [9] GET /api/analytics/summary - User: 4 - 2026-01-27T11:35:32.909Z
+2026-01-27T11:35:32.913Z ⚠️ Pool de conexiones bajo presión
+2026-01-27T11:35:32.913Z - Total: 3/50 (6.0% uso)
+2026-01-27T11:35:32.913Z - Idle: 2 (66.7%)
+2026-01-27T11:35:32.913Z - Waiting: 5
+2026-01-27T11:35:32.914Z ⚠️ Pool de conexiones bajo presión
+2026-01-27T11:35:32.915Z - Total: 3/50 (6.0% uso)
+2026-01-27T11:35:32.916Z - Idle: 1 (33.3%)
+2026-01-27T11:35:32.916Z - Waiting: 4
+2026-01-27T11:35:32.917Z ⚠️ Pool de conexiones bajo presión
+2026-01-27T11:35:32.917Z - Total: 3/50 (6.0% uso)
+2026-01-27T11:35:32.917Z - Idle: 0 (0.0%)
+2026-01-27T11:35:32.917Z - Waiting: 3
+2026-01-27T11:35:32.962Z 🔗 Nueva conexión al pool establecida
+2026-01-27T11:35:32.969Z 🔗 Nueva conexión al pool establecida
+2026-01-27T11:35:32.973Z 🔗 Nueva conexión al pool establecida
