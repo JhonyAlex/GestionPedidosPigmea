@@ -35,8 +35,9 @@ const LineChart: React.FC<LineChartProps> = ({ data }) => {
 
     // Determinar cuántas etiquetas mostrar según la cantidad de datos
     const totalLabels = data.labels.length;
-    const maxLabelsToShow = 15; // Máximo de etiquetas antes de empezar a reducir
-    const labelInterval = totalLabels > maxLabelsToShow ? Math.ceil(totalLabels / maxLabelsToShow) : 1;
+    const maxVisibleDates = 12; // Máximo de fechas visibles sin scroll
+    const needsScroll = totalLabels > maxVisibleDates;
+    const minWidthPerLabel = needsScroll ? 60 : 0; // 60px mínimo por etiqueta cuando hay scroll
 
     return (
         <div className="w-full h-full flex flex-col p-4 pb-8 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
@@ -51,16 +52,30 @@ const LineChart: React.FC<LineChartProps> = ({ data }) => {
                         <span>{dataset.label}</span>
                     </div>
                 ))}
+                {needsScroll && (
+                    <div className="flex items-center gap-1 text-[10px] text-blue-600 dark:text-blue-400">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                        </svg>
+                        Desliza para ver más
+                    </div>
+                )}
             </div>
 
-            <div className="flex-grow flex">
+            <div className={`flex-grow flex ${needsScroll ? 'overflow-x-auto' : ''}`}>
                 {/* Y-Axis */}
                 <div className="flex flex-col justify-between text-xs text-gray-500 dark:text-gray-400 pr-4 text-right">
                     {yAxisLabels.reverse().map(label => <span key={label}>{label}</span>)}
                 </div>
 
                 {/* Chart Area */}
-                <div className="w-full relative pl-4">
+                <div 
+                    className="relative pl-4"
+                    style={{ 
+                        width: needsScroll ? `${totalLabels * minWidthPerLabel}px` : '100%',
+                        minWidth: '100%'
+                    }}
+                >
                     {/* Y-Axis Grid Lines */}
                     {yAxisLabels.slice(1).map((_, index) => (
                         <div key={index} className="border-t border-gray-300/50 dark:border-gray-700/50 absolute w-full" style={{ bottom: `${(index + 1) * (100 / yAxisSteps)}%` }}></div>
@@ -94,23 +109,17 @@ const LineChart: React.FC<LineChartProps> = ({ data }) => {
 
                     {/* X-Axis Labels */}
                     <div className="absolute -bottom-6 w-full flex justify-between text-[9px] text-gray-500 dark:text-gray-400">
-                        {data.labels.map((label, index) => {
-                            // Mostrar solo cada N etiquetas para evitar desbordamiento
-                            const shouldShow = index % labelInterval === 0 || index === totalLabels - 1;
-                            return (
-                                <span 
-                                    key={index} 
-                                    className={`transform -rotate-45 whitespace-nowrap origin-top-left ${
-                                        shouldShow ? 'opacity-100' : 'opacity-0'
-                                    }`}
-                                    style={{ 
-                                        fontSize: totalLabels > 20 ? '7px' : totalLabels > 10 ? '8px' : '9px'
-                                    }}
-                                >
-                                    {label}
-                                </span>
-                            );
-                        })}
+                        {data.labels.map((label, index) => (
+                            <span 
+                                key={index} 
+                                className="transform -rotate-45 whitespace-nowrap origin-top-left"
+                                style={{ 
+                                    fontSize: needsScroll ? '9px' : (totalLabels > 8 ? '8px' : '9px')
+                                }}
+                            >
+                                {label}
+                            </span>
+                        ))}
                     </div>
                 </div>
             </div>

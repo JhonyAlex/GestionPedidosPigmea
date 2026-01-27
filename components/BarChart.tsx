@@ -31,7 +31,7 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
     );
 
     return (
-        <div className="w-full h-full flex flex-col p-4 pb-12 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+        <div className="w-full h-full flex flex-col p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
             {/* Legend */}
             <div className="flex justify-center gap-4 mb-4 text-xs text-gray-600 dark:text-gray-300">
                 {data.datasets.map((dataset, index) => (
@@ -57,7 +57,7 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
                     
                     {/* Bars */}
                     {data.labels.map((label, index) => (
-                        <div key={label} className="col-span-1 flex flex-col items-center justify-end relative h-full">
+                        <div key={label} className="col-span-1 flex flex-col items-end justify-end relative h-full">
                             <div className="w-full flex justify-around items-end gap-1 h-full">
                                 {data.datasets.map(dataset => {
                                     const value = dataset.data[index];
@@ -69,19 +69,13 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
                                     return (
                                         <div 
                                             key={dataset.label} 
-                                            className="w-full rounded-t-sm hover:opacity-80 transition-opacity" 
+                                            className="w-full rounded-t-sm hover:opacity-80 transition-opacity cursor-pointer" 
                                             style={{ height: `${height}%`, backgroundColor: color }}
-                                            title={`${dataset.label}: ${safeValue} min`}
+                                            title={`${label} - ${dataset.label}: ${safeValue}`}
                                         ></div>
                                     );
                                 })}
                             </div>
-                            <span 
-                                className="text-[8px] text-gray-500 dark:text-gray-400 mt-2 transform -rotate-45 whitespace-nowrap origin-top-left max-w-[60px] overflow-hidden text-ellipsis"
-                                title={label}
-                            >
-                                {label}
-                            </span>
                         </div>
                     ))}
                 </div>
