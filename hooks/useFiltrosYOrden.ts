@@ -54,12 +54,12 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
     // Cargar filtros guardados
     const savedFilters = loadFiltersFromStorage();
     const currentWeek = getCurrentWeek();
-    
+
     const [searchTerm, setSearchTerm] = useState(savedFilters.searchTerm || '');
-    
+
     // 🚀 Aplicar debounce al término de búsqueda para mejorar performance
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
-    
+
     const [filters, setFilters] = useState<{ priority: string, stage: string, dateField: DateField }>(
         savedFilters.filters || { priority: 'all', stage: 'all', dateField: 'fechaCreacion' }
     );
@@ -86,7 +86,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
     const [sortConfig, setSortConfig] = useState<{ key: keyof Pedido, direction: 'ascending' | 'descending' }>(
         savedFilters.sortConfig || { key: 'prioridad', direction: 'ascending' }
     );
-    
+
     // Estado para filtro de semana
     const [weekFilter, setWeekFilter] = useState<WeekFilter>(
         savedFilters.weekFilter || {
@@ -152,7 +152,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         const { name, value } = e.target;
         setCustomDateRange(prev => ({ ...prev, [name]: value }));
     };
-    
+
     // Handlers para filtro de semana
     const handleWeekFilterToggle = useCallback(() => {
         setWeekFilter(prev => {
@@ -164,17 +164,17 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
             return { ...prev, enabled: newEnabled };
         });
     }, []);
-    
+
     const handleWeekChange = useCallback((year: number, week: number) => {
         setWeekFilter(prev => ({ ...prev, year, week, enabled: true }));
         // Al cambiar la semana, desactivar el filtro de fecha
         setDateFilter('all');
     }, []);
-    
+
     const handleWeekDateFieldChange = useCallback((dateField: DateField) => {
         setWeekFilter(prev => ({ ...prev, dateField }));
     }, []);
-    
+
     const handleSort = useCallback((key: keyof Pedido) => {
         setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'ascending' ? 'descending' : 'ascending' }));
     }, []);
@@ -191,10 +191,10 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         } else {
             setSelectedStages(prev => {
                 const isSelected = prev.includes(stageId);
-                const newSelection = isSelected 
+                const newSelection = isSelected
                     ? prev.filter(id => id !== stageId)
                     : [...prev, stageId];
-                
+
                 // Actualizar también el filtro tradicional para compatibilidad
                 if (newSelection.length === 0) {
                     setFilters(prevFilters => ({ ...prevFilters, stage: 'all' }));
@@ -203,7 +203,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
                 } else {
                     setFilters(prevFilters => ({ ...prevFilters, stage: 'multiple' }));
                 }
-                
+
                 return newSelection;
             });
         }
@@ -215,7 +215,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         } else {
             setSelectedVendedores(prev => {
                 const isSelected = prev.includes(vendedorId);
-                return isSelected 
+                return isSelected
                     ? prev.filter(id => id !== vendedorId)
                     : [...prev, vendedorId];
             });
@@ -228,7 +228,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         } else {
             setSelectedClientes(prev => {
                 const isSelected = prev.includes(clienteId);
-                return isSelected 
+                return isSelected
                     ? prev.filter(id => id !== clienteId)
                     : [...prev, clienteId];
             });
@@ -241,7 +241,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         } else {
             setSelectedMaquinas(prev => {
                 const isSelected = prev.includes(maquinaId);
-                return isSelected 
+                return isSelected
                     ? prev.filter(id => id !== maquinaId)
                     : [...prev, maquinaId];
             });
@@ -279,7 +279,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
             dateField: 'fechaEntrega'
         });
         setSortConfig({ key: 'prioridad', direction: 'ascending' });
-        
+
         // Limpiar localStorage
         try {
             localStorage.removeItem(FILTERS_STORAGE_KEY);
@@ -290,7 +290,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
 
     const processedPedidos = useMemo(() => {
         let dateRange: { start: Date, end: Date } | null = null;
-        
+
         if (dateFilter === 'custom') {
             const createDate = (dateString: string) => {
                 if (!dateString) return null;
@@ -300,12 +300,12 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
 
             const startDate = createDate(customDateRange.start);
             if (startDate) startDate.setHours(0, 0, 0, 0);
-            
+
             const endDate = createDate(customDateRange.end);
             if (endDate) endDate.setHours(23, 59, 59, 999);
-            
+
             if (startDate || endDate) {
-                dateRange = { 
+                dateRange = {
                     start: startDate || new Date(0),
                     end: endDate || new Date(8640000000000000)
                 };
@@ -313,20 +313,20 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
         } else {
             dateRange = getDateRange(dateFilter);
         }
-        
+
         const filtered = pedidos.filter(p => {
             // 🚀 Usar término con debounce para mejor performance
             const normalizedSearchTerm = normalizeSearchValue(debouncedSearchTerm);
             const searchTermMatch = !normalizedSearchTerm || pedidoMatchesSearch(p, normalizedSearchTerm);
 
             const priorityMatch = filters.priority === 'all' || p.prioridad === filters.priority;
-            const stageMatch = (selectedStages.length === 0 && filters.stage === 'all') || 
-                               selectedStages.includes(p.etapaActual) || 
-                               filters.stage === p.etapaActual;
+            const stageMatch = (selectedStages.length === 0 && filters.stage === 'all') ||
+                selectedStages.includes(p.etapaActual) ||
+                filters.stage === p.etapaActual;
             const dateToFilter = p[filters.dateField];
             const dateMatch = !dateRange || (dateToFilter && new Date(dateToFilter) >= dateRange.start && new Date(dateToFilter) <= dateRange.end);
-            const antivahoMatch = antivahoFilter === 'all' || 
-                (antivahoFilter === 'con' && p.antivaho === true) || 
+            const antivahoMatch = antivahoFilter === 'all' ||
+                (antivahoFilter === 'con' && p.antivaho === true) ||
                 (antivahoFilter === 'sin' && p.antivaho !== true) ||
                 (antivahoFilter === 'hecho' && p.antivaho === true && p.antivahoRealizado === true);
 
@@ -334,22 +334,22 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
             const estadoClicheMatch = estadoClicheFilter === 'all' || p.estadoCliché === estadoClicheFilter;
 
             // Filtro de Anónimo
-            const anonimoMatch = anonimoFilter === 'all' || 
-                (anonimoFilter === 'si' && p.anonimo === true) || 
+            const anonimoMatch = anonimoFilter === 'all' ||
+                (anonimoFilter === 'si' && p.anonimo === true) ||
                 (anonimoFilter === 'no' && p.anonimo !== true);
 
             // Filtro de Vendedores (multi-select)
-            const vendedorMatch = selectedVendedores.length === 0 || 
+            const vendedorMatch = selectedVendedores.length === 0 ||
                 selectedVendedores.includes(p.vendedorId || '') ||
                 (selectedVendedores.includes('sin_asignar') && !p.vendedorId);
 
             // Filtro de Clientes (multi-select)
-            const clienteMatch = selectedClientes.length === 0 || 
+            const clienteMatch = selectedClientes.length === 0 ||
                 selectedClientes.includes(p.clienteId || '') ||
                 (selectedClientes.includes('sin_asignar') && !p.clienteId);
 
             // Filtro de Máquinas (multi-select)
-            const maquinaMatch = selectedMaquinas.length === 0 || 
+            const maquinaMatch = selectedMaquinas.length === 0 ||
                 selectedMaquinas.includes(p.maquinaImpresion || '') ||
                 (selectedMaquinas.includes('sin_maquina') && !p.maquinaImpresion);
 
@@ -370,7 +370,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
                 const isSinMaterial = !p.materialDisponible;
                 const isSinCliche = !p.clicheDisponible; // Sin cliché, sin importar el material
                 const isListo = !!p.materialDisponible && !!p.clicheDisponible;
-                
+
                 if (preparacionFilter === 'sin-material') {
                     preparacionMatch = isSinMaterial;
                 } else if (preparacionFilter === 'sin-cliche') {
@@ -393,19 +393,36 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
 
                 if (aValue === undefined || aValue === null) return 1;
                 if (bValue === undefined || bValue === null) return -1;
-                
+
                 let comparison = 0;
 
                 switch (sortConfig.key) {
                     case 'prioridad':
-                        comparison = PRIORIDAD_ORDEN[aValue as Prioridad] - PRIORIDAD_ORDEN[bValue as Prioridad];
-                        if (comparison === 0) {
-                            const dateA = a.fechaCreacion ? new Date(a.fechaCreacion).getTime() : 0;
-                            const dateB = b.fechaCreacion ? new Date(b.fechaCreacion).getTime() : 0;
-                            comparison = dateA - dateB;
+                        // Lógica personalizada: URGENTE siempre arriba, el resto por orden de llegada a la etapa (FIFO)
+                        const isAUrgente = a.prioridad === Prioridad.URGENTE;
+                        const isBUrgente = b.prioridad === Prioridad.URGENTE;
+
+                        if (isAUrgente && !isBUrgente) {
+                            // Si A es urgente y B no, A va primero SIEMPRE (si es ascendente)
+                            // Nota: Como 'comparison' luego se invierte si es descending, esto funciona correctamente.
+                            comparison = -1;
+                        } else if (!isAUrgente && isBUrgente) {
+                            comparison = 1;
+                        } else {
+                            // Empate de prioridad (ambos Urgentes o ambos No Urgentes)
+                            // Ordenar por fecha de entrada a la etapa actual (FIFO: más antiguo arriba)
+                            const getStageEntryTime = (p: Pedido) => {
+                                const entry = p.etapasSecuencia?.find(e => e.etapa === p.etapaActual);
+                                return entry ? new Date(entry.fecha).getTime() : (p.fechaCreacion ? new Date(p.fechaCreacion).getTime() : 0);
+                            };
+
+                            const timeA = getStageEntryTime(a);
+                            const timeB = getStageEntryTime(b);
+
+                            comparison = timeA - timeB;
                         }
                         break;
-                    
+
                     case 'orden':
                         comparison = (a.orden || 0) - (b.orden || 0);
                         break;
@@ -418,7 +435,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
                         const dateB = bValue ? new Date(bValue as string).getTime() : 0;
                         comparison = dateA - dateB;
                         break;
-                    
+
                     default:
                         if (typeof aValue === 'number' && typeof bValue === 'number') {
                             comparison = aValue - bValue;
@@ -431,7 +448,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
                 return sortConfig.direction === 'ascending' ? comparison : -comparison;
             });
         }
-        
+
         return filtered;
 
     }, [pedidos, debouncedSearchTerm, filters, selectedStages, selectedVendedores, selectedClientes, selectedMaquinas, antivahoFilter, preparacionFilter, estadoClicheFilter, anonimoFilter, dateFilter, sortConfig, customDateRange, weekFilter]);
