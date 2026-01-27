@@ -221,13 +221,13 @@ export const MachinePerformanceChart: React.FC<MachinePerformanceChartProps> = (
                                 TOTAL
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
-                                {totals.pedidos.toLocaleString('es-ES')}
+                                {Number(totals.pedidos || 0).toLocaleString('es-ES')}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
                                 {formatMetros(totals.metros)} m
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
-                                {totals.tiempo.toFixed(1)} h
+                                {Number(totals.tiempo || 0).toFixed(1)} h
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
                                 100%

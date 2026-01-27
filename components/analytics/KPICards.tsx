@@ -37,8 +37,8 @@ export const KPICards: React.FC<KPICardsProps> = ({ summary, loading }) => {
     const cards: KPICardData[] = [
         {
             title: 'Total Pedidos',
-            value: summary.total_pedidos.toLocaleString('es-ES'),
-            subtitle: `${summary.pedidos_completados} completados`,
+            value: Number(summary.total_pedidos || 0).toLocaleString('es-ES'),
+            subtitle: `${Number(summary.pedidos_completados || 0)} completados`,
             icon: (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -70,7 +70,7 @@ export const KPICards: React.FC<KPICardsProps> = ({ summary, loading }) => {
         },
         {
             title: 'Horas Totales',
-            value: summary.tiempo_total_horas.toFixed(1),
+            value: Number(summary.tiempo_total_horas || 0).toFixed(1),
             subtitle: 'horas de producción',
             icon: (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -81,7 +81,7 @@ export const KPICards: React.FC<KPICardsProps> = ({ summary, loading }) => {
         },
         {
             title: 'Tiempo Promedio',
-            value: summary.tiempo_promedio_horas.toFixed(2),
+            value: Number(summary.tiempo_promedio_horas || 0).toFixed(2),
             subtitle: 'horas por pedido',
             icon: (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,10 +92,10 @@ export const KPICards: React.FC<KPICardsProps> = ({ summary, loading }) => {
         },
         {
             title: 'Tasa Completados',
-            value: summary.total_pedidos > 0 
-                ? `${((summary.pedidos_completados / summary.total_pedidos) * 100).toFixed(1)}%`
+            value: Number(summary.total_pedidos || 0) > 0 
+                ? `${((Number(summary.pedidos_completados || 0) / Number(summary.total_pedidos || 1)) * 100).toFixed(1)}%`
                 : '0%',
-            subtitle: `${summary.pedidos_completados}/${summary.total_pedidos}`,
+            subtitle: `${Number(summary.pedidos_completados || 0)}/${Number(summary.total_pedidos || 0)}`,
             icon: (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -105,7 +105,7 @@ export const KPICards: React.FC<KPICardsProps> = ({ summary, loading }) => {
         },
         {
             title: 'Pedidos Urgentes',
-            value: summary.pedidos_urgentes,
+            value: Number(summary.pedidos_urgentes || 0),
             subtitle: 'prioridad alta',
             icon: (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -116,7 +116,7 @@ export const KPICards: React.FC<KPICardsProps> = ({ summary, loading }) => {
         },
         {
             title: 'Pedidos Atrasados',
-            value: summary.pedidos_atrasados,
+            value: Number(summary.pedidos_atrasados || 0),
             subtitle: 'requieren atención',
             icon: (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
