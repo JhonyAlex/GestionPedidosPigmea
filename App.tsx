@@ -55,7 +55,7 @@ import UpdateBanner from './components/UpdateBanner';
 const AppContent: React.FC = () => {
     const { user, loading, logout } = useAuth();
     const { updateAvailable, newVersion, forceRefresh } = useVersionCheck();
-    
+
     // Hook para detectar inactividad y cerrar sesión automáticamente
     // ⚠️ Sincronizado con el timeout de bloqueo de pedidos (30 minutos)
     useInactivityReload({
@@ -63,10 +63,10 @@ const AppContent: React.FC = () => {
         reloadDelay: 3000, // 3 segundos para mostrar mensaje
         onLogout: logout // Cerrar sesión al detectar inactividad
     });
-    
+
     // Hook de toast para notificaciones
     const { messages: toastMessages, addToast, removeToast } = useToast();
-    
+
     // Estados locales - siempre llamar antes de returns condicionales
     const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -80,7 +80,7 @@ const AppContent: React.FC = () => {
     const [duplicatingMessage, setDuplicatingMessage] = useState('Duplicando pedido...');
     const [showUserManagement, setShowUserManagement] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
-    
+
     // Estados para operaciones masivas
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showArchiveModal, setShowArchiveModal] = useState(false);
@@ -104,11 +104,11 @@ const AppContent: React.FC = () => {
     const currentUserDisplayName = user?.displayName;
 
     // Hooks personalizados - siempre llamar antes de returns condicionales
-    const { 
-        isConnected, 
-        notifications, 
-        connectedUsers, 
-        removeNotification, 
+    const {
+        isConnected,
+        notifications,
+        connectedUsers,
+        removeNotification,
         emitActivity,
         subscribeToPedidoCreated,
         subscribeToPedidoUpdated,
@@ -122,7 +122,7 @@ const AppContent: React.FC = () => {
         accion,
         detalles
     }), [user]);
-    
+
     const {
         pedidos,
         setPedidos,
@@ -148,8 +148,8 @@ const AppContent: React.FC = () => {
         loadMore,
         reloadPedidos,
     } = usePedidosManager(
-        currentUserRole, 
-        generarEntradaHistorial, 
+        currentUserRole,
+        generarEntradaHistorial,
         setPedidoToSend,
         subscribeToPedidoCreated,
         subscribeToPedidoUpdated,
@@ -157,41 +157,41 @@ const AppContent: React.FC = () => {
     );
 
     const {
-      processedPedidos,
-      searchTerm,
-      setSearchTerm,
-      filters,
-      handleFilterChange,
-      selectedStages,
-      handleStageToggle,
-      resetStageFilters,
-      resetTraditionalStageFilter,
-      selectedVendedores,
-      handleVendedorToggle,
-      selectedClientes,
-      handleClienteToggle,
-      selectedMaquinas,
-      handleMaquinaToggle,
-      antivahoFilter,
-      handleAntivahoFilterChange,
-      preparacionFilter,
-      handlePreparacionFilterChange,
-      estadoClicheFilter,
-      handleEstadoClicheFilterChange,
-      anonimoFilter,
-      handleAnonimoFilterChange,
-      weekFilter,
-      handleWeekFilterToggle,
-      handleWeekChange,
-      handleWeekDateFieldChange,
-      dateFilter,
-      handleDateFilterChange,
-      customDateRange,
-      handleCustomDateChange,
-      sortConfig,
-      handleSort,
-      updateSortConfig,
-      resetAllFilters,
+        processedPedidos,
+        searchTerm,
+        setSearchTerm,
+        filters,
+        handleFilterChange,
+        selectedStages,
+        handleStageToggle,
+        resetStageFilters,
+        resetTraditionalStageFilter,
+        selectedVendedores,
+        handleVendedorToggle,
+        selectedClientes,
+        handleClienteToggle,
+        selectedMaquinas,
+        handleMaquinaToggle,
+        antivahoFilter,
+        handleAntivahoFilterChange,
+        preparacionFilter,
+        handlePreparacionFilterChange,
+        estadoClicheFilter,
+        handleEstadoClicheFilterChange,
+        anonimoFilter,
+        handleAnonimoFilterChange,
+        weekFilter,
+        handleWeekFilterToggle,
+        handleWeekChange,
+        handleWeekDateFieldChange,
+        dateFilter,
+        handleDateFilterChange,
+        customDateRange,
+        handleCustomDateChange,
+        sortConfig,
+        handleSort,
+        updateSortConfig,
+        resetAllFilters,
     } = useFiltrosYOrden(pedidos);
 
     // Hook para navegación a pedidos desde reportes y búsqueda global
@@ -251,7 +251,7 @@ const AppContent: React.FC = () => {
     // Resetear filtros de etapa cuando se cambia entre vistas con diferentes sistemas de filtro
     useEffect(() => {
         const viewsThatNeedStageReset = ['preparacion', 'listoProduccion', 'archived', 'report'];
-        
+
         if (viewsThatNeedStageReset.includes(view)) {
             // Resetear completamente para vistas que no usan filtros de etapa
             resetStageFilters();
@@ -263,20 +263,20 @@ const AppContent: React.FC = () => {
             resetTraditionalStageFilter();
         }
     }, [view, resetStageFilters, resetTraditionalStageFilter, selectedStages.length, filters.stage]);
-    
+
     const toggleTheme = () => {
         setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
     };
 
     const logAction = useCallback(async (action: string, pedidoId?: string) => {
         const userName = user?.displayName || user?.username || currentUserRole;
-        
+
         // Agregar al estado local para respuesta inmediata
         setAuditLog(prevLog => {
             const newEntry = { timestamp: new Date().toISOString(), userRole: userName, action };
             return [newEntry, ...prevLog];
         });
-        
+
         // Persistir en base de datos
         await auditService.logAction(userName, action, pedidoId);
     }, [currentUserRole, user]);
@@ -301,23 +301,23 @@ const AppContent: React.FC = () => {
 
     const handleDragEnd = useCallback(async (result: DropResult) => {
         await procesarDragEnd({
-          result,
-          pedidos,
-          processedPedidos,
-          currentUserRole,
-          generarEntradaHistorial,
-          logAction,
-          setPedidos,
-          handleSavePedido: handleSavePedidoLogic,
-          handleUpdatePedidoEtapa,
-          setSortConfig: updateSortConfig // Usar la función correcta para establecer el sorting
+            result,
+            pedidos,
+            processedPedidos,
+            currentUserRole,
+            generarEntradaHistorial,
+            logAction,
+            setPedidos,
+            handleSavePedido: handleSavePedidoLogic,
+            handleUpdatePedidoEtapa,
+            setSortConfig: updateSortConfig // Usar la función correcta para establecer el sorting
         });
 
     }, [pedidos, currentUserRole, processedPedidos, generarEntradaHistorial, logAction, handleSort, setPedidos, handleSavePedidoLogic, handleUpdatePedidoEtapa]);
-    
+
     const handleAdvanceStage = async (pedidoToAdvance: Pedido) => {
         // Si es un pedido con antivaho no realizado en post-impresión, abrir modal de reconfirmación
-        if (pedidoToAdvance.antivaho && !pedidoToAdvance.antivahoRealizado && 
+        if (pedidoToAdvance.antivaho && !pedidoToAdvance.antivahoRealizado &&
             KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedidoToAdvance.etapaActual)) {
             setPedidoToSend(pedidoToAdvance);
             return;
@@ -343,7 +343,7 @@ const AppContent: React.FC = () => {
             // 🎉 Notificación toast con opción de navegar
             const etapaAnterior = ETAPAS[etapaActual]?.title || etapaActual;
             const etapaNueva = ETAPAS[newEtapa]?.title || newEtapa;
-            
+
             addToast(
                 `✅ Pedido ${pedidoToAdvance.numeroPedidoCliente} movido de "${etapaAnterior}" a "${etapaNueva}"`,
                 'success',
@@ -366,7 +366,7 @@ const AppContent: React.FC = () => {
             );
 
             // Scroll automático al pedido después de un pequeño delay
-            scrollToPedido(pedidoToAdvance.id, 120);
+            // scrollToPedido(pedidoToAdvance.id, 120);
 
             setTimeout(() => {
                 setHighlightedPedidoId(null);
@@ -379,9 +379,9 @@ const AppContent: React.FC = () => {
         if (result?.hasChanges) {
             logAction(`Pedido ${result.modifiedPedido.numeroPedidoCliente} actualizado.`, result.modifiedPedido.id);
             // 🚀 Emitir actividad WebSocket
-            emitActivity('pedido-edited', { 
-                pedidoId: result.modifiedPedido.id, 
-                numeroCliente: result.modifiedPedido.numeroPedidoCliente 
+            emitActivity('pedido-edited', {
+                pedidoId: result.modifiedPedido.id,
+                numeroCliente: result.modifiedPedido.numeroPedidoCliente
             });
         }
         setSelectedPedido(null);
@@ -394,9 +394,9 @@ const AppContent: React.FC = () => {
             setIsAddModalOpen(false);
             setClientePreseleccionado(null); // ✅ Limpiar cliente preseleccionado
             // 🚀 Emitir actividad WebSocket
-            emitActivity('pedido-created', { 
-                pedidoId: newPedido.id, 
-                numeroCliente: newPedido.numeroPedidoCliente 
+            emitActivity('pedido-created', {
+                pedidoId: newPedido.id,
+                numeroCliente: newPedido.numeroPedidoCliente
             });
         }
         return newPedido; // ✅ Devolver el pedido creado para que AddPedidoModal pueda registrar la acción
@@ -408,19 +408,19 @@ const AppContent: React.FC = () => {
         setIsAddModalOpen(true);
         setView('preparacion'); // Cambiar a vista de pedidos
     };
-    
+
     const handleCrearPedidoDesdeVendedor = (vendedor: { id: string; nombre: string }) => {
         // Similar a clientes, pero con vendedor preseleccionado
         // Nota: Necesitarías añadir estado vendedorPreseleccionado similar a clientePreseleccionado
         setIsAddModalOpen(true);
         setView('preparacion'); // Cambiar a vista de pedidos
     };
-    
+
     const handleConfirmSendToPrint = (pedidoToUpdate: Pedido, impresionEtapa: Etapa, postImpresionSequence: Etapa[]) => {
         // 1. Close modal and highlight in original position
         setPedidoToSend(null);
         setHighlightedPedidoId(pedidoToUpdate.id);
-    
+
         // 2. Move immediately for better UX
         setTimeout(() => {
             // This function from the hook updates the DB and the `pedidos` state
@@ -428,7 +428,7 @@ const AppContent: React.FC = () => {
                 .then(updatedPedido => {
                     if (updatedPedido) {
                         logAction(`Pedido ${updatedPedido.numeroPedidoCliente} enviado a Impresión.`, updatedPedido.id);
-                        
+
                         // 🎉 Notificación toast
                         const etapaNueva = ETAPAS[impresionEtapa]?.title || impresionEtapa;
                         addToast(
@@ -445,8 +445,8 @@ const AppContent: React.FC = () => {
                         );
 
                         // Scroll automático
-                        scrollToPedido(updatedPedido.id, 120);
-                        
+                        // scrollToPedido(updatedPedido.id, 120);
+
                         // 3. Set timer to remove highlight from new position
                         setTimeout(() => {
                             setHighlightedPedidoId(null);
@@ -481,24 +481,24 @@ const AppContent: React.FC = () => {
 
             // Guardar la secuencia actualizada
             const saveResult = await handleSavePedidoLogic(updatedPedido);
-            
+
             if (saveResult?.modifiedPedido) {
                 logAction(
-                    `Pedido ${saveResult.modifiedPedido.numeroPedidoCliente} - secuencia reordenada.`, 
+                    `Pedido ${saveResult.modifiedPedido.numeroPedidoCliente} - secuencia reordenada.`,
                     saveResult.modifiedPedido.id
                 );
 
                 // Emitir actividad WebSocket
-                emitActivity('pedido-edited', { 
-                    pedidoId: saveResult.modifiedPedido.id, 
-                    numeroCliente: saveResult.modifiedPedido.numeroPedidoCliente 
+                emitActivity('pedido-edited', {
+                    pedidoId: saveResult.modifiedPedido.id,
+                    numeroCliente: saveResult.modifiedPedido.numeroPedidoCliente
                 });
 
                 // Si el usuario eligió continuar a una etapa diferente, hacer el movimiento
                 if (continueTo !== pedido.etapaActual) {
                     await handleUpdatePedidoEtapa(saveResult.modifiedPedido, continueTo);
                     logAction(
-                        `Pedido ${saveResult.modifiedPedido.numeroPedidoCliente} movido a ${ETAPAS[continueTo].title} tras reordenamiento.`, 
+                        `Pedido ${saveResult.modifiedPedido.numeroPedidoCliente} movido a ${ETAPAS[continueTo].title} tras reordenamiento.`,
                         saveResult.modifiedPedido.id
                     );
                 }
@@ -515,7 +515,7 @@ const AppContent: React.FC = () => {
             // Opcional: mostrar mensaje de error al usuario
         }
     };
-    
+
     const handleArchiveToggle = async (pedido: Pedido) => {
         const result = await handleArchiveToggleLogic(pedido);
         if (result) {
@@ -535,23 +535,23 @@ const AppContent: React.FC = () => {
         try {
             // Primer segundo - mensaje de duplicación
             await new Promise(resolve => setTimeout(resolve, 1000));
-            
+
             // Cambiar mensaje después del primer segundo
             setDuplicatingMessage('Abriendo pedido duplicado...');
-            
+
             // Segundo segundo - completar proceso
             await new Promise(resolve => setTimeout(resolve, 1000));
-            
+
             const newPedido = await handleDuplicatePedidoLogic(pedidoToDuplicate);
             if (newPedido) {
                 logAction(`Pedido ${pedidoToDuplicate.numeroPedidoCliente} duplicado como ${newPedido.numeroPedidoCliente}.`, newPedido.id);
-                
+
                 // Emitir actividad WebSocket
-                emitActivity('pedido-created', { 
-                    pedidoId: newPedido.id, 
-                    numeroCliente: newPedido.numeroPedidoCliente 
+                emitActivity('pedido-created', {
+                    pedidoId: newPedido.id,
+                    numeroCliente: newPedido.numeroPedidoCliente
                 });
-                
+
                 // Abrir el modal del pedido duplicado
                 setSelectedPedido(newPedido);
             }
@@ -576,23 +576,23 @@ const AppContent: React.FC = () => {
         const ids = [...selectedIds];
         const selectedPedidos = pedidos.filter(p => ids.includes(p.id));
         const result = await bulkDelete(ids);
-        
+
         if (result.success) {
             // Actualizar la lista de pedidos
             setPedidos(prev => prev.filter(p => !ids.includes(p.id)));
-            
+
             // Log de auditoría
             logAction(`${result.deletedCount} pedidos eliminados en operación masiva.`);
-            
+
             // Emitir actividad WebSocket
-            emitActivity('bulk-delete', { 
+            emitActivity('bulk-delete', {
                 count: result.deletedCount,
                 pedidoIds: ids
             });
-            
+
             // Mostrar toast de éxito
             alert(`✅ ${result.deletedCount} ${result.deletedCount === 1 ? 'pedido eliminado' : 'pedidos eliminados'} exitosamente.`);
-            
+
             setShowDeleteModal(false);
         } else {
             alert(`❌ Error al eliminar pedidos: ${result.error}`);
@@ -604,7 +604,7 @@ const AppContent: React.FC = () => {
         console.log('🟢 handleBulkUpdateDate - selectedIds:', ids);
         console.log('🟢 handleBulkUpdateDate - nuevaFecha:', nuevaFecha);
         console.log('Total seleccionados:', ids.length);
-        
+
         // Asegurarse de que nuevaFecha sea un string válido
         if (!nuevaFecha) {
             console.error('Error: nuevaFecha es inválida o vacía');
@@ -613,12 +613,12 @@ const AppContent: React.FC = () => {
         }
 
         const result = await bulkUpdateDate(ids, nuevaFecha);
-        
+
         console.log('🟢 handleBulkUpdateDate - Resultado:', result);
-        
+
         if (result.success) {
             console.log('🟢 handleBulkUpdateDate - Actualizando pedidos locales...');
-            
+
             // Actualizar la lista de pedidos
             setPedidos(prev => {
                 const updated = prev.map(p => {
@@ -640,24 +640,24 @@ const AppContent: React.FC = () => {
                     }
                     return p;
                 });
-                
+
                 console.log('🟢 handleBulkUpdateDate - Pedidos actualizados en estado local');
                 return updated;
             });
-            
+
             // Log de auditoría
             logAction(`${result.updatedCount} pedidos actualizados con nueva fecha: ${nuevaFecha}`);
-            
+
             // Emitir actividad WebSocket
-            emitActivity('bulk-update-date', { 
+            emitActivity('bulk-update-date', {
                 count: result.updatedCount,
                 pedidoIds: ids,
                 nuevaFecha
             });
-            
+
             // Mostrar toast de éxito
             alert(`✅ ${result.updatedCount} ${result.updatedCount === 1 ? 'pedido actualizado' : 'pedidos actualizados'} exitosamente.`);
-            
+
             setShowDateUpdateModal(false);
         } else {
             alert(`❌ Error al actualizar fechas: ${result.error}`);
@@ -666,7 +666,7 @@ const AppContent: React.FC = () => {
 
     const handleBulkUpdateMachine = async (nuevaMaquina: string) => {
         const ids = [...selectedIds];
-        
+
         // Validar límite de 30 pedidos
         if (ids.length > 30) {
             alert('⚠️ Por seguridad, no se pueden actualizar más de 30 pedidos a la vez.');
@@ -674,7 +674,7 @@ const AppContent: React.FC = () => {
         }
 
         const result = await bulkUpdateMachine(ids, nuevaMaquina);
-        
+
         if (result.success) {
             // Actualizar la lista de pedidos
             setPedidos(prev => {
@@ -697,20 +697,20 @@ const AppContent: React.FC = () => {
                     return p;
                 });
             });
-            
+
             // Log de auditoría
             logAction(`${result.updatedCount} pedidos actualizados con nueva máquina: ${nuevaMaquina}`);
-            
+
             // Emitir actividad WebSocket
-            emitActivity('bulk-update-machine', { 
+            emitActivity('bulk-update-machine', {
                 count: result.updatedCount,
                 pedidoIds: ids,
                 maquinaImpresion: nuevaMaquina
             });
-            
+
             // Mostrar toast de éxito
             alert(`✅ ${result.updatedCount} ${result.updatedCount === 1 ? 'pedido actualizado' : 'pedidos actualizados'} exitosamente.`);
-            
+
             setShowMachineUpdateModal(false);
         } else {
             alert(`❌ Error al actualizar máquinas: ${result.error}`);
@@ -747,7 +747,7 @@ const AppContent: React.FC = () => {
 
             if (updatedCount > 0) {
                 logAction(`${updatedCount} pedidos movidos a ${ETAPAS[nuevaEtapa].title} en operación masiva.`);
-                emitActivity('bulk-stage-update', { 
+                emitActivity('bulk-stage-update', {
                     count: updatedCount,
                     pedidoIds: ids,
                     etapa: nuevaEtapa,
@@ -767,7 +767,7 @@ const AppContent: React.FC = () => {
     const handleBulkArchive = async () => {
         const ids = [...selectedIds];
         const result = await bulkArchive(ids, true);
-        
+
         if (result.success) {
             // Actualizar la lista de pedidos
             setPedidos(prev => prev.map(p => {
@@ -789,20 +789,20 @@ const AppContent: React.FC = () => {
                 }
                 return p;
             }));
-            
+
             // Log de auditoría
             logAction(`${result.updatedCount} pedidos archivados en operación masiva.`);
-            
+
             // Emitir actividad WebSocket
-            emitActivity('bulk-archive', { 
+            emitActivity('bulk-archive', {
                 count: result.updatedCount,
                 pedidoIds: ids,
                 archived: true
             });
-            
+
             // Mostrar toast de éxito
             alert(`✅ ${result.updatedCount} ${result.updatedCount === 1 ? 'pedido archivado' : 'pedidos archivados'} exitosamente.`);
-            
+
             // Limpiar selección y cerrar modal
             clearSelection();
             setShowArchiveModal(false);
@@ -816,16 +816,16 @@ const AppContent: React.FC = () => {
             alert('Permiso denegado.');
             return;
         }
-        
+
         // Cerrar cualquier modal abierto al cambiar de vista
         if (selectedPedido) {
             console.log('🔄 [APP] Cambiando de vista - cerrando modal abierto');
             setSelectedPedido(null);
         }
-        
+
         setView(newView);
     }
-    
+
     const handleExportPDF = () => {
         const pedidosToExport = view === 'list' ? activePedidos : (view === 'archived' ? archivedPedidos : []);
         if (pedidosToExport.length > 0) {
@@ -834,11 +834,11 @@ const AppContent: React.FC = () => {
             alert("No hay pedidos para exportar en la vista actual.");
         }
     };
-    
+
     const doExportData = async () => {
         await handleExportData(pedidos);
     }
-    
+
     const doImportData = () => {
         setShowImportModal(true);
     }
@@ -935,7 +935,7 @@ const AppContent: React.FC = () => {
 
                         <section>
                             <h2 className="text-3xl font-extrabold text-gray-800 dark:text-white mb-4 border-l-4 border-indigo-500 pl-4">Post-Impresión</h2>
-                            
+
                             {/* Primera fila: 5 etapas (Laminación SL2, Laminación NEXUS, Rebobinado S2DT, Rebobinado PROSLIT, Rebobinado TEMAC) */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-6">
                                 {KANBAN_FUNNELS.POST_IMPRESION.stages.slice(0, 5).map(etapaId => (
@@ -997,42 +997,42 @@ const AppContent: React.FC = () => {
                     </main>
                 );
             case 'list':
-                return <PedidoList 
-                            pedidos={activePedidos} 
-                            onSelectPedido={setSelectedPedido}
-                            onArchiveToggle={handleArchiveToggle}
-                            isArchivedView={false}
-                            currentUserRole={currentUserRole}
-                            onAdvanceStage={handleAdvanceStage}
-                            sortConfig={sortConfig}
-                            onSort={handleSort}
-                            highlightedPedidoId={highlightedPedidoId}
-                            selectedIds={selectedIds}
-                            onToggleSelection={toggleSelection}
-                            onSelectAll={selectAll}
-                        />;
+                return <PedidoList
+                    pedidos={activePedidos}
+                    onSelectPedido={setSelectedPedido}
+                    onArchiveToggle={handleArchiveToggle}
+                    isArchivedView={false}
+                    currentUserRole={currentUserRole}
+                    onAdvanceStage={handleAdvanceStage}
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                    highlightedPedidoId={highlightedPedidoId}
+                    selectedIds={selectedIds}
+                    onToggleSelection={toggleSelection}
+                    onSelectAll={selectAll}
+                />;
             case 'archived':
-                return <PedidoList 
-                            pedidos={archivedPedidos}
-                            onSelectPedido={setSelectedPedido}
-                            onArchiveToggle={handleArchiveToggle}
-                            isArchivedView={true}
-                            currentUserRole={currentUserRole}
-                            onAdvanceStage={handleAdvanceStage}
-                            sortConfig={sortConfig}
-                            onSort={handleSort}
-                            highlightedPedidoId={highlightedPedidoId}
-                            selectedIds={selectedIds}
-                            onToggleSelection={toggleSelection}
-                            onSelectAll={selectAll}
-                        />;
+                return <PedidoList
+                    pedidos={archivedPedidos}
+                    onSelectPedido={setSelectedPedido}
+                    onArchiveToggle={handleArchiveToggle}
+                    isArchivedView={true}
+                    currentUserRole={currentUserRole}
+                    onAdvanceStage={handleAdvanceStage}
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                    highlightedPedidoId={highlightedPedidoId}
+                    selectedIds={selectedIds}
+                    onToggleSelection={toggleSelection}
+                    onSelectAll={selectAll}
+                />;
             case 'report':
-                    if (currentUserRole !== 'Administrador') {
+                if (currentUserRole !== 'Administrador') {
                     return <div className="p-8 text-center text-red-500">Acceso denegado.</div>;
-                    }
-                return <ReportView 
-                    pedidos={pedidos} 
-                    auditLog={auditLog} 
+                }
+                return <ReportView
+                    pedidos={pedidos}
+                    auditLog={auditLog}
                     onNavigateToPedido={navigateToPedido}
                     onSelectPedido={setSelectedPedido}
                     selectedIds={selectedIds}
@@ -1052,12 +1052,12 @@ const AppContent: React.FC = () => {
         <DragDropContext onDragEnd={handleDragEnd}>
             {/* Banner de actualización */}
             {updateAvailable && (
-                <UpdateBanner 
+                <UpdateBanner
                     onRefresh={forceRefresh}
                     newVersion={newVersion}
                 />
             )}
-            
+
             <div className="min-h-screen text-gray-900 dark:text-white flex flex-col">
                 <Header
                     searchTerm={searchTerm}
@@ -1147,8 +1147,8 @@ const AppContent: React.FC = () => {
                                 {duplicatingMessage}
                             </h3>
                             <p className="text-gray-600 dark:text-gray-300">
-                                {duplicatingMessage === 'Duplicando pedido...' 
-                                    ? 'Por favor espere mientras se procesa la duplicación' 
+                                {duplicatingMessage === 'Duplicando pedido...'
+                                    ? 'Por favor espere mientras se procesa la duplicación'
                                     : 'Se está preparando para mostrar el nuevo pedido'
                                 }
                             </p>
@@ -1162,10 +1162,10 @@ const AppContent: React.FC = () => {
                     pedido={antivahoModalState.pedido}
                 />
                 <ThemeSwitcher theme={theme} toggleTheme={toggleTheme} />
-                
+
                 {/* 🎉 Toast Notifications */}
                 <ToastContainer messages={toastMessages} onClose={removeToast} />
-                
+
                 {/* 🚀 WebSocket Components */}
                 <NotificationCenter
                     notifications={notifications}
@@ -1193,7 +1193,7 @@ const AppContent: React.FC = () => {
                     onArchive={() => setShowArchiveModal(true)}
                     onCancel={clearSelection}
                 />
-                
+
                 <DeleteConfirmationModal
                     isOpen={showDeleteModal}
                     pedidos={pedidos.filter(p => selectedIds.includes(p.id))}
