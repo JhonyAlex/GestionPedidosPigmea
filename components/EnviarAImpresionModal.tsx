@@ -14,18 +14,30 @@ interface EnviarAImpresionModalProps {
 }
 
 const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, onClose, onConfirm }) => {
-    // Si el pedido es anónimo, pre-seleccionar IMPRESION_ANON, de lo contrario usar la primera etapa
-    const etapaInicialDefault = pedido.anonimo ? 'IMPRESION_ANON' as Etapa : KANBAN_FUNNELS.IMPRESION.stages[0];
-    const [impresionEtapa, setImpresionEtapa] = useState<Etapa>(etapaInicialDefault);
+    const getInitialStage = (): Etapa => {
+        if (pedido.anonimo) return 'IMPRESION_ANON' as Etapa;
+
+        if (pedido.maquinaImpresion) {
+            const matchingStage = KANBAN_FUNNELS.IMPRESION.stages.find(
+                stage => ETAPAS[stage].title === pedido.maquinaImpresion
+            );
+            if (matchingStage) return matchingStage;
+        }
+
+        return KANBAN_FUNNELS.IMPRESION.stages[0];
+    };
+
+    // Si el pedido es anónimo, pre-seleccionar IMPRESION_ANON, de lo contrario usar la máquina asignada o la primera etapa
+    const [impresionEtapa, setImpresionEtapa] = useState<Etapa>(getInitialStage());
     const [postImpresionSequence, setPostImpresionSequence] = useState<Etapa[]>(pedido.secuenciaTrabajo || []);
-    
+
     // Determinar si es una reconfirmación de antivaho
-    const isAntivahoReconfirmation = pedido.antivaho && !pedido.antivahoRealizado && 
-                                     KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual);
+    const isAntivahoReconfirmation = pedido.antivaho && !pedido.antivahoRealizado &&
+        KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         // Si el pedido tiene antivaho y está en preparación, enviar directamente a post-impresión
         if (pedido.antivaho && pedido.etapaActual === 'PREPARACION' && postImpresionSequence.length > 0) {
             onConfirm(pedido, postImpresionSequence[0], postImpresionSequence.slice(1));
@@ -35,9 +47,9 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
     };
 
     return (
-         <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50">
             <div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg shadow-2xl p-8 w-full max-w-2xl">
-                 <div className="flex justify-between items-center mb-4">
+                <div className="flex justify-between items-center mb-4">
                     <h2 className="text-2xl font-bold">
                         {isAntivahoReconfirmation ? 'Reconfirmación de Antivaho' : 'Enviar a Impresión'}
                     </h2>
@@ -47,10 +59,10 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
                     {isAntivahoReconfirmation
                         ? `El pedido ${pedido.numeroPedidoCliente} tiene antivaho activado. Seleccione la nueva etapa de destino y configure la secuencia.`
                         : pedido.antivaho && pedido.etapaActual === 'PREPARACION'
-                        ? `Este pedido tiene antivaho activado y será enviado directamente a post-impresión. Configure la secuencia para el pedido ${pedido.numeroPedidoCliente}.`
-                        : pedido.anonimo
-                        ? `Este pedido está marcado como anónimo. Se ha pre-seleccionado la máquina de impresión anónima (ANON) para el pedido ${pedido.numeroPedidoCliente}.`
-                        : `Configura la etapa inicial de impresión y la secuencia de post-impresión para el pedido ${pedido.numeroPedidoCliente}.`
+                            ? `Este pedido tiene antivaho activado y será enviado directamente a post-impresión. Configure la secuencia para el pedido ${pedido.numeroPedidoCliente}.`
+                            : pedido.anonimo
+                                ? `Este pedido está marcado como anónimo. Se ha pre-seleccionado la máquina de impresión anónima (ANON) para el pedido ${pedido.numeroPedidoCliente}.`
+                                : `Configura la etapa inicial de impresión y la secuencia de post-impresión para el pedido ${pedido.numeroPedidoCliente}.`
                     }
                 </p>
 
@@ -103,9 +115,9 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
                                     {isAntivahoReconfirmation ? 'Etapa de Destino' : 'Máquina de Impresión (Etapa Inicial)'}
                                 </label>
-                                 <select 
-                                    value={impresionEtapa} 
-                                    onChange={(e) => setImpresionEtapa(e.target.value as Etapa)} 
+                                <select
+                                    value={impresionEtapa}
+                                    onChange={(e) => setImpresionEtapa(e.target.value as Etapa)}
                                     className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
                                     required
                                 >
@@ -128,15 +140,15 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
                                 </select>
                             </div>
                         )}
-                        
+
                         <div>
                             <h3 className="text-lg font-semibold mb-2">
                                 {pedido.antivaho ? 'Secuencia de Post-Impresión (Antivaho)' : 'Secuencia de Post-Impresión'}
                             </h3>
-                            <SequenceBuilder 
-                                sequence={postImpresionSequence} 
-                                onChange={setPostImpresionSequence} 
-                                isReadOnly={false} 
+                            <SequenceBuilder
+                                sequence={postImpresionSequence}
+                                onChange={setPostImpresionSequence}
+                                isReadOnly={false}
                             />
                             {pedido.antivaho && postImpresionSequence.length === 0 && (
                                 <p className="text-red-600 dark:text-red-400 text-sm mt-2">
@@ -145,21 +157,21 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
                             )}
                         </div>
                     </div>
-                    
+
                     <div className="mt-8 flex justify-end gap-4">
                         <button type="button" onClick={onClose} className="bg-gray-500 hover:bg-gray-400 text-white dark:bg-gray-600 dark:hover:bg-gray-500 font-bold py-2 px-4 rounded transition-colors duration-200">
                             Cancelar
                         </button>
-                        <button 
-                            type="submit" 
+                        <button
+                            type="submit"
                             className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={pedido.antivaho && pedido.etapaActual === 'PREPARACION' && postImpresionSequence.length === 0}
                         >
-                            {isAntivahoReconfirmation 
-                                ? "Confirmar Cambio (Antivaho Realizado)" 
+                            {isAntivahoReconfirmation
+                                ? "Confirmar Cambio (Antivaho Realizado)"
                                 : pedido.antivaho && pedido.etapaActual === 'PREPARACION'
-                                ? "Confirmar y Enviar a Post-Impresión" 
-                                : "Confirmar y Enviar"
+                                    ? "Confirmar y Enviar a Post-Impresión"
+                                    : "Confirmar y Enviar"
                             }
                         </button>
                     </div>
