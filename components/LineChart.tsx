@@ -33,8 +33,13 @@ const LineChart: React.FC<LineChartProps> = ({ data }) => {
         Math.round(minValue + (range / yAxisSteps) * i)
     );
 
+    // Determinar cuántas etiquetas mostrar según la cantidad de datos
+    const totalLabels = data.labels.length;
+    const maxLabelsToShow = 15; // Máximo de etiquetas antes de empezar a reducir
+    const labelInterval = totalLabels > maxLabelsToShow ? Math.ceil(totalLabels / maxLabelsToShow) : 1;
+
     return (
-        <div className="w-full h-full flex flex-col p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+        <div className="w-full h-full flex flex-col p-4 pb-8 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
             {/* Legend */}
             <div className="flex justify-center gap-4 mb-4 text-xs text-gray-600 dark:text-gray-300">
                 {data.datasets.map((dataset, index) => (
@@ -88,10 +93,24 @@ const LineChart: React.FC<LineChartProps> = ({ data }) => {
                     </svg>
 
                     {/* X-Axis Labels */}
-                    <div className="absolute bottom-0 w-full flex justify-between text-[10px] text-gray-500 dark:text-gray-400">
-                        {data.labels.map((label, index) => (
-                            <span key={index} className="transform -rotate-45 whitespace-nowrap">{label}</span>
-                        ))}
+                    <div className="absolute -bottom-6 w-full flex justify-between text-[9px] text-gray-500 dark:text-gray-400">
+                        {data.labels.map((label, index) => {
+                            // Mostrar solo cada N etiquetas para evitar desbordamiento
+                            const shouldShow = index % labelInterval === 0 || index === totalLabels - 1;
+                            return (
+                                <span 
+                                    key={index} 
+                                    className={`transform -rotate-45 whitespace-nowrap origin-top-left ${
+                                        shouldShow ? 'opacity-100' : 'opacity-0'
+                                    }`}
+                                    style={{ 
+                                        fontSize: totalLabels > 20 ? '7px' : totalLabels > 10 ? '8px' : '9px'
+                                    }}
+                                >
+                                    {label}
+                                </span>
+                            );
+                        })}
                     </div>
                 </div>
             </div>

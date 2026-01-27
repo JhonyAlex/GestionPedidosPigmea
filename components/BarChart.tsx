@@ -31,7 +31,7 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
     );
 
     return (
-        <div className="w-full h-full flex flex-col p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+        <div className="w-full h-full flex flex-col p-4 pb-12 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
             {/* Legend */}
             <div className="flex justify-center gap-4 mb-4 text-xs text-gray-600 dark:text-gray-300">
                 {data.datasets.map((dataset, index) => (
@@ -76,7 +76,12 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
                                     );
                                 })}
                             </div>
-                            <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 transform -rotate-45 whitespace-nowrap">{label}</span>
+                            <span 
+                                className="text-[8px] text-gray-500 dark:text-gray-400 mt-2 transform -rotate-45 whitespace-nowrap origin-top-left max-w-[60px] overflow-hidden text-ellipsis"
+                                title={label}
+                            >
+                                {label}
+                            </span>
                         </div>
                     ))}
                 </div>
