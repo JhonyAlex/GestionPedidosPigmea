@@ -265,7 +265,7 @@ const Header: React.FC<HeaderProps> = ({
                 {/* Primera fila: Logo + Navegación Principal */}
                 <div className="flex items-center justify-between gap-4 mb-3">
                     <div className="flex items-center gap-3">
-                        <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Planning Pigmea</h1>
+                        <img src="/logo.png" alt="Planning Pigmea" className="h-10 md:h-12 w-auto" />
                         <UserInfo />
                     </div>
 
