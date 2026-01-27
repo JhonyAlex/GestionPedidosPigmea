@@ -91,7 +91,7 @@ const InfoTooltip: React.FC<InfoTooltipProps> = ({
             {/* Tooltip */}
             {isVisible && (
                 <div 
-                    className={`absolute z-50 ${positionClasses[position]} animate-fade-in`}
+                    className={`absolute z-[9999] ${positionClasses[position]} animate-fade-in`}
                     style={{ width: 'max-content', maxWidth: '300px' }}
                 >
                     <div className="bg-gray-800 dark:bg-gray-700 text-white text-xs rounded-lg shadow-lg p-3 border border-gray-700 dark:border-gray-600">
