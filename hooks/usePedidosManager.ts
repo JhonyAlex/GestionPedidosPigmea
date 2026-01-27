@@ -21,12 +21,12 @@ export const usePedidosManager = (
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [antivahoModalState, setAntivahoModalState] = useState<{ isOpen: boolean; pedido: Pedido | null; toEtapa: Etapa | null }>({ isOpen: false, pedido: null, toEtapa: null });
-    
+
     // 🚀 Estados para paginación
     const [currentPage, setCurrentPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [totalPedidos, setTotalPedidos] = useState(0);
-    
+
     // ✅ Set para trackear IDs de pedidos que están siendo creados localmente
     const [creatingPedidoIds] = useState<Set<string>>(new Set());
 
@@ -36,7 +36,7 @@ export const usePedidosManager = (
             setIsLoading(true);
             const startTime = Date.now();
             const timestamp = new Date().toISOString();
-            
+
             console.log(`📊 [${timestamp}] Iniciando carga de pedidos (página ${page})...`);
 
             if (USE_PAGINATION && 'getPaginated' in store) {
@@ -73,11 +73,11 @@ export const usePedidosManager = (
                 // Modo legacy: cargar todo
                 const currentPedidos = await store.getAll();
                 const loadTime = Date.now() - startTime;
-                
+
                 setPedidos(currentPedidos);
                 setTotalPedidos(currentPedidos.length);
                 setHasMore(false);
-                
+
                 console.log(`✅ [${new Date().toISOString()}] Pedidos cargados (modo legacy):`);
                 console.log(`   - Total: ${currentPedidos.length} pedidos`);
                 console.log(`   - Tiempo de carga: ${loadTime}ms`);
@@ -102,7 +102,7 @@ export const usePedidosManager = (
         if (subscribeToPedidoCreated) {
             const unsubscribeCreated = subscribeToPedidoCreated((newPedido: Pedido) => {
                 console.log('🔄 Sincronizando nuevo pedido desde WebSocket:', newPedido.numeroPedidoCliente, 'ID:', newPedido.id);
-                
+
                 // Verificar si este pedido está siendo creado localmente
                 if (creatingPedidoIds.has(newPedido.id)) {
                     console.log('⚠️ Pedido en proceso de creación local, omitiendo evento WebSocket:', newPedido.numeroPedidoCliente);
@@ -112,7 +112,7 @@ export const usePedidosManager = (
                     }, 1000);
                     return;
                 }
-                
+
                 setPedidos(current => {
                     // Verificar si el pedido ya existe para evitar duplicados
                     const exists = current.some(p => p.id === newPedido.id);
@@ -131,7 +131,7 @@ export const usePedidosManager = (
         if (subscribeToPedidoUpdated) {
             const unsubscribeUpdated = subscribeToPedidoUpdated((updatedPedido: Pedido) => {
                 console.log('🔄 Sincronizando pedido actualizado:', updatedPedido.numeroPedidoCliente);
-                setPedidos(current => 
+                setPedidos(current =>
                     current.map(p => p.id === updatedPedido.id ? updatedPedido : p)
                 );
             });
@@ -141,7 +141,7 @@ export const usePedidosManager = (
         if (subscribeToPedidoDeleted) {
             const unsubscribeDeleted = subscribeToPedidoDeleted((deletedPedidoId: string) => {
                 console.log('🔄 Sincronizando pedido eliminado:', deletedPedidoId);
-                setPedidos(current => 
+                setPedidos(current =>
                     current.filter(p => p.id !== deletedPedidoId)
                 );
             });
@@ -172,10 +172,10 @@ export const usePedidosManager = (
         // ✅ ACTUALIZADO: Solo aplicar cambios automáticos si NO está en "SIN GESTION INICIADA"
         // Si está en "SIN GESTION INICIADA", el usuario tiene control total y el pedido NO se mueve automáticamente
         const isGestionNoIniciada = modifiedPedido.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA;
-        
+
         if (modifiedPedido.etapaActual === Etapa.PREPARACION && !isGestionNoIniciada) {
             // Solo preguntar si NO está en "SIN GESTION INICIADA" y ambos están disponibles
-            const shouldAskForConfirmation = 
+            const shouldAskForConfirmation =
                 modifiedPedido.subEtapaActual !== PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION &&
                 modifiedPedido.materialDisponible === true &&
                 modifiedPedido.clicheDisponible === true;
@@ -186,7 +186,7 @@ export const usePedidosManager = (
                     'Ambos requisitos están disponibles. ¿Desea mover el pedido a "Listo para Producción"?\n\n' +
                     'Si selecciona "Cancelar", el pedido se guardará pero permanecerá en su posición actual.'
                 );
-                
+
                 if (!confirmed) {
                     // Usuario rechazó - mantener posición actual sin recalcular
                     modifiedPedido.subEtapaActual = originalPedidoCopy.subEtapaActual;
@@ -202,16 +202,16 @@ export const usePedidosManager = (
             // Si está en "SIN GESTION INICIADA", mantener ahí sin importar el estado del material/cliché
             modifiedPedido.subEtapaActual = PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA;
         }
-        
+
         if (generateHistory) {
             const newHistoryEntries: HistorialEntry[] = [];
             const fieldsToCompare: Array<keyof Pedido> = [
                 // Información básica
-                'numeroPedidoCliente', 'cliente', 'clienteId', 'metros', 'fechaEntrega', 'nuevaFechaEntrega', 'fechaFinalizacion', 'prioridad', 
+                'numeroPedidoCliente', 'cliente', 'clienteId', 'metros', 'fechaEntrega', 'nuevaFechaEntrega', 'fechaFinalizacion', 'prioridad',
                 'maquinaImpresion', 'orden', 'vendedorId', 'vendedorNombre',
                 // Información de producción
                 'tipoImpresion', 'desarrollo', 'capa', 'tiempoProduccionDecimal', 'tiempoProduccionPlanificado', 'tiempoTotalProduccion',
-                'observaciones', 
+                'observaciones',
                 // Secuencia y etapas
                 'secuenciaTrabajo', 'subEtapaActual', 'etapasSecuencia',
                 // Datos de preparación
@@ -236,33 +236,33 @@ export const usePedidosManager = (
                 for (let i = 0; i < maxLength; i++) {
                     const originalItem = originalArray[i] || {};
                     const modifiedItem = modifiedArray[i] || {};
-                    
+
                     // Verificar cada campo del objeto
-                    const fieldsToCheck = arrayName === 'materialCapas' 
-                        ? ['micras', 'densidad'] 
+                    const fieldsToCheck = arrayName === 'materialCapas'
+                        ? ['micras', 'densidad']
                         : ['necesario', 'recibido', 'gestionado', 'micras', 'densidad'];
-                    
+
                     fieldsToCheck.forEach(field => {
                         const originalValue = originalItem[field];
                         const modifiedValue = modifiedItem[field];
-                        
+
                         if (JSON.stringify(originalValue) !== JSON.stringify(modifiedValue)) {
                             const itemType = arrayName === 'materialCapas' ? 'Lámina' : 'Material';
-                            const fieldDisplayName = field === 'micras' ? 'Micras' 
+                            const fieldDisplayName = field === 'micras' ? 'Micras'
                                 : field === 'densidad' ? 'Densidad'
-                                : field === 'necesario' ? 'Necesario' 
-                                : field === 'recibido' ? 'Recibido'
-                                : field === 'gestionado' ? 'Gestionado'
-                                : field;
-                            
+                                    : field === 'necesario' ? 'Necesario'
+                                        : field === 'recibido' ? 'Recibido'
+                                            : field === 'gestionado' ? 'Gestionado'
+                                                : field;
+
                             const formatNestedValue = (val: any) => {
                                 if (val === null || val === undefined || val === '') return 'N/A';
                                 return val.toString();
                             };
-                            
+
                             newHistoryEntries.push(generarEntradaHistorial(
-                                currentUserRole, 
-                                `${itemType} ${i + 1} - ${fieldDisplayName}`, 
+                                currentUserRole,
+                                `${itemType} ${i + 1} - ${fieldDisplayName}`,
                                 `Cambiado de '${formatNestedValue(originalValue)}' a '${formatNestedValue(modifiedValue)}'.`
                             ));
                             hasChanges = true;
@@ -287,21 +287,21 @@ export const usePedidosManager = (
                 for (let i = 0; i < maxLength; i++) {
                     const originalValue = originalArray[i] || '';
                     const modifiedValue = modifiedArray[i] || '';
-                    
+
                     if (originalValue !== modifiedValue) {
-                        const action = !originalValue ? 'agregado' 
-                            : !modifiedValue ? 'eliminado' 
-                            : 'modificado';
-                        
-                        const details = !originalValue 
+                        const action = !originalValue ? 'agregado'
+                            : !modifiedValue ? 'eliminado'
+                                : 'modificado';
+
+                        const details = !originalValue
                             ? `Nº Compra #${i + 1} agregado: '${modifiedValue}'`
-                            : !modifiedValue 
-                            ? `Nº Compra #${i + 1} eliminado: '${originalValue}'`
-                            : `Nº Compra #${i + 1} cambiado de '${originalValue}' a '${modifiedValue}'`;
-                        
+                            : !modifiedValue
+                                ? `Nº Compra #${i + 1} eliminado: '${originalValue}'`
+                                : `Nº Compra #${i + 1} cambiado de '${originalValue}' a '${modifiedValue}'`;
+
                         newHistoryEntries.push(generarEntradaHistorial(
-                            currentUserRole, 
-                            `Nº Compra #${i + 1}`, 
+                            currentUserRole,
+                            `Nº Compra #${i + 1}`,
                             details
                         ));
                         hasChanges = true;
@@ -315,20 +315,20 @@ export const usePedidosManager = (
 
             // Comparar campos principales
             fieldsToCompare.forEach(key => {
-                 if (JSON.stringify(originalPedidoCopy[key]) !== JSON.stringify(modifiedPedido[key])) {
+                if (JSON.stringify(originalPedidoCopy[key]) !== JSON.stringify(modifiedPedido[key])) {
                     const formatValue = (val: any, fieldName: string) => {
                         if (val === true) return 'Sí';
                         if (val === false) return 'No';
                         if (val === null || val === undefined) return 'N/A';
-                        
+
                         // Manejar arrays de objetos específicamente para materialCapas y materialConsumo
                         if (Array.isArray(val)) {
                             if (fieldName.includes('materialCapas')) {
-                                return val.map((item, idx) => 
+                                return val.map((item, idx) =>
                                     `Lámina ${idx + 1}: ${item.micras || 'N/A'} micras, ${item.densidad || 'N/A'} densidad`
                                 ).join('; ') || 'Vacía';
                             } else if (fieldName.includes('materialConsumo')) {
-                                return val.map((item, idx) => 
+                                return val.map((item, idx) =>
                                     `Material ${idx + 1}: ${item.necesario || 'N/A'} necesario, ${item.recibido ? 'Recibido' : 'Pendiente'}, ${item.gestionado ? 'Gestionado' : 'No gestionado'}`
                                 ).join('; ') || 'Vacía';
                             } else if (fieldName === 'etapasSecuencia') {
@@ -337,10 +337,10 @@ export const usePedidosManager = (
                                 return val.join(', ') || 'Vacía';
                             }
                         }
-                        
+
                         return val.toString();
                     };
-                    
+
                     newHistoryEntries.push(generarEntradaHistorial(currentUserRole, `Campo Actualizado: ${key}`, `Cambiado de '${formatValue(originalPedidoCopy[key], key)}' a '${formatValue(modifiedPedido[key], key)}'.`));
                 }
             });
@@ -350,16 +350,16 @@ export const usePedidosManager = (
                 const formatValue = (val: any) => {
                     if (val === null || val === undefined) return 'N/A';
                     if (Array.isArray(val)) {
-                        return val.map((item, idx) => 
+                        return val.map((item, idx) =>
                             `Lámina ${idx + 1}: ${item.micras || 'N/A'} micras, ${item.densidad || 'N/A'} densidad`
                         ).join('; ') || 'Vacía';
                     }
                     return val.toString();
                 };
-                
+
                 newHistoryEntries.push(generarEntradaHistorial(
-                    currentUserRole, 
-                    'Campo Actualizado: materialCapas', 
+                    currentUserRole,
+                    'Campo Actualizado: materialCapas',
                     `Cambiado de '${formatValue(originalPedidoCopy.materialCapas)}' a '${formatValue(modifiedPedido.materialCapas)}'.`
                 ));
             }
@@ -368,16 +368,16 @@ export const usePedidosManager = (
                 const formatValue = (val: any) => {
                     if (val === null || val === undefined) return 'N/A';
                     if (Array.isArray(val)) {
-                        return val.map((item, idx) => 
+                        return val.map((item, idx) =>
                             `Material ${idx + 1}: ${item.necesario || 'N/A'} necesario, ${item.recibido ? 'Recibido' : 'Pendiente'}, ${item.gestionado ? 'Gestionado' : 'No gestionado'}`
                         ).join('; ') || 'Vacía';
                     }
                     return val.toString();
                 };
-                
+
                 newHistoryEntries.push(generarEntradaHistorial(
-                    currentUserRole, 
-                    'Campo Actualizado: materialConsumo', 
+                    currentUserRole,
+                    'Campo Actualizado: materialConsumo',
                     `Cambiado de '${formatValue(originalPedidoCopy.materialConsumo)}' a '${formatValue(modifiedPedido.materialConsumo)}'.`
                 ));
             }
@@ -391,22 +391,22 @@ export const usePedidosManager = (
                     }
                     return val.toString();
                 };
-                
+
                 newHistoryEntries.push(generarEntradaHistorial(
-                    currentUserRole, 
-                    'Campo Actualizado: numerosCompra', 
+                    currentUserRole,
+                    'Campo Actualizado: numerosCompra',
                     `Cambiado de '${formatValue(originalPedidoCopy.numerosCompra)}' a '${formatValue(modifiedPedido.numerosCompra)}'.`
                 ));
             }
-            
+
             if (originalPedidoCopy.etapaActual !== modifiedPedido.etapaActual) {
                 newHistoryEntries.push(generarEntradaHistorial(currentUserRole, 'Cambio de Etapa', `Movido de '${ETAPAS[originalPedidoCopy.etapaActual].title}' a '${ETAPAS[modifiedPedido.etapaActual].title}'.`));
-                
+
                 // ✅ Actualizar etapasSecuencia cuando cambia la etapa
                 const existingEtapaIndex = modifiedPedido.etapasSecuencia.findIndex(
                     e => e.etapa === modifiedPedido.etapaActual
                 );
-                
+
                 if (existingEtapaIndex === -1) {
                     // Si la etapa no existe en la secuencia, agregarla
                     modifiedPedido.etapasSecuencia = [
@@ -416,24 +416,24 @@ export const usePedidosManager = (
                 } else {
                     // Si ya existe, actualizar la fecha
                     modifiedPedido.etapasSecuencia = modifiedPedido.etapasSecuencia.map((e, idx) =>
-                        idx === existingEtapaIndex 
+                        idx === existingEtapaIndex
                             ? { ...e, fecha: new Date().toISOString() }
                             : e
                     );
                 }
-                
+
                 // ✅ Establecer fecha de finalización cuando el pedido pasa a COMPLETADO
                 if (modifiedPedido.etapaActual === Etapa.COMPLETADO && !modifiedPedido.fechaFinalizacion) {
                     modifiedPedido.fechaFinalizacion = new Date().toISOString();
                 }
             }
-            
+
             if (newHistoryEntries.length > 0) {
                 modifiedPedido.historial = [...(modifiedPedido.historial || []), ...newHistoryEntries];
             }
             hasChanges = newHistoryEntries.length > 0;
         } else {
-             hasChanges = JSON.stringify(originalPedidoCopy) !== JSON.stringify(modifiedPedido);
+            hasChanges = JSON.stringify(originalPedidoCopy) !== JSON.stringify(modifiedPedido);
         }
 
         // Actualización optimista primero
@@ -487,12 +487,12 @@ export const usePedidosManager = (
 
         const createdPedido = await store.create(newPedido);
         setPedidos(prev => [createdPedido, ...prev]);
-        
+
         // ✅ Remover del Set después de un pequeño delay para dar tiempo a que llegue el evento WebSocket
         setTimeout(() => {
             creatingPedidoIds.delete(newId);
         }, 2000); // 2 segundos debería ser suficiente
-        
+
         return createdPedido;
     };
 
@@ -501,19 +501,19 @@ export const usePedidosManager = (
             ...pedidoToUpdate,
             secuenciaTrabajo: postImpresionSequence,
         };
-        
+
         // Determinar si es una reconfirmación desde post-impresión
         const isReconfirmationFromPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedidoToUpdate.etapaActual);
-        
+
         // SOLO marcar antivahoRealizado en reconfirmaciones desde post-impresión
         // NO marcar cuando se envía por primera vez desde preparación
         if (pedidoToUpdate.antivaho && isReconfirmationFromPostImpresion) {
             updatedPedido.antivahoRealizado = true;
         }
-        
+
         // Use the centralized stage update handler
         await handleUpdatePedidoEtapa(updatedPedido, impresionEtapa);
-        
+
         // Find the latest version of the pedido after update
         const finalPedido = pedidos.find(p => p.id === pedidoToUpdate.id);
         return finalPedido || updatedPedido;
@@ -529,10 +529,10 @@ export const usePedidosManager = (
         const newEtapa = isArchived ? Etapa.COMPLETADO : Etapa.ARCHIVADO;
         const actionText = isArchived ? 'desarchivado' : 'archivado';
         const historialAction = isArchived ? 'Desarchivado' : 'Archivado';
-        
+
         const historialEntry = generarEntradaHistorial(currentUserRole, historialAction, `Pedido ${actionText}.`);
         const updatedPedidoData = { ...pedido, etapaActual: newEtapa, historial: [...pedido.historial, historialEntry] };
-        
+
         const updatedPedido = await store.update(updatedPedidoData);
         setPedidos(prev => prev.map(p => p.id === pedido.id ? updatedPedido : p));
         return { updatedPedido, actionText };
@@ -543,7 +543,7 @@ export const usePedidosManager = (
             alert('Permiso denegado: Solo los administradores pueden eliminar pedidos.');
             return;
         }
-        
+
         const pedidoToDelete = pedidos.find(p => p.id === pedidoId);
         if (!pedidoToDelete) return;
 
@@ -567,18 +567,18 @@ export const usePedidosManager = (
             alert('Permiso denegado: Solo los administradores pueden duplicar pedidos.');
             return;
         }
-    
+
         const now = new Date();
         const newId = now.getTime().toString();
         const numeroRegistro = `REG-${now.toISOString().slice(0, 19).replace(/[-:T]/g, '')}-${newId.slice(-4)}`;
         const initialStage = Etapa.PREPARACION;
         const maxOrder = Math.max(...pedidos.map(p => p.orden), 0);
-    
+
         // ✅ FIX CRÍTICO: Hacer una copia profunda (deep copy) para evitar referencias compartidas
         // El operador spread solo hace copia superficial, lo que causa que arrays como
         // materialConsumo, etapasSecuencia, historial, etc. se compartan entre pedidos duplicados
         const pedidoClonado = JSON.parse(JSON.stringify(pedidoToDuplicate));
-    
+
         const newPedido: Pedido = {
             ...pedidoClonado, // Ahora usamos la copia profunda
             id: newId,
@@ -587,28 +587,38 @@ export const usePedidosManager = (
             numeroRegistro: numeroRegistro,
             fechaCreacion: now.toISOString(),
             etapaActual: initialStage,
+            subEtapaActual: PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA, // ✅ Resetear sub-etapa a "Sin Gestión Iniciada"
             etapasSecuencia: [{ etapa: initialStage, fecha: now.toISOString() }],
             historial: [generarEntradaHistorial(currentUserRole, 'Creación', `Pedido duplicado desde ${pedidoToDuplicate.numeroPedidoCliente} (ID: ${pedidoToDuplicate.id}).`)],
             maquinaImpresion: '', // Reset machine
             fechaFinalizacion: undefined,
             tiempoTotalProduccion: undefined,
             antivahoRealizado: false, // Reset antivaho status
+            // ✅ CRÍTICO: Resetear campos de gestión de cliché y preparación
+            // Estos campos afectan directamente la clasificación en reportes (CALCULO_REPORTES.md)
+            horasConfirmadas: false, // ✅ Resetear horas confirmadas
+            compraCliche: undefined, // ✅ Limpiar fecha de compra de cliché
+            recepcionCliche: undefined, // ✅ Limpiar fecha de recepción de cliché
+            estadoCliché: pedidoClonado.estadoCliché, // ✅ Mantener estado de cliché original (NUEVO, REPETICIÓN, etc.)
+            clicheDisponible: false, // ✅ Resetear disponibilidad de cliché
+            materialDisponible: false, // ✅ Resetear disponibilidad de material
+            clicheInfoAdicional: undefined, // ✅ Limpiar información adicional de cliché
         };
-    
+
         // ✅ Marcar este ID como "en proceso de creación" ANTES de añadirlo localmente
         creatingPedidoIds.add(newId);
-    
+
         const createdPedido = await store.create(newPedido);
         setPedidos(prev => [createdPedido, ...prev]);
-        
+
         // ✅ Remover del Set después de un pequeño delay para dar tiempo a que llegue el evento WebSocket
         setTimeout(() => {
             creatingPedidoIds.delete(newId);
         }, 2000); // 2 segundos debería ser suficiente
-        
+
         return createdPedido;
     };
-    
+
     const handleExportData = async (pedidosToExport: Pedido[]) => {
         try {
             const jsonData = JSON.stringify(pedidosToExport, null, 2);
@@ -627,7 +637,7 @@ export const usePedidosManager = (
             alert("Error al exportar los datos.");
         }
     };
-    
+
     const handleImportData = (confirmCallback: (data: Pedido[]) => boolean) => {
         const input = document.createElement('input');
         input.type = 'file';
@@ -641,12 +651,12 @@ export const usePedidosManager = (
                 try {
                     const text = e.target?.result;
                     if (typeof text !== 'string') throw new Error("File content is not text.");
-                    
+
                     const importedPedidos: Pedido[] = JSON.parse(text);
                     if (!Array.isArray(importedPedidos) || !importedPedidos.every(p => p.id && p.numeroPedidoCliente)) {
                         throw new Error("Invalid JSON format. Expected an array of orders.");
                     }
-                    
+
                     if (confirmCallback(importedPedidos)) {
                         setIsLoading(true);
                         await store.clear();
@@ -732,17 +742,17 @@ export const usePedidosManager = (
         }
 
         const result = await handleSavePedido(updatedPedido);
-        
+
         // Después de actualizar el pedido, proceder con el cambio de etapa
         if (result?.modifiedPedido) {
             const finalUpdatedPedido = { ...result.modifiedPedido, etapaActual: antivahoModalState.toEtapa };
-            
+
             if (KANBAN_FUNNELS.IMPRESION.stages.includes(antivahoModalState.toEtapa)) {
                 finalUpdatedPedido.maquinaImpresion = ETAPAS[antivahoModalState.toEtapa]?.title;
             }
-            
+
             await handleSavePedido(finalUpdatedPedido);
-            
+
             // Si es una reconfirmación desde post-impresión, no abrir el modal de envío
             // Solo abrir el modal si se está enviando a impresión desde preparación
             if (!isReconfirmationFromPostImpresion && KANBAN_FUNNELS.IMPRESION.stages.includes(antivahoModalState.toEtapa)) {
@@ -769,35 +779,35 @@ export const usePedidosManager = (
     };
 
     return {
-      pedidos,
-      setPedidos,
-      isLoading,
-      setIsLoading,
-      handleSavePedido,
-      handleAddPedido,
-      handleConfirmSendToPrint,
-      handleArchiveToggle,
-      handleDuplicatePedido,
-      handleDeletePedido,
-      handleExportData,
-      handleImportData,
-      handleImportSelectedPedidos,
-      handleUpdatePedidoEtapa,
-      antivahoModalState,
-      handleConfirmAntivaho,
-      handleCancelAntivaho,
-      handleSetReadyForProduction,
-      // 🚀 Nuevas propiedades de paginación
-      currentPage,
-      hasMore,
-      totalPedidos,
-      loadMore: useCallback(() => {
-        if (!isLoading && hasMore && USE_PAGINATION) {
-          loadPedidos(currentPage + 1, true);
-        }
-      }, [currentPage, hasMore, isLoading, loadPedidos]),
-      reloadPedidos: useCallback(() => {
-        loadPedidos(1, false);
-      }, [loadPedidos]),
+        pedidos,
+        setPedidos,
+        isLoading,
+        setIsLoading,
+        handleSavePedido,
+        handleAddPedido,
+        handleConfirmSendToPrint,
+        handleArchiveToggle,
+        handleDuplicatePedido,
+        handleDeletePedido,
+        handleExportData,
+        handleImportData,
+        handleImportSelectedPedidos,
+        handleUpdatePedidoEtapa,
+        antivahoModalState,
+        handleConfirmAntivaho,
+        handleCancelAntivaho,
+        handleSetReadyForProduction,
+        // 🚀 Nuevas propiedades de paginación
+        currentPage,
+        hasMore,
+        totalPedidos,
+        loadMore: useCallback(() => {
+            if (!isLoading && hasMore && USE_PAGINATION) {
+                loadPedidos(currentPage + 1, true);
+            }
+        }, [currentPage, hasMore, isLoading, loadPedidos]),
+        reloadPedidos: useCallback(() => {
+            loadPedidos(1, false);
+        }, [loadPedidos]),
     };
 };
