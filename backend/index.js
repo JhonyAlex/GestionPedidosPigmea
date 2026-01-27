@@ -4693,7 +4693,7 @@ app.get('/api/analytics/summary', async (req, res) => {
 
         // Filtro de fechas
         if (dateFilter !== 'all' && startDate && endDate) {
-            filters.push(`${dateField} >= $${paramCount} AND ${dateField} <= $${paramCount + 1}`);
+            filters.push(`(data->>'${dateField}')::timestamp >= $${paramCount}::timestamp AND (data->>'${dateField}')::timestamp <= $${paramCount + 1}::timestamp`);
             params.push(startDate, endDate);
             paramCount += 2;
         }
@@ -4709,7 +4709,7 @@ app.get('/api/analytics/summary', async (req, res) => {
         // Filtro de máquinas
         if (machines && machines !== 'all') {
             const machinesArray = machines.split(',');
-            filters.push(`maquina_impresion = ANY($${paramCount})`);
+            filters.push(`data->>'maquinaImpresion' = ANY($${paramCount})`);
             params.push(machinesArray);
             paramCount++;
         }
@@ -4717,7 +4717,7 @@ app.get('/api/analytics/summary', async (req, res) => {
         // Filtro de vendedores
         if (vendors && vendors !== 'all') {
             const vendorsArray = vendors.split(',');
-            filters.push(`vendedor_nombre = ANY($${paramCount})`);
+            filters.push(`data->>'vendedorNombre' = ANY($${paramCount})`);
             params.push(vendorsArray);
             paramCount++;
         }
@@ -4725,14 +4725,14 @@ app.get('/api/analytics/summary', async (req, res) => {
         // Filtro de clientes
         if (clients && clients !== 'all') {
             const clientsArray = clients.split(',');
-            filters.push(`cliente = ANY($${paramCount})`);
+            filters.push(`data->>'cliente' = ANY($${paramCount})`);
             params.push(clientsArray);
             paramCount++;
         }
 
         // Filtro de prioridad
         if (priority && priority !== 'all') {
-            filters.push(`prioridad = $${paramCount}`);
+            filters.push(`data->>'prioridad' = $${paramCount}`);
             params.push(priority);
             paramCount++;
         }
@@ -4744,12 +4744,12 @@ app.get('/api/analytics/summary', async (req, res) => {
             SELECT 
                 COUNT(*) as total_pedidos,
                 COUNT(CASE WHEN etapa_actual = 'COMPLETADO' THEN 1 END) as pedidos_completados,
-                COALESCE(SUM(CAST(metros AS NUMERIC)), 0) as metros_totales,
-                COALESCE(AVG(CAST(metros AS NUMERIC)), 0) as metros_promedio,
-                COALESCE(SUM(tiempo_produccion_decimal), 0) as tiempo_total_horas,
-                COALESCE(AVG(tiempo_produccion_decimal), 0) as tiempo_promedio_horas,
-                COUNT(CASE WHEN prioridad = 'URGENTE' THEN 1 END) as pedidos_urgentes,
-                COUNT(CASE WHEN nueva_fecha_entrega < NOW() AND etapa_actual != 'COMPLETADO' AND etapa_actual != 'ARCHIVADO' THEN 1 END) as pedidos_atrasados
+                COALESCE(SUM((data->>'metros')::NUMERIC), 0) as metros_totales,
+                COALESCE(AVG((data->>'metros')::NUMERIC), 0) as metros_promedio,
+                COALESCE(SUM((data->>'tiempoProduccionDecimal')::NUMERIC), 0) as tiempo_total_horas,
+                COALESCE(AVG((data->>'tiempoProduccionDecimal')::NUMERIC), 0) as tiempo_promedio_horas,
+                COUNT(CASE WHEN data->>'prioridad' = 'Urgente' THEN 1 END) as pedidos_urgentes,
+                COUNT(CASE WHEN (data->>'nuevaFechaEntrega')::timestamp < NOW() AND etapa_actual != 'COMPLETADO' AND etapa_actual != 'ARCHIVADO' THEN 1 END) as pedidos_atrasados
             FROM pedidos
             ${whereClause}
         `;
@@ -4757,13 +4757,13 @@ app.get('/api/analytics/summary', async (req, res) => {
         // Query para metros por máquina
         const machineMetricsQuery = `
             SELECT 
-                maquina_impresion,
+                data->>'maquinaImpresion' as maquina_impresion,
                 COUNT(*) as total_pedidos,
-                COALESCE(SUM(CAST(metros AS NUMERIC)), 0) as metros_totales,
-                COALESCE(SUM(tiempo_produccion_decimal), 0) as tiempo_total_horas
+                COALESCE(SUM((data->>'metros')::NUMERIC), 0) as metros_totales,
+                COALESCE(SUM((data->>'tiempoProduccionDecimal')::NUMERIC), 0) as tiempo_total_horas
             FROM pedidos
             ${whereClause}
-            GROUP BY maquina_impresion
+            GROUP BY data->>'maquinaImpresion'
             ORDER BY metros_totales DESC
         `;
 
@@ -4772,8 +4772,8 @@ app.get('/api/analytics/summary', async (req, res) => {
             SELECT 
                 etapa_actual,
                 COUNT(*) as total_pedidos,
-                COALESCE(SUM(CAST(metros AS NUMERIC)), 0) as metros_totales,
-                COALESCE(SUM(tiempo_produccion_decimal), 0) as tiempo_total_horas
+                COALESCE(SUM((data->>'metros')::NUMERIC), 0) as metros_totales,
+                COALESCE(SUM((data->>'tiempoProduccionDecimal')::NUMERIC), 0) as tiempo_total_horas
             FROM pedidos
             ${whereClause}
             GROUP BY etapa_actual
@@ -4783,13 +4783,13 @@ app.get('/api/analytics/summary', async (req, res) => {
         // Query para ranking de vendedores (top 10)
         const vendorRankingQuery = `
             SELECT 
-                vendedor_nombre,
+                data->>'vendedorNombre' as vendedor_nombre,
                 COUNT(*) as total_pedidos,
-                COALESCE(SUM(CAST(metros AS NUMERIC)), 0) as metros_totales,
-                COALESCE(SUM(tiempo_produccion_decimal), 0) as tiempo_total_horas
+                COALESCE(SUM((data->>'metros')::NUMERIC), 0) as metros_totales,
+                COALESCE(SUM((data->>'tiempoProduccionDecimal')::NUMERIC), 0) as tiempo_total_horas
             FROM pedidos
             ${whereClause}
-            GROUP BY vendedor_nombre
+            GROUP BY data->>'vendedorNombre'
             ORDER BY metros_totales DESC
             LIMIT 20
         `;
@@ -4797,13 +4797,13 @@ app.get('/api/analytics/summary', async (req, res) => {
         // Query para ranking de clientes (top 10)
         const clientRankingQuery = `
             SELECT 
-                cliente,
+                data->>'cliente' as cliente,
                 COUNT(*) as total_pedidos,
-                COALESCE(SUM(CAST(metros AS NUMERIC)), 0) as metros_totales,
-                COALESCE(SUM(tiempo_produccion_decimal), 0) as tiempo_total_horas
+                COALESCE(SUM((data->>'metros')::NUMERIC), 0) as metros_totales,
+                COALESCE(SUM((data->>'tiempoProduccionDecimal')::NUMERIC), 0) as tiempo_total_horas
             FROM pedidos
             ${whereClause}
-            GROUP BY cliente
+            GROUP BY data->>'cliente'
             ORDER BY metros_totales DESC
             LIMIT 20
         `;
@@ -4811,13 +4811,13 @@ app.get('/api/analytics/summary', async (req, res) => {
         // Query para tendencia temporal (agrupado por día/semana según rango)
         const timeSeriesQuery = `
             SELECT 
-                DATE_TRUNC('day', ${dateField}::timestamp) as fecha,
+                DATE_TRUNC('day', (data->>'${dateField}')::timestamp) as fecha,
                 COUNT(*) as total_pedidos,
-                COALESCE(SUM(CAST(metros AS NUMERIC)), 0) as metros_totales,
-                COALESCE(SUM(tiempo_produccion_decimal), 0) as tiempo_total_horas
+                COALESCE(SUM((data->>'metros')::NUMERIC), 0) as metros_totales,
+                COALESCE(SUM((data->>'tiempoProduccionDecimal')::NUMERIC), 0) as tiempo_total_horas
             FROM pedidos
             ${whereClause}
-            GROUP BY DATE_TRUNC('day', ${dateField}::timestamp)
+            GROUP BY DATE_TRUNC('day', (data->>'${dateField}')::timestamp)
             ORDER BY fecha ASC
         `;
 
