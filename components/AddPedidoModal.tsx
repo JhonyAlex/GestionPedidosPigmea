@@ -668,6 +668,24 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                                 </div>
                                             </div>
 
+                                            {/* Tercera fila: Atención Observaciones - Ocupa todo el ancho */}
+                                            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                                                <div className="flex items-center">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        id="atencionObservaciones" 
+                                                        name="atencionObservaciones" 
+                                                        checked={formData.atencionObservaciones} 
+                                                        onChange={handleChange} 
+                                                        className="h-5 w-5 rounded border-gray-300 text-pink-600 focus:ring-pink-500" 
+                                                    />
+                                                    <label htmlFor="atencionObservaciones" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                        Atención Observaciones
+                                                        <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">(Marca el pedido con indicador rosa y fondo rojo suave)</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+
                                             {/* Select de Post-Impresión para Anónimos */}
                                             {formData.anonimo && (
                                                 <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-400 dark:border-yellow-600 rounded-lg">

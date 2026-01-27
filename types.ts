@@ -100,6 +100,7 @@ export interface Pedido {
     macroperforado?: boolean;
     anonimo?: boolean;
     anonimoPostImpresion?: string; // Opción de post-impresión para pedidos anónimos
+    atencionObservaciones?: boolean; // Marca pedidos que requieren atención especial en observaciones
 
     /** El nombre o código del producto final. */
     producto?: string | null;
@@ -110,8 +111,8 @@ export interface Pedido {
     /** El número de consumibles o materiales adicionales necesarios. */
     materialConsumoCantidad?: 1 | 2 | 3 | 4 | null;
     /** Un array que detalla el consumo de materiales, incluyendo micras y densidad. */
-    materialConsumo?: Array<{ 
-        necesario?: number | null; 
+    materialConsumo?: Array<{
+        necesario?: number | null;
         recibido?: boolean | null;
         gestionado?: boolean | null;  // Estado de gestión (pedido al proveedor)
         micras?: number | null;
@@ -193,7 +194,7 @@ export interface RolePermissions {
     permissions: Permission[];
 }
 
-export type PermissionCategory = 
+export type PermissionCategory =
     | 'vistas'
     | 'administracion';
 

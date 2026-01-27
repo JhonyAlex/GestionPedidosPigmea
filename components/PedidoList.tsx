@@ -155,7 +155,7 @@ const PedidoRow: React.FC<{
             {...provided.draggableProps}
             {...provided.dragHandleProps}
             onClick={() => onSelectPedido(pedido)}
-            className={`hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''}`}
+            className={`${pedido.atencionObservaciones ? 'bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-950/30' : 'hover:bg-gray-50 dark:hover:bg-gray-700'} cursor-pointer ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''}`}
         >
             {onToggleSelection && (
                 <td className="px-2 py-2 w-10 text-center" onClick={(e) => e.stopPropagation()}>

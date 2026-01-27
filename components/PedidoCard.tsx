@@ -555,7 +555,7 @@ const PedidoCard = React.memo<PedidoCardProps>(({
             onClick={handleCardClick}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className={`bg-white dark:bg-gray-900 rounded-lg p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 border-l-4 ${priorityColor} shadow-md ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''} ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-gray-800' : ''} relative`}>
+            className={`${pedido.atencionObservaciones ? 'bg-red-50 dark:bg-red-950/20' : 'bg-white dark:bg-gray-900'} rounded-lg p-3 cursor-pointer ${pedido.atencionObservaciones ? 'hover:bg-red-100 dark:hover:bg-red-950/30' : 'hover:bg-gray-100 dark:hover:bg-gray-700'} border-l-4 ${priorityColor} shadow-md ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''} ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-gray-800' : ''} relative`}>
             
             {/* Checkbox de selección */}
             {onToggleSelection && (
