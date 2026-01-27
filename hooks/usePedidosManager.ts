@@ -215,7 +215,7 @@ export const usePedidosManager = (
                 // Secuencia y etapas
                 'secuenciaTrabajo', 'subEtapaActual', 'etapasSecuencia',
                 // Datos de preparación
-                'materialDisponible', 'clicheDisponible', 'estadoCliché', 'clicheInfoAdicional', 'compraCliche', 'recepcionCliche', 'camisa', 'antivaho', 'antivahoRealizado', 'anonimo', 'anonimoPostImpresion',
+                'materialDisponible', 'clicheDisponible', 'estadoCliché', 'clicheInfoAdicional', 'compraCliche', 'recepcionCliche', 'camisa', 'antivaho', 'antivahoRealizado', 'anonimo', 'anonimoPostImpresion', 'atencionObservaciones',
                 // Datos técnicos de material (excluimos materialCapas, materialConsumo y numerosCompra para manejarlos por separado)
                 'producto', 'materialCapasCantidad', 'materialConsumoCantidad', 'observacionesMaterial',
                 'bobinaMadre', 'bobinaFinal', 'minAdap', 'colores', 'minColor', 'microperforado', 'macroperforado'

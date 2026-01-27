@@ -10,8 +10,8 @@ Se ha implementado exitosamente el campo **"Atención Observaciones"** en el sis
 - Cuando el checkbox está marcado, el indicador de prioridad del pedido cambia a **color rosa fuerte (#EC4899 / pink-600)**
 - El borde izquierdo de la tarjeta también se muestra en rosa fuerte
 
-### 2. **Fondo Rojo Suave**
-- La tarjeta del pedido muestra un **fondo rojo suave** (#FEF2F2 / red-50 en modo claro, #450A0A20 / red-950/20 en modo oscuro)
+### 2. **Fondo Rojo Más Intenso**
+- La tarjeta del pedido muestra un **fondo rojo más intenso** (#FEE2E2 / red-100 en modo claro, #450A0A30 / red-950/30 en modo oscuro)
 - Este fondo se aplica en:
   - Vista Kanban (tarjetas)
   - Vista de Lista (filas de tabla)
@@ -22,7 +22,6 @@ Se ha implementado exitosamente el campo **"Atención Observaciones"** en el sis
 - Ocupa la **tercera fila** (fila completa) después de los checkboxes de:
   - Antivaho / Microperforado
   - Macroperforado / Anónimo
-- Incluye texto descriptivo: "(Marca el pedido con indicador rosa y fondo rojo suave)"
 
 ## 🗂️ Archivos Modificados
 
@@ -60,21 +59,21 @@ Se ha implementado exitosamente el campo **"Atención Observaciones"** en el sis
 border-pink-600 / bg-pink-600
 Hex: #EC4899
 
-/* Fondo Rojo Suave (Modo Claro) */
-bg-red-50
-Hex: #FEF2F2
-
-/* Fondo Rojo Suave (Modo Oscuro) */
-bg-red-950/20
-Hex: #450A0A con 20% de opacidad
-
-/* Hover Rojo Suave (Modo Claro) */
-hover:bg-red-100
+/* Fondo Rojo Más Fuerte (Modo Claro) */
+bg-red-100
 Hex: #FEE2E2
 
-/* Hover Rojo Suave (Modo Oscuro) */
-hover:bg-red-950/30
+/* Fondo Rojo Más Fuerte (Modo Oscuro) */
+bg-red-950/30
 Hex: #450A0A con 30% de opacidad
+
+/* Hover Rojo Más Fuerte (Modo Claro) */
+hover:bg-red-200
+Hex: #FECACA
+
+/* Hover Rojo Más Fuerte (Modo Oscuro) */
+hover:bg-red-950/40
+Hex: #450A0A con 40% de opacidad
 ```
 
 ### Checkbox

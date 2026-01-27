@@ -272,7 +272,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
         if (!formData.fechaEntrega) {
             errors.push('❌ Debe especificar la fecha de entrega');
         }
-        
+
         const metrosValue = Number(formData.metros);
         if (!formData.metros || isNaN(metrosValue) || metrosValue <= 0) {
             errors.push('❌ Los metros deben ser un número mayor a 0');
@@ -350,16 +350,16 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
-        
+
         if (name === "cliente" && value === "add_new_cliente") {
             setClienteModalOpen(true);
         } else if (name === "cliente" && value !== "add_new_cliente") {
             // ✅ Cuando se selecciona un cliente, guardar tanto el nombre como el ID
             const clienteSeleccionado = clientes.find(c => c.nombre === value);
-            setFormData(prev => ({ 
-                ...prev, 
+            setFormData(prev => ({
+                ...prev,
                 cliente: value,
-                clienteId: clienteSeleccionado?.id || '' 
+                clienteId: clienteSeleccionado?.id || ''
             }));
         } else if (name === "vendedorId" && value === "add_new_vendedor") {
             setVendedorModalOpen(true);
@@ -367,10 +367,10 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
         } else if (name === "vendedorId" && value !== "add_new_vendedor") {
             // Cuando se selecciona un vendedor, guardar tanto el ID como el nombre
             const vendedorSeleccionado = vendedores.find(v => v.id === value);
-            setFormData(prev => ({ 
-                ...prev, 
+            setFormData(prev => ({
+                ...prev,
                 vendedorId: value,
-                vendedorNombre: vendedorSeleccionado?.nombre || '' 
+                vendedorNombre: vendedorSeleccionado?.nombre || ''
             }));
         } else if (type === 'checkbox') {
             const { checked } = e.target as HTMLInputElement;
@@ -385,10 +385,10 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
         try {
             const nuevoCliente = await addCliente(clienteData);
             // ✅ Guardar tanto el nombre como el ID del nuevo cliente
-            setFormData(prev => ({ 
-                ...prev, 
+            setFormData(prev => ({
+                ...prev,
                 cliente: nuevoCliente.nombre,
-                clienteId: nuevoCliente.id 
+                clienteId: nuevoCliente.id
             }));
             setClienteModalOpen(false);
         } catch (error) {
@@ -399,10 +399,10 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
     const handleSaveVendedor = async (vendedorData: VendedorCreateRequest) => {
         try {
             const nuevoVendedor = await addVendedor(vendedorData);
-            setFormData(prev => ({ 
-                ...prev, 
+            setFormData(prev => ({
+                ...prev,
                 vendedorId: nuevoVendedor.id,
-                vendedorNombre: nuevoVendedor.nombre 
+                vendedorNombre: nuevoVendedor.nombre
             }));
             setVendedorModalOpen(false);
         } catch (error) {
@@ -412,7 +412,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         // Validar formulario
         if (!validateForm()) {
             // Mostrar errores en un alert
@@ -425,10 +425,10 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
         }
 
         const metrosValue = Number(formData.metros);
-        
+
         // ✅ Esperar respuesta de onAdd para obtener el pedido creado
         const newPedido = await onAdd({ pedidoData: { ...formData, metros: metrosValue }, secuenciaTrabajo });
-        
+
         // ✅ Registrar acción CREATE en el historial
         if (newPedido) {
             recordPedidoCreate(newPedido);
@@ -448,8 +448,8 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                         </div>
                         <h2 className="text-3xl font-bold">Crear Nuevo Pedido</h2>
                     </div>
-                    <button 
-                        onClick={onClose} 
+                    <button
+                        onClick={onClose}
                         className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-3xl leading-none"
                     >
                         &times;
@@ -469,23 +469,21 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
 
                 {/* Tabs */}
                 <div className="flex border-b border-gray-200 dark:border-gray-700 px-8">
-                    <button 
-                        onClick={() => setActiveTab('detalles')} 
-                        className={`py-3 px-6 text-sm font-medium transition-colors duration-200 ${
-                            activeTab === 'detalles' 
-                                ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400' 
+                    <button
+                        onClick={() => setActiveTab('detalles')}
+                        className={`py-3 px-6 text-sm font-medium transition-colors duration-200 ${activeTab === 'detalles'
+                                ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400'
                                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                        }`}
+                            }`}
                     >
                         📋 Detalles del Pedido
                     </button>
-                    <button 
-                        onClick={() => setActiveTab('gestion')} 
-                        className={`py-3 px-6 text-sm font-medium transition-colors duration-200 ${
-                            activeTab === 'gestion' 
-                                ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400' 
+                    <button
+                        onClick={() => setActiveTab('gestion')}
+                        className={`py-3 px-6 text-sm font-medium transition-colors duration-200 ${activeTab === 'gestion'
+                                ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400'
                                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                        }`}
+                            }`}
                     >
                         ⚙️ Gestión y Preparación
                     </button>
@@ -525,8 +523,8 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                                 allowCreate={true}
                                                 createLabel="-- Crear nuevo cliente --"
                                                 onCreateNew={() => setClienteModalOpen(true)}
-                                                className={clientePreseleccionado 
-                                                    ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700' 
+                                                className={clientePreseleccionado
+                                                    ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
                                                     : ''}
                                                 showActiveOnly={false}
                                             />
@@ -536,18 +534,17 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
                                                 Número de Pedido Cliente <span className="text-red-500">*</span>
                                             </label>
-                                            <input 
-                                                type="text" 
-                                                name="numeroPedidoCliente" 
-                                                value={formData.numeroPedidoCliente} 
-                                                onChange={handleChange} 
-                                                className={`w-full bg-gray-200 dark:bg-gray-700 border rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 ${
-                                                    numeroPedidoError
+                                            <input
+                                                type="text"
+                                                name="numeroPedidoCliente"
+                                                value={formData.numeroPedidoCliente}
+                                                onChange={handleChange}
+                                                className={`w-full bg-gray-200 dark:bg-gray-700 border rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 ${numeroPedidoError
                                                         ? 'border-red-500 dark:border-red-400'
                                                         : 'border-gray-300 dark:border-gray-600'
-                                                }`}
+                                                    }`}
                                                 placeholder="Ej: PED-2024-001"
-                                                required 
+                                                required
                                             />
                                             {isCheckingNumeroPedido && (
                                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -564,23 +561,23 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Desarrollo</label>
-                                                <input 
-                                                    type="text" 
-                                                    name="desarrollo" 
-                                                    value={formData.desarrollo} 
-                                                    onChange={handleChange} 
+                                                <input
+                                                    type="text"
+                                                    name="desarrollo"
+                                                    value={formData.desarrollo}
+                                                    onChange={handleChange}
                                                     className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
                                                     placeholder="Desarrollo"
                                                 />
                                             </div>
                                             <div>
                                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Capa</label>
-                                                <input 
-                                                    type="text" 
-                                                    name="capa" 
-                                                    value={formData.capa} 
-                                                    onChange={handleChange} 
-                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" 
+                                                <input
+                                                    type="text"
+                                                    name="capa"
+                                                    value={formData.capa}
+                                                    onChange={handleChange}
+                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
                                                     placeholder="Número o texto"
                                                 />
                                             </div>
@@ -588,10 +585,10 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
 
                                         <div>
                                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Tipo de Impresión</label>
-                                            <select 
-                                                name="tipoImpresion" 
-                                                value={formData.tipoImpresion} 
-                                                onChange={handleChange} 
+                                            <select
+                                                name="tipoImpresion"
+                                                value={formData.tipoImpresion}
+                                                onChange={handleChange}
                                                 className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
                                             >
                                                 {Object.values(TipoImpresion).map(t => <option key={t} value={t}>{t}</option>)}
@@ -623,46 +620,46 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                             <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Características del Pedido</h4>
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div className="flex items-center">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        id="antivaho" 
-                                                        name="antivaho" 
-                                                        checked={formData.antivaho} 
-                                                        onChange={handleChange} 
-                                                        className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" 
+                                                    <input
+                                                        type="checkbox"
+                                                        id="antivaho"
+                                                        name="antivaho"
+                                                        checked={formData.antivaho}
+                                                        onChange={handleChange}
+                                                        className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                                                     />
                                                     <label htmlFor="antivaho" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Antivaho</label>
                                                 </div>
                                                 <div className="flex items-center">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        id="microperforado" 
-                                                        name="microperforado" 
-                                                        checked={formData.microperforado} 
-                                                        onChange={handleChange} 
-                                                        className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500" 
+                                                    <input
+                                                        type="checkbox"
+                                                        id="microperforado"
+                                                        name="microperforado"
+                                                        checked={formData.microperforado}
+                                                        onChange={handleChange}
+                                                        className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                                                     />
                                                     <label htmlFor="microperforado" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Microperforado</label>
                                                 </div>
                                                 <div className="flex items-center">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        id="macroperforado" 
-                                                        name="macroperforado" 
-                                                        checked={formData.macroperforado} 
-                                                        onChange={handleChange} 
-                                                        className="h-5 w-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500" 
+                                                    <input
+                                                        type="checkbox"
+                                                        id="macroperforado"
+                                                        name="macroperforado"
+                                                        checked={formData.macroperforado}
+                                                        onChange={handleChange}
+                                                        className="h-5 w-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
                                                     />
                                                     <label htmlFor="macroperforado" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Macroperforado</label>
                                                 </div>
                                                 <div className="flex items-center">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        id="anonimo" 
-                                                        name="anonimo" 
-                                                        checked={formData.anonimo} 
-                                                        onChange={handleChange} 
-                                                        className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" 
+                                                    <input
+                                                        type="checkbox"
+                                                        id="anonimo"
+                                                        name="anonimo"
+                                                        checked={formData.anonimo}
+                                                        onChange={handleChange}
+                                                        className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                                                     />
                                                     <label htmlFor="anonimo" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">Anónimo</label>
                                                 </div>
@@ -671,17 +668,16 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                             {/* Tercera fila: Atención Observaciones - Ocupa todo el ancho */}
                                             <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                                                 <div className="flex items-center">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        id="atencionObservaciones" 
-                                                        name="atencionObservaciones" 
-                                                        checked={formData.atencionObservaciones} 
-                                                        onChange={handleChange} 
-                                                        className="h-5 w-5 rounded border-gray-300 text-pink-600 focus:ring-pink-500" 
+                                                    <input
+                                                        type="checkbox"
+                                                        id="atencionObservaciones"
+                                                        name="atencionObservaciones"
+                                                        checked={formData.atencionObservaciones}
+                                                        onChange={handleChange}
+                                                        className="h-5 w-5 rounded border-gray-300 text-pink-600 focus:ring-pink-500"
                                                     />
                                                     <label htmlFor="atencionObservaciones" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">
                                                         Atención Observaciones
-                                                        <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">(Marca el pedido con indicador rosa y fondo rojo suave)</span>
                                                     </label>
                                                 </div>
                                             </div>
@@ -692,10 +688,10 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                                     <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
                                                         📦 Post-Impresión (Anónimo) <span className="text-red-500">*</span>
                                                     </label>
-                                                    <select 
-                                                        name="anonimoPostImpresion" 
-                                                        value={formData.anonimoPostImpresion || ''} 
-                                                        onChange={handleChange} 
+                                                    <select
+                                                        name="anonimoPostImpresion"
+                                                        value={formData.anonimoPostImpresion || ''}
+                                                        onChange={handleChange}
                                                         className="w-full bg-white dark:bg-gray-700 border border-yellow-400 dark:border-yellow-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-yellow-500"
                                                         required={formData.anonimo}
                                                     >
@@ -720,14 +716,14 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
                                                     Metros <span className="text-red-500">*</span>
                                                 </label>
-                                                <input 
-                                                    type="text" 
-                                                    inputMode="numeric" 
-                                                    pattern="[0-9]*" 
-                                                    name="metros" 
-                                                    value={formData.metros} 
-                                                    onChange={handleChange} 
-                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500" 
+                                                <input
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    pattern="[0-9]*"
+                                                    name="metros"
+                                                    value={formData.metros}
+                                                    onChange={handleChange}
+                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
                                                     placeholder="0"
                                                     required
                                                 />
@@ -737,16 +733,16 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                                     Tiempo Prod. Decimal (horas)
                                                     {formData.anonimo && <span className="ml-1 text-xs text-yellow-600 dark:text-yellow-400">(Auto)</span>}
                                                 </label>
-                                                <input 
-                                                    type="text" 
+                                                <input
+                                                    type="text"
                                                     inputMode="decimal"
-                                                    name="tiempoProduccionDecimal" 
+                                                    name="tiempoProduccionDecimal"
                                                     value={tiempoProduccionDecimalInput}
                                                     onChange={(e) => handleDecimalTimeChange(e.target.value)}
                                                     onBlur={handleDecimalTimeBlur}
                                                     disabled={formData.anonimo}
                                                     placeholder="Ej: 1.5 = 1h 30m"
-                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-blue-500 focus:border-blue-500" 
+                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-blue-500 focus:border-blue-500"
                                                 />
                                             </div>
                                         </div>
@@ -756,12 +752,12 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
                                                     Tiempo Prod. (HH:mm) <span className="text-xs text-gray-500">(solo lectura)</span>
                                                 </label>
-                                                <input 
-                                                    type="text" 
-                                                    name="tiempoProduccionPlanificado" 
-                                                    value={formData.tiempoProduccionPlanificado} 
+                                                <input
+                                                    type="text"
+                                                    name="tiempoProduccionPlanificado"
+                                                    value={formData.tiempoProduccionPlanificado}
                                                     readOnly
-                                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 cursor-not-allowed opacity-70" 
+                                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 cursor-not-allowed opacity-70"
                                                 />
                                             </div>
                                             <div></div>
@@ -772,22 +768,22 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
                                                     Fecha de Entrega <span className="text-red-500">*</span>
                                                 </label>
-                                                <input 
-                                                    type="date" 
-                                                    name="fechaEntrega" 
-                                                    value={formData.fechaEntrega} 
-                                                    onChange={handleChange} 
-                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500" 
+                                                <input
+                                                    type="date"
+                                                    name="fechaEntrega"
+                                                    value={formData.fechaEntrega}
+                                                    onChange={handleChange}
+                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
                                                     required
                                                 />
                                             </div>
                                             <div>
                                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Nueva Fecha Entrega</label>
-                                                <input 
-                                                    type="date" 
-                                                    name="nuevaFechaEntrega" 
-                                                    value={formData.nuevaFechaEntrega} 
-                                                    onChange={handleChange} 
+                                                <input
+                                                    type="date"
+                                                    name="nuevaFechaEntrega"
+                                                    value={formData.nuevaFechaEntrega}
+                                                    onChange={handleChange}
                                                     className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
                                                 />
                                             </div>
@@ -821,10 +817,10 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Prioridad</label>
-                                                <select 
-                                                    name="prioridad" 
-                                                    value={formData.prioridad} 
-                                                    onChange={handleChange} 
+                                                <select
+                                                    name="prioridad"
+                                                    value={formData.prioridad}
+                                                    onChange={handleChange}
                                                     className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
                                                 >
                                                     {Object.values(Prioridad).map(p => <option key={p} value={p}>{p}</option>)}
@@ -832,12 +828,12 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                             </div>
                                             <div>
                                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Camisa</label>
-                                                <input 
-                                                    type="text" 
-                                                    name="camisa" 
-                                                    value={formData.camisa} 
-                                                    onChange={handleChange} 
-                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5" 
+                                                <input
+                                                    type="text"
+                                                    name="camisa"
+                                                    value={formData.camisa}
+                                                    onChange={handleChange}
+                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
                                                     placeholder="Info de la camisa"
                                                 />
                                             </div>
@@ -850,11 +846,11 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                                 onChange={(value) => setFormData((prev: any) => ({ ...prev, observacionesRapidas: value }))}
                                                 placeholder="Escribe una observación rápida..."
                                             />
-                                            <textarea 
-                                                name="observaciones" 
-                                                value={formData.observaciones} 
-                                                onChange={handleChange} 
-                                                rows={3} 
+                                            <textarea
+                                                name="observaciones"
+                                                value={formData.observaciones}
+                                                onChange={handleChange}
+                                                rows={3}
                                                 className="w-full mt-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
                                                 placeholder="Notas adicionales más extensas..."
                                             ></textarea>
@@ -888,16 +884,14 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                         {activeTab === 'gestion' && (
                             <>
                                 {/* Resumen del estado */}
-                                <div className={`rounded-lg p-4 mb-6 border-2 ${
-                                    formData.materialDisponible && formData.clicheDisponible 
-                                        ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700' 
+                                <div className={`rounded-lg p-4 mb-6 border-2 ${formData.materialDisponible && formData.clicheDisponible
+                                        ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
                                         : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
-                                }`}>
-                                    <h3 className={`text-lg font-semibold mb-2 ${
-                                        formData.materialDisponible && formData.clicheDisponible 
-                                            ? 'text-green-800 dark:text-green-200' 
-                                            : 'text-yellow-800 dark:text-yellow-200'
                                     }`}>
+                                    <h3 className={`text-lg font-semibold mb-2 ${formData.materialDisponible && formData.clicheDisponible
+                                            ? 'text-green-800 dark:text-green-200'
+                                            : 'text-yellow-800 dark:text-yellow-200'
+                                        }`}>
                                         📋 Resumen del Estado de Preparación
                                     </h3>
                                     <div className="grid grid-cols-2 gap-3 text-sm">
@@ -928,10 +922,10 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Estado del Cliché</label>
-                                            <select 
-                                                name="estadoCliché" 
-                                                value={formData.estadoCliché} 
-                                                onChange={handleChange} 
+                                            <select
+                                                name="estadoCliché"
+                                                value={formData.estadoCliché}
+                                                onChange={handleChange}
                                                 className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
                                             >
                                                 {Object.values(EstadoCliché).map(t => <option key={t} value={t}>{t}</option>)}
@@ -941,11 +935,11 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
                                                 Información Adicional Cliché
                                             </label>
-                                            <input 
-                                                type="text" 
-                                                name="clicheInfoAdicional" 
-                                                value={formData.clicheInfoAdicional || ''} 
-                                                onChange={handleChange} 
+                                            <input
+                                                type="text"
+                                                name="clicheInfoAdicional"
+                                                value={formData.clicheInfoAdicional || ''}
+                                                onChange={handleChange}
                                                 placeholder="Ej: Recibido 27/10, ID: CLH-123"
                                                 maxLength={200}
                                                 className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
@@ -958,45 +952,45 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                         </div>
                                         <div>
                                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Compra Cliché</label>
-                                            <input 
-                                                type="date" 
-                                                name="compraCliche" 
-                                                value={formData.compraCliche || ''} 
-                                                onChange={handleChange} 
+                                            <input
+                                                type="date"
+                                                name="compraCliche"
+                                                value={formData.compraCliche || ''}
+                                                onChange={handleChange}
                                                 className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
                                             />
                                         </div>
                                         <div>
                                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Recepción Cliché</label>
-                                            <input 
-                                                type="date" 
-                                                name="recepcionCliche" 
-                                                value={formData.recepcionCliche || ''} 
-                                                onChange={handleChange} 
+                                            <input
+                                                type="date"
+                                                name="recepcionCliche"
+                                                value={formData.recepcionCliche || ''}
+                                                onChange={handleChange}
                                                 className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
                                             />
                                         </div>
                                         <div className="flex items-center pt-2">
-                                            <input 
-                                                type="checkbox" 
-                                                id="clicheDisponible" 
-                                                name="clicheDisponible" 
-                                                checked={formData.clicheDisponible} 
-                                                onChange={handleChange} 
-                                                className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" 
+                                            <input
+                                                type="checkbox"
+                                                id="clicheDisponible"
+                                                name="clicheDisponible"
+                                                checked={formData.clicheDisponible}
+                                                onChange={handleChange}
+                                                className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                                             />
                                             <label htmlFor="clicheDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">
                                                 Cliché Disponible
                                             </label>
                                         </div>
                                         <div className="flex items-center pt-2">
-                                            <input 
-                                                type="checkbox" 
-                                                id="materialDisponible" 
-                                                name="materialDisponible" 
-                                                checked={formData.materialDisponible} 
-                                                onChange={handleChange} 
-                                                className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" 
+                                            <input
+                                                type="checkbox"
+                                                id="materialDisponible"
+                                                name="materialDisponible"
+                                                checked={formData.materialDisponible}
+                                                onChange={handleChange}
+                                                className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                                             />
                                             <label htmlFor="materialDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">
                                                 Material Disponible
@@ -1024,15 +1018,15 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                             <span className="text-red-500">*</span> Campos obligatorios
                         </div>
                         <div className="flex gap-4">
-                            <button 
-                                type="button" 
-                                onClick={onClose} 
+                            <button
+                                type="button"
+                                onClick={onClose}
                                 className="bg-gray-500 hover:bg-gray-600 text-white dark:bg-gray-600 dark:hover:bg-gray-500 font-bold py-2.5 px-6 rounded-lg transition-colors duration-200"
                             >
                                 Cancelar
                             </button>
-                            <button 
-                                type="submit" 
+                            <button
+                                type="submit"
                                 form="addPedidoForm"
                                 className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-lg transition-colors duration-200 flex items-center gap-2"
                             >

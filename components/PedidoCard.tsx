@@ -209,14 +209,14 @@ interface PedidoCardProps {
     };
 }
 
-const PedidoCard = React.memo<PedidoCardProps>(({ 
-    pedido, 
-    onArchiveToggle, 
-    onSelectPedido, 
-    currentUserRole, 
-    onAdvanceStage, 
-    onSendToPrint, 
-    highlightedPedidoId, 
+const PedidoCard = React.memo<PedidoCardProps>(({
+    pedido,
+    onArchiveToggle,
+    onSelectPedido,
+    currentUserRole,
+    onAdvanceStage,
+    onSendToPrint,
+    highlightedPedidoId,
     onUpdatePedido,
     isSelected = false,
     isSelectionActive = false,
@@ -231,14 +231,17 @@ const PedidoCard = React.memo<PedidoCardProps>(({
     const dateContainerRef = useRef<HTMLDivElement>(null);
     const [isHovered, setIsHovered] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    
+
     // 🆕 Estado para materiales de la nueva tabla
     const [materialesNuevos, setMaterialesNuevos] = useState<Material[]>([]);
     const [loadingMateriales, setLoadingMateriales] = useState(false);
     const materialesLoadedRef = useRef<Set<string>>(new Set()); // Track loaded pedidos
-    
+
     // Usar valor por defecto si la prioridad no existe en PRIORIDAD_COLORS
-    const priorityColor = PRIORIDAD_COLORS[pedido.prioridad] || PRIORIDAD_COLORS[Prioridad.NORMAL] || 'border-blue-500';
+    // Si atencionObservaciones está activo, forzar borde rosa fuerte
+    const priorityColor = pedido.atencionObservaciones
+        ? 'border-pink-600'
+        : (PRIORIDAD_COLORS[pedido.prioridad] || PRIORIDAD_COLORS[Prioridad.NORMAL] || 'border-blue-500');
 
     // Función para obtener etiqueta corta del estado del cliché
     const getEstadoClicheCorto = (estado?: EstadoCliché): string | null => {
@@ -257,7 +260,7 @@ const PedidoCard = React.memo<PedidoCardProps>(({
 
     // Detectar si es móvil
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-    
+
     // 🆕 Cargar materiales de la nueva tabla (si existen)
     useEffect(() => {
         // ⚠️ CRÍTICO: Solo cargar UNA VEZ por pedido.id
@@ -265,12 +268,12 @@ const PedidoCard = React.memo<PedidoCardProps>(({
             console.log(`⏭️ [PedidoCard ${pedido.numeroPedidoCliente}] Ya cargado, saltando...`);
             return;
         }
-        
+
         // 🚫 DESACTIVADO: Sistema nuevo de materiales no tiene datos aún
         // Comentar esta línea cuando se haya migrado la data
         materialesLoadedRef.current.add(pedido.id);
         return;
-        
+
         /* DESCOMENTAR CUANDO HAYA DATOS EN pedidos_materiales
         let isMounted = true;
         
@@ -325,7 +328,7 @@ const PedidoCard = React.memo<PedidoCardProps>(({
     useEffect(() => {
         // 🚫 DESACTIVADO: Sistema nuevo de materiales no tiene datos aún
         return; // No suscribirse a WebSocket hasta que haya datos
-        
+
         /* DESCOMENTAR CUANDO HAYA DATOS EN pedidos_materiales
         const handleMaterialUpdated = (updatedMaterial: any) => {
             if (updatedMaterial.pedidoId === pedido.id) {
@@ -421,10 +424,10 @@ const PedidoCard = React.memo<PedidoCardProps>(({
         }
 
         setIsSaving(true);
-        
+
         try {
             const fechaAnterior = pedido.nuevaFechaEntrega || 'Sin fecha';
-            
+
             // Actualizar el pedido con la nueva fecha
             const updatedPedido = {
                 ...pedido,
@@ -469,7 +472,7 @@ const PedidoCard = React.memo<PedidoCardProps>(({
         e.stopPropagation();
         onArchiveToggle(pedido);
     }
-    
+
     const handleAdvanceClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (pedido.etapaActual === Etapa.PREPARACION && onSendToPrint) {
@@ -502,12 +505,12 @@ const PedidoCard = React.memo<PedidoCardProps>(({
     const { canAdvance, advanceButtonTitle } = useMemo(() => {
         // Usar la nueva lógica centralizada
         const canAdvanceSequence = puedeAvanzarSecuencia(
-            pedido.etapaActual, 
-            pedido.secuenciaTrabajo, 
-            pedido.antivaho, 
+            pedido.etapaActual,
+            pedido.secuenciaTrabajo,
+            pedido.antivaho,
             pedido.antivahoRealizado
         );
-        
+
         if (!canAdvanceSequence) {
             return { canAdvance: false, advanceButtonTitle: '' };
         }
@@ -524,18 +527,18 @@ const PedidoCard = React.memo<PedidoCardProps>(({
         if (isPrinting && pedido.secuenciaTrabajo?.length > 0) {
             return { canAdvance: true, advanceButtonTitle: 'Iniciar Post-Impresión' };
         }
-        
+
         if (isPostPrinting) {
             // Para pedidos con antivaho en post-impresión, permitir "continuar" para reconfirmar
             if (pedido.antivaho && !pedido.antivahoRealizado) {
                 return { canAdvance: true, advanceButtonTitle: 'Continuar Secuencia' };
             }
-            
+
             // Si está fuera de secuencia, ofrecer reordenar
             if (isOutOfSequence) {
                 return { canAdvance: true, advanceButtonTitle: 'Reordenar y Continuar' };
             }
-            
+
             // Lógica normal para pedidos en secuencia
             const currentIndex = pedido.secuenciaTrabajo?.indexOf(pedido.etapaActual) ?? -1;
             if (currentIndex > -1 && currentIndex < pedido.secuenciaTrabajo.length - 1) {
@@ -545,29 +548,28 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                 return { canAdvance: true, advanceButtonTitle: 'Marcar como Completado' };
             }
         }
-        
+
         return { canAdvance: false, advanceButtonTitle: '' };
     }, [pedido]);
 
     return (
-        <div 
+        <div
             data-pedido-id={pedido.id}
             onClick={handleCardClick}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className={`${pedido.atencionObservaciones ? 'bg-red-50 dark:bg-red-950/20' : 'bg-white dark:bg-gray-900'} rounded-lg p-3 cursor-pointer ${pedido.atencionObservaciones ? 'hover:bg-red-100 dark:hover:bg-red-950/30' : 'hover:bg-gray-100 dark:hover:bg-gray-700'} border-l-4 ${priorityColor} shadow-md ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''} ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-gray-800' : ''} relative`}>
-            
+            className={`${pedido.atencionObservaciones ? 'bg-red-100 dark:bg-red-950/30' : 'bg-white dark:bg-gray-900'} rounded-lg p-3 cursor-pointer ${pedido.atencionObservaciones ? 'hover:bg-red-200 dark:hover:bg-red-950/40' : 'hover:bg-gray-100 dark:hover:bg-gray-700'} border-l-4 ${priorityColor} shadow-md ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''} ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-gray-800' : ''} relative`}>
+
             {/* Checkbox de selección */}
             {onToggleSelection && (
-                <div 
-                    className={`absolute top-2 left-2 z-10 transition-opacity duration-200 ${
-                        isMobile || isHovered || isSelectionActive ? 'opacity-100' : 'opacity-0'
-                    }`}
+                <div
+                    className={`absolute top-2 left-2 z-10 transition-opacity duration-200 ${isMobile || isHovered || isSelectionActive ? 'opacity-100' : 'opacity-0'
+                        }`}
                 >
                     <input
                         type="checkbox"
                         checked={isSelected}
-                        onChange={() => {}}
+                        onChange={() => { }}
                         onClick={handleCheckboxClick}
                         className="w-5 h-5 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
                     />
@@ -581,8 +583,8 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                     {pedido.etapaActual === Etapa.PREPARACION && (
                         <div className="flex items-center gap-1">
                             {!pedido.materialDisponible && (
-                                <span 
-                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 cursor-help" 
+                                <span
+                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 cursor-help"
                                     title="❌ Material no disponible - Se requiere material para continuar"
                                 >
                                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -591,8 +593,8 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                                 </span>
                             )}
                             {!pedido.clicheDisponible && (
-                                <span 
-                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 cursor-help" 
+                                <span
+                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 cursor-help"
                                     title={`⚠️ Cliché no disponible${pedido.estadoCliché ? ` - Estado: ${pedido.estadoCliché}` : ''}${pedido.clicheInfoAdicional ? `\nInfo: ${pedido.clicheInfoAdicional}` : ''}`}
                                 >
                                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -605,24 +607,24 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                                 2. materialDisponible === true
                                 3. clicheDisponible === true
                             */}
-                            {pedido.subEtapaActual === 'LISTO_PARA_PRODUCCION' && 
-                             pedido.materialDisponible === true && 
-                             pedido.clicheDisponible === true && (
-                                <span 
-                                    className="inline-flex items-center px-2 py-1 rounded-md text-xs font-bold bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-lg animate-pulse cursor-help" 
-                                    title={`✅ ¡TODO LISTO! Puedes enviar este pedido a producción\n\nMaterial: Disponible ✓\nCliché: Disponible ✓${pedido.clicheInfoAdicional ? `\n\nInfo Cliché: ${pedido.clicheInfoAdicional}` : ''}\n\n👉 Usa el botón verde "→" para enviar a impresión`}
-                                    style={{ animationDuration: '2s' }}
-                                >
-                                    <svg className="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                    </svg>
-                                    ¡LISTO!
-                                </span>
-                            )}
+                            {pedido.subEtapaActual === 'LISTO_PARA_PRODUCCION' &&
+                                pedido.materialDisponible === true &&
+                                pedido.clicheDisponible === true && (
+                                    <span
+                                        className="inline-flex items-center px-2 py-1 rounded-md text-xs font-bold bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-lg animate-pulse cursor-help"
+                                        title={`✅ ¡TODO LISTO! Puedes enviar este pedido a producción\n\nMaterial: Disponible ✓\nCliché: Disponible ✓${pedido.clicheInfoAdicional ? `\n\nInfo Cliché: ${pedido.clicheInfoAdicional}` : ''}\n\n👉 Usa el botón verde "→" para enviar a impresión`}
+                                        style={{ animationDuration: '2s' }}
+                                    >
+                                        <svg className="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                        </svg>
+                                        ¡LISTO!
+                                    </span>
+                                )}
                             {/* ⚠️ NUEVO: Advertencias cuando está en "Listo para Producción" pero faltan requisitos */}
                             {pedido.subEtapaActual === 'LISTO_PARA_PRODUCCION' && !pedido.materialDisponible && (
-                                <span 
-                                    className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 cursor-help" 
+                                <span
+                                    className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 cursor-help"
                                     title="⚠️ En 'Listo para Producción' pero el material NO está disponible"
                                 >
                                     <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -632,8 +634,8 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                                 </span>
                             )}
                             {pedido.subEtapaActual === 'LISTO_PARA_PRODUCCION' && !pedido.clicheDisponible && (
-                                <span 
-                                    className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 cursor-help" 
+                                <span
+                                    className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 cursor-help"
                                     title="⚠️ En 'Listo para Producción' pero el cliché NO está disponible"
                                 >
                                     <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -644,7 +646,7 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                             )}
                         </div>
                     )}
-                    
+
                     {/* Indicador de bloqueo */}
                     {lockInfo && lockInfo.isLocked && (
                         <LockIndicator
@@ -654,55 +656,54 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                             size="small"
                         />
                     )}
-                    
+
                     {pedido.antivaho && (
-                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                            pedido.antivahoRealizado 
-                                ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200' 
-                                : 'bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-200'
-                        }`} title={
-                            pedido.antivahoRealizado 
-                                ? "Antivaho Realizado ✓" 
-                                : "Antivaho Pendiente"
-                        }>
+                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${pedido.antivahoRealizado
+                            ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200'
+                            : 'bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-200'
+                            }`} title={
+                                pedido.antivahoRealizado
+                                    ? "Antivaho Realizado ✓"
+                                    : "Antivaho Pendiente"
+                            }>
                             <SparklesIcon className="w-4 h-4 inline-block" />
                             {pedido.antivahoRealizado && <span className="ml-1 text-xs">✓</span>}
                         </span>
                     )}
                     <div className="flex items-center gap-1.5">
                         {pedido.estadoCliché && (
-                            <span 
+                            <span
                                 className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700"
                                 title={pedido.estadoCliché}
                             >
                                 {getEstadoClicheCorto(pedido.estadoCliché)}
                             </span>
                         )}
-                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${priorityColor.replace('border', 'bg').replace('-500','-900')} text-white`}>
+                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${priorityColor.replace('border', 'bg').replace('-500', '-900')} text-white`}>
                             {pedido.prioridad}
                         </span>
                     </div>
                 </div>
             </div>
-            
+
             <div className="mb-3 space-y-1">
                 <p className="text-sm text-gray-600 dark:text-gray-300">{pedido.cliente}</p>
                 {pedido.producto && (
-                    <p 
-                        className="text-xs text-gray-500 dark:text-gray-400 truncate" 
+                    <p
+                        className="text-xs text-gray-500 dark:text-gray-400 truncate"
                         title={pedido.producto}
                     >
                         🏷️ {pedido.producto}
                     </p>
                 )}
             </div>
-            
+
             {/* 🆕 SECCIÓN DE MATERIALES - Soporte para nuevo sistema y legacy */}
             {/* ⚠️ No mostrar materiales en PRODUCCIÓN (Impresión, Post-Impresión y Finalizado) */}
-            {!KANBAN_FUNNELS.IMPRESION.stages.includes(pedido.etapaActual) && 
-             !KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual) && 
-             pedido.etapaActual !== Etapa.COMPLETADO && 
-             (materialesNuevos.length > 0 || (pedido.numerosCompra && pedido.numerosCompra.length > 0 && pedido.numerosCompra.some(n => n && n.trim()))) ? (
+            {!KANBAN_FUNNELS.IMPRESION.stages.includes(pedido.etapaActual) &&
+                !KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual) &&
+                pedido.etapaActual !== Etapa.COMPLETADO &&
+                (materialesNuevos.length > 0 || (pedido.numerosCompra && pedido.numerosCompra.length > 0 && pedido.numerosCompra.some(n => n && n.trim()))) ? (
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                     <span className="font-medium">Materiales:</span>{' '}
                     <span className="inline-flex flex-wrap gap-1">
@@ -710,9 +711,9 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                         {materialesNuevos.length > 0 ? (
                             materialesNuevos.map((material) => {
                                 const theme = getMaterialTheme(material, pedido.materialDisponible);
-                                
+
                                 return (
-                                    <span 
+                                    <span
                                         key={material.id}
                                         className={`${theme.bg} ${theme.text} ${theme.border} px-2 py-0.5 rounded border ${theme.weight}`}
                                         title={`${material.numero} - ${theme.label}`}
@@ -778,7 +779,7 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                     </span>
                 </div>
             ) : null}
-            
+
             <div className="flex items-start justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
                 {/* Fechas alineadas verticalmente en la esquina inferior izquierda */}
                 <div className="flex flex-col gap-1">
@@ -824,7 +825,7 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                                     </button>
                                 </div>
                             ) : (
-                                <span 
+                                <span
                                     className="font-semibold cursor-pointer hover:underline hover:bg-blue-100 dark:hover:bg-blue-900/50 px-1 py-0.5 rounded transition-colors"
                                     onClick={handleFechaClick}
                                     title="Click para editar la fecha"
@@ -835,7 +836,7 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                         </div>
                     )}
                 </div>
-                
+
                 {/* Información del pedido en la derecha */}
                 <div className="flex flex-col items-end gap-0.5">
                     {pedido.desarrollo && (
@@ -853,29 +854,29 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                     </span>
                 </div>
             </div>
-            
+
             <div className="flex items-center justify-end gap-1">
-                     {canAdvance && canMovePedidos() && (
-                        <button 
-                            onClick={handleAdvanceClick} 
-                            className="text-green-500 dark:text-green-400 hover:text-green-600 dark:hover:text-green-300 p-1"
-                            aria-label={advanceButtonTitle}
-                            title={advanceButtonTitle}
-                        >
-                            <ArrowRightCircleIcon />
-                        </button>
-                    )}
-                     {(pedido.etapaActual === Etapa.COMPLETADO || pedido.etapaActual === Etapa.PREPARACION) && canArchivePedidos() && (
-                        <button 
-                            onClick={handleArchiveClick} 
-                            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white"
-                            aria-label="Archivar Pedido"
-                            title="Archivar Pedido"
-                        >
-                            <ArchiveBoxIcon />
-                        </button>
-                    )}
-                </div>
+                {canAdvance && canMovePedidos() && (
+                    <button
+                        onClick={handleAdvanceClick}
+                        className="text-green-500 dark:text-green-400 hover:text-green-600 dark:hover:text-green-300 p-1"
+                        aria-label={advanceButtonTitle}
+                        title={advanceButtonTitle}
+                    >
+                        <ArrowRightCircleIcon />
+                    </button>
+                )}
+                {(pedido.etapaActual === Etapa.COMPLETADO || pedido.etapaActual === Etapa.PREPARACION) && canArchivePedidos() && (
+                    <button
+                        onClick={handleArchiveClick}
+                        className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white"
+                        aria-label="Archivar Pedido"
+                        title="Archivar Pedido"
+                    >
+                        <ArchiveBoxIcon />
+                    </button>
+                )}
+            </div>
         </div>
     );
 });
