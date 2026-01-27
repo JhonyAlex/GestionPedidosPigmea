@@ -1768,14 +1768,44 @@ class PostgreSQLClient {
 
             // 🔥 Si se cambió el nombre, actualizar también en los pedidos
             if (vendedorData.nombre !== undefined) {
-                // Actualizar todos los pedidos que tengan este vendedor_id asignado
-                await client.query(`
-                    UPDATE pedidos
-                    SET data = jsonb_set(data, '{vendedorNombre}', to_jsonb($1::text))
-                    WHERE data->>'vendedorId' = $2
-                `, [vendedorData.nombre, id]);
+                console.log(`🔍 Buscando pedidos con vendedorId=${id}...`);
+                
+                // Primero, verificar cuáles pedidos tienen este vendedorId
+                const checkQuery = `
+                    SELECT id, data->>'vendedorId' as vendedorId, data->>'vendedorNombre' as vendedorNombre
+                    FROM pedidos
+                    WHERE data->>'vendedorId' = $1 OR data->>'vendedorId' = $2
+                    LIMIT 5
+                `;
+                
+                const checkResult = await client.query(checkQuery, [id, id.toString()]);
+                console.log(`🔍 Encontrados ${checkResult.rowCount} pedidos de muestra:`, checkResult.rows);
 
-                console.log(`✅ Actualizados todos los pedidos del vendedor ${row.nombre} con el nuevo nombre.`);
+                // Actualizar todos los pedidos que tengan este vendedor_id asignado
+                const updatePedidosQuery = `
+                    UPDATE pedidos
+                    SET data = jsonb_set(
+                        data, 
+                        '{vendedorNombre}', 
+                        to_jsonb($1::text)
+                    )
+                    WHERE data->>'vendedorId' = $2
+                `;
+
+                const updateResult = await client.query(updatePedidosQuery, [vendedorData.nombre, id]);
+                
+                console.log(`✅ Actualizados ${updateResult.rowCount} pedidos del vendedor ${row.nombre} (ID: ${id}) con el nuevo nombre "${vendedorData.nombre}"`);
+                
+                if (updateResult.rowCount === 0) {
+                    console.warn(`⚠️ ADVERTENCIA: No se encontraron pedidos para actualizar con vendedorId=${id}`);
+                    // Intentar una búsqueda adicional para debugging
+                    const debugQuery = `
+                        SELECT COUNT(*) as total FROM pedidos 
+                        WHERE data->>'vendedorId' IS NOT NULL
+                    `;
+                    const debugResult = await client.query(debugQuery);
+                    console.log(`   Total de pedidos con vendedorId: ${debugResult.rows[0].total}`);
+                }
             }
 
             // Confirmar la transacción
@@ -1793,6 +1823,7 @@ class PostgreSQLClient {
             };
         } catch (error) {
             await client.query('ROLLBACK');
+            console.error('❌ Error en updateVendedor:', error);
             throw error;
         } finally {
             client.release();
@@ -1803,7 +1834,30 @@ class PostgreSQLClient {
         if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
         try {
-            await client.query('DELETE FROM vendedores WHERE id = $1', [id]);
+            // Comenzar transacción
+            await client.query('BEGIN');
+
+            // 🔥 Primero, limpiar los datos del vendedor en los pedidos
+            const cleanResult = await client.query(`
+                UPDATE pedidos
+                SET data = data - 'vendedorNombre' - 'vendedorId'
+                WHERE (data->>'vendedorId')::text = $1::text
+            `, [id]);
+
+            console.log(`✅ Limpiados datos de ${cleanResult.rowCount} pedidos del vendedor ${id}`);
+
+            // Eliminar el vendedor
+            const deleteResult = await client.query('DELETE FROM vendedores WHERE id = $1 RETURNING nombre', [id]);
+            const vendedorEliminado = deleteResult.rows[0];
+
+            // Confirmar transacción
+            await client.query('COMMIT');
+
+            console.log(`✅ Vendedor eliminado: ${vendedorEliminado?.nombre || id}`);
+        } catch (error) {
+            await client.query('ROLLBACK');
+            console.error('❌ Error en deleteVendedor:', error);
+            throw error;
         } finally {
             client.release();
         }

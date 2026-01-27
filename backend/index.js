@@ -4332,6 +4332,14 @@ app.delete('/api/vendedores/:id', requirePermission('vendedores.delete'), async 
             message: `Vendedor eliminado: ${vendedor.nombre}`
         });
 
+        // 🔥 EVENTO WEBSOCKET: Notificar que los pedidos del vendedor se actualizaron (datos limpiados)
+        broadcastToClients('pedidos-by-vendedor-updated', {
+            vendedorId: vendedorId,
+            nombreAnterior: vendedor.nombre,
+            nuevoNombre: null,
+            message: `Datos del vendedor "${vendedor.nombre}" eliminados de los pedidos asociados`
+        });
+
         res.status(204).send();
     } catch (error) {
         console.error(`Error in DELETE /api/vendedores/${req.params.id}:`, error);
