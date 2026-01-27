@@ -62,7 +62,41 @@ const LineChart: React.FC<LineChartProps> = ({ data }) => {
                 )}
             </div>
 
-            <div className={`flex-grow flex ${needsScroll ? 'overflow-x-auto' : ''}`}>
+            <style>{`
+                .scrollbar-thin::-webkit-scrollbar {
+                    height: 6px;
+                }
+                .scrollbar-thin::-webkit-scrollbar-track {
+                    background: #f3f4f6;
+                    border-radius: 3px;
+                }
+                .scrollbar-thin::-webkit-scrollbar-thumb {
+                    background: #9ca3af;
+                    border-radius: 3px;
+                }
+                .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+                    background: #6b7280;
+                }
+                @media (prefers-color-scheme: dark) {
+                    .scrollbar-thin::-webkit-scrollbar-track {
+                        background: #374151;
+                    }
+                    .scrollbar-thin::-webkit-scrollbar-thumb {
+                        background: #6b7280;
+                    }
+                    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+                        background: #9ca3af;
+                    }
+                }
+            `}</style>
+
+            <div 
+                className={`flex-grow flex ${needsScroll ? 'overflow-x-auto overflow-y-visible scrollbar-thin' : ''}`}
+                style={needsScroll ? {
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: '#9ca3af #f3f4f6'
+                } : {}}
+            >
                 {/* Y-Axis */}
                 <div className="flex flex-col justify-between text-xs text-gray-500 dark:text-gray-400 pr-4 text-right">
                     {yAxisLabels.reverse().map(label => <span key={label}>{label}</span>)}
