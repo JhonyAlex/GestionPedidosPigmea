@@ -16,7 +16,8 @@ export const usePedidosManager = (
     // Agregamos los callbacks de sincronización
     subscribeToPedidoCreated?: (callback: (pedido: Pedido) => void) => () => void,
     subscribeToPedidoUpdated?: (callback: (pedido: Pedido) => void) => () => void,
-    subscribeToPedidoDeleted?: (callback: (pedidoId: string) => void) => () => void
+    subscribeToPedidoDeleted?: (callback: (pedidoId: string) => void) => () => void,
+    subscribeToPedidosByVendedorUpdated?: (callback: (data: any) => void) => () => void
 ) => {
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -148,11 +149,20 @@ export const usePedidosManager = (
             unsubscribeFunctions.push(unsubscribeDeleted);
         }
 
+        if (subscribeToPedidosByVendedorUpdated) {
+            const unsubscribeVendedorUpdated = subscribeToPedidosByVendedorUpdated((data: any) => {
+                console.log('🔄 Vendedor actualizado, recargando pedidos:', data);
+                // Recargar todos los pedidos porque el nombre del vendedor puede haber cambiado
+                loadPedidos(1, false);
+            });
+            unsubscribeFunctions.push(unsubscribeVendedorUpdated);
+        }
+
         // Cleanup function
         return () => {
             unsubscribeFunctions.forEach(unsubscribe => unsubscribe());
         };
-    }, [subscribeToPedidoCreated, subscribeToPedidoUpdated, subscribeToPedidoDeleted]);
+    }, [subscribeToPedidoCreated, subscribeToPedidoUpdated, subscribeToPedidoDeleted, subscribeToPedidosByVendedorUpdated, loadPedidos]);
 
     const handleSavePedido = async (updatedPedido: Pedido, generateHistory = true) => {
         if (currentUserRole !== 'Administrador') {

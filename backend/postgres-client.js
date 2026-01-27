@@ -1735,6 +1735,9 @@ class PostgreSQLClient {
         if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
         try {
+            // Comenzar transacción
+            await client.query('BEGIN');
+
             const setParts = [];
             const values = [];
             let valueIndex = 1;
@@ -1748,6 +1751,7 @@ class PostgreSQLClient {
             }
 
             if (setParts.length === 0) {
+                await client.query('ROLLBACK');
                 return this.getVendedorById(id);
             }
 
@@ -1760,8 +1764,24 @@ class PostgreSQLClient {
             `;
 
             const result = await client.query(query, values);
-            // Transformar snake_case a camelCase
             const row = result.rows[0];
+
+            // 🔥 Si se cambió el nombre, actualizar también en los pedidos
+            if (vendedorData.nombre !== undefined) {
+                // Actualizar todos los pedidos que tengan este vendedor_id asignado
+                await client.query(`
+                    UPDATE pedidos
+                    SET data = jsonb_set(data, '{vendedorNombre}', to_jsonb($1::text))
+                    WHERE data->>'vendedorId' = $2
+                `, [vendedorData.nombre, id]);
+
+                console.log(`✅ Actualizados todos los pedidos del vendedor ${row.nombre} con el nuevo nombre.`);
+            }
+
+            // Confirmar la transacción
+            await client.query('COMMIT');
+
+            // Transformar snake_case a camelCase
             return {
                 id: row.id,
                 nombre: row.nombre,
@@ -1771,6 +1791,9 @@ class PostgreSQLClient {
                 createdAt: row.created_at,
                 updatedAt: row.updated_at
             };
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
         } finally {
             client.release();
         }

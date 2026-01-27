@@ -27,6 +27,7 @@ export interface WebSocketEvents {
   'vendedor-created': (data: { vendedor: any; message: string; timestamp: string }) => void;
   'vendedor-updated': (data: { vendedor: any; message: string; timestamp: string }) => void;
   'vendedor-deleted': (data: { vendedorId: string; vendedor?: any; message: string; timestamp: string }) => void;
+  'pedidos-by-vendedor-updated': (data: { vendedorId: string; nombreAnterior: string; nuevoNombre: string; message: string }) => void;
   'material-created': (material: any) => void;
   'material-updated': (material: any) => void;
   'material-deleted': (data: { materialId: number; pedidoId?: string; material?: any }) => void;
@@ -134,6 +135,7 @@ class WebSocketService {
   private vendedorCreatedListeners: ((data: any) => void)[] = [];
   private vendedorUpdatedListeners: ((data: any) => void)[] = [];
   private vendedorDeletedListeners: ((data: any) => void)[] = [];
+  private pedidosByVendedorUpdatedListeners: ((data: any) => void)[] = [];
 
   // Control de visibilidad de pestaña y sincronización
   private isPageVisible = true;
@@ -642,6 +644,11 @@ class WebSocketService {
       console.log('🗑️ Vendedor eliminado:', data);
       this.notifyVendedorDeletedListeners(data);
     });
+
+    this.socket.on('pedidos-by-vendedor-updated', (data) => {
+      console.log('📋 Pedidos del vendedor actualizados:', data);
+      this.notifyPedidosByVendedorUpdatedListeners(data);
+    });
   }
 
   // Métodos públicos
@@ -840,6 +847,16 @@ class WebSocketService {
     };
   }
 
+  public subscribeToPedidosByVendedorUpdated(callback: (data: any) => void): () => void {
+    this.pedidosByVendedorUpdatedListeners.push(callback);
+    return () => {
+      const index = this.pedidosByVendedorUpdatedListeners.indexOf(callback);
+      if (index > -1) {
+        this.pedidosByVendedorUpdatedListeners.splice(index, 1);
+      }
+    };
+  }
+
   // Métodos para notificar cambios
   private notifyPedidoCreatedListeners(pedido: Pedido) {
     this.pedidoCreatedListeners.forEach(listener => listener(pedido));
@@ -885,6 +902,10 @@ class WebSocketService {
     this.vendedorDeletedListeners.forEach(listener => listener(data));
   }
 
+  private notifyPedidosByVendedorUpdatedListeners(data: any) {
+    this.pedidosByVendedorUpdatedListeners.forEach(listener => listener(data));
+  }
+
   public disconnect() {
     this.stopConnectionTest();
     if (this.socket) {
@@ -911,6 +932,7 @@ class WebSocketService {
     this.vendedorCreatedListeners = [];
     this.vendedorUpdatedListeners = [];
     this.vendedorDeletedListeners = [];
+    this.pedidosByVendedorUpdatedListeners = [];
     this.notificationListeners = [];
     this.connectedUsersListeners = [];
     this.pageRefreshCallbacks = [];

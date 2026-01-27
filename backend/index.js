@@ -4259,6 +4259,9 @@ app.put('/api/vendedores/:id', requirePermission('vendedores.edit'), async (req,
             });
         }
 
+        // Obtener el vendedor anterior antes de actualizar
+        const vendedorAnterior = await dbClient.getVendedorById(vendedorId);
+
         const vendedorActualizado = await dbClient.updateVendedor(vendedorId, {
             nombre: nombre?.trim(),
             email,
@@ -4277,6 +4280,17 @@ app.put('/api/vendedores/:id', requirePermission('vendedores.edit'), async (req,
             vendedor: vendedorActualizado,
             message: `Vendedor actualizado: ${vendedorActualizado.nombre}`
         });
+
+        // 🔥 EVENTO WEBSOCKET: Si se cambió el nombre, notificar que los pedidos de este vendedor se actualizaron
+        if (nombre && vendedorAnterior && nombre.trim() !== vendedorAnterior.nombre) {
+            console.log(`📢 Emitiendo evento: pedidos del vendedor "${vendedorAnterior.nombre}" cambiaron a "${vendedorActualizado.nombre}"`);
+            broadcastToClients('pedidos-by-vendedor-updated', {
+                vendedorId: vendedorId,
+                nombreAnterior: vendedorAnterior.nombre,
+                nuevoNombre: vendedorActualizado.nombre,
+                message: `Pedidos del vendedor actualizado: ${vendedorAnterior.nombre} → ${vendedorActualizado.nombre}`
+            });
+        }
 
         res.status(200).json(vendedorActualizado);
     } catch (error) {
