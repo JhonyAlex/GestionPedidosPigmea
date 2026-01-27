@@ -4668,6 +4668,194 @@ app.use('/api/admin/auth/login', loginLimiter);
 // Rutas de gestión de usuarios del sistema principal (comentadas temporalmente)
 // app.use('/api/admin/main-users', adminMainSystemUsersRoutes);
 
+// Ruta para obtener datos analíticos agregados (optimizado para dashboard de analytics)
+app.get('/api/analytics/summary', async (req, res) => {
+    try {
+        const {
+            dateFilter = 'all',
+            dateField = 'nuevaFechaEntrega',
+            startDate,
+            endDate,
+            stages,
+            machines,
+            vendors,
+            clients,
+            priority
+        } = req.query;
+
+        // Construir filtros SQL
+        const filters = [];
+        const params = [];
+        let paramCount = 1;
+
+        // Excluir archivados siempre
+        filters.push("etapa_actual != 'ARCHIVADO'");
+
+        // Filtro de fechas
+        if (dateFilter !== 'all' && startDate && endDate) {
+            filters.push(`${dateField} >= $${paramCount} AND ${dateField} <= $${paramCount + 1}`);
+            params.push(startDate, endDate);
+            paramCount += 2;
+        }
+
+        // Filtro de etapas
+        if (stages && stages !== 'all') {
+            const stagesArray = stages.split(',');
+            filters.push(`etapa_actual = ANY($${paramCount})`);
+            params.push(stagesArray);
+            paramCount++;
+        }
+
+        // Filtro de máquinas
+        if (machines && machines !== 'all') {
+            const machinesArray = machines.split(',');
+            filters.push(`maquina_impresion = ANY($${paramCount})`);
+            params.push(machinesArray);
+            paramCount++;
+        }
+
+        // Filtro de vendedores
+        if (vendors && vendors !== 'all') {
+            const vendorsArray = vendors.split(',');
+            filters.push(`vendedor_nombre = ANY($${paramCount})`);
+            params.push(vendorsArray);
+            paramCount++;
+        }
+
+        // Filtro de clientes
+        if (clients && clients !== 'all') {
+            const clientsArray = clients.split(',');
+            filters.push(`cliente = ANY($${paramCount})`);
+            params.push(clientsArray);
+            paramCount++;
+        }
+
+        // Filtro de prioridad
+        if (priority && priority !== 'all') {
+            filters.push(`prioridad = $${paramCount}`);
+            params.push(priority);
+            paramCount++;
+        }
+
+        const whereClause = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
+
+        // Query para métricas agregadas
+        const metricsQuery = `
+            SELECT 
+                COUNT(*) as total_pedidos,
+                COUNT(CASE WHEN etapa_actual = 'COMPLETADO' THEN 1 END) as pedidos_completados,
+                COALESCE(SUM(CAST(metros AS NUMERIC)), 0) as metros_totales,
+                COALESCE(AVG(CAST(metros AS NUMERIC)), 0) as metros_promedio,
+                COALESCE(SUM(tiempo_produccion_decimal), 0) as tiempo_total_horas,
+                COALESCE(AVG(tiempo_produccion_decimal), 0) as tiempo_promedio_horas,
+                COUNT(CASE WHEN prioridad = 'URGENTE' THEN 1 END) as pedidos_urgentes,
+                COUNT(CASE WHEN nueva_fecha_entrega < NOW() AND etapa_actual != 'COMPLETADO' AND etapa_actual != 'ARCHIVADO' THEN 1 END) as pedidos_atrasados
+            FROM pedidos
+            ${whereClause}
+        `;
+
+        // Query para metros por máquina
+        const machineMetricsQuery = `
+            SELECT 
+                maquina_impresion,
+                COUNT(*) as total_pedidos,
+                COALESCE(SUM(CAST(metros AS NUMERIC)), 0) as metros_totales,
+                COALESCE(SUM(tiempo_produccion_decimal), 0) as tiempo_total_horas
+            FROM pedidos
+            ${whereClause}
+            GROUP BY maquina_impresion
+            ORDER BY metros_totales DESC
+        `;
+
+        // Query para metros por etapa
+        const stageMetricsQuery = `
+            SELECT 
+                etapa_actual,
+                COUNT(*) as total_pedidos,
+                COALESCE(SUM(CAST(metros AS NUMERIC)), 0) as metros_totales,
+                COALESCE(SUM(tiempo_produccion_decimal), 0) as tiempo_total_horas
+            FROM pedidos
+            ${whereClause}
+            GROUP BY etapa_actual
+            ORDER BY metros_totales DESC
+        `;
+
+        // Query para ranking de vendedores (top 10)
+        const vendorRankingQuery = `
+            SELECT 
+                vendedor_nombre,
+                COUNT(*) as total_pedidos,
+                COALESCE(SUM(CAST(metros AS NUMERIC)), 0) as metros_totales,
+                COALESCE(SUM(tiempo_produccion_decimal), 0) as tiempo_total_horas
+            FROM pedidos
+            ${whereClause}
+            GROUP BY vendedor_nombre
+            ORDER BY metros_totales DESC
+            LIMIT 20
+        `;
+
+        // Query para ranking de clientes (top 10)
+        const clientRankingQuery = `
+            SELECT 
+                cliente,
+                COUNT(*) as total_pedidos,
+                COALESCE(SUM(CAST(metros AS NUMERIC)), 0) as metros_totales,
+                COALESCE(SUM(tiempo_produccion_decimal), 0) as tiempo_total_horas
+            FROM pedidos
+            ${whereClause}
+            GROUP BY cliente
+            ORDER BY metros_totales DESC
+            LIMIT 20
+        `;
+
+        // Query para tendencia temporal (agrupado por día/semana según rango)
+        const timeSeriesQuery = `
+            SELECT 
+                DATE_TRUNC('day', ${dateField}::timestamp) as fecha,
+                COUNT(*) as total_pedidos,
+                COALESCE(SUM(CAST(metros AS NUMERIC)), 0) as metros_totales,
+                COALESCE(SUM(tiempo_produccion_decimal), 0) as tiempo_total_horas
+            FROM pedidos
+            ${whereClause}
+            GROUP BY DATE_TRUNC('day', ${dateField}::timestamp)
+            ORDER BY fecha ASC
+        `;
+
+        // Ejecutar todas las queries en paralelo
+        const [
+            metricsResult,
+            machineResult,
+            stageResult,
+            vendorResult,
+            clientResult,
+            timeSeriesResult
+        ] = await Promise.all([
+            dbClient.pool.query(metricsQuery, params),
+            dbClient.pool.query(machineMetricsQuery, params),
+            dbClient.pool.query(stageMetricsQuery, params),
+            dbClient.pool.query(vendorRankingQuery, params),
+            dbClient.pool.query(clientRankingQuery, params),
+            dbClient.pool.query(timeSeriesQuery, params)
+        ]);
+
+        res.json({
+            summary: metricsResult.rows[0],
+            byMachine: machineResult.rows,
+            byStage: stageResult.rows,
+            topVendors: vendorResult.rows,
+            topClients: clientResult.rows,
+            timeSeries: timeSeriesResult.rows
+        });
+
+    } catch (error) {
+        console.error('Error al obtener analytics summary:', error);
+        res.status(500).json({
+            error: 'Error interno del servidor',
+            message: error.message
+        });
+    }
+});
+
 // Ruta para obtener datos del dashboard administrativo
 app.get('/api/admin/dashboard', async (req, res) => {
     try {
