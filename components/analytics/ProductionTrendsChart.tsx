@@ -2,6 +2,7 @@ import React from 'react';
 import { TimeSeriesPoint } from '../../hooks/useAnalyticsData';
 import LineChart from '../LineChart';
 import { formatMetros } from '../../utils/date';
+import InfoTooltip from '../InfoTooltip';
 
 interface ProductionTrendsChartProps {
     data: TimeSeriesPoint[];
@@ -99,6 +100,10 @@ export const ProductionTrendsChart: React.FC<ProductionTrendsChartProps> = ({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
                     </svg>
                     {config.title}
+                    <InfoTooltip 
+                        content="Gráfico de línea que muestra la evolución temporal de la métrica seleccionada. Datos agrupados por día según el rango de fechas y filtros aplicados. Alterna entre Metros, Pedidos y Horas de producción."
+                        position="right"
+                    />
                 </h3>
 
                 {/* Metric Selector */}
@@ -143,7 +148,14 @@ export const ProductionTrendsChart: React.FC<ProductionTrendsChartProps> = ({
             {/* Summary Stats */}
             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 grid grid-cols-3 gap-4">
                 <div className="text-center">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total</p>
+                    <div className="flex items-center justify-center gap-1 mb-1">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Total</p>
+                        <InfoTooltip 
+                            content="Suma total de la métrica seleccionada en todos los días del período filtrado."
+                            position="top"
+                            size="sm"
+                        />
+                    </div>
                     <p className="text-lg font-bold text-gray-900 dark:text-white">
                         {selectedMetric === 'metros' && formatMetros(chartValues.reduce((sum, v) => sum + v, 0))}
                         {selectedMetric === 'pedidos' && chartValues.reduce((sum, v) => sum + v, 0)}
@@ -151,7 +163,14 @@ export const ProductionTrendsChart: React.FC<ProductionTrendsChartProps> = ({
                     </p>
                 </div>
                 <div className="text-center">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Promedio</p>
+                    <div className="flex items-center justify-center gap-1 mb-1">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Promedio</p>
+                        <InfoTooltip 
+                            content="Promedio diario calculado como: Total ÷ Número de días en el período."
+                            position="top"
+                            size="sm"
+                        />
+                    </div>
                     <p className="text-lg font-bold text-gray-900 dark:text-white">
                         {selectedMetric === 'metros' && formatMetros(chartValues.reduce((sum, v) => sum + v, 0) / chartValues.length)}
                         {selectedMetric === 'pedidos' && (chartValues.reduce((sum, v) => sum + v, 0) / chartValues.length).toFixed(1)}
@@ -159,7 +178,14 @@ export const ProductionTrendsChart: React.FC<ProductionTrendsChartProps> = ({
                     </p>
                 </div>
                 <div className="text-center">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Días</p>
+                    <div className="flex items-center justify-center gap-1 mb-1">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Días</p>
+                        <InfoTooltip 
+                            content="Cantidad de días con actividad registrada en el período seleccionado."
+                            position="top"
+                            size="sm"
+                        />
+                    </div>
                     <p className="text-lg font-bold text-gray-900 dark:text-white">
                         {chartValues.length}
                     </p>

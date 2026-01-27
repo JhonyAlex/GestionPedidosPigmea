@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { VendorMetric, ClientMetric, StageMetric } from '../../hooks/useAnalyticsData';
 import { formatMetros } from '../../utils/date';
+import InfoTooltip from '../InfoTooltip';
 
 interface RankingsTableProps {
     vendorData: VendorMetric[];
@@ -91,9 +92,9 @@ export const RankingsTable: React.FC<RankingsTableProps> = ({
     }
 
     const tabs = [
-        { id: 'vendors' as RankingType, label: 'Vendedores', count: vendorData.length },
-        { id: 'clients' as RankingType, label: 'Clientes', count: clientData.length },
-        { id: 'stages' as RankingType, label: 'Etapas', count: stageData.length }
+        { id: 'vendors' as RankingType, label: 'Vendedores', count: vendorData.length, tooltip: 'Ranking de vendedores ordenados por metros totales producidos. Los datos se agrupan por el campo "vendedorNombre" de cada pedido.' },
+        { id: 'clients' as RankingType, label: 'Clientes', count: clientData.length, tooltip: 'Ranking de clientes ordenados por metros totales producidos. Los datos se agrupan por el campo "cliente" de cada pedido.' },
+        { id: 'stages' as RankingType, label: 'Etapas', count: stageData.length, tooltip: 'Distribución de pedidos por etapa del proceso. Muestra cuántos pedidos y metros están en cada fase del flujo productivo.' }
     ];
 
     const renderTable = () => {
@@ -235,6 +236,10 @@ export const RankingsTable: React.FC<RankingsTableProps> = ({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
                     Rankings de Producción
+                    <InfoTooltip 
+                        content="Tablas comparativas de rendimiento. Alterna entre rankings de Vendedores, Clientes y Etapas. Haz clic en las columnas para ordenar por diferentes métricas."
+                        position="right"
+                    />
                 </h3>
             </div>
 
@@ -245,20 +250,27 @@ export const RankingsTable: React.FC<RankingsTableProps> = ({
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`py-2 px-4 border-b-2 font-medium text-sm transition-colors ${
+                            className={`py-2 px-4 border-b-2 font-medium text-sm transition-colors flex items-center gap-1.5 ${
                                 activeTab === tab.id
                                     ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
                             }`}
                         >
                             {tab.label}
-                            <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
+                            <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
                                 activeTab === tab.id
                                     ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200'
                                     : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
                             }`}>
                                 {tab.count}
                             </span>
+                            {activeTab === tab.id && (
+                                <InfoTooltip 
+                                    content={tab.tooltip}
+                                    position="bottom"
+                                    size="sm"
+                                />
+                            )}
                         </button>
                     ))}
                 </nav>

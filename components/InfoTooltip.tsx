@@ -19,7 +19,9 @@ const InfoTooltip: React.FC<InfoTooltipProps> = ({
 }) => {
     const [isVisible, setIsVisible] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
     const tooltipRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         // Detectar si es móvil para cambiar comportamiento
@@ -32,11 +34,57 @@ const InfoTooltip: React.FC<InfoTooltipProps> = ({
     }, []);
 
     useEffect(() => {
+        // Calcular posición del tooltip cuando se hace visible
+        if (isVisible && buttonRef.current && tooltipRef.current) {
+            const buttonRect = buttonRef.current.getBoundingClientRect();
+            const tooltipRect = tooltipRef.current.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            
+            let top = 0;
+            let left = 0;
+
+            // Calcular posición según preferencia
+            switch (position) {
+                case 'top':
+                    top = buttonRect.top - tooltipRect.height - 8;
+                    left = buttonRect.left + (buttonRect.width / 2) - (tooltipRect.width / 2);
+                    break;
+                case 'bottom':
+                    top = buttonRect.bottom + 8;
+                    left = buttonRect.left + (buttonRect.width / 2) - (tooltipRect.width / 2);
+                    break;
+                case 'left':
+                    top = buttonRect.top + (buttonRect.height / 2) - (tooltipRect.height / 2);
+                    left = buttonRect.left - tooltipRect.width - 8;
+                    break;
+                case 'right':
+                    top = buttonRect.top + (buttonRect.height / 2) - (tooltipRect.height / 2);
+                    left = buttonRect.right + 8;
+                    break;
+            }
+
+            // Ajustar si se sale del viewport
+            if (left < 10) left = 10;
+            if (left + tooltipRect.width > viewportWidth - 10) {
+                left = viewportWidth - tooltipRect.width - 10;
+            }
+            if (top < 10) top = 10;
+            if (top + tooltipRect.height > viewportHeight - 10) {
+                top = viewportHeight - tooltipRect.height - 10;
+            }
+
+            setTooltipPosition({ top, left });
+        }
+    }, [isVisible, position]);
+
+    useEffect(() => {
         // Cerrar tooltip al hacer click fuera (solo en móvil)
         if (!isMobile || !isVisible) return;
 
         const handleClickOutside = (event: MouseEvent) => {
-            if (tooltipRef.current && !tooltipRef.current.contains(event.target as Node)) {
+            if (tooltipRef.current && !tooltipRef.current.contains(event.target as Node) &&
+                buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
                 setIsVisible(false);
             }
         };
@@ -51,25 +99,12 @@ const InfoTooltip: React.FC<InfoTooltipProps> = ({
         lg: 'w-5 h-5'
     };
 
-    const positionClasses = {
-        top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
-        bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
-        left: 'right-full top-1/2 -translate-y-1/2 mr-2',
-        right: 'left-full top-1/2 -translate-y-1/2 ml-2'
-    };
-
-    const arrowClasses = {
-        top: 'top-full left-1/2 -translate-x-1/2 border-l-transparent border-r-transparent border-b-transparent border-t-gray-800 dark:border-t-gray-700',
-        bottom: 'bottom-full left-1/2 -translate-x-1/2 border-l-transparent border-r-transparent border-t-transparent border-b-gray-800 dark:border-b-gray-700',
-        left: 'left-full top-1/2 -translate-y-1/2 border-t-transparent border-b-transparent border-r-transparent border-l-gray-800 dark:border-l-gray-700',
-        right: 'right-full top-1/2 -translate-y-1/2 border-t-transparent border-b-transparent border-l-transparent border-r-gray-800 dark:border-r-gray-700'
-    };
-
     return (
-        <div className="relative inline-flex" ref={tooltipRef}>
+        <>
             <button
+                ref={buttonRef}
                 type="button"
-                className="inline-flex items-center justify-center text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors focus:outline-none"
+                className="inline-flex items-center justify-center text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors focus:outline-none flex-shrink-0"
                 onMouseEnter={() => !isMobile && setIsVisible(true)}
                 onMouseLeave={() => !isMobile && setIsVisible(false)}
                 onClick={() => isMobile && setIsVisible(!isVisible)}
@@ -88,13 +123,19 @@ const InfoTooltip: React.FC<InfoTooltipProps> = ({
                 </svg>
             </button>
 
-            {/* Tooltip */}
+            {/* Tooltip con position fixed para evitar cortes */}
             {isVisible && (
                 <div 
-                    className={`absolute z-[9999] ${positionClasses[position]} animate-fade-in`}
-                    style={{ width: 'max-content', maxWidth: '300px' }}
+                    ref={tooltipRef}
+                    className="fixed z-[9999] animate-fade-in"
+                    style={{ 
+                        top: `${tooltipPosition.top}px`,
+                        left: `${tooltipPosition.left}px`,
+                        maxWidth: '320px',
+                        width: 'max-content'
+                    }}
                 >
-                    <div className="bg-gray-800 dark:bg-gray-700 text-white text-xs rounded-lg shadow-lg p-3 border border-gray-700 dark:border-gray-600">
+                    <div className="bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-2xl p-3 border border-gray-700 dark:border-gray-600">
                         <div className="flex items-start gap-2">
                             <svg className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -102,13 +143,9 @@ const InfoTooltip: React.FC<InfoTooltipProps> = ({
                             <p className="leading-relaxed">{content}</p>
                         </div>
                     </div>
-                    {/* Arrow */}
-                    <div 
-                        className={`absolute w-0 h-0 border-4 ${arrowClasses[position]}`}
-                    />
                 </div>
             )}
-        </div>
+        </>
     );
 };
 

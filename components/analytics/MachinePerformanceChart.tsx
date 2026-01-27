@@ -2,6 +2,7 @@ import React from 'react';
 import { MachineMetric } from '../../hooks/useAnalyticsData';
 import BarChart from '../BarChart';
 import { formatMetros } from '../../utils/date';
+import InfoTooltip from '../InfoTooltip';
 
 interface MachinePerformanceChartProps {
     data: MachineMetric[];
@@ -116,6 +117,10 @@ export const MachinePerformanceChart: React.FC<MachinePerformanceChartProps> = (
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
                     </svg>
                     {config.title}
+                    <InfoTooltip 
+                        content="Gráfico de barras que compara el rendimiento entre máquinas. Los datos se ordenan de mayor a menor según la métrica seleccionada. Incluye WM1, WM3, GIAVE, DNT y VARIABLES."
+                        position="right"
+                    />
                 </h3>
 
                 {/* Metric Selector */}
@@ -159,6 +164,14 @@ export const MachinePerformanceChart: React.FC<MachinePerformanceChartProps> = (
 
             {/* Detailed Stats Table */}
             <div className="overflow-x-auto">
+                <div className="flex items-center gap-2 mb-3">
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Resumen Detallado</h4>
+                    <InfoTooltip 
+                        content="Tabla con todas las métricas por máquina, ordenada por metros producidos. El porcentaje indica la participación sobre el total de metros producidos."
+                        position="right"
+                        size="sm"
+                    />
+                </div>
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead className="bg-gray-50 dark:bg-gray-900">
                         <tr>
