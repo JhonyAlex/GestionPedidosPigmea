@@ -693,7 +693,6 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                             </div>
                                         )}
                                     </div>
-                                </div>
 
                                 {/* Columna Derecha */}
                                 <div className="space-y-4">
