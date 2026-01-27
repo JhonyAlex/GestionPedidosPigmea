@@ -1,6 +1,7 @@
 import React from 'react';
 import { AnalyticsSummary } from '../../hooks/useAnalyticsData';
 import { formatMetros } from '../../utils/date';
+import InfoTooltip from '../InfoTooltip';
 
 interface KPICardsProps {
     summary: AnalyticsSummary;
@@ -13,6 +14,7 @@ interface KPICardData {
     subtitle?: string;
     icon: React.ReactNode;
     colorClass: string;
+    tooltip: string; // Explicación de cómo se calcula
     trend?: {
         value: string;
         isPositive: boolean;
@@ -39,6 +41,7 @@ export const KPICards: React.FC<KPICardsProps> = ({ summary, loading }) => {
             title: 'Total Pedidos',
             value: Number(summary.total_pedidos || 0).toLocaleString('es-ES'),
             subtitle: `${Number(summary.pedidos_completados || 0)} completados`,
+            tooltip: 'Cuenta total de pedidos que coinciden con los filtros aplicados (rango de fechas, etapas, máquinas, etc.).',
             icon: (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -50,6 +53,7 @@ export const KPICards: React.FC<KPICardsProps> = ({ summary, loading }) => {
             title: 'Metros Producidos',
             value: formatMetros(summary.metros_totales),
             subtitle: 'metros totales',
+            tooltip: 'Suma de todos los metros producidos en los pedidos filtrados. Se obtiene del campo "metros" de cada pedido.',
             icon: (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -61,6 +65,7 @@ export const KPICards: React.FC<KPICardsProps> = ({ summary, loading }) => {
             title: 'Metros Promedio',
             value: formatMetros(summary.metros_promedio),
             subtitle: 'por pedido',
+            tooltip: 'Promedio aritmético de metros por pedido. Calculado como: Metros Totales ÷ Total de Pedidos.',
             icon: (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -72,6 +77,7 @@ export const KPICards: React.FC<KPICardsProps> = ({ summary, loading }) => {
             title: 'Horas Totales',
             value: Number(summary.tiempo_total_horas || 0).toFixed(1),
             subtitle: 'horas de producción',
+            tooltip: 'Suma total de horas de producción. Se usa el campo "tiempoProduccionDecimal" o se convierte "tiempoProduccionPlanificado" a horas decimales.',
             icon: (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -83,6 +89,7 @@ export const KPICards: React.FC<KPICardsProps> = ({ summary, loading }) => {
             title: 'Tiempo Promedio',
             value: Number(summary.tiempo_promedio_horas || 0).toFixed(2),
             subtitle: 'horas por pedido',
+            tooltip: 'Promedio de horas de producción por pedido. Calculado como: Horas Totales ÷ Total de Pedidos.',
             icon: (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -96,6 +103,7 @@ export const KPICards: React.FC<KPICardsProps> = ({ summary, loading }) => {
                 ? `${((Number(summary.pedidos_completados || 0) / Number(summary.total_pedidos || 1)) * 100).toFixed(1)}%`
                 : '0%',
             subtitle: `${Number(summary.pedidos_completados || 0)}/${Number(summary.total_pedidos || 0)}`,
+            tooltip: 'Porcentaje de pedidos completados del total. Calculado como: (Pedidos Completados ÷ Total Pedidos) × 100.',
             icon: (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -107,6 +115,7 @@ export const KPICards: React.FC<KPICardsProps> = ({ summary, loading }) => {
             title: 'Pedidos Urgentes',
             value: Number(summary.pedidos_urgentes || 0),
             subtitle: 'prioridad alta',
+            tooltip: 'Pedidos marcados con prioridad "URGENTE" o "ALTA" según el campo "prioridad".',
             icon: (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -118,6 +127,7 @@ export const KPICards: React.FC<KPICardsProps> = ({ summary, loading }) => {
             title: 'Pedidos Atrasados',
             value: Number(summary.pedidos_atrasados || 0),
             subtitle: 'requieren atención',
+            tooltip: 'Pedidos cuya fecha de entrega (nuevaFechaEntrega o fechaEntrega) es anterior a la fecha actual y NO están en etapa "COMPLETADO" o "ARCHIVADO".',
             icon: (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -137,9 +147,16 @@ export const KPICards: React.FC<KPICardsProps> = ({ summary, loading }) => {
                     <div className="p-4">
                         <div className="flex items-start justify-between mb-3">
                             <div className="flex-1">
-                                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
-                                    {card.title}
-                                </p>
+                                <div className="flex items-center gap-1.5 mb-1">
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                        {card.title}
+                                    </p>
+                                    <InfoTooltip 
+                                        content={card.tooltip}
+                                        position="top"
+                                        size="sm"
+                                    />
+                                </div>
                                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
                                     {card.value}
                                 </p>

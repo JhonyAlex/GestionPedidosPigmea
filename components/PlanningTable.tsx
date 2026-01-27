@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatDateDDMMYYYY } from '../utils/date';
+import InfoTooltip from './InfoTooltip';
 
 export interface WeeklyData {
     week: number;
@@ -38,6 +39,15 @@ const MACHINE_COLORS: Record<string, string> = {
     'GIAVE': 'bg-orange-900 text-white border-orange-950', // SUP GIAVE
     'DNT': 'bg-green-900 text-white border-green-950', // DNT
     'VARIABLES': 'bg-purple-900 text-white border-purple-950', // VARIABLES
+};
+
+// Define tooltips for each machine/category
+const MACHINE_TOOLTIPS: Record<string, string> = {
+    'Windmöller 1': 'Horas programadas en máquina Windmöller 1. Estas horas SÍ restan de la capacidad libre (180h base).',
+    'Windmöller 3': 'Horas programadas en máquina Windmöller 3. Estas horas SÍ restan de la capacidad libre (180h base).',
+    'GIAVE': 'Horas programadas en máquina GIAVE. Estas horas NO restan de la capacidad libre.',
+    'DNT': 'Pedidos prioritarios DNT (cliente o vendedor contiene "DNT"). Estas horas SÍ restan de la capacidad libre.',
+    'VARIABLES': 'Pedidos con clichés nuevos o cambios pendientes (sin horas confirmadas, compra de cliché o disponibilidad). Estas horas NO restan de la capacidad libre.',
 };
 
 export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys }) => {
@@ -80,11 +90,25 @@ export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys 
                                 scope="col"
                                 className={`px-3 py-3.5 text-center text-sm font-bold border-r border-gray-200 ${MACHINE_COLORS[key] || 'bg-gray-100 text-gray-900'}`}
                             >
-                                {MACHINE_COLUMN_HEADERS[key] || key}
+                                <div className="flex items-center justify-center gap-1.5">
+                                    {MACHINE_COLUMN_HEADERS[key] || key}
+                                    <InfoTooltip 
+                                        content={MACHINE_TOOLTIPS[key] || 'Horas programadas para esta categoría'}
+                                        position="bottom"
+                                        size="sm"
+                                    />
+                                </div>
                             </th>
                         ))}
                         <th scope="col" className="px-3 py-3.5 text-center text-sm font-bold text-gray-900 bg-white border-l-2 border-gray-300">
-                            LIBRES
+                            <div className="flex items-center justify-center gap-1.5">
+                                LIBRES
+                                <InfoTooltip 
+                                    content="Capacidad disponible calculada con la fórmula: 180 horas - WH1 - WH3 - DNT. Las categorías GIAVE y VARIABLES NO restan capacidad."
+                                    position="bottom"
+                                    size="sm"
+                                />
+                            </div>
                         </th>
                     </tr>
                 </thead>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { WeeklyData } from './PlanningTable';
+import InfoTooltip from './InfoTooltip';
 
 interface PlanningChartProps {
     data: WeeklyData[];
@@ -49,6 +50,10 @@ export const PlanningChart: React.FC<PlanningChartProps> = ({ data, machineKeys,
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
                     Carga Semanal por Máquina (Horas)
+                    <InfoTooltip 
+                        content="Gráfico de barras apiladas que muestra la distribución de horas de trabajo por máquina/categoría en cada semana. Haz clic en una barra para ver el detalle de pedidos. La altura de cada sección representa las horas programadas."
+                        position="right"
+                    />
                 </h3>
                 <div className="text-sm text-gray-500 bg-gray-50 px-3 py-1 rounded">
                     {data.length} {data.length === 1 ? 'semana' : 'semanas'}

@@ -16,6 +16,7 @@ import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import { generateProductionAnalysis, saveAnalysisToCache, getAnalysisFromCache, clearAnalysisCache } from '../utils/aiAnalysis';
 import { io, Socket } from 'socket.io-client';
+import InfoTooltip from './InfoTooltip';
 
 /**
  * =============================================================================
@@ -973,8 +974,14 @@ const ReportView: React.FC<ReportViewProps> = ({
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                                 </svg>
                             </div>
-                            <div>
-                                <h3 className="text-sm font-bold text-gray-800 dark:text-white">Análisis Gerencial</h3>
+                            <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-sm font-bold text-gray-800 dark:text-white">Análisis Gerencial</h3>
+                                    <InfoTooltip 
+                                        content="Este análisis es generado por IA utilizando los datos filtrados de planificación semanal, incluyendo carga de trabajo por máquina, capacidad disponible y pedidos programados. El análisis considera las instrucciones personalizadas configuradas."
+                                        position="right"
+                                    />
+                                </div>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">Generado con IA • {new Date().toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}</p>
                             </div>
                         </div>
@@ -1019,6 +1026,10 @@ const ReportView: React.FC<ReportViewProps> = ({
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
                         </svg>
                         Máquinas / Categorías
+                        <InfoTooltip 
+                            content="Los pedidos se clasifican automáticamente según: 1) DNT (clientes/vendedores con 'DNT' en el nombre), 2) Máquina asignada (WM1, WM3, GIAVE), 3) VARIABLES (pedidos con clichés nuevos o cambios sin confirmar horas). Selecciona las categorías que deseas visualizar."
+                            position="right"
+                        />
                     </h3>
                     <div className="flex flex-wrap gap-2">
                         {allMachineOptions.map(machine => {
@@ -1051,6 +1062,10 @@ const ReportView: React.FC<ReportViewProps> = ({
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                         </svg>
                         Etapas del Proceso
+                        <InfoTooltip 
+                            content="Filtra los pedidos por su etapa actual en el flujo de producción. Los pedidos en 'Listo para Producción' son aquellos en Preparación que han completado todos los requisitos. Excluye automáticamente pedidos archivados."
+                            position="right"
+                        />
                     </h3>
                     <div className="flex flex-wrap gap-2">
                         {[
@@ -1106,7 +1121,13 @@ const ReportView: React.FC<ReportViewProps> = ({
 
             {/* --- Planning Table --- */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden p-4">
-                <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Planificación Semanal</h2>
+                <div className="flex items-center gap-2 mb-4">
+                    <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-200">Planificación Semanal</h2>
+                    <InfoTooltip 
+                        content="Tabla de planificación organizada por semanas. Muestra la carga de trabajo en horas para cada máquina/categoría. CAPACIDAD LIBRE = 180h - WM1 - WM3 - DNT. Las categorías GIAVE y VARIABLES no restan capacidad."
+                        position="right"
+                    />
+                </div>
                 <PlanningTable
                     data={processedData.weeklyData}
                     machineKeys={processedData.machineKeys}
@@ -1132,6 +1153,10 @@ const ReportView: React.FC<ReportViewProps> = ({
                             <span className="ml-2 text-sm font-normal text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
                                 {selectedPedidos.length} pedidos
                             </span>
+                            <InfoTooltip 
+                                content="Lista detallada de todos los pedidos asignados a esta máquina/categoría en la semana seleccionada. El tiempo mostrado es el planificado, o en su defecto, el tiempo de producción calculado. Haz clic en las columnas para ordenar."
+                                position="bottom"
+                            />
                         </h3>
                         <button
                             onClick={() => setSelectedChartFilter(null)}
