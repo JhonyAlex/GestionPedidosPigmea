@@ -472,8 +472,8 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                     <button
                         onClick={() => setActiveTab('detalles')}
                         className={`py-3 px-6 text-sm font-medium transition-colors duration-200 ${activeTab === 'detalles'
-                                ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                            ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                             }`}
                     >
                         📋 Detalles del Pedido
@@ -481,8 +481,8 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                     <button
                         onClick={() => setActiveTab('gestion')}
                         className={`py-3 px-6 text-sm font-medium transition-colors duration-200 ${activeTab === 'gestion'
-                                ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                            ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                             }`}
                     >
                         ⚙️ Gestión y Preparación
@@ -540,8 +540,8 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                                 value={formData.numeroPedidoCliente}
                                                 onChange={handleChange}
                                                 className={`w-full bg-gray-200 dark:bg-gray-700 border rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 ${numeroPedidoError
-                                                        ? 'border-red-500 dark:border-red-400'
-                                                        : 'border-gray-300 dark:border-gray-600'
+                                                    ? 'border-red-500 dark:border-red-400'
+                                                    : 'border-gray-300 dark:border-gray-600'
                                                     }`}
                                                 placeholder="Ej: PED-2024-001"
                                                 required
@@ -665,401 +665,408 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                                 </div>
                                             </div>
 
-                                            {/* Tercera fila: Atención Observaciones - Ocupa todo el ancho */}
-                                            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                                                <div className="flex items-center">
-                                                    <input
-                                                        type="checkbox"
-                                                        id="atencionObservaciones"
-                                                        name="atencionObservaciones"
-                                                        checked={formData.atencionObservaciones}
-                                                        onChange={handleChange}
-                                                        className="h-5 w-5 rounded border-gray-300 text-pink-600 focus:ring-pink-500"
-                                                    />
-                                                    <label htmlFor="atencionObservaciones" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                        Atención Observaciones
-                                                    </label>
-                                                </div>
-                                            </div>
 
-                                            {/* Select de Post-Impresión para Anónimos */}
-                                            {formData.anonimo && (
-                                                <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-400 dark:border-yellow-600 rounded-lg">
-                                                    <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                                                        📦 Post-Impresión (Anónimo) <span className="text-red-500">*</span>
-                                                    </label>
-                                                    <select
-                                                        name="anonimoPostImpresion"
-                                                        value={formData.anonimoPostImpresion || ''}
-                                                        onChange={handleChange}
-                                                        className="w-full bg-white dark:bg-gray-700 border border-yellow-400 dark:border-yellow-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-yellow-500"
-                                                        required={formData.anonimo}
-                                                    >
-                                                        <option value="">Seleccione una opción</option>
-                                                        <option value="Rebobinado">Rebobinado</option>
-                                                        <option value="Laminación y rebobinado">Laminación y rebobinado</option>
-                                                        <option value="MacroPerforado y Rebobinado">MacroPerforado y Rebobinado</option>
-                                                        <option value="MicroPerforado y Rebobinado">MicroPerforado y Rebobinado</option>
-                                                    </select>
-                                                    <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
-                                                        ⚠️ Requerido para pedidos anónimos
-                                                    </p>
-                                                </div>
-                                            )}
                                         </div>
-                                    </div>
 
-                                    {/* Columna Derecha */}
-                                    <div className="space-y-4">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                    Metros <span className="text-red-500">*</span>
+                                        {/* Select de Post-Impresión para Anónimos */}
+                                        {formData.anonimo && (
+                                            <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-400 dark:border-yellow-600 rounded-lg">
+                                                <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                                    📦 Post-Impresión (Anónimo) <span className="text-red-500">*</span>
                                                 </label>
-                                                <input
-                                                    type="text"
-                                                    inputMode="numeric"
-                                                    pattern="[0-9]*"
-                                                    name="metros"
-                                                    value={formData.metros}
-                                                    onChange={handleChange}
-                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
-                                                    placeholder="0"
-                                                    required
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                    Tiempo Prod. Decimal (horas)
-                                                    {formData.anonimo && <span className="ml-1 text-xs text-yellow-600 dark:text-yellow-400">(Auto)</span>}
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    inputMode="decimal"
-                                                    name="tiempoProduccionDecimal"
-                                                    value={tiempoProduccionDecimalInput}
-                                                    onChange={(e) => handleDecimalTimeChange(e.target.value)}
-                                                    onBlur={handleDecimalTimeBlur}
-                                                    disabled={formData.anonimo}
-                                                    placeholder="Ej: 1.5 = 1h 30m"
-                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-blue-500 focus:border-blue-500"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                    Tiempo Prod. (HH:mm) <span className="text-xs text-gray-500">(solo lectura)</span>
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    name="tiempoProduccionPlanificado"
-                                                    value={formData.tiempoProduccionPlanificado}
-                                                    readOnly
-                                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 cursor-not-allowed opacity-70"
-                                                />
-                                            </div>
-                                            <div></div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                    Fecha de Entrega <span className="text-red-500">*</span>
-                                                </label>
-                                                <input
-                                                    type="date"
-                                                    name="fechaEntrega"
-                                                    value={formData.fechaEntrega}
-                                                    onChange={handleChange}
-                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
-                                                    required
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Nueva Fecha Entrega</label>
-                                                <input
-                                                    type="date"
-                                                    name="nuevaFechaEntrega"
-                                                    value={formData.nuevaFechaEntrega}
-                                                    onChange={handleChange}
-                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Vendedor</label>
-                                            <SearchableSelect
-                                                name="vendedorId"
-                                                value={formData.vendedorId}
-                                                onChange={(value) => {
-                                                    if (value === 'add_new_vendedor') {
-                                                        setVendedorModalOpen(true);
-                                                    } else {
-                                                        handleChange({ target: { name: 'vendedorId', value } } as any);
-                                                    }
-                                                }}
-                                                options={vendedores.map(v => ({
-                                                    id: v.id,
-                                                    label: v.nombre,
-                                                    isInactive: !v.activo
-                                                }))}
-                                                placeholder="Seleccione un vendedor"
-                                                allowCreate={true}
-                                                createLabel="-- Crear nuevo vendedor --"
-                                                onCreateNew={() => setVendedorModalOpen(true)}
-                                                showActiveOnly={false}
-                                            />
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Prioridad</label>
                                                 <select
-                                                    name="prioridad"
-                                                    value={formData.prioridad}
+                                                    name="anonimoPostImpresion"
+                                                    value={formData.anonimoPostImpresion || ''}
                                                     onChange={handleChange}
-                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
+                                                    className="w-full bg-white dark:bg-gray-700 border border-yellow-400 dark:border-yellow-600 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-yellow-500"
+                                                    required={formData.anonimo}
                                                 >
-                                                    {Object.values(Prioridad).map(p => <option key={p} value={p}>{p}</option>)}
+                                                    <option value="">Seleccione una opción</option>
+                                                    <option value="Rebobinado">Rebobinado</option>
+                                                    <option value="Laminación y rebobinado">Laminación y rebobinado</option>
+                                                    <option value="MacroPerforado y Rebobinado">MacroPerforado y Rebobinado</option>
+                                                    <option value="MicroPerforado y Rebobinado">MicroPerforado y Rebobinado</option>
                                                 </select>
+                                                <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
+                                                    ⚠️ Requerido para pedidos anónimos
+                                                </p>
                                             </div>
-                                            <div>
-                                                <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Camisa</label>
-                                                <input
-                                                    type="text"
-                                                    name="camisa"
-                                                    value={formData.camisa}
-                                                    onChange={handleChange}
-                                                    className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
-                                                    placeholder="Info de la camisa"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">📝 Observaciones</label>
-                                            <ObservacionesAutocomplete
-                                                value={formData.observacionesRapidas || ''}
-                                                onChange={(value) => setFormData((prev: any) => ({ ...prev, observacionesRapidas: value }))}
-                                                placeholder="Escribe una observación rápida..."
-                                            />
-                                            <textarea
-                                                name="observaciones"
-                                                value={formData.observaciones}
-                                                onChange={handleChange}
-                                                rows={3}
-                                                className="w-full mt-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
-                                                placeholder="Notas adicionales más extensas..."
-                                            ></textarea>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Secuencia de Trabajo */}
-                                <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
-                                            🔄 Secuencia de Trabajo Post-Impresión
-                                        </h3>
-                                        {formData.antivaho && secuenciaTrabajo.length === 0 && (
-                                            <span className="text-sm text-yellow-600 dark:text-yellow-400 font-medium">
-                                                ⚠️ Requerido para pedidos con Antivaho
-                                            </span>
                                         )}
                                     </div>
-                                    <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
-                                        <SequenceBuilder
-                                            sequence={secuenciaTrabajo}
-                                            onChange={setSecuenciaTrabajo}
-                                            isReadOnly={false}
-                                        />
-                                    </div>
-                                </div>
-                            </>
-                        )}
-
-                        {activeTab === 'gestion' && (
-                            <>
-                                {/* Resumen del estado */}
-                                <div className={`rounded-lg p-4 mb-6 border-2 ${formData.materialDisponible && formData.clicheDisponible
-                                        ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
-                                        : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
-                                    }`}>
-                                    <h3 className={`text-lg font-semibold mb-2 ${formData.materialDisponible && formData.clicheDisponible
-                                            ? 'text-green-800 dark:text-green-200'
-                                            : 'text-yellow-800 dark:text-yellow-200'
-                                        }`}>
-                                        📋 Resumen del Estado de Preparación
-                                    </h3>
-                                    <div className="grid grid-cols-2 gap-3 text-sm">
-                                        <div className="flex items-center gap-2">
-                                            <span className={`font-medium ${formData.materialDisponible ? 'text-green-700 dark:text-green-300' : 'text-gray-600 dark:text-gray-400'}`}>
-                                                {formData.materialDisponible ? '✓' : '○'} Material:
-                                            </span>
-                                            <span className={formData.materialDisponible ? 'text-green-600 dark:text-green-400 font-semibold' : 'text-gray-500 dark:text-gray-500'}>
-                                                {formData.materialDisponible ? 'Disponible' : 'Pendiente'}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className={`font-medium ${formData.clicheDisponible ? 'text-green-700 dark:text-green-300' : 'text-gray-600 dark:text-gray-400'}`}>
-                                                {formData.clicheDisponible ? '✓' : '○'} Cliché:
-                                            </span>
-                                            <span className={formData.clicheDisponible ? 'text-green-600 dark:text-green-400 font-semibold' : 'text-gray-500 dark:text-gray-500'}>
-                                                {formData.clicheDisponible ? 'Disponible' : formData.estadoCliché || 'Pendiente'}
-                                            </span>
-                                        </div>
-                                    </div>
                                 </div>
 
-                                {/* Configuración de Preparación */}
-                                <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-6 mb-6 border border-gray-200 dark:border-gray-700">
-                                    <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">
-                                        ⚙️ Configuración de Preparación
-                                    </h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Estado del Cliché</label>
-                                            <select
-                                                name="estadoCliché"
-                                                value={formData.estadoCliché}
-                                                onChange={handleChange}
-                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
-                                            >
-                                                {Object.values(EstadoCliché).map(t => <option key={t} value={t}>{t}</option>)}
-                                            </select>
-                                        </div>
+                                {/* Columna Derecha */}
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                Información Adicional Cliché
+                                                Metros <span className="text-red-500">*</span>
                                             </label>
                                             <input
                                                 type="text"
-                                                name="clicheInfoAdicional"
-                                                value={formData.clicheInfoAdicional || ''}
-                                                onChange={handleChange}
-                                                placeholder="Ej: Recibido 27/10, ID: CLH-123"
-                                                maxLength={200}
-                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
-                                            />
-                                            {formData.clicheInfoAdicional && (
-                                                <p className="text-xs text-gray-500 mt-1">
-                                                    {formData.clicheInfoAdicional.length}/200 caracteres
-                                                </p>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Compra Cliché</label>
-                                            <input
-                                                type="date"
-                                                name="compraCliche"
-                                                value={formData.compraCliche || ''}
+                                                inputMode="numeric"
+                                                pattern="[0-9]*"
+                                                name="metros"
+                                                value={formData.metros}
                                                 onChange={handleChange}
                                                 className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
+                                                placeholder="0"
+                                                required
                                             />
                                         </div>
                                         <div>
-                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Recepción Cliché</label>
-                                            <input
-                                                type="date"
-                                                name="recepcionCliche"
-                                                value={formData.recepcionCliche || ''}
-                                                onChange={handleChange}
-                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
-                                            />
-                                        </div>
-                                        <div className="flex items-center pt-2">
-                                            <input
-                                                type="checkbox"
-                                                id="clicheDisponible"
-                                                name="clicheDisponible"
-                                                checked={formData.clicheDisponible}
-                                                onChange={handleChange}
-                                                className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                            />
-                                            <label htmlFor="clicheDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                Cliché Disponible
+                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                Tiempo Prod. Decimal (horas)
+                                                {formData.anonimo && <span className="ml-1 text-xs text-yellow-600 dark:text-yellow-400">(Auto)</span>}
                                             </label>
-                                        </div>
-                                        <div className="flex items-center pt-2">
                                             <input
-                                                type="checkbox"
-                                                id="materialDisponible"
-                                                name="materialDisponible"
-                                                checked={formData.materialDisponible}
-                                                onChange={handleChange}
-                                                className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                                type="text"
+                                                inputMode="decimal"
+                                                name="tiempoProduccionDecimal"
+                                                value={tiempoProduccionDecimalInput}
+                                                onChange={(e) => handleDecimalTimeChange(e.target.value)}
+                                                onBlur={handleDecimalTimeBlur}
+                                                disabled={formData.anonimo}
+                                                placeholder="Ej: 1.5 = 1h 30m"
+                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-blue-500 focus:border-blue-500"
                                             />
-                                            <label htmlFor="materialDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                Material Disponible
-                                            </label>
                                         </div>
                                     </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                Tiempo Prod. (HH:mm) <span className="text-xs text-gray-500">(solo lectura)</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="tiempoProduccionPlanificado"
+                                                value={formData.tiempoProduccionPlanificado}
+                                                readOnly
+                                                className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 cursor-not-allowed opacity-70"
+                                            />
+                                        </div>
+                                        <div></div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                Fecha de Entrega <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="date"
+                                                name="fechaEntrega"
+                                                value={formData.fechaEntrega}
+                                                onChange={handleChange}
+                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Nueva Fecha Entrega</label>
+                                            <input
+                                                type="date"
+                                                name="nuevaFechaEntrega"
+                                                value={formData.nuevaFechaEntrega}
+                                                onChange={handleChange}
+                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Vendedor</label>
+                                        <SearchableSelect
+                                            name="vendedorId"
+                                            value={formData.vendedorId}
+                                            onChange={(value) => {
+                                                if (value === 'add_new_vendedor') {
+                                                    setVendedorModalOpen(true);
+                                                } else {
+                                                    handleChange({ target: { name: 'vendedorId', value } } as any);
+                                                }
+                                            }}
+                                            options={vendedores.map(v => ({
+                                                id: v.id,
+                                                label: v.nombre,
+                                                isInactive: !v.activo
+                                            }))}
+                                            placeholder="Seleccione un vendedor"
+                                            allowCreate={true}
+                                            createLabel="-- Crear nuevo vendedor --"
+                                            onCreateNew={() => setVendedorModalOpen(true)}
+                                            showActiveOnly={false}
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Prioridad</label>
+                                            <select
+                                                name="prioridad"
+                                                value={formData.prioridad}
+                                                onChange={handleChange}
+                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
+                                            >
+                                                {Object.values(Prioridad).map(p => <option key={p} value={p}>{p}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Camisa</label>
+                                            <input
+                                                type="text"
+                                                name="camisa"
+                                                value={formData.camisa}
+                                                onChange={handleChange}
+                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
+                                                placeholder="Info de la camisa"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+
+                                        {/* Checkbox Atención Observaciones (Movido) */}
+                                        <div className="mb-4 bg-red-50 dark:bg-red-900/10 p-3 rounded-lg border border-red-100 dark:border-red-900/30">
+                                            <div className="flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    id="atencionObservaciones"
+                                                    name="atencionObservaciones"
+                                                    checked={formData.atencionObservaciones}
+                                                    onChange={handleChange}
+                                                    className="h-5 w-5 rounded border-gray-300 text-pink-600 focus:ring-pink-500"
+                                                />
+                                                <label htmlFor="atencionObservaciones" className="ml-2 block text-base font-medium text-gray-700 dark:text-gray-200">
+                                                    Atención Observaciones
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">📝 Observaciones</label>
+                                        <ObservacionesAutocomplete
+                                            value={formData.observacionesRapidas || ''}
+                                            onChange={(value) => setFormData((prev: any) => ({ ...prev, observacionesRapidas: value }))}
+                                            placeholder="Escribe una observación rápida..."
+                                        />
+                                        <textarea
+                                            name="observaciones"
+                                            value={formData.observaciones}
+                                            onChange={handleChange}
+                                            rows={3}
+                                            className="w-full mt-2 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
+                                            placeholder="Notas adicionales más extensas..."
+                                        ></textarea>
+                                    </div>
                                 </div>
+                            </div>
 
-                                {/* Sección de Materiales */}
-                                <SeccionDatosTecnicosDeMaterial
-                                    formData={formData}
-                                    onDataChange={handleDataChange}
+                        {/* Secuencia de Trabajo */}
+                        <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+                                    🔄 Secuencia de Trabajo Post-Impresión
+                                </h3>
+                                {formData.antivaho && secuenciaTrabajo.length === 0 && (
+                                    <span className="text-sm text-yellow-600 dark:text-yellow-400 font-medium">
+                                        ⚠️ Requerido para pedidos con Antivaho
+                                    </span>
+                                )}
+                            </div>
+                            <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                                <SequenceBuilder
+                                    sequence={secuenciaTrabajo}
+                                    onChange={setSecuenciaTrabajo}
                                     isReadOnly={false}
-                                    handleChange={handleChange}
                                 />
-                            </>
+                            </div>
+                        </div>
+                    </>
                         )}
-                    </form>
-                </div>
 
-                {/* Footer con botones */}
-                <div className="border-t border-gray-200 dark:border-gray-700 p-6 bg-gray-50 dark:bg-gray-900/50">
-                    <div className="flex justify-between items-center">
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                            <span className="text-red-500">*</span> Campos obligatorios
-                        </div>
-                        <div className="flex gap-4">
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="bg-gray-500 hover:bg-gray-600 text-white dark:bg-gray-600 dark:hover:bg-gray-500 font-bold py-2.5 px-6 rounded-lg transition-colors duration-200"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                type="submit"
-                                form="addPedidoForm"
-                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-lg transition-colors duration-200 flex items-center gap-2"
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                </svg>
-                                Crear Pedido
-                            </button>
-                        </div>
+                    {activeTab === 'gestion' && (
+                        <>
+                            {/* Resumen del estado */}
+                            <div className={`rounded-lg p-4 mb-6 border-2 ${formData.materialDisponible && formData.clicheDisponible
+                                ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
+                                : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
+                                }`}>
+                                <h3 className={`text-lg font-semibold mb-2 ${formData.materialDisponible && formData.clicheDisponible
+                                    ? 'text-green-800 dark:text-green-200'
+                                    : 'text-yellow-800 dark:text-yellow-200'
+                                    }`}>
+                                    📋 Resumen del Estado de Preparación
+                                </h3>
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div className="flex items-center gap-2">
+                                        <span className={`font-medium ${formData.materialDisponible ? 'text-green-700 dark:text-green-300' : 'text-gray-600 dark:text-gray-400'}`}>
+                                            {formData.materialDisponible ? '✓' : '○'} Material:
+                                        </span>
+                                        <span className={formData.materialDisponible ? 'text-green-600 dark:text-green-400 font-semibold' : 'text-gray-500 dark:text-gray-500'}>
+                                            {formData.materialDisponible ? 'Disponible' : 'Pendiente'}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className={`font-medium ${formData.clicheDisponible ? 'text-green-700 dark:text-green-300' : 'text-gray-600 dark:text-gray-400'}`}>
+                                            {formData.clicheDisponible ? '✓' : '○'} Cliché:
+                                        </span>
+                                        <span className={formData.clicheDisponible ? 'text-green-600 dark:text-green-400 font-semibold' : 'text-gray-500 dark:text-gray-500'}>
+                                            {formData.clicheDisponible ? 'Disponible' : formData.estadoCliché || 'Pendiente'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Configuración de Preparación */}
+                            <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-6 mb-6 border border-gray-200 dark:border-gray-700">
+                                <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">
+                                    ⚙️ Configuración de Preparación
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Estado del Cliché</label>
+                                        <select
+                                            name="estadoCliché"
+                                            value={formData.estadoCliché}
+                                            onChange={handleChange}
+                                            className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
+                                        >
+                                            {Object.values(EstadoCliché).map(t => <option key={t} value={t}>{t}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                            Información Adicional Cliché
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="clicheInfoAdicional"
+                                            value={formData.clicheInfoAdicional || ''}
+                                            onChange={handleChange}
+                                            placeholder="Ej: Recibido 27/10, ID: CLH-123"
+                                            maxLength={200}
+                                            className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
+                                        />
+                                        {formData.clicheInfoAdicional && (
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                {formData.clicheInfoAdicional.length}/200 caracteres
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Compra Cliché</label>
+                                        <input
+                                            type="date"
+                                            name="compraCliche"
+                                            value={formData.compraCliche || ''}
+                                            onChange={handleChange}
+                                            className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Recepción Cliché</label>
+                                        <input
+                                            type="date"
+                                            name="recepcionCliche"
+                                            value={formData.recepcionCliche || ''}
+                                            onChange={handleChange}
+                                            className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500"
+                                        />
+                                    </div>
+                                    <div className="flex items-center pt-2">
+                                        <input
+                                            type="checkbox"
+                                            id="clicheDisponible"
+                                            name="clicheDisponible"
+                                            checked={formData.clicheDisponible}
+                                            onChange={handleChange}
+                                            className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                        <label htmlFor="clicheDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">
+                                            Cliché Disponible
+                                        </label>
+                                    </div>
+                                    <div className="flex items-center pt-2">
+                                        <input
+                                            type="checkbox"
+                                            id="materialDisponible"
+                                            name="materialDisponible"
+                                            checked={formData.materialDisponible}
+                                            onChange={handleChange}
+                                            className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                        <label htmlFor="materialDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">
+                                            Material Disponible
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Sección de Materiales */}
+                            <SeccionDatosTecnicosDeMaterial
+                                formData={formData}
+                                onDataChange={handleDataChange}
+                                isReadOnly={false}
+                                handleChange={handleChange}
+                            />
+                        </>
+                    )}
+                </form>
+            </div>
+
+            {/* Footer con botones */}
+            <div className="border-t border-gray-200 dark:border-gray-700 p-6 bg-gray-50 dark:bg-gray-900/50">
+                <div className="flex justify-between items-center">
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                        <span className="text-red-500">*</span> Campos obligatorios
+                    </div>
+                    <div className="flex gap-4">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="bg-gray-500 hover:bg-gray-600 text-white dark:bg-gray-600 dark:hover:bg-gray-500 font-bold py-2.5 px-6 rounded-lg transition-colors duration-200"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            form="addPedidoForm"
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-lg transition-colors duration-200 flex items-center gap-2"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Crear Pedido
+                        </button>
                     </div>
                 </div>
             </div>
-
-            {isClienteModalOpen && (
-                <ClienteModalMejorado
-                    isOpen={isClienteModalOpen}
-                    onClose={() => setClienteModalOpen(false)}
-                    onSave={handleSaveCliente}
-                    cliente={null}
-                    isEmbedded={true}
-                />
-            )}
-
-            {isVendedorModalOpen && (
-                <VendedorModal
-                    isOpen={isVendedorModalOpen}
-                    onClose={() => setVendedorModalOpen(false)}
-                    onSave={handleSaveVendedor}
-                    vendedor={null}
-                    isEmbedded={true}
-                />
-            )}
         </div>
+
+            {
+        isClienteModalOpen && (
+            <ClienteModalMejorado
+                isOpen={isClienteModalOpen}
+                onClose={() => setClienteModalOpen(false)}
+                onSave={handleSaveCliente}
+                cliente={null}
+                isEmbedded={true}
+            />
+        )
+    }
+
+    {
+        isVendedorModalOpen && (
+            <VendedorModal
+                isOpen={isVendedorModalOpen}
+                onClose={() => setVendedorModalOpen(false)}
+                onSave={handleSaveVendedor}
+                vendedor={null}
+                isEmbedded={true}
+            />
+        )
+    }
+        </div >
     );
 };
 

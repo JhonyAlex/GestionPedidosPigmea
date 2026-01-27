@@ -92,14 +92,14 @@ const ResetFiltersIcon = () => (
 );
 
 
-const Header: React.FC<HeaderProps> = ({ 
+const Header: React.FC<HeaderProps> = ({
     searchTerm,
     onSearch,
     allPedidos,
     onNavigateToPedido,
-    currentView, 
-    onViewChange, 
-    onFilterChange, 
+    currentView,
+    onViewChange,
+    onFilterChange,
     activeFilters,
     selectedStages,
     onStageToggle,
@@ -157,12 +157,12 @@ const Header: React.FC<HeaderProps> = ({
     const [showBurgerMenu, setShowBurgerMenu] = useState(false);
     const [showActivityPanel, setShowActivityPanel] = useState(false);
     const [showMaquinaDropdown, setShowMaquinaDropdown] = useState(false);
-        // Al abrir (y mientras esté abierto), marcar como leído para que el badge baje a 0
-        useEffect(() => {
-            if (!showActivityPanel) return;
-            if (actionHistoryState.unreadCount <= 0) return;
-            markAllAsRead();
-        }, [showActivityPanel, actionHistoryState.unreadCount, markAllAsRead]);
+    // Al abrir (y mientras esté abierto), marcar como leído para que el badge baje a 0
+    useEffect(() => {
+        if (!showActivityPanel) return;
+        if (actionHistoryState.unreadCount <= 0) return;
+        markAllAsRead();
+    }, [showActivityPanel, actionHistoryState.unreadCount, markAllAsRead]);
 
     const searchContainerRef = useRef<HTMLDivElement>(null);
     const burgerMenuRef = useRef<HTMLDivElement>(null);
@@ -181,16 +181,16 @@ const Header: React.FC<HeaderProps> = ({
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
-            
+
             // No cerrar si el clic es dentro del dropdown (buscar por clases del GlobalSearchDropdown)
             if (target.closest('.global-search-dropdown')) {
                 return;
             }
-            
+
             if (searchContainerRef.current && !searchContainerRef.current.contains(target)) {
                 setShowSearchDropdown(false);
             }
-            
+
             // Cerrar menú hamburguesa
             if (burgerMenuRef.current && !burgerMenuRef.current.contains(target)) {
                 setShowBurgerMenu(false);
@@ -231,7 +231,7 @@ const Header: React.FC<HeaderProps> = ({
             onNavigateToPedido(pedido);
         }
     };
-    
+
     const { canViewClientes } = usePermissions();
 
     // Vistas principales (etapas de trabajo)
@@ -296,15 +296,14 @@ const Header: React.FC<HeaderProps> = ({
                                     {view.label}
                                 </button>
                             ))}
-                            
+
                             {/* Botón Archivados - Más visible */}
                             <button
                                 onClick={() => onViewChange('archived')}
-                                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 ${
-                                    currentView === 'archived' 
-                                        ? 'bg-gray-800 dark:bg-gray-700 text-white shadow' 
+                                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 ${currentView === 'archived'
+                                        ? 'bg-gray-800 dark:bg-gray-700 text-white shadow'
                                         : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600'
-                                }`}
+                                    }`}
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5m6 4.125 2.25 2.25m0 0 2.25 2.25M12 13.875l2.25-2.25M12 13.875l-2.25 2.25M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
@@ -316,11 +315,10 @@ const Header: React.FC<HeaderProps> = ({
                             {canViewReports() && (
                                 <button
                                     onClick={() => onViewChange('report')}
-                                    className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-all flex items-center gap-1.5 ${
-                                        currentView === 'report'
+                                    className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-all flex items-center gap-1.5 ${currentView === 'report'
                                             ? 'bg-gradient-to-r from-indigo-600 to-blue-700 text-white shadow-lg'
                                             : 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white hover:from-indigo-700 hover:to-blue-700 shadow-md'
-                                    }`}
+                                        }`}
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
@@ -340,11 +338,10 @@ const Header: React.FC<HeaderProps> = ({
                                         markAllAsRead();
                                     }
                                 }}
-                                className={`relative p-2 rounded-md transition-colors ${
-                                    showActivityPanel 
-                                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' 
+                                className={`relative p-2 rounded-md transition-colors ${showActivityPanel
+                                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                                         : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                }`}
+                                    }`}
                                 title="Notificaciones y Actividad"
                                 aria-label="Notificaciones y Actividad"
                             >
@@ -361,7 +358,7 @@ const Header: React.FC<HeaderProps> = ({
 
                         {/* Botón Añadir Pedido */}
                         {canCreatePedidos() && (
-                            <button 
+                            <button
                                 onClick={onAddPedido}
                                 className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 transition-colors"
                                 title="Añadir nuevo pedido"
@@ -409,9 +406,8 @@ const Header: React.FC<HeaderProps> = ({
                                                     onViewChange(view.id);
                                                     setShowBurgerMenu(false);
                                                 }}
-                                                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                                                    currentView === view.id ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-medium' : 'text-gray-700 dark:text-gray-300'
-                                                }`}
+                                                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${currentView === view.id ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                                    }`}
                                             >
                                                 {view.label}
                                             </button>
@@ -423,23 +419,21 @@ const Header: React.FC<HeaderProps> = ({
                                                     onViewChange(view.id);
                                                     setShowBurgerMenu(false);
                                                 }}
-                                                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                                                    currentView === view.id ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-medium' : 'text-gray-700 dark:text-gray-300'
-                                                }`}
+                                                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${currentView === view.id ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                                    }`}
                                             >
                                                 {view.label}
                                             </button>
                                         ))}
-                                        
+
                                         {/* Archivados en móvil */}
                                         <button
                                             onClick={() => {
                                                 onViewChange('archived');
                                                 setShowBurgerMenu(false);
                                             }}
-                                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 ${
-                                                currentView === 'archived' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-medium' : 'text-gray-700 dark:text-gray-300'
-                                            }`}
+                                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 ${currentView === 'archived' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                                }`}
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5m6 4.125 2.25 2.25m0 0 2.25 2.25M12 13.875l2.25-2.25M12 13.875l-2.25 2.25M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
@@ -454,9 +448,8 @@ const Header: React.FC<HeaderProps> = ({
                                                     onViewChange('report');
                                                     setShowBurgerMenu(false);
                                                 }}
-                                                className={`w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors flex items-center gap-2 ${
-                                                    currentView === 'report' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-semibold' : 'text-indigo-600 dark:text-indigo-400 font-medium'
-                                                }`}
+                                                className={`w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors flex items-center gap-2 ${currentView === 'report' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-semibold' : 'text-indigo-600 dark:text-indigo-400 font-medium'
+                                                    }`}
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
@@ -464,7 +457,7 @@ const Header: React.FC<HeaderProps> = ({
                                                 Reportes
                                             </button>
                                         )}
-                                        
+
                                         <div className="my-2 border-t border-gray-200 dark:border-gray-700"></div>
                                     </div>
 
@@ -479,9 +472,8 @@ const Header: React.FC<HeaderProps> = ({
                                                     onViewChange(view.id);
                                                     setShowBurgerMenu(false);
                                                 }}
-                                                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                                                    currentView === view.id ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-medium' : 'text-gray-700 dark:text-gray-300'
-                                                }`}
+                                                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${currentView === view.id ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-medium' : 'text-gray-700 dark:text-gray-300'
+                                                    }`}
                                             >
                                                 {view.label}
                                             </button>
@@ -492,9 +484,9 @@ const Header: React.FC<HeaderProps> = ({
 
                                     {/* Opciones de Admin */}
                                     <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Acciones</div>
-                                    
+
                                     {(currentView === 'archived') && (
-                                        <button 
+                                        <button
                                             onClick={() => {
                                                 onExportPDF();
                                                 setShowBurgerMenu(false);
@@ -507,7 +499,7 @@ const Header: React.FC<HeaderProps> = ({
                                     )}
 
                                     {canAccessAdmin() && onUserManagement && (
-                                        <button 
+                                        <button
                                             onClick={() => {
                                                 onUserManagement();
                                                 setShowBurgerMenu(false);
@@ -521,7 +513,7 @@ const Header: React.FC<HeaderProps> = ({
 
                                     {canViewConfig() && (
                                         <>
-                                            <button 
+                                            <button
                                                 onClick={() => {
                                                     onImportData();
                                                     setShowBurgerMenu(false);
@@ -531,7 +523,7 @@ const Header: React.FC<HeaderProps> = ({
                                                 <UploadIcon />
                                                 Importar Datos
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => {
                                                     onExportData();
                                                     setShowBurgerMenu(false);
@@ -547,7 +539,7 @@ const Header: React.FC<HeaderProps> = ({
                                     {onResetAllFilters && (
                                         <>
                                             <div className="my-2 border-t border-gray-200 dark:border-gray-700"></div>
-                                            <button 
+                                            <button
                                                 onClick={() => {
                                                     if (confirm('¿Desea resetear todos los filtros y ordenamientos a sus valores por defecto?')) {
                                                         onResetAllFilters();
@@ -724,8 +716,8 @@ const Header: React.FC<HeaderProps> = ({
                                                 <span className="text-sm text-gray-700 dark:text-gray-300 italic">Sin máquina</span>
                                             </label>
                                             {MAQUINAS_IMPRESION.map(maquina => (
-                                                <label 
-                                                    key={`maquina-${maquina.id}`} 
+                                                <label
+                                                    key={`maquina-${maquina.id}`}
                                                     className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
                                                 >
                                                     <input
@@ -763,7 +755,7 @@ const Header: React.FC<HeaderProps> = ({
                                 <option value="listo">✅ Listo</option>
                             </select>
                         )}
-                        
+
                         {/* Filtro de etapas como select para vistas que no son lista */}
                         {currentView === 'kanban' && (
                             <select
@@ -818,10 +810,10 @@ const Header: React.FC<HeaderProps> = ({
                                         className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors duration-200 flex items-center gap-1"
                                         title={isStageFiltersCollapsed ? 'Expandir filtros' : 'Contraer filtros'}
                                     >
-                                        <svg 
-                                            className={`w-4 h-4 transition-transform duration-200 ${isStageFiltersCollapsed ? 'rotate-180' : ''}`} 
-                                            fill="none" 
-                                            stroke="currentColor" 
+                                        <svg
+                                            className={`w-4 h-4 transition-transform duration-200 ${isStageFiltersCollapsed ? 'rotate-180' : ''}`}
+                                            fill="none"
+                                            stroke="currentColor"
                                             viewBox="0 0 24 24"
                                         >
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -831,23 +823,21 @@ const Header: React.FC<HeaderProps> = ({
                                 </div>
                                 <button
                                     onClick={() => onStageToggle('all')}
-                                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                                        selectedStages.length === 0
+                                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${selectedStages.length === 0
                                             ? 'bg-indigo-600 text-white shadow-sm'
                                             : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                                    }`}
+                                        }`}
                                 >
                                     ✨ Todas las Etapas
                                 </button>
                             </div>
-                            
+
                             {/* Grupos de etapas con animación de colapso */}
-                            <div 
-                                className={`transition-all duration-300 ease-in-out overflow-hidden ${
-                                    isStageFiltersCollapsed 
-                                        ? 'max-h-0 opacity-0' 
+                            <div
+                                className={`transition-all duration-300 ease-in-out overflow-hidden ${isStageFiltersCollapsed
+                                        ? 'max-h-0 opacity-0'
                                         : 'max-h-96 opacity-100'
-                                }`}
+                                    }`}
                             >
                                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
                                     {Object.values(STAGE_GROUPS).map(group => (
@@ -860,15 +850,14 @@ const Header: React.FC<HeaderProps> = ({
                                                     <button
                                                         key={etapaId}
                                                         onClick={() => onStageToggle(etapaId)}
-                                                        className={`px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-left ${
-                                                            selectedStages.includes(etapaId)
+                                                        className={`px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-left ${selectedStages.includes(etapaId)
                                                                 ? 'bg-indigo-600 text-white shadow-sm'
                                                                 : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
-                                                        }`}
+                                                            }`}
                                                         title={ETAPAS[etapaId].title}
                                                     >
-                                                        {ETAPAS[etapaId].title.length > 18 
-                                                            ? `${ETAPAS[etapaId].title.substring(0, 18)}...` 
+                                                        {ETAPAS[etapaId].title.length > 18
+                                                            ? `${ETAPAS[etapaId].title.substring(0, 18)}...`
                                                             : ETAPAS[etapaId].title
                                                         }
                                                     </button>

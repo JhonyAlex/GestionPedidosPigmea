@@ -22,7 +22,7 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
     maxResults = 10
 }) => {
     const inputRef = useRef<HTMLInputElement>(null);
-    
+
     // 🚀 Aplicar debounce al término de búsqueda para mejorar performance
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
@@ -35,13 +35,13 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
                 return { title: subEtapa.title, color: subEtapa.color };
             }
         }
-        
+
         // Para cualquier otra etapa, usar ETAPAS
         const etapa = ETAPAS[pedido.etapaActual];
         if (etapa) {
             return { title: etapa.title, color: etapa.color };
         }
-        
+
         // Fallback
         return { title: pedido.etapaActual, color: 'bg-gray-500' };
     };
@@ -55,7 +55,7 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
     if (!searchTerm || searchTerm.trim().length === 0) {
         return null;
     }
-    
+
     // Usar el término con debounce para filtrar resultados (mejor performance)
     // Pero mostrar el dropdown inmediatamente cuando el usuario escribe
     const shouldShowResults = debouncedSearchTerm && debouncedSearchTerm.trim().length > 0;
@@ -67,16 +67,16 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
     return (
         <>
             {/* Overlay de fondo */}
-            <div 
-                className="fixed inset-0 bg-black/20 dark:bg-black/40 z-40 global-search-dropdown" 
+            <div
+                className="fixed inset-0 bg-black/20 dark:bg-black/40 z-40 global-search-dropdown"
                 onClick={(e) => {
                     e.stopPropagation();
                     onClose();
                 }}
             />
-            
+
             {/* Dropdown */}
-            <div 
+            <div
                 className="global-search-dropdown fixed inset-x-4 top-20 z-50 max-w-4xl mx-auto bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-2xl max-h-[calc(100vh-8rem)] flex flex-col"
                 onClick={(e) => {
                     e.stopPropagation();
@@ -86,18 +86,18 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
                 <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-300 dark:border-gray-600 px-6 py-4 z-10">
                     <div className="flex items-center gap-3">
                         {/* Icono de búsqueda */}
-                        <svg 
-                            className="w-5 h-5 text-gray-400 dark:text-gray-500" 
-                            fill="none" 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round" 
-                            strokeWidth="2" 
-                            viewBox="0 0 24 24" 
+                        <svg
+                            className="w-5 h-5 text-gray-400 dark:text-gray-500"
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
                             stroke="currentColor"
                         >
                             <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                         </svg>
-                        
+
                         {/* Input de búsqueda */}
                         <input
                             ref={inputRef}
@@ -112,7 +112,7 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
                                 }
                             }}
                         />
-                        
+
                         {/* Botón cerrar */}
                         <button
                             onClick={onClose}
@@ -123,7 +123,7 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
                                 <path d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
                         </button>
-                        
+
                         {/* Badge de resultados */}
                         <span className="text-sm text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">
                             {results.length} {results.length === 1 ? 'resultado' : 'resultados'}
@@ -170,7 +170,7 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
                                             {(() => {
                                                 const etapaDisplay = getEtapaDisplay(pedido);
                                                 return (
-                                                    <span 
+                                                    <span
                                                         className={`text-sm px-3 py-1 rounded-full font-semibold text-white whitespace-nowrap ${etapaDisplay.color}`}
                                                     >
                                                         {etapaDisplay.title}
