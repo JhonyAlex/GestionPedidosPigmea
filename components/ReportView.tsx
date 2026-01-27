@@ -40,6 +40,7 @@ import { io, Socket } from 'socket.io-client';
  *    - Si estado de cliché es "NUEVO" o "REPETICIÓN CON CAMBIO"
  *    - Y NO tiene horasConfirmadas = true
  *    - Y NO tiene fecha en compraCliche
+ *    - Y NO tiene clicheDisponible = true
  *    - O si no tiene máquina asignada
  * 
  * CÁLCULO DE CAPACIDAD LIBRE:
@@ -355,11 +356,13 @@ const ReportView: React.FC<ReportViewProps> = ({
                     // 1. Estado de cliché es "NUEVO" o "REPETICION CON CAMBIO"
                     // 2. NO tiene "horasConfirmadas" = true
                     // 3. NO tiene fecha en "compraCliche"
+                    // 4. NO tiene "clicheDisponible" = true
                     const esEstadoVariable = p.estadoCliché === 'NUEVO' || p.estadoCliché === 'REPETICIÓN CON CAMBIO';
                     const noTieneHorasConfirmadas = !p.horasConfirmadas;
                     const noTieneCompraCliché = !p.compraCliche;
+                    const noTieneClicheDisponible = !p.clicheDisponible;
 
-                    if (esEstadoVariable && noTieneHorasConfirmadas && noTieneCompraCliché) {
+                    if (esEstadoVariable && noTieneHorasConfirmadas && noTieneCompraCliché && noTieneClicheDisponible) {
                         machineCategory = MACHINE_VARIABLES;
                     } else {
                         // Si tiene máquina y NO cumple condiciones de VARIABLE, va a su máquina
@@ -716,12 +719,12 @@ const ReportView: React.FC<ReportViewProps> = ({
 
                                 return (
                                     <div key={idx} className={`flex items-start gap-2 mb-2 pl-2 py-1.5 rounded ${isWarning ? 'bg-amber-50 dark:bg-amber-900/20 border-l-2 border-amber-400' :
-                                            isPositive ? 'bg-green-50 dark:bg-green-900/20 border-l-2 border-green-400' :
-                                                'bg-gray-50 dark:bg-gray-800/50 border-l-2 border-gray-300 dark:border-gray-600'
+                                        isPositive ? 'bg-green-50 dark:bg-green-900/20 border-l-2 border-green-400' :
+                                            'bg-gray-50 dark:bg-gray-800/50 border-l-2 border-gray-300 dark:border-gray-600'
                                         }`}>
                                         <span className={`text-lg flex-shrink-0 ${isWarning ? 'text-amber-600' :
-                                                isPositive ? 'text-green-600' :
-                                                    'text-purple-500'
+                                            isPositive ? 'text-green-600' :
+                                                'text-purple-500'
                                             }`}>
                                             {icon}
                                         </span>
