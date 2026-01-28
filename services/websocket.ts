@@ -28,6 +28,7 @@ export interface WebSocketEvents {
   'vendedor-updated': (data: { vendedor: any; message: string; timestamp: string }) => void;
   'vendedor-deleted': (data: { vendedorId: string; vendedor?: any; message: string; timestamp: string }) => void;
   'pedidos-by-vendedor-updated': (data: { vendedorId: string; nombreAnterior: string; nuevoNombre: string; message: string }) => void;
+  'pedidos-by-cliente-updated': (data: { clienteId: string; nombreAnterior: string; nuevoNombre: string; message: string }) => void;
   'material-created': (material: any) => void;
   'material-updated': (material: any) => void;
   'material-deleted': (data: { materialId: number; pedidoId?: string; material?: any }) => void;
@@ -136,6 +137,8 @@ class WebSocketService {
   private vendedorUpdatedListeners: ((data: any) => void)[] = [];
   private vendedorDeletedListeners: ((data: any) => void)[] = [];
   private pedidosByVendedorUpdatedListeners: ((data: any) => void)[] = [];
+  // Callbacks para clientes cuando cambian pedidos por nombre
+  private pedidosByClienteUpdatedListeners: ((data: any) => void)[] = [];
 
   // Control de visibilidad de pestaña y sincronización
   private isPageVisible = true;
@@ -649,6 +652,11 @@ class WebSocketService {
       console.log('📋 Pedidos del vendedor actualizados:', data);
       this.notifyPedidosByVendedorUpdatedListeners(data);
     });
+
+    this.socket.on('pedidos-by-cliente-updated', (data) => {
+      console.log('📗 Pedidos del cliente actualizados:', data);
+      this.notifyPedidosByClienteUpdatedListeners(data);
+    });
   }
 
   // Métodos públicos
@@ -857,6 +865,16 @@ class WebSocketService {
     };
   }
 
+  public subscribeToPedidosByClienteUpdated(callback: (data: any) => void): () => void {
+    this.pedidosByClienteUpdatedListeners.push(callback);
+    return () => {
+      const index = this.pedidosByClienteUpdatedListeners.indexOf(callback);
+      if (index > -1) {
+        this.pedidosByClienteUpdatedListeners.splice(index, 1);
+      }
+    };
+  }
+
   // Métodos para notificar cambios
   private notifyPedidoCreatedListeners(pedido: Pedido) {
     this.pedidoCreatedListeners.forEach(listener => listener(pedido));
@@ -906,6 +924,10 @@ class WebSocketService {
     this.pedidosByVendedorUpdatedListeners.forEach(listener => listener(data));
   }
 
+  private notifyPedidosByClienteUpdatedListeners(data: any) {
+    this.pedidosByClienteUpdatedListeners.forEach(listener => listener(data));
+  }
+
   public disconnect() {
     this.stopConnectionTest();
     if (this.socket) {
@@ -933,6 +955,7 @@ class WebSocketService {
     this.vendedorUpdatedListeners = [];
     this.vendedorDeletedListeners = [];
     this.pedidosByVendedorUpdatedListeners = [];
+    this.pedidosByClienteUpdatedListeners = [];
     this.notificationListeners = [];
     this.connectedUsersListeners = [];
     this.pageRefreshCallbacks = [];

@@ -13,6 +13,7 @@ export interface UseWebSocketReturn {
   subscribeToPedidoUpdated: (callback: (pedido: Pedido) => void) => () => void;
   subscribeToPedidoDeleted: (callback: (pedidoId: string) => void) => () => void;
   subscribeToPedidosByVendedorUpdated: (callback: (data: any) => void) => () => void;
+  subscribeToPedidosByClienteUpdated: (callback: (data: any) => void) => () => void;
   subscribeToPageReturn: (callback: () => void) => () => void;
 }
 
@@ -87,6 +88,7 @@ export const useWebSocket = (userId: string, userRole: UserRole, displayName?: s
     subscribeToPedidoUpdated: webSocketService.subscribeToPedidoUpdated.bind(webSocketService),
     subscribeToPedidoDeleted: webSocketService.subscribeToPedidoDeleted.bind(webSocketService),
     subscribeToPedidosByVendedorUpdated: webSocketService.subscribeToPedidosByVendedorUpdated.bind(webSocketService),
+    subscribeToPedidosByClienteUpdated: webSocketService.subscribeToPedidosByClienteUpdated.bind(webSocketService),
     subscribeToPageReturn
   };
 };

@@ -114,6 +114,7 @@ const AppContent: React.FC = () => {
         subscribeToPedidoUpdated,
         subscribeToPedidoDeleted,
         subscribeToPedidosByVendedorUpdated,
+        subscribeToPedidosByClienteUpdated,
         subscribeToPageReturn
     } = useWebSocket(currentUserId, currentUserRole, currentUserDisplayName);
 
@@ -155,7 +156,8 @@ const AppContent: React.FC = () => {
         subscribeToPedidoCreated,
         subscribeToPedidoUpdated,
         subscribeToPedidoDeleted,
-        subscribeToPedidosByVendedorUpdated
+        subscribeToPedidosByVendedorUpdated,
+        subscribeToPedidosByClienteUpdated
     );
 
     const {

@@ -4086,8 +4086,19 @@ app.put('/api/clientes/:id', requirePermission('clientes.edit'), async (req, res
             _userRole: req.user?.role || 'SYSTEM'
         };
 
-        const updatedCliente = await dbClient.updateCliente(req.params.id, clienteData);
+        const { updatedCliente, previousName } = await dbClient.updateCliente(req.params.id, clienteData);
         broadcastToClients('cliente-updated', { cliente: updatedCliente });
+
+        // 🔥 Notificar a clientes que los pedidos ligados a este cliente cambiaron
+        if (clienteData.nombre && previousName && clienteData.nombre.trim() !== previousName.trim()) {
+            broadcastToClients('pedidos-by-cliente-updated', {
+                clienteId: req.params.id,
+                nombreAnterior: previousName,
+                nuevoNombre: clienteData.nombre,
+                message: `Pedidos del cliente actualizado: ${previousName} → ${clienteData.nombre}`
+            });
+        }
+
         res.status(200).json(updatedCliente);
     } catch (error) {
         console.error(`Error in PUT /api/clientes/${req.params.id}:`, error);

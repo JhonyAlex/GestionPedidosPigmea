@@ -143,6 +143,9 @@ export const AnalyticsDashboard: React.FC = () => {
             webSocketService.subscribeToPedidoUpdated(scheduleRefresh),
             webSocketService.subscribeToPedidoDeleted(scheduleRefresh),
             webSocketService.subscribeToPedidosByVendedorUpdated(scheduleRefresh),
+            webSocketService.subscribeToPedidosByClienteUpdated
+                ? webSocketService.subscribeToPedidosByClienteUpdated(scheduleRefresh)
+                : () => {}
         ];
 
         // Algunos despliegues todavía emiten eventos directos de vendedor

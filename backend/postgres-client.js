@@ -2001,6 +2001,7 @@ class PostgreSQLClient {
                 throw new Error(`Cliente con ID ${id} no encontrado.`);
             }
             const previousCliente = previousResult.rows[0];
+            const previousName = previousCliente.nombre;
 
             const setParts = [];
             const values = [];
@@ -2056,6 +2057,39 @@ class PostgreSQLClient {
             const result = await client.query(query, values);
             const updatedCliente = result.rows[0];
 
+            // 🔥 Si cambia el nombre, actualizar los pedidos asociados
+            if (clienteData.nombre !== undefined) {
+                // 1) Pedidos con cliente_id o clienteId (JSON)
+                const updateByIdQuery = `
+                    UPDATE pedidos
+                    SET data = jsonb_set(
+                        data,
+                        '{cliente}',
+                        to_jsonb($1::text)
+                    )
+                    WHERE cliente_id = $2
+                       OR data->>'clienteId' = $2
+                       OR data->>'clienteId' = $3
+                `;
+                await client.query(updateByIdQuery, [clienteData.nombre, id, id.toString()]);
+
+                // 2) Pedidos legacy sin clienteId pero con nombre coincidido
+                if (previousName) {
+                    const updateByNameQuery = `
+                        UPDATE pedidos
+                        SET data = jsonb_set(
+                            data,
+                            '{cliente}',
+                            to_jsonb($1::text)
+                        )
+                        WHERE (cliente_id IS NULL OR cliente_id = '')
+                          AND (data->>'clienteId' IS NULL OR data->>'clienteId' = '')
+                          AND upper(trim(data->>'cliente')) = upper(trim($2::text))
+                    `;
+                    await client.query(updateByNameQuery, [clienteData.nombre, previousName]);
+                }
+            }
+
             // 📝 AUDITORÍA: Registrar cambios en historial
             const changedBy = clienteData._changedBy || 'Sistema';
             const userRole = clienteData._userRole || 'SYSTEM';
@@ -2084,17 +2118,19 @@ class PostgreSQLClient {
             await client.query('COMMIT');
 
             // Map backend fields to frontend fields before returning
-            if (updatedCliente.direccion_fiscal !== undefined) {
-                updatedCliente.direccion = updatedCliente.direccion_fiscal;
-                delete updatedCliente.direccion_fiscal;
+            const mappedCliente = { ...updatedCliente };
+            if (mappedCliente.direccion_fiscal !== undefined) {
+                mappedCliente.direccion = mappedCliente.direccion_fiscal;
+                delete mappedCliente.direccion_fiscal;
             }
-            if (updatedCliente.notas !== undefined) {
-                updatedCliente.observaciones = updatedCliente.notas;
-                delete updatedCliente.notas;
+            if (mappedCliente.notas !== undefined) {
+                mappedCliente.observaciones = mappedCliente.notas;
+                delete mappedCliente.notas;
             }
 
-            console.log('✅ Cliente actualizado exitosamente:', updatedCliente.id);
-            return updatedCliente;
+            console.log('✅ Cliente actualizado exitosamente:', mappedCliente.id);
+
+            return { updatedCliente: mappedCliente, previousName };
         } catch (error) {
             await client.query('ROLLBACK');
             throw error;
@@ -2499,7 +2535,8 @@ class PostgreSQLClient {
 
     async deleteCliente(id) {
         if (!this.isInitialized) throw new Error('Database not initialized');
-        return this.updateCliente(id, { estado: 'Archivado', fecha_baja: new Date() });
+        const { updatedCliente } = await this.updateCliente(id, { estado: 'Archivado', fecha_baja: new Date() });
+        return updatedCliente;
     }
 
     async deleteClientePermanently(id, deletePedidos = false) {
