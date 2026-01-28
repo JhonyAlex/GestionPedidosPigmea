@@ -5,7 +5,8 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     const buildTime = new Date().toISOString();
-  const enableSourcemap = env.VITE_SOURCEMAP === 'true';
+    // Solo habilitar sourcemaps en desarrollo, nunca en producción
+    const enableSourcemap = mode === 'development';
     
     return {
       define: {
@@ -22,7 +23,7 @@ export default defineConfig(({ mode }) => {
       plugins: [react()],
       build: {
         outDir: 'dist',
-        sourcemap: enableSourcemap,
+        sourcemap: false, // ❌ Deshabilitado en producción para evitar errores 404
         minify: 'terser',
         rollupOptions: {
           output: {
