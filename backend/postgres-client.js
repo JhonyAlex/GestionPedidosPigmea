@@ -1102,7 +1102,7 @@ class PostgreSQLClient {
             ];
 
             // Columnas opcionales que pueden no existir
-            const optionalColumns = ['nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'vendedor_id', 'cliche_info_adicional', 'anonimo', 'compra_cliche', 'recepcion_cliche', 'observaciones_material', 'microperforado', 'macroperforado', 'anonimo_post_impresion', 'tiempo_produccion_decimal'];
+            const optionalColumns = ['nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'vendedor_id', 'cliche_info_adicional', 'anonimo', 'compra_cliche', 'recepcion_cliche', 'observaciones_material', 'microperforado', 'macroperforado', 'anonimo_post_impresion', 'tiempo_produccion_decimal', 'antivaho_realizado'];
 
             // Construir lista de columnas a insertar
             const columnsToInsert = baseColumns.filter(col => existingColumns.includes(col));
@@ -1177,6 +1177,9 @@ class PostgreSQLClient {
             if (existingColumns.includes('tiempo_produccion_decimal')) {
                 values.push(pedido.tiempoProduccionDecimal || null);
             }
+            if (existingColumns.includes('antivaho_realizado')) {
+                values.push(pedido.antivahoRealizado || false);
+            }
 
             // Construir placeholders para los valores
             const placeholders = columnsToInsert.map((_, index) => `$${index + 1}`).join(', ');
@@ -1228,7 +1231,7 @@ class PostgreSQLClient {
                 SELECT column_name 
                 FROM information_schema.columns 
                 WHERE table_name = 'pedidos' 
-                AND column_name IN ('nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'vendedor_id', 'cliche_info_adicional', 'anonimo', 'compra_cliche', 'recepcion_cliche', 'observaciones_material', 'tiempo_produccion_decimal', 'horas_confirmadas')
+                AND column_name IN ('nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'vendedor_id', 'cliche_info_adicional', 'anonimo', 'compra_cliche', 'recepcion_cliche', 'observaciones_material', 'tiempo_produccion_decimal', 'horas_confirmadas', 'antivaho_realizado')
             `);
 
             const existingColumns = columnsResult.rows.map(row => row.column_name);
@@ -1246,6 +1249,7 @@ class PostgreSQLClient {
             const hasAnonimoPostImpresion = existingColumns.includes('anonimo_post_impresion');
             const hasTiempoProduccionDecimal = existingColumns.includes('tiempo_produccion_decimal');
             const hasHorasConfirmadas = existingColumns.includes('horas_confirmadas');
+            const hasAntivahoRealizado = existingColumns.includes('antivaho_realizado');
 
             // Construir query dinámicamente basado en columnas existentes
             const updateFields = [];
@@ -1375,6 +1379,12 @@ class PostgreSQLClient {
             if (hasHorasConfirmadas) {
                 updateFields.push(`horas_confirmadas = $${paramIndex++}`);
                 values.push(pedido.horasConfirmadas === true);
+            }
+
+            // Agregar antivaho_realizado solo si la columna existe
+            if (hasAntivahoRealizado) {
+                updateFields.push(`antivaho_realizado = $${paramIndex++}`);
+                values.push(pedido.antivahoRealizado || false);
             }
 
             updateFields.push(`data = $${paramIndex++}`);

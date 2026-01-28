@@ -1453,7 +1453,29 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                             </div>
                                                         </div>
 
-
+                                                        {/* Checkbox de Antivaho Realizado - Solo visible en Producción */}
+                                                        {formData.antivaho && 
+                                                         formData.etapaActual !== Etapa.PREPARACION && 
+                                                         formData.etapaActual !== Etapa.ARCHIVADO && 
+                                                         formData.etapaActual !== Etapa.COMPLETADO && (
+                                                            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                                                                <div className="flex items-center">
+                                                                    <input 
+                                                                        type="checkbox" 
+                                                                        id="antivahoRealizado" 
+                                                                        name="antivahoRealizado" 
+                                                                        checked={!!formData.antivahoRealizado} 
+                                                                        onChange={handleChange} 
+                                                                        className="h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500" 
+                                                                    />
+                                                                    <label htmlFor="antivahoRealizado" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                                        Antivaho: <span className={formData.antivahoRealizado ? 'text-green-600 dark:text-green-400 font-semibold' : 'text-yellow-600 dark:text-yellow-400'}>
+                                                                            {formData.antivahoRealizado ? 'Hecho ✓' : 'Pendiente'}
+                                                                        </span>
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+                                                        )}
 
                                                     </div>
 

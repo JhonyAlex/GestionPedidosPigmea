@@ -5519,6 +5519,32 @@ async function startServer() {
                 } else {
                     console.log('✅ Migración 033 ya aplicada previamente');
                 }
+
+                // ===== MIGRACIÓN 036: Antivaho Realizado =====
+                const checkAntivahoRealizadoQuery = `
+                    SELECT EXISTS (
+                        SELECT 1 
+                        FROM information_schema.columns 
+                        WHERE table_name = 'pedidos' 
+                        AND column_name = 'antivaho_realizado'
+                    ) as column_exists;
+                `;
+                const checkAntivahoRealizadoResult = await dbClient.pool.query(checkAntivahoRealizadoQuery);
+                const antivahoRealizadoColumnExists = checkAntivahoRealizadoResult.rows[0]?.column_exists;
+
+                if (!antivahoRealizadoColumnExists) {
+                    console.log('📝 Aplicando migración 036: Antivaho Realizado...');
+                    await dbClient.pool.query(`
+                        ALTER TABLE pedidos ADD COLUMN antivaho_realizado BOOLEAN DEFAULT false;
+                        COMMENT ON COLUMN pedidos.antivaho_realizado IS 'Marca si el proceso de antivaho ha sido completado para pedidos en producción';
+                        CREATE INDEX IF NOT EXISTS idx_pedidos_antivaho_realizado 
+                        ON pedidos(antivaho_realizado) 
+                        WHERE antivaho = TRUE AND antivaho_realizado = FALSE;
+                    `);
+                    console.log('✅ Migración 036 aplicada exitosamente');
+                } else {
+                    console.log('✅ Migración 036 ya aplicada previamente');
+                }
             } catch (migrationError) {
                 console.error('⚠️ Error al aplicar migraciones automáticas:', migrationError.message);
                 // No detener el servidor, continuar con retrocompatibilidad
