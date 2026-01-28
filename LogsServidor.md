@@ -1,94 +1,94 @@
-2026-01-28T16:03:43.423Z psql:/app/database/migrations/003-add-razon-social.sql:24: NOTICE:  relation "idx_clientes_razon_social" already exists, skipping
-2026-01-28T16:03:43.423Z CREATE INDEX
-2026-01-28T16:03:43.424Z COMMENT
-2026-01-28T16:03:43.426Z psql:/app/database/migrations/003-add-razon-social.sql:36: NOTICE:  Permisos actualizados para pigmea_user
-2026-01-28T16:03:43.430Z DO
-2026-01-28T16:03:43.430Z ✅ Migración 'Agregar Razón Social' aplicada.
-2026-01-28T16:03:43.430Z 🔄 Aplicando migración: Agregar Nueva Fecha de Entrega...
-2026-01-28T16:03:43.477Z psql:/app/database/migrations/006-add-nueva-fecha-entrega.sql:6: NOTICE:  column "nueva_fecha_entrega" of relation "pedidos" already exists, skipping
-2026-01-28T16:03:43.477Z ALTER TABLE
-2026-01-28T16:03:43.478Z psql:/app/database/migrations/006-add-nueva-fecha-entrega.sql:9: NOTICE:  relation "idx_pedidos_nueva_fecha_entrega" already exists, skipping
-2026-01-28T16:03:43.478Z CREATE INDEX
-2026-01-28T16:03:43.480Z COMMENT
-2026-01-28T16:03:43.484Z ✅ Migración 'Agregar Nueva Fecha de Entrega' aplicada.
-2026-01-28T16:03:43.484Z 🔄 Aplicando migración: Agregar Número de Compra...
-2026-01-28T16:03:43.519Z BEGIN
-2026-01-28T16:03:43.526Z DO
-2026-01-28T16:03:43.537Z psql:/app/database/migrations/007-add-numero-compra.sql:55: NOTICE:  Columna numero_compra agregada exitosamente a la tabla pedidos
-2026-01-28T16:03:43.537Z DO
-2026-01-28T16:03:43.550Z psql:/app/database/migrations/007-add-numero-compra.sql:73: NOTICE:  Índice idx_pedidos_numero_compra creado exitosamente
-2026-01-28T16:03:43.550Z DO
-2026-01-28T16:03:43.552Z psql:/app/database/migrations/007-add-numero-compra.sql:98: NOTICE:  extension "pg_trgm" already exists, skipping
-2026-01-28T16:03:43.555Z psql:/app/database/migrations/007-add-numero-compra.sql:98: NOTICE:  Índice de búsqueda de texto idx_pedidos_numero_compra_text creado exitosamente
-2026-01-28T16:03:43.555Z DO
-2026-01-28T16:03:43.562Z psql:/app/database/migrations/007-add-numero-compra.sql:129: NOTICE:  ✅ Migración completada exitosamente:
-2026-01-28T16:03:43.563Z psql:/app/database/migrations/007-add-numero-compra.sql:129: NOTICE:     - Campo numero_compra agregado
-2026-01-28T16:03:43.563Z psql:/app/database/migrations/007-add-numero-compra.sql:129: NOTICE:     - Índice para búsquedas creado
-2026-01-28T16:03:43.563Z psql:/app/database/migrations/007-add-numero-compra.sql:129: NOTICE:     - Listo para implementación en backend y frontend
-2026-01-28T16:03:43.563Z DO
-2026-01-28T16:03:43.564Z COMMIT
-2026-01-28T16:03:43.566Z ✅ Migración 'Agregar Número de Compra' aplicada.
-2026-01-28T16:03:43.566Z 🔄 Aplicando migración: Convertir Números de Compra a Array...
-2026-01-28T16:03:43.600Z BEGIN
-2026-01-28T16:03:43.602Z CREATE TABLE AS
-2026-01-28T16:03:43.602Z psql:/app/database/migrations/008-convert-numero-compra-to-array.sql:19: NOTICE:  relation "pedidos_backup_numeros_compra" already exists, skipping
-2026-01-28T16:03:43.603Z ALTER TABLE
-2026-01-28T16:03:43.603Z psql:/app/database/migrations/008-convert-numero-compra-to-array.sql:26: NOTICE:  column "numeros_compra" of relation "pedidos" already exists, skipping
-2026-01-28T16:03:43.609Z UPDATE 0
-2026-01-28T16:03:43.672Z UPDATE 751
-2026-01-28T16:03:43.673Z DROP INDEX
-2026-01-28T16:03:43.674Z DROP INDEX
-2026-01-28T16:03:43.674Z ALTER TABLE
-2026-01-28T16:03:43.675Z psql:/app/database/migrations/008-convert-numero-compra-to-array.sql:57: NOTICE:  relation "idx_pedidos_numeros_compra_gin" already exists, skipping
-2026-01-28T16:03:43.675Z CREATE INDEX
-2026-01-28T16:03:43.675Z COMMENT
-2026-01-28T16:03:43.676Z CREATE FUNCTION
-2026-01-28T16:03:43.677Z DO
-2026-01-28T16:03:43.677Z DO
-2026-01-28T16:03:43.677Z GRANT
-2026-01-28T16:03:43.692Z psql:/app/database/migrations/008-convert-numero-compra-to-array.sql:159: NOTICE:  ✅ Migración 008 completada exitosamente
-2026-01-28T16:03:43.692Z psql:/app/database/migrations/008-convert-numero-compra-to-array.sql:159: NOTICE:     - Columna numeros_compra: CREADA
-2026-01-28T16:03:43.692Z psql:/app/database/migrations/008-convert-numero-compra-to-array.sql:159: NOTICE:     - Columna numero_compra: ELIMINADA
-2026-01-28T16:03:43.692Z psql:/app/database/migrations/008-convert-numero-compra-to-array.sql:159: NOTICE:     - Índices creados: 1
-2026-01-28T16:03:43.693Z DO
-2026-01-28T16:03:43.696Z COMMIT
-2026-01-28T16:03:43.698Z ✅ Migración 'Convertir Números de Compra a Array' aplicada.
-2026-01-28T16:03:43.699Z 🔄 Aplicando migración: Agregar Información de Cliché...
-2026-01-28T16:03:43.732Z psql:/app/database/migrations/009-add-cliche-info.sql:8: NOTICE:  column "cliche_info_adicional" of relation "pedidos" already exists, skipping
-2026-01-28T16:03:43.734Z ALTER TABLE
-2026-01-28T16:03:43.736Z COMMENT
-2026-01-28T16:03:43.756Z psql:/app/database/migrations/009-add-cliche-info.sql:26: NOTICE:  Columna cliche_info_adicional añadida exitosamente a la tabla pedidos
-2026-01-28T16:03:43.756Z DO
-2026-01-28T16:03:43.760Z ✅ Migración 'Agregar Información de Cliché' aplicada.
-2026-01-28T16:03:43.760Z 🔄 Aplicando migración: Auto-actualizar Estado de Cliente...
-2026-01-28T16:03:43.803Z CREATE FUNCTION
-2026-01-28T16:03:43.804Z COMMENT
-2026-01-28T16:03:43.805Z CREATE FUNCTION
-2026-01-28T16:03:43.805Z COMMENT
-2026-01-28T16:03:43.807Z CREATE FUNCTION
-2026-01-28T16:03:43.808Z COMMENT
-2026-01-28T16:03:43.811Z DROP TRIGGER
-2026-01-28T16:03:43.811Z CREATE TRIGGER
-2026-01-28T16:03:43.812Z COMMENT
-2026-01-28T16:03:43.818Z CREATE VIEW
-2026-01-28T16:03:43.819Z COMMENT
-2026-01-28T16:03:43.840Z psql:/app/database/migrations/010-auto-update-cliente-estado.sql:193: NOTICE:  Estados actualizados para 124 clientes
-2026-01-28T16:03:43.840Z DO
-2026-01-28T16:03:43.840Z psql:/app/database/migrations/010-auto-update-cliente-estado.sql:201: NOTICE:  relation "idx_pedidos_cliente_etapa" already exists, skipping
-2026-01-28T16:03:43.841Z CREATE INDEX
-2026-01-28T16:03:43.841Z psql:/app/database/migrations/010-auto-update-cliente-estado.sql:206: NOTICE:  relation "idx_pedidos_activos" already exists, skipping
-2026-01-28T16:03:43.841Z CREATE INDEX
-2026-01-28T16:03:43.842Z COMMENT
-2026-01-28T16:03:43.842Z COMMENT
-2026-01-28T16:03:43.843Z psql:/app/database/migrations/010-auto-update-cliente-estado.sql:230: NOTICE:  Test completado: Cliente a0d1e7fd-186c-4cfb-8087-9203d3828408 tiene estado calculado: Activo
-2026-01-28T16:03:43.843Z DO
-2026-01-28T16:03:43.845Z trigger_name           | event_manipulation | event_object_table |                   action_statement
-2026-01-28T16:03:43.846Z ----------------------------------+--------------------+--------------------+------------------------------------------------------
-2026-01-28T16:03:43.846Z trigger_pedido_actualiza_cliente | INSERT             | pedidos            | EXECUTE FUNCTION trigger_actualizar_estado_cliente()
-2026-01-28T16:03:43.846Z trigger_pedido_actualiza_cliente | DELETE             | pedidos            | EXECUTE FUNCTION trigger_actualizar_estado_cliente()
-2026-01-28T16:03:43.846Z trigger_pedido_actualiza_cliente | UPDATE             | pedidos            | EXECUTE FUNCTION trigger_actualizar_estado_cliente()
-2026-01-28T16:03:43.846Z (3 rows)
-2026-01-28T16:03:43.846Z psql:/app/database/migrations/010-auto-update-cliente-estado.sql:245: ERROR:  syntax error at or near "RAISE"
-2026-01-28T16:03:43.846Z LINE 1: RAISE NOTICE '✅ Migración completada: Sistema de actualizac...
-2026-01-28T16:03:43.846Z ^
-2026-01-28T16:03:43.847Z ❌ LAS MIGRACIONES DE LA BASE DE DATOS FALLARON. EL SERVIDOR NO SE INICIARÁ.
+2026-01-28T16:06:38.982Z GRANT
+2026-01-28T16:06:39.003Z DO
+2026-01-28T16:06:39.004Z psql:/app/database/migrations/008-convert-numero-compra-to-array.sql:159: NOTICE:  ✅ Migración 008 completada exitosamente
+2026-01-28T16:06:39.004Z psql:/app/database/migrations/008-convert-numero-compra-to-array.sql:159: NOTICE:     - Columna numeros_compra: CREADA
+2026-01-28T16:06:39.004Z psql:/app/database/migrations/008-convert-numero-compra-to-array.sql:159: NOTICE:     - Columna numero_compra: ELIMINADA
+2026-01-28T16:06:39.004Z psql:/app/database/migrations/008-convert-numero-compra-to-array.sql:159: NOTICE:     - Índices creados: 1
+2026-01-28T16:06:39.011Z COMMIT
+2026-01-28T16:06:39.016Z ✅ Migración 'Convertir Números de Compra a Array' aplicada.
+2026-01-28T16:06:39.016Z 🔄 Aplicando migración: Agregar Información de Cliché...
+2026-01-28T16:06:39.055Z psql:/app/database/migrations/009-add-cliche-info.sql:8: NOTICE:  column "cliche_info_adicional" of relation "pedidos" already exists, skipping
+2026-01-28T16:06:39.056Z ALTER TABLE
+2026-01-28T16:06:39.058Z COMMENT
+2026-01-28T16:06:39.075Z psql:/app/database/migrations/009-add-cliche-info.sql:26: NOTICE:  Columna cliche_info_adicional añadida exitosamente a la tabla pedidos
+2026-01-28T16:06:39.078Z DO
+2026-01-28T16:06:39.078Z ✅ Migración 'Agregar Información de Cliché' aplicada.
+2026-01-28T16:06:39.078Z 🔄 Aplicando migración: Auto-actualizar Estado de Cliente...
+2026-01-28T16:06:39.109Z CREATE FUNCTION
+2026-01-28T16:06:39.110Z COMMENT
+2026-01-28T16:06:39.112Z CREATE FUNCTION
+2026-01-28T16:06:39.113Z COMMENT
+2026-01-28T16:06:39.114Z CREATE FUNCTION
+2026-01-28T16:06:39.115Z COMMENT
+2026-01-28T16:06:39.116Z DROP TRIGGER
+2026-01-28T16:06:39.118Z CREATE TRIGGER
+2026-01-28T16:06:39.119Z COMMENT
+2026-01-28T16:06:39.126Z CREATE VIEW
+2026-01-28T16:06:39.127Z COMMENT
+2026-01-28T16:06:39.152Z DO
+2026-01-28T16:06:39.152Z CREATE INDEX
+2026-01-28T16:06:39.153Z psql:/app/database/migrations/010-auto-update-cliente-estado.sql:193: NOTICE:  Estados actualizados para 124 clientes
+2026-01-28T16:06:39.153Z psql:/app/database/migrations/010-auto-update-cliente-estado.sql:201: NOTICE:  relation "idx_pedidos_cliente_etapa" already exists, skipping
+2026-01-28T16:06:39.153Z psql:/app/database/migrations/010-auto-update-cliente-estado.sql:206: NOTICE:  relation "idx_pedidos_activos" already exists, skipping
+2026-01-28T16:06:39.153Z CREATE INDEX
+2026-01-28T16:06:39.154Z COMMENT
+2026-01-28T16:06:39.155Z COMMENT
+2026-01-28T16:06:39.156Z psql:/app/database/migrations/010-auto-update-cliente-estado.sql:230: NOTICE:  Test completado: Cliente a0d1e7fd-186c-4cfb-8087-9203d3828408 tiene estado calculado: Activo
+2026-01-28T16:06:39.156Z DO
+2026-01-28T16:06:39.159Z trigger_name           | event_manipulation | event_object_table |                   action_statement
+2026-01-28T16:06:39.159Z ----------------------------------+--------------------+--------------------+------------------------------------------------------
+2026-01-28T16:06:39.159Z trigger_pedido_actualiza_cliente | INSERT             | pedidos            | EXECUTE FUNCTION trigger_actualizar_estado_cliente()
+2026-01-28T16:06:39.159Z trigger_pedido_actualiza_cliente | DELETE             | pedidos            | EXECUTE FUNCTION trigger_actualizar_estado_cliente()
+2026-01-28T16:06:39.159Z trigger_pedido_actualiza_cliente | UPDATE             | pedidos            | EXECUTE FUNCTION trigger_actualizar_estado_cliente()
+2026-01-28T16:06:39.159Z (3 rows)
+2026-01-28T16:06:39.159Z DO
+2026-01-28T16:06:39.159Z psql:/app/database/migrations/010-auto-update-cliente-estado.sql:248: NOTICE:  ✅ Migración completada: Sistema de actualización automática de estado de clientes instalado correctamente.
+2026-01-28T16:06:39.162Z ✅ Migración 'Auto-actualizar Estado de Cliente' aplicada.
+2026-01-28T16:06:39.163Z 🔄 Aplicando migración: Agregar Campo Anónimo...
+2026-01-28T16:06:39.191Z psql:/app/database/migrations/011-add-anonimo.sql:7: NOTICE:  column "anonimo" of relation "pedidos" already exists, skipping
+2026-01-28T16:06:39.192Z ALTER TABLE
+2026-01-28T16:06:39.193Z psql:/app/database/migrations/011-add-anonimo.sql:10: NOTICE:  relation "idx_pedidos_anonimo" already exists, skipping
+2026-01-28T16:06:39.193Z CREATE INDEX
+2026-01-28T16:06:39.194Z COMMENT
+2026-01-28T16:06:39.198Z ✅ Migración 'Agregar Campo Anónimo' aplicada.
+2026-01-28T16:06:39.198Z 🔄 Aplicando migración: Agregar Fechas de Cliché...
+2026-01-28T16:06:39.243Z psql:/app/database/migrations/013-add-cliche-dates.sql:5: NOTICE:  column "dto_compra" of relation "pedidos" already exists, skipping
+2026-01-28T16:06:39.244Z ALTER TABLE
+2026-01-28T16:06:39.245Z psql:/app/database/migrations/013-add-cliche-dates.sql:8: NOTICE:  column "recepcion_cliche" of relation "pedidos" already exists, skipping
+2026-01-28T16:06:39.246Z ALTER TABLE
+2026-01-28T16:06:39.247Z psql:/app/database/migrations/013-add-cliche-dates.sql:11: NOTICE:  relation "idx_pedidos_dto_compra" already exists, skipping
+2026-01-28T16:06:39.247Z CREATE INDEX
+2026-01-28T16:06:39.248Z psql:/app/database/migrations/013-add-cliche-dates.sql:12: NOTICE:  relation "idx_pedidos_recepcion_cliche" already exists, skipping
+2026-01-28T16:06:39.248Z CREATE INDEX
+2026-01-28T16:06:39.250Z COMMENT
+2026-01-28T16:06:39.252Z COMMENT
+2026-01-28T16:06:39.253Z ✅ Migración 'Agregar Fechas de Cliché' aplicada.
+2026-01-28T16:06:39.253Z 🔄 Aplicando migración: Crear Tabla de Vendedores...
+2026-01-28T16:06:39.296Z psql:/app/database/migrations/014-create-vendedores-table.sql:13: NOTICE:  relation "vendedores" already exists, skipping
+2026-01-28T16:06:39.296Z CREATE TABLE
+2026-01-28T16:06:39.298Z CREATE INDEX
+2026-01-28T16:06:39.298Z psql:/app/database/migrations/014-create-vendedores-table.sql:16: NOTICE:  relation "idx_vendedores_nombre" already exists, skipping
+2026-01-28T16:06:39.299Z psql:/app/database/migrations/014-create-vendedores-table.sql:17: NOTICE:  relation "idx_vendedores_activo" already exists, skipping
+2026-01-28T16:06:39.299Z CREATE INDEX
+2026-01-28T16:06:39.300Z CREATE INDEX
+2026-01-28T16:06:39.300Z psql:/app/database/migrations/014-create-vendedores-table.sql:18: NOTICE:  relation "idx_vendedores_email" already exists, skipping
+2026-01-28T16:06:39.306Z CREATE FUNCTION
+2026-01-28T16:06:39.308Z DROP TRIGGER
+2026-01-28T16:06:39.310Z CREATE TRIGGER
+2026-01-28T16:06:39.313Z INSERT 0 0
+2026-01-28T16:06:39.314Z COMMENT
+2026-01-28T16:06:39.315Z COMMENT
+2026-01-28T16:06:39.316Z COMMENT
+2026-01-28T16:06:39.318Z COMMENT
+2026-01-28T16:06:39.319Z COMMENT
+2026-01-28T16:06:39.320Z COMMENT
+2026-01-28T16:06:39.321Z COMMENT
+2026-01-28T16:06:39.322Z COMMENT
+2026-01-28T16:06:39.327Z ✅ Migración 'Crear Tabla de Vendedores' aplicada.
+2026-01-28T16:06:39.328Z 🔄 Aplicando migración: Agregar Vendedor FK a Pedidos...
+2026-01-28T16:06:39.389Z DO
+2026-01-28T16:06:39.390Z psql:/app/database/migrations/015-add-vendedor-fk-to-pedidos.sql:26: ERROR:  column "vendedor" does not exist
+2026-01-28T16:06:39.390Z LINE 2: SELECT DISTINCT TRIM(vendedor) as nombre, true
+2026-01-28T16:06:39.390Z ^
+2026-01-28T16:06:39.390Z HINT:  Perhaps you meant to reference the column "pedidos.vendedor_id".
+2026-01-28T16:06:39.392Z ❌ LAS MIGRACIONES DE LA BASE DE DATOS FALLARON. EL SERVIDOR NO SE INICIARÁ.

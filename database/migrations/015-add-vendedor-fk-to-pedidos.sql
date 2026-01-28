@@ -14,31 +14,59 @@ END $$;
 
 -- Paso 2: Migrar datos existentes del campo vendedor (string) a vendedores
 -- Crear vendedores para cada nombre único existente en pedidos.vendedor
-INSERT INTO vendedores (nombre, activo)
-SELECT DISTINCT TRIM(vendedor) as nombre, true
-FROM pedidos
-WHERE vendedor IS NOT NULL 
-  AND TRIM(vendedor) != ''
-  AND NOT EXISTS (
-    SELECT 1 FROM vendedores v 
-    WHERE LOWER(v.nombre) = LOWER(TRIM(pedidos.vendedor))
-  )
-ON CONFLICT DO NOTHING;
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'pedidos' AND column_name = 'vendedor'
+    ) THEN
+        INSERT INTO vendedores (nombre, activo)
+        SELECT DISTINCT TRIM(vendedor) as nombre, true
+        FROM pedidos
+        WHERE vendedor IS NOT NULL 
+          AND TRIM(vendedor) != ''
+          AND NOT EXISTS (
+            SELECT 1 FROM vendedores v 
+            WHERE LOWER(v.nombre) = LOWER(TRIM(pedidos.vendedor))
+          )
+        ON CONFLICT DO NOTHING;
+    END IF;
+END $$;
 
 -- Paso 3: Actualizar pedidos con el vendedor_id correspondiente
-UPDATE pedidos p
-SET vendedor_id = v.id
-FROM vendedores v
-WHERE LOWER(TRIM(p.vendedor)) = LOWER(v.nombre)
-  AND p.vendedor IS NOT NULL
-  AND p.vendedor != ''
-  AND p.vendedor_id IS NULL;
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'pedidos' AND column_name = 'vendedor'
+    ) THEN
+        UPDATE pedidos p
+        SET vendedor_id = v.id
+        FROM vendedores v
+        WHERE LOWER(TRIM(p.vendedor)) = LOWER(v.nombre)
+          AND p.vendedor IS NOT NULL
+          AND p.vendedor != ''
+          AND p.vendedor_id IS NULL;
+    END IF;
+END $$;
 
 -- Paso 4: Para pedidos sin vendedor asignado, asignar "Sin asignar"
-UPDATE pedidos p
-SET vendedor_id = (SELECT id FROM vendedores WHERE nombre = 'Sin asignar' LIMIT 1)
-WHERE (vendedor IS NULL OR vendedor = '')
-  AND vendedor_id IS NULL;
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'pedidos' AND column_name = 'vendedor'
+    ) THEN
+        UPDATE pedidos p
+        SET vendedor_id = (SELECT id FROM vendedores WHERE nombre = 'Sin asignar' LIMIT 1)
+        WHERE (vendedor IS NULL OR vendedor = '' OR vendedor IS NOT DISTINCT FROM NULL)
+          AND vendedor_id IS NULL;
+    ELSE
+        UPDATE pedidos p
+        SET vendedor_id = (SELECT id FROM vendedores WHERE nombre = 'Sin asignar' LIMIT 1)
+        WHERE vendedor_id IS NULL;
+    END IF;
+END $$;
 
 -- Paso 5: Crear foreign key constraint
 DO $$
