@@ -88,7 +88,16 @@ CREATE INDEX IF NOT EXISTS idx_pedidos_vendedor_id ON pedidos(vendedor_id);
 
 -- Paso 7: Comentar la columna antigua vendedor para indicar que está deprecada
 -- NO la eliminamos todavía por seguridad, pero marcamos que ya no se debe usar
-COMMENT ON COLUMN pedidos.vendedor IS 'DEPRECADO: Usar vendedor_id en su lugar. Campo legacy mantenido temporalmente para rollback si es necesario';
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'pedidos' AND column_name = 'vendedor'
+    ) THEN
+        COMMENT ON COLUMN pedidos.vendedor IS 'DEPRECADO: Usar vendedor_id en su lugar. Campo legacy mantenido temporalmente para rollback si es necesario';
+    END IF;
+END $$;
+
 COMMENT ON COLUMN pedidos.vendedor_id IS 'ID del vendedor asignado al pedido (FK a tabla vendedores)';
 
 -- Verificación: Mostrar estadísticas de la migración
