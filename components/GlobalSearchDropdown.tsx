@@ -23,12 +23,12 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
 }) => {
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // ðŸš€ Aplicar debounce al tÃ©rmino de bÃºsqueda para mejorar performance
+    // 🚀 Aplicar debounce al término de búsqueda para mejorar performance
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-    // FunciÃ³n helper para obtener la etapa/sub-etapa a mostrar
+    // Función helper para obtener la etapa/sub-etapa a mostrar
     const getEtapaDisplay = (pedido: Pedido): { title: string; color: string } => {
-        // Si estÃ¡ en PREPARACION, mostrar la sub-etapa
+        // Si está en PREPARACION, mostrar la sub-etapa
         if (pedido.etapaActual === Etapa.PREPARACION && pedido.subEtapaActual) {
             const subEtapa = PREPARACION_COLUMNS.find(col => col.id === pedido.subEtapaActual);
             if (subEtapa) {
@@ -53,7 +53,7 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
 
     const hasSearchTerm = searchTerm.trim().length > 0;
 
-    // Usar el tÃ©rmino con debounce para filtrar resultados (mejor performance)
+    // Usar el término con debounce para filtrar resultados (mejor performance)
     // Pero mostrar el dropdown inmediatamente cuando el usuario escribe
     const shouldShowResults = hasSearchTerm && debouncedSearchTerm && debouncedSearchTerm.trim().length > 0;
 
@@ -79,10 +79,10 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
                     e.stopPropagation();
                 }}
             >
-                {/* Header con campo de bÃºsqueda */}
+                {/* Header con campo de búsqueda */}
                 <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-300 dark:border-gray-600 px-6 py-4 z-10">
                     <div className="flex items-center gap-3">
-                        {/* Icono de bÃºsqueda */}
+                        {/* Icono de búsqueda */}
                         <svg
                             className="w-5 h-5 text-gray-400 dark:text-gray-500"
                             fill="none"
@@ -95,7 +95,7 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
                             <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                         </svg>
 
-                        {/* Input de bÃºsqueda */}
+                        {/* Input de búsqueda */}
                         <input
                             ref={inputRef}
                             type="text"
@@ -110,7 +110,7 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
                             }}
                         />
 
-                        {/* BotÃ³n cerrar */}
+                        {/* Botón cerrar */}
                         <button
                             onClick={onClose}
                             className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
@@ -155,7 +155,7 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
                                 No se encontraron pedidos
                             </p>
                             <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
-                                Intenta con otro tÃ©rmino de bÃºsqueda
+                                Intenta con otro término de búsqueda
                             </p>
                         </div>
                     ) : (
@@ -167,7 +167,7 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
                                     className="w-full px-6 py-4 text-left hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 focus:outline-none transition-colors border-b border-gray-200 dark:border-gray-700 last:border-b-0"
                                 >
                                     <div className="flex flex-col gap-3">
-                                        {/* Primera lÃ­nea: NÃºmero de pedido y etapa */}
+                                        {/* Primera línea: Número de pedido y etapa */}
                                         <div className="flex items-center justify-between gap-3">
                                             <div className="flex items-center gap-3 flex-wrap">
                                                 <span className="text-lg font-bold text-gray-900 dark:text-white">
@@ -177,7 +177,7 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
                                                     {pedido.numeroRegistro}
                                                 </span>
                                             </div>
-                                            {/* Badge de etapa con color dinÃ¡mico */}
+                                            {/* Badge de etapa con color dinámico */}
                                             {(() => {
                                                 const etapaDisplay = getEtapaDisplay(pedido);
                                                 return (
@@ -190,13 +190,13 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
                                             })()}
                                         </div>
 
-                                        {/* Segunda lÃ­nea: Cliente */}
+                                        {/* Segunda línea: Cliente */}
                                         <div className="text-base text-gray-700 dark:text-gray-300">
                                             <span className="font-semibold text-gray-900 dark:text-white">Cliente:</span>{' '}
                                             <span className="text-gray-800 dark:text-gray-200">{pedido.cliente}</span>
                                         </div>
 
-                                        {/* Tercera lÃ­nea: Vendedor y Metros */}
+                                        {/* Tercera línea: Vendedor y Metros */}
                                         <div className="flex items-center gap-6 text-base text-gray-600 dark:text-gray-400 flex-wrap">
                                             {pedido.vendedorNombre && (
                                                 <div>
@@ -210,11 +210,11 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
                                             </div>
                                         </div>
 
-                                        {/* Cuarta lÃ­nea: Fechas */}
+                                        {/* Cuarta línea: Fechas */}
                                         <div className="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400 flex-wrap">
                                             {pedido.fechaEntrega && (
                                                 <div className="flex items-center gap-1">
-                                                    <span className="font-semibold">ðŸ“… F. Entrega:</span>
+                                                    <span className="font-semibold">📅 F. Entrega:</span>
                                                     <span>{new Date(pedido.fechaEntrega).toLocaleDateString('es-ES', {
                                                         day: '2-digit',
                                                         month: '2-digit',
@@ -224,7 +224,7 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
                                             )}
                                             {pedido.nuevaFechaEntrega && (
                                                 <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400 font-medium">
-                                                    <span className="font-semibold">ðŸ”„ Nueva F. Entrega:</span>
+                                                    <span className="font-semibold">📆 Nueva F. Entrega:</span>
                                                     <span>{new Date(pedido.nuevaFechaEntrega).toLocaleDateString('es-ES', {
                                                         day: '2-digit',
                                                         month: '2-digit',
@@ -240,7 +240,7 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
                     )}
                 </div>
 
-                {/* Footer con informaciÃ³n de resultados */}
+                {/* Footer con información de resultados */}
                 {displayResults.length > 0 && hasMoreResults && (
                     <div className="sticky bottom-0 px-6 py-3 text-sm text-center text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 font-medium">
                         Mostrando {displayResults.length} de {results.length} resultados
@@ -252,4 +252,5 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
 };
 
 export default GlobalSearchDropdown;
+
 

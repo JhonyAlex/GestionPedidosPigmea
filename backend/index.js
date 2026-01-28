@@ -1,4 +1,4 @@
-// Cargar variables de entorno
+﻿// Cargar variables de entorno
 require('dotenv').config();
 
 const path = require('path');
@@ -117,6 +117,17 @@ app.use(cors({
 app.use(express.static(path.join(__dirname, '..', 'dist')));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Middleware para asegurar Content-Type con charset UTF-8
+app.use((req, res, next) => {
+    const originalJson = res.json;
+    res.json = function(data) {
+        res.type('application/json; charset=utf-8');
+        return originalJson.call(this, data);
+    };
+    next();
+});
+
 
 // � NUEVO: Middleware de autocuración de base de datos
 app.use(ensureDatabaseHealth);
@@ -5538,4 +5549,5 @@ process.on('SIGINT', async () => {
     process.exit(0);
 });
 // Force deploy Thu Sep  4 15:22:25 UTC 2025
+
 
