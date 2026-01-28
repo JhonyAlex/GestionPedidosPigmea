@@ -30,20 +30,13 @@ apply_migration() {
     echo "✅ Migración '$NAME' aplicada."
 }
 
-# ---- MIGRACIONES CRÍTICAS ----
-# Solo las migraciones más recientes que necesitan aplicarse automáticamente
-# Las migraciones antiguas (000-031) ya fueron aplicadas manualmente
+# ---- SOLO MIGRACIÓN NUEVA ----
+# Las demás migraciones (000-033) ya fueron aplicadas manualmente
 
-# Migraciones recientes que sí necesitan ejecutarse
-apply_migration "Agregar Menciones a Comentarios" \
-  "$MIGRATIONS_DIR/032-add-mentions-to-comments.sql"
-
-apply_migration "Crear Tabla de Historial de Acciones" \
-  "$MIGRATIONS_DIR/033-create-action-history-table.sql"
-
+# Solo ejecutar la migración nueva que agrega el campo antivaho_realizado
 apply_migration "Agregar Campo Antivaho Realizado" \
   "$MIGRATIONS_DIR/036-add-antivaho-realizado.sql"
 
 echo ""
-echo "✅ ¡MIGRACIONES CRÍTICAS COMPLETADAS!"
+echo "✅ ¡MIGRACIÓN COMPLETADA!"
 echo "=== FIN DEL SCRIPT DE MIGRACIÓN ==="
