@@ -23,6 +23,7 @@ export const usePedidosManager = (
     const [pedidos, setPedidos] = useState<Pedido[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [antivahoModalState, setAntivahoModalState] = useState<{ isOpen: boolean; pedido: Pedido | null; toEtapa: Etapa | null }>({ isOpen: false, pedido: null, toEtapa: null });
+    const [antivahoDestinationModalState, setAntivahoDestinationModalState] = useState<{ isOpen: boolean; pedido: Pedido | null }>({ isOpen: false, pedido: null });
 
     // 🚀 Estados para paginación
     const [currentPage, setCurrentPage] = useState(1);
@@ -421,22 +422,26 @@ export const usePedidosManager = (
             if (originalPedidoCopy.etapaActual !== modifiedPedido.etapaActual) {
                 newHistoryEntries.push(generarEntradaHistorial(currentUserRole, 'Cambio de Etapa', `Movido de '${ETAPAS[originalPedidoCopy.etapaActual].title}' a '${ETAPAS[modifiedPedido.etapaActual].title}'.`));
 
-                // ✅ Actualizar etapasSecuencia cuando cambia la etapa
+                // ✅ SIEMPRE actualizar/crear entrada en etapasSecuencia con timestamp actual
+                // Esto asegura que los pedidos que llegan a una etapa se coloquen al final (FIFO)
                 const existingEtapaIndex = modifiedPedido.etapasSecuencia.findIndex(
                     e => e.etapa === modifiedPedido.etapaActual
                 );
 
+                const now = new Date().toISOString();
+
                 if (existingEtapaIndex === -1) {
-                    // Si la etapa no existe en la secuencia, agregarla
+                    // Si la etapa no existe en la secuencia, agregarla al final
                     modifiedPedido.etapasSecuencia = [
                         ...modifiedPedido.etapasSecuencia,
-                        { etapa: modifiedPedido.etapaActual, fecha: new Date().toISOString() }
+                        { etapa: modifiedPedido.etapaActual, fecha: now }
                     ];
                 } else {
-                    // Si ya existe, actualizar la fecha
+                    // Si ya existe (pedido regresando), actualizar la fecha a AHORA
+                    // para que se coloque al final de la cola
                     modifiedPedido.etapasSecuencia = modifiedPedido.etapasSecuencia.map((e, idx) =>
                         idx === existingEtapaIndex
-                            ? { ...e, fecha: new Date().toISOString() }
+                            ? { ...e, fecha: now }
                             : e
                     );
                 }
@@ -444,6 +449,34 @@ export const usePedidosManager = (
                 // ✅ Establecer fecha de finalización cuando el pedido pasa a COMPLETADO
                 if (modifiedPedido.etapaActual === Etapa.COMPLETADO && !modifiedPedido.fechaFinalizacion) {
                     modifiedPedido.fechaFinalizacion = new Date().toISOString();
+                }
+            }
+
+            // ✅ Actualizar subEtapasSecuencia cuando cambia la sub-etapa (dentro de Preparación)
+            if (modifiedPedido.etapaActual === Etapa.PREPARACION && 
+                originalPedidoCopy.subEtapaActual !== modifiedPedido.subEtapaActual && 
+                modifiedPedido.subEtapaActual) {
+                
+                const now = new Date().toISOString();
+                const subEtapasSecuencia = modifiedPedido.subEtapasSecuencia || [];
+                const existingSubEtapaIndex = subEtapasSecuencia.findIndex(
+                    e => e.subEtapa === modifiedPedido.subEtapaActual
+                );
+
+                if (existingSubEtapaIndex === -1) {
+                    // Si la sub-etapa no existe, agregarla al final
+                    modifiedPedido.subEtapasSecuencia = [
+                        ...subEtapasSecuencia,
+                        { subEtapa: modifiedPedido.subEtapaActual, fecha: now }
+                    ];
+                } else {
+                    // Si ya existe (pedido regresando), actualizar la fecha a AHORA
+                    // para que se coloque al final de la cola
+                    modifiedPedido.subEtapasSecuencia = subEtapasSecuencia.map((e, idx) =>
+                        idx === existingSubEtapaIndex
+                            ? { ...e, fecha: now }
+                            : e
+                    );
                 }
             }
 
@@ -472,7 +505,7 @@ export const usePedidosManager = (
         }
     };
 
-    const handleAddPedido = async (data: { pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'subEtapaActual' | 'secuenciaTrabajo' | 'orden' | 'historial'>; secuenciaTrabajo: Etapa[]; }) => {
+    const handleAddPedido = async (data: { pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'subEtapasSecuencia' | 'etapaActual' | 'subEtapaActual' | 'secuenciaTrabajo' | 'orden' | 'historial'>; secuenciaTrabajo: Etapa[]; }) => {
         const { pedidoData, secuenciaTrabajo } = data;
         const now = new Date();
         const newId = now.getTime().toString();
@@ -493,6 +526,7 @@ export const usePedidosManager = (
             etapaActual: initialStage,
             subEtapaActual: initialSubEtapa,
             etapasSecuencia: [{ etapa: initialStage, fecha: now.toISOString() }],
+            subEtapasSecuencia: [{ subEtapa: initialSubEtapa, fecha: now.toISOString() }],
             historial: [generarEntradaHistorial(currentUserRole, 'Creación', 'Pedido creado en Preparación - Sin Gestión Iniciada.')],
             maquinaImpresion: pedidoData.maquinaImpresion || '',
             secuenciaTrabajo,
@@ -762,9 +796,21 @@ export const usePedidosManager = (
 
         const result = await handleSavePedido(updatedPedido);
 
-        // Después de actualizar el pedido, proceder con el cambio de etapa
+        // Después de actualizar el pedido, verificar si viene de post-impresión y va a impresión
         if (result?.modifiedPedido) {
-            const finalUpdatedPedido = { ...result.modifiedPedido, etapaActual: antivahoModalState.toEtapa };
+            const finalUpdatedPedido = { ...result.modifiedPedido };
+            
+            // Si viene de post-impresión y va a impresión, abrir modal de destino
+            if (isReconfirmationFromPostImpresion && KANBAN_FUNNELS.IMPRESION.stages.includes(antivahoModalState.toEtapa)) {
+                // Cerrar el modal de confirmación de antivaho
+                setAntivahoModalState({ isOpen: false, pedido: null, toEtapa: null });
+                // Abrir el modal de selección de destino
+                setAntivahoDestinationModalState({ isOpen: true, pedido: finalUpdatedPedido });
+                return;
+            }
+
+            // Si no, proceder con el flujo normal
+            finalUpdatedPedido.etapaActual = antivahoModalState.toEtapa;
 
             if (KANBAN_FUNNELS.IMPRESION.stages.includes(antivahoModalState.toEtapa)) {
                 finalUpdatedPedido.maquinaImpresion = ETAPAS[antivahoModalState.toEtapa]?.title;
@@ -784,6 +830,36 @@ export const usePedidosManager = (
 
     const handleCancelAntivaho = () => {
         setAntivahoModalState({ isOpen: false, pedido: null, toEtapa: null });
+    };
+
+    const handleAntivahoDestinationImpresion = async () => {
+        if (!antivahoDestinationModalState.pedido) return;
+
+        const pedido = antivahoDestinationModalState.pedido;
+        
+        // Regresar a impresión - abrir el modal de envío a impresión
+        setAntivahoDestinationModalState({ isOpen: false, pedido: null });
+        setPedidoToSend(pedido);
+    };
+
+    const handleAntivahoDestinationListoProduccion = async () => {
+        if (!antivahoDestinationModalState.pedido) return;
+
+        const pedido = antivahoDestinationModalState.pedido;
+        
+        // Mover a Listo a Producción (sub-etapa de Preparación)
+        const updatedPedido = {
+            ...pedido,
+            etapaActual: Etapa.PREPARACION,
+            subEtapaActual: PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION,
+        };
+
+        await handleSavePedido(updatedPedido);
+        setAntivahoDestinationModalState({ isOpen: false, pedido: null });
+    };
+
+    const handleCancelAntivahoDestination = () => {
+        setAntivahoDestinationModalState({ isOpen: false, pedido: null });
     };
 
     const handleSetReadyForProduction = async (pedido: Pedido) => {
@@ -815,6 +891,10 @@ export const usePedidosManager = (
         antivahoModalState,
         handleConfirmAntivaho,
         handleCancelAntivaho,
+        antivahoDestinationModalState,
+        handleAntivahoDestinationImpresion,
+        handleAntivahoDestinationListoProduccion,
+        handleCancelAntivahoDestination,
         handleSetReadyForProduction,
         // 🚀 Nuevas propiedades de paginación
         currentPage,

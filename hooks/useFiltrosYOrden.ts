@@ -410,8 +410,17 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
                             comparison = 1;
                         } else {
                             // Empate de prioridad (ambos Urgentes o ambos No Urgentes)
-                            // Ordenar por fecha de entrada a la etapa actual (FIFO: más antiguo arriba)
+                            // Ordenar por fecha de entrada a la etapa/sub-etapa actual (FIFO: más antiguo arriba, más reciente abajo)
+                            // Esto asegura que los pedidos que RECIÉN LLEGAN a una etapa aparezcan AL FINAL
                             const getStageEntryTime = (p: Pedido) => {
+                                // Si está en Preparación y tiene sub-etapa, usar subEtapasSecuencia
+                                if (p.etapaActual === Etapa.PREPARACION && p.subEtapaActual && p.subEtapasSecuencia) {
+                                    const subEntry = p.subEtapasSecuencia.find(e => e.subEtapa === p.subEtapaActual);
+                                    if (subEntry) {
+                                        return new Date(subEntry.fecha).getTime();
+                                    }
+                                }
+                                // Para otras etapas o si no hay sub-etapa, usar etapasSecuencia
                                 const entry = p.etapasSecuencia?.find(e => e.etapa === p.etapaActual);
                                 return entry ? new Date(entry.fecha).getTime() : (p.fechaCreacion ? new Date(p.fechaCreacion).getTime() : 0);
                             };
@@ -419,6 +428,8 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
                             const timeA = getStageEntryTime(a);
                             const timeB = getStageEntryTime(b);
 
+                            // timeA - timeB: Si A es más antiguo (menor timestamp), sale negativo → A va antes (arriba)
+                            // Si B es más antiguo, sale positivo → B va antes (arriba)
                             comparison = timeA - timeB;
                         }
                         break;

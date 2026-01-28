@@ -9,6 +9,7 @@ import KanbanColumn from './components/KanbanColumn';
 import PedidoModal from './components/PedidoModal';
 import AddPedidoModal from './components/AddPedidoModal';
 import AntivahoConfirmationModal from './components/AntivahoConfirmationModal';
+import AntivahoDestinationModal from './components/AntivahoDestinationModal';
 import Header from './components/Header';
 import PedidoList from './components/PedidoList';
 import ReportView from './components/ReportView';
@@ -143,6 +144,10 @@ const AppContent: React.FC = () => {
         antivahoModalState,
         handleConfirmAntivaho,
         handleCancelAntivaho,
+        antivahoDestinationModalState,
+        handleAntivahoDestinationImpresion,
+        handleAntivahoDestinationListoProduccion,
+        handleCancelAntivahoDestination,
         handleSetReadyForProduction,
         currentPage,
         hasMore,
@@ -391,7 +396,7 @@ const AppContent: React.FC = () => {
         setSelectedPedido(null);
     };
 
-    const handleAddPedido = async (data: { pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'secuenciaTrabajo' | 'orden' | 'historial'>; secuenciaTrabajo: Etapa[]; }) => {
+    const handleAddPedido = async (data: { pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'subEtapasSecuencia' | 'etapaActual' | 'subEtapaActual' | 'secuenciaTrabajo' | 'orden' | 'historial'>; secuenciaTrabajo: Etapa[]; }) => {
         const newPedido = await handleAddPedidoLogic(data);
         if (newPedido) {
             logAction(`Nuevo pedido ${newPedido.numeroPedidoCliente} creado.`, newPedido.id);
@@ -1164,6 +1169,13 @@ const AppContent: React.FC = () => {
                     onConfirm={handleConfirmAntivaho}
                     onCancel={handleCancelAntivaho}
                     pedido={antivahoModalState.pedido}
+                />
+                <AntivahoDestinationModal
+                    isOpen={antivahoDestinationModalState.isOpen}
+                    onSelectImpresion={handleAntivahoDestinationImpresion}
+                    onSelectListoProduccion={handleAntivahoDestinationListoProduccion}
+                    onCancel={handleCancelAntivahoDestination}
+                    pedido={antivahoDestinationModalState.pedido}
                 />
                 <ThemeSwitcher theme={theme} toggleTheme={toggleTheme} />
 

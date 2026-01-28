@@ -45,7 +45,10 @@ export interface EtapaInfo {
     etapa: Etapa;
     fecha: string; // ISO 8601 date string
 }
-
+export interface SubEtapaInfo {
+    subEtapa: string; // ID de la sub-etapa
+    fecha: string; // ISO 8601 - cuándo entró a esta sub-etapa
+}
 export interface HistorialEntry {
     timestamp: string; // ISO 8601
     usuario: string; // Nombre del usuario (displayName o username)
@@ -74,6 +77,7 @@ export interface Pedido {
     etapaActual: Etapa;
     subEtapaActual?: string;
     etapasSecuencia: EtapaInfo[];
+    subEtapasSecuencia?: SubEtapaInfo[]; // Trackea cuándo entró a cada sub-etapa (para ordenamiento FIFO)
     prioridad: Prioridad;
     tipoImpresion: TipoImpresion;
     desarrollo: string;
