@@ -9,6 +9,8 @@ import { PlanningTable, WeeklyData } from './PlanningTable';
 import { PlanningChart } from './PlanningChart';
 import CustomAnalysisModal from './CustomAnalysisModal';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
+import { useClientesManager } from '../hooks/useClientesManager';
+import { useVendedoresManager } from '../hooks/useVendedoresManager';
 // @ts-ignore - jspdf types might be tricky
 import { jsPDF } from 'jspdf';
 // @ts-ignore - jspdf-autotable types might be tricky
@@ -85,6 +87,48 @@ const ReportView: React.FC<ReportViewProps> = ({
 }) => {
     // --- Tab State ---
     const [activeTab, setActiveTab] = useState<'planning' | 'analytics'>('planning');
+
+    // 🔥 NUEVA FUNCIONALIDAD: Sincronización en tiempo real de clientes y vendedores
+    const { clientes } = useClientesManager();
+    const { vendedores } = useVendedoresManager();
+
+    // Crear mapas de clientes y vendedores para búsqueda rápida por ID
+    const clientesMap = useMemo(() => {
+        const map = new Map<string, string>();
+        clientes.forEach(c => map.set(c.id, c.nombre));
+        return map;
+    }, [clientes]);
+
+    const vendedoresMap = useMemo(() => {
+        const map = new Map<string, string>();
+        vendedores.forEach(v => map.set(v.id, v.nombre));
+        return map;
+    }, [vendedores]);
+
+    // Enriquecer pedidos con nombres actualizados de clientes y vendedores
+    const enrichedPedidos = useMemo(() => {
+        return pedidos.map(pedido => {
+            const updatedPedido = { ...pedido };
+            
+            // Actualizar nombre del cliente si hay un clienteId
+            if (pedido.clienteId && clientesMap.has(pedido.clienteId)) {
+                const nombreActualizado = clientesMap.get(pedido.clienteId)!;
+                if (updatedPedido.cliente !== nombreActualizado) {
+                    updatedPedido.cliente = nombreActualizado;
+                }
+            }
+            
+            // Actualizar nombre del vendedor si hay un vendedorId
+            if (pedido.vendedorId && vendedoresMap.has(pedido.vendedorId)) {
+                const nombreActualizado = vendedoresMap.get(pedido.vendedorId)!;
+                if (updatedPedido.vendedorNombre !== nombreActualizado) {
+                    updatedPedido.vendedorNombre = nombreActualizado;
+                }
+            }
+            
+            return updatedPedido;
+        });
+    }, [pedidos, clientesMap, vendedoresMap]);
 
     // --- 1. State Management (Filters) ---
 
@@ -264,7 +308,7 @@ const ReportView: React.FC<ReportViewProps> = ({
         // Se incluyen pedidos de todas las etapas EXCEPTO Archivados
         // Se filtran por rango de fechas según el campo seleccionado
         // ============================================================================
-        const filteredPedidos = pedidos.filter(p => {
+        const filteredPedidos = enrichedPedidos.filter(p => {
             // 1. Excluir archivados
             if (p.etapaActual === Etapa.ARCHIVADO) return false;
 
@@ -446,7 +490,7 @@ const ReportView: React.FC<ReportViewProps> = ({
             ) // Filtrar solo máquinas permitidas, excluir ANON y Sin Asignar
         };
 
-    }, [pedidos, selectedStages, selectedMachines, dateFilter, dateField, customDateRange]);
+    }, [enrichedPedidos, selectedStages, selectedMachines, dateFilter, dateField, customDateRange]);
 
     // Derived state for details table with sorting
     const selectedPedidos = useMemo(() => {
