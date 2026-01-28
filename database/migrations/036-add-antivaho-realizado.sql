@@ -4,13 +4,21 @@
 -- Date: 2026-01-28
 
 -- Add the new column
-ALTER TABLE pedidos 
-ADD COLUMN IF NOT EXISTS antivaho_realizado BOOLEAN DEFAULT FALSE;
-
--- Add comment for documentation
-COMMENT ON COLUMN pedidos.antivaho_realizado IS 'Marca si el proceso de antivaho ha sido completado para pedidos que están en producción. Este campo solo se utiliza cuando antivaho=true y el pedido ha salido de la etapa de PREPARACION.';
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'pedidos' AND column_name = 'antivaho_realizado'
+    ) THEN
+        ALTER TABLE pedidos ADD COLUMN antivaho_realizado BOOLEAN DEFAULT FALSE;
+        RAISE NOTICE 'Column antivaho_realizado added to pedidos table';
+    ELSE
+        RAISE NOTICE 'Column antivaho_realizado already exists';
+    END IF;
+END $$;
 
 -- Create index for better query performance when filtering by antivaho status
+-- Partial index: only for rows where antivaho is true and antivaho_realizado is false
 CREATE INDEX IF NOT EXISTS idx_pedidos_antivaho_realizado 
 ON pedidos(antivaho_realizado) 
-WHERE antivaho = TRUE AND antivaho_realizado = FALSE;
+WHERE antivaho = true AND antivaho_realizado = false;

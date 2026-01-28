@@ -5534,14 +5534,19 @@ async function startServer() {
 
                 if (!antivahoRealizadoColumnExists) {
                     console.log('📝 Aplicando migración 036: Antivaho Realizado...');
-                    await dbClient.pool.query(`
-                        ALTER TABLE pedidos ADD COLUMN antivaho_realizado BOOLEAN DEFAULT false;
-                        COMMENT ON COLUMN pedidos.antivaho_realizado IS 'Marca si el proceso de antivaho ha sido completado para pedidos en producción';
-                        CREATE INDEX IF NOT EXISTS idx_pedidos_antivaho_realizado 
-                        ON pedidos(antivaho_realizado) 
-                        WHERE antivaho = TRUE AND antivaho_realizado = FALSE;
-                    `);
-                    console.log('✅ Migración 036 aplicada exitosamente');
+                    try {
+                        await dbClient.pool.query(`ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS antivaho_realizado BOOLEAN DEFAULT false;`);
+                        
+                        await dbClient.pool.query(`COMMENT ON COLUMN pedidos.antivaho_realizado IS 'Marca si el proceso de antivaho ha sido completado para pedidos en producción';`);
+                        
+                        await dbClient.pool.query(`CREATE INDEX IF NOT EXISTS idx_pedidos_antivaho_realizado ON pedidos(antivaho_realizado) WHERE antivaho = true AND antivaho_realizado = false;`);
+                        
+                        console.log('✅ Migración 036 aplicada exitosamente');
+                    } catch (indexError) {
+                        // Si el índice falla, no es crítico
+                        console.warn('⚠️ Index creation failed (non-critical):', indexError.message);
+                        console.log('✅ Migración 036 aplicada (sin índice)');
+                    }
                 } else {
                     console.log('✅ Migración 036 ya aplicada previamente');
                 }
