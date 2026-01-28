@@ -1,99 +1,95 @@
-2026-01-28T08:06:00.616Z 📨 [17] GET /api/analysis/instructions - User: anonymous - 2026-01-28T08:06:00.615Z
-2026-01-28T08:06:04.669Z 📨 [18] GET /api/analysis/instructions - User: anonymous - 2026-01-28T08:06:04.668Z
-2026-01-28T08:06:05.307Z 📨 [19] GET /api/analytics/summary - User: 4 - 2026-01-28T08:06:05.307Z
-2026-01-28T08:06:05.309Z ⚠️ Pool de conexiones bajo presión
-2026-01-28T08:06:05.309Z - Total: 2/20 (10.0% uso)
-2026-01-28T08:06:05.309Z - Idle: 1 (50.0%)
-2026-01-28T08:06:05.309Z - Waiting: 5
-2026-01-28T08:06:05.312Z ⚠️ Pool de conexiones bajo presión
-2026-01-28T08:06:05.312Z - Total: 2/20 (10.0% uso)
-2026-01-28T08:06:05.312Z - Idle: 0 (0.0%)
-2026-01-28T08:06:05.312Z - Waiting: 4
-2026-01-28T08:06:05.357Z 🔗 Nueva conexión al pool establecida
-2026-01-28T08:06:05.384Z 🔗 Nueva conexión al pool establecida
-2026-01-28T08:06:05.384Z 🔗 Nueva conexión al pool establecida
-2026-01-28T08:06:05.386Z 🔗 Nueva conexión al pool establecida
-2026-01-28T08:06:41.320Z 📨 [20] GET /api/vendedores/stats/batch - User: 4 - 2026-01-28T08:06:41.318Z
-2026-01-28T08:06:41.323Z 🔐 requirePermission middleware
-2026-01-28T08:06:41.323Z - Ruta: GET /api/vendedores/stats/batch
-2026-01-28T08:06:41.323Z - Permiso requerido: vendedores.view
-2026-01-28T08:06:41.324Z - Usuario: 4 (ADMIN)
-2026-01-28T08:06:41.325Z - Headers: { userId: '4', userRole: 'Administrador' }
-2026-01-28T08:06:41.325Z - Permisos a verificar (incluyendo aliases): [ 'vendedores.view' ]
-2026-01-28T08:06:41.326Z - Verificando permiso en BD...
-2026-01-28T08:06:41.326Z 🔍 Verificando permiso 'vendedores.view' para usuario ID: 4
-2026-01-28T08:06:41.326Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
-2026-01-28T08:06:41.326Z - ✅ Usuario tiene permiso: vendedores.view
-2026-01-28T08:06:41.327Z - Resultado: ✅ PERMITIDO
-2026-01-28T08:06:41.327Z ✅ Permiso concedido - continuando con la request
-2026-01-28T08:06:41.332Z 📊 Estadísticas batch cargadas para 12 vendedores
-2026-01-28T08:06:42.786Z 🔒 Vendedor adc22a61-048b-4343-abaf-56e30d137a1c bloqueado por admin (4)
-2026-01-28T08:06:46.781Z 🔓 Vendedor adc22a61-048b-4343-abaf-56e30d137a1c desbloqueado por admin
-2026-01-28T08:07:00.650Z 📨 [21] GET /api/vendedores/adc22a61-048b-4343-abaf-56e30d137a1c/estadisticas - User: 4 - 2026-01-28T08:07:00.649Z
-2026-01-28T08:07:00.822Z 📨 [22] GET /api/vendedores/adc22a61-048b-4343-abaf-56e30d137a1c/pedidos - User: 4 - 2026-01-28T08:07:00.821Z
-2026-01-28T08:07:00.890Z 📨 [23] GET /api/vendedores/adc22a61-048b-4343-abaf-56e30d137a1c/pedidos - User: 4 - 2026-01-28T08:07:00.889Z
-2026-01-28T08:07:00.983Z 📨 [24] GET /api/vendedores/adc22a61-048b-4343-abaf-56e30d137a1c/pedidos - User: 4 - 2026-01-28T08:07:00.982Z
-2026-01-28T08:07:01.047Z 📨 [25] GET /api/vendedores/adc22a61-048b-4343-abaf-56e30d137a1c/pedidos - User: 4 - 2026-01-28T08:07:01.047Z
-2026-01-28T08:07:26.695Z 🔒 Vendedor adc22a61-048b-4343-abaf-56e30d137a1c bloqueado por admin (4)
-2026-01-28T08:07:38.189Z 📨 [26] POST /api/action-history - User: anonymous - 2026-01-28T08:07:38.188Z
-2026-01-28T08:07:38.205Z ✅ Historial guardado: vendedor adc22a61-048b-4343-abaf-56e30d137a1c - UPDATE
-2026-01-28T08:07:38.276Z 📨 [27] PUT /api/vendedores/adc22a61-048b-4343-abaf-56e30d137a1c - User: 4 - 2026-01-28T08:07:38.276Z
-2026-01-28T08:07:38.280Z 🔐 requirePermission middleware
-2026-01-28T08:07:38.282Z - Ruta: PUT /api/vendedores/adc22a61-048b-4343-abaf-56e30d137a1c
-2026-01-28T08:07:38.282Z - Permiso requerido: vendedores.edit
-2026-01-28T08:07:38.282Z - Usuario: 4 (ADMIN)
-2026-01-28T08:07:38.282Z - Headers: { userId: '4', userRole: 'Administrador' }
-2026-01-28T08:07:38.283Z - Permisos a verificar (incluyendo aliases): [ 'vendedores.edit' ]
-2026-01-28T08:07:38.283Z - Verificando permiso en BD...
-2026-01-28T08:07:38.283Z 🔍 Verificando permiso 'vendedores.edit' para usuario ID: 4
-2026-01-28T08:07:38.283Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
-2026-01-28T08:07:38.283Z - ✅ Usuario tiene permiso: vendedores.edit
-2026-01-28T08:07:38.283Z - Resultado: ✅ PERMITIDO
-2026-01-28T08:07:38.283Z ✅ Permiso concedido - continuando con la request
-2026-01-28T08:07:38.300Z 📢 Emitiendo evento: pedidos del vendedor "ALFREDO BARROSs" cambiaron a "ALFREDO BARROS."
-2026-01-28T08:07:38.362Z 📨 [28] GET /api/vendedores/stats/batch - User: 4 - 2026-01-28T08:07:38.362Z
-2026-01-28T08:07:38.365Z 🔐 requirePermission middleware
-2026-01-28T08:07:38.365Z - Ruta: GET /api/vendedores/stats/batch
-2026-01-28T08:07:38.365Z - Permiso requerido: vendedores.view
-2026-01-28T08:07:38.365Z - Usuario: 4 (ADMIN)
-2026-01-28T08:07:38.369Z - Headers: { userId: '4', userRole: 'Administrador' }
-2026-01-28T08:07:38.369Z - Permisos a verificar (incluyendo aliases): [ 'vendedores.view' ]
-2026-01-28T08:07:38.369Z - Verificando permiso en BD...
-2026-01-28T08:07:38.369Z 🔍 Verificando permiso 'vendedores.view' para usuario ID: 4
-2026-01-28T08:07:38.369Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
-2026-01-28T08:07:38.369Z - ✅ Usuario tiene permiso: vendedores.view
-2026-01-28T08:07:38.369Z - Resultado: ✅ PERMITIDO
-2026-01-28T08:07:38.369Z ✅ Permiso concedido - continuando con la request
-2026-01-28T08:07:38.380Z 📨 [29] GET /api/pedidos - User: 4 - 2026-01-28T08:07:38.378Z
-2026-01-28T08:07:38.387Z 🔓 Vendedor adc22a61-048b-4343-abaf-56e30d137a1c desbloqueado por admin
-2026-01-28T08:07:38.387Z 📊 Estadísticas batch cargadas para 12 vendedores
-2026-01-28T08:07:38.407Z 📨 [30] GET /api/pedidos - User: 11 - 2026-01-28T08:07:38.407Z
-2026-01-28T08:07:38.441Z 🔗 Nueva conexión al pool establecida
-2026-01-28T08:07:38.559Z 📊 [2026-01-28T08:07:38.558Z] GET /api/pedidos (LEGACY) - Total: 748 pedidos
-2026-01-28T08:07:38.758Z 📊 [2026-01-28T08:07:38.758Z] GET /api/pedidos (LEGACY) - Total: 748 pedidos
-2026-01-28T08:07:39.054Z 📨 [31] GET /api/analysis/instructions - User: anonymous - 2026-01-28T08:07:39.052Z
-2026-01-28T08:07:39.131Z 📨 [32] GET /api/vendedores/stats/batch - User: 4 - 2026-01-28T08:07:39.130Z
-2026-01-28T08:07:39.131Z 🔐 requirePermission middleware
-2026-01-28T08:07:39.131Z - Ruta: GET /api/vendedores/stats/batch
-2026-01-28T08:07:39.131Z - Permiso requerido: vendedores.view
-2026-01-28T08:07:39.131Z - Usuario: 4 (ADMIN)
-2026-01-28T08:07:39.131Z - Headers: { userId: '4', userRole: 'Administrador' }
-2026-01-28T08:07:39.131Z - Permisos a verificar (incluyendo aliases): [ 'vendedores.view' ]
-2026-01-28T08:07:39.131Z - Verificando permiso en BD...
-2026-01-28T08:07:39.131Z 🔍 Verificando permiso 'vendedores.view' para usuario ID: 4
-2026-01-28T08:07:39.131Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
-2026-01-28T08:07:39.131Z - ✅ Usuario tiene permiso: vendedores.view
-2026-01-28T08:07:39.131Z - Resultado: ✅ PERMITIDO
-2026-01-28T08:07:39.131Z ✅ Permiso concedido - continuando con la request
-2026-01-28T08:07:39.136Z 📊 Estadísticas batch cargadas para 12 vendedores
-2026-01-28T08:07:48.447Z 📨 [33] GET /api/analysis/instructions - User: anonymous - 2026-01-28T08:07:48.446Z
-2026-01-28T08:07:49.408Z 📨 [34] GET /api/analytics/summary - User: 4 - 2026-01-28T08:07:49.407Z
-2026-01-28T08:07:49.410Z ⚠️ Pool de conexiones bajo presión
-2026-01-28T08:07:49.410Z - Total: 1/20 (5.0% uso)
-2026-01-28T08:07:49.411Z - Idle: 0 (0.0%)
-2026-01-28T08:07:49.413Z - Waiting: 5
-2026-01-28T08:07:49.478Z 🔗 Nueva conexión al pool establecida
-2026-01-28T08:07:49.479Z 🔗 Nueva conexión al pool establecida
-2026-01-28T08:07:49.481Z 🔗 Nueva conexión al pool establecida
-2026-01-28T08:07:49.484Z 🔗 Nueva conexión al pool establecida
-2026-01-28T08:07:49.486Z 🔗 Nueva conexión al pool establecida
+2026-01-28T16:00:32.930Z psql:/app/database/migrations/002-fix-clientes-structure.sql:172: NOTICE:  relation "idx_clientes_provincia" already exists, skipping
+2026-01-28T16:00:32.930Z CREATE INDEX
+2026-01-28T16:00:32.930Z psql:/app/database/migrations/002-fix-clientes-structure.sql:173: NOTICE:  relation "idx_clientes_fecha_baja" already exists, skipping
+2026-01-28T16:00:32.931Z CREATE INDEX
+2026-01-28T16:00:32.931Z COMMENT
+2026-01-28T16:00:32.932Z COMMENT
+2026-01-28T16:00:32.933Z COMMENT
+2026-01-28T16:00:32.934Z COMMENT
+2026-01-28T16:00:32.934Z COMMENT
+2026-01-28T16:00:32.935Z COMMENT
+2026-01-28T16:00:32.936Z COMMENT
+2026-01-28T16:00:32.937Z COMMENT
+2026-01-28T16:00:32.938Z COMMENT
+2026-01-28T16:00:32.939Z psql:/app/database/migrations/002-fix-clientes-structure.sql:199: NOTICE:  Permisos actualizados para pigmea_user
+2026-01-28T16:00:32.942Z DO
+2026-01-28T16:00:32.943Z ✅ Migración 'Fix Clientes Structure' aplicada.
+2026-01-28T16:00:32.943Z 🔄 Aplicando migración: Agregar Razón Social...
+2026-01-28T16:00:33.005Z psql:/app/database/migrations/003-add-razon-social.sql:21: NOTICE:  Columna razon_social ya existe
+2026-01-28T16:00:33.005Z psql:/app/database/migrations/003-add-razon-social.sql:24: NOTICE:  relation "idx_clientes_razon_social" already exists, skipping
+2026-01-28T16:00:33.005Z DO
+2026-01-28T16:00:33.006Z CREATE INDEX
+2026-01-28T16:00:33.007Z COMMENT
+2026-01-28T16:00:33.009Z psql:/app/database/migrations/003-add-razon-social.sql:36: NOTICE:  Permisos actualizados para pigmea_user
+2026-01-28T16:00:33.009Z DO
+2026-01-28T16:00:33.012Z ✅ Migración 'Agregar Razón Social' aplicada.
+2026-01-28T16:00:33.012Z 🔄 Aplicando migración: Agregar Nueva Fecha de Entrega...
+2026-01-28T16:00:33.052Z psql:/app/database/migrations/006-add-nueva-fecha-entrega.sql:6: NOTICE:  column "nueva_fecha_entrega" of relation "pedidos" already exists, skipping
+2026-01-28T16:00:33.052Z ALTER TABLE
+2026-01-28T16:00:33.054Z CREATE INDEX
+2026-01-28T16:00:33.054Z psql:/app/database/migrations/006-add-nueva-fecha-entrega.sql:9: NOTICE:  relation "idx_pedidos_nueva_fecha_entrega" already exists, skipping
+2026-01-28T16:00:33.054Z COMMENT
+2026-01-28T16:00:33.058Z ✅ Migración 'Agregar Nueva Fecha de Entrega' aplicada.
+2026-01-28T16:00:33.060Z 🔄 Aplicando migración: Agregar Número de Compra...
+2026-01-28T16:00:33.090Z BEGIN
+2026-01-28T16:00:33.098Z DO
+2026-01-28T16:00:33.106Z DO
+2026-01-28T16:00:33.106Z psql:/app/database/migrations/007-add-numero-compra.sql:55: NOTICE:  Columna numero_compra agregada exitosamente a la tabla pedidos
+2026-01-28T16:00:33.115Z DO
+2026-01-28T16:00:33.115Z psql:/app/database/migrations/007-add-numero-compra.sql:73: NOTICE:  Índice idx_pedidos_numero_compra creado exitosamente
+2026-01-28T16:00:33.117Z psql:/app/database/migrations/007-add-numero-compra.sql:98: NOTICE:  extension "pg_trgm" already exists, skipping
+2026-01-28T16:00:33.121Z DO
+2026-01-28T16:00:33.121Z psql:/app/database/migrations/007-add-numero-compra.sql:98: NOTICE:  Índice de búsqueda de texto idx_pedidos_numero_compra_text creado exitosamente
+2026-01-28T16:00:33.129Z DO
+2026-01-28T16:00:33.129Z psql:/app/database/migrations/007-add-numero-compra.sql:129: NOTICE:  ✅ Migración completada exitosamente:
+2026-01-28T16:00:33.129Z psql:/app/database/migrations/007-add-numero-compra.sql:129: NOTICE:     - Campo numero_compra agregado
+2026-01-28T16:00:33.129Z psql:/app/database/migrations/007-add-numero-compra.sql:129: NOTICE:     - Índice para búsquedas creado
+2026-01-28T16:00:33.129Z psql:/app/database/migrations/007-add-numero-compra.sql:129: NOTICE:     - Listo para implementación en backend y frontend
+2026-01-28T16:00:33.130Z COMMIT
+2026-01-28T16:00:33.132Z ✅ Migración 'Agregar Número de Compra' aplicada.
+2026-01-28T16:00:33.132Z 🔄 Aplicando migración: Convertir Números de Compra a Array...
+2026-01-28T16:00:33.164Z BEGIN
+2026-01-28T16:00:33.165Z CREATE TABLE AS
+2026-01-28T16:00:33.165Z psql:/app/database/migrations/008-convert-numero-compra-to-array.sql:19: NOTICE:  relation "pedidos_backup_numeros_compra" already exists, skipping
+2026-01-28T16:00:33.167Z ALTER TABLE
+2026-01-28T16:00:33.167Z psql:/app/database/migrations/008-convert-numero-compra-to-array.sql:26: NOTICE:  column "numeros_compra" of relation "pedidos" already exists, skipping
+2026-01-28T16:00:33.171Z UPDATE 0
+2026-01-28T16:00:33.238Z UPDATE 751
+2026-01-28T16:00:33.239Z DROP INDEX
+2026-01-28T16:00:33.240Z DROP INDEX
+2026-01-28T16:00:33.241Z ALTER TABLE
+2026-01-28T16:00:33.241Z CREATE INDEX
+2026-01-28T16:00:33.241Z psql:/app/database/migrations/008-convert-numero-compra-to-array.sql:57: NOTICE:  relation "idx_pedidos_numeros_compra_gin" already exists, skipping
+2026-01-28T16:00:33.242Z COMMENT
+2026-01-28T16:00:33.243Z CREATE FUNCTION
+2026-01-28T16:00:33.244Z DO
+2026-01-28T16:00:33.245Z DO
+2026-01-28T16:00:33.245Z GRANT
+2026-01-28T16:00:33.261Z psql:/app/database/migrations/008-convert-numero-compra-to-array.sql:159: NOTICE:  ✅ Migración 008 completada exitosamente
+2026-01-28T16:00:33.261Z psql:/app/database/migrations/008-convert-numero-compra-to-array.sql:159: NOTICE:     - Columna numeros_compra: CREADA
+2026-01-28T16:00:33.261Z psql:/app/database/migrations/008-convert-numero-compra-to-array.sql:159: NOTICE:     - Columna numero_compra: ELIMINADA
+2026-01-28T16:00:33.261Z psql:/app/database/migrations/008-convert-numero-compra-to-array.sql:159: NOTICE:     - Índices creados: 1
+2026-01-28T16:00:33.262Z DO
+2026-01-28T16:00:33.264Z COMMIT
+2026-01-28T16:00:33.266Z ✅ Migración 'Convertir Números de Compra a Array' aplicada.
+2026-01-28T16:00:33.266Z 🔄 Aplicando migración: Agregar Información de Cliché...
+2026-01-28T16:00:33.296Z psql:/app/database/migrations/009-add-cliche-info.sql:8: NOTICE:  column "cliche_info_adicional" of relation "pedidos" already exists, skipping
+2026-01-28T16:00:33.297Z ALTER TABLE
+2026-01-28T16:00:33.298Z COMMENT
+2026-01-28T16:00:33.314Z psql:/app/database/migrations/009-add-cliche-info.sql:26: NOTICE:  Columna cliche_info_adicional añadida exitosamente a la tabla pedidos
+2026-01-28T16:00:33.314Z DO
+2026-01-28T16:00:33.317Z ✅ Migración 'Agregar Información de Cliché' aplicada.
+2026-01-28T16:00:33.318Z 🔄 Aplicando migración: Auto-actualizar Estado de Cliente...
+2026-01-28T16:00:33.373Z CREATE FUNCTION
+2026-01-28T16:00:33.375Z COMMENT
+2026-01-28T16:00:33.376Z CREATE FUNCTION
+2026-01-28T16:00:33.377Z COMMENT
+2026-01-28T16:00:33.379Z CREATE FUNCTION
+2026-01-28T16:00:33.380Z COMMENT
+2026-01-28T16:00:33.382Z DROP TRIGGER
+2026-01-28T16:00:33.383Z CREATE TRIGGER
+2026-01-28T16:00:33.384Z COMMENT
+2026-01-28T16:00:33.387Z psql:/app/database/migrations/010-auto-update-cliente-estado.sql:172: ERROR:  column p.fecha_creacion does not exist
+2026-01-28T16:00:33.387Z LINE 16:     MAX(p.fecha_creacion) as ultimo_pedido_fecha
+2026-01-28T16:00:33.387Z ^
+2026-01-28T16:00:33.389Z ❌ LAS MIGRACIONES DE LA BASE DE DATOS FALLARON. EL SERVIDOR NO SE INICIARÁ.

@@ -166,7 +166,7 @@ SELECT
     COUNT(CASE WHEN p.etapa_actual = 'COMPLETADO' THEN 1 END) as pedidos_completados,
     COUNT(CASE WHEN p.etapa_actual = 'ARCHIVADO' THEN 1 END) as pedidos_archivados,
     COUNT(p.id) as total_pedidos,
-    MAX(p.fecha_creacion) as ultimo_pedido_fecha
+    MAX(p.fecha_pedido) as ultimo_pedido_fecha
 FROM clientes c
 LEFT JOIN pedidos p ON c.id = p.cliente_id
 GROUP BY c.id, c.nombre, c.estado;
