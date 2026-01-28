@@ -134,6 +134,18 @@ export const usePedidosManager = (
         if (subscribeToPedidoUpdated) {
             const unsubscribeUpdated = subscribeToPedidoUpdated((updatedPedido: Pedido) => {
                 console.log('🔄 Sincronizando pedido actualizado:', updatedPedido.numeroPedidoCliente);
+                
+                // Verificar si cambió de etapa o sub-etapa (para debug de ordenamiento)
+                const currentPedido = pedidos.find(p => p.id === updatedPedido.id);
+                if (currentPedido) {
+                    if (currentPedido.etapaActual !== updatedPedido.etapaActual) {
+                        console.log(`📍 Etapa cambiada: ${currentPedido.etapaActual} → ${updatedPedido.etapaActual}`);
+                    }
+                    if (currentPedido.subEtapaActual !== updatedPedido.subEtapaActual) {
+                        console.log(`📍 Sub-etapa cambiada: ${currentPedido.subEtapaActual} → ${updatedPedido.subEtapaActual}`);
+                    }
+                }
+                
                 setPedidos(current =>
                     current.map(p => p.id === updatedPedido.id ? updatedPedido : p)
                 );
@@ -422,13 +434,18 @@ export const usePedidosManager = (
             if (originalPedidoCopy.etapaActual !== modifiedPedido.etapaActual) {
                 newHistoryEntries.push(generarEntradaHistorial(currentUserRole, 'Cambio de Etapa', `Movido de '${ETAPAS[originalPedidoCopy.etapaActual].title}' a '${ETAPAS[modifiedPedido.etapaActual].title}'.`));
 
-                // ✅ SIEMPRE actualizar/crear entrada en etapasSecuencia con timestamp actual
-                // Esto asegura que los pedidos que llegan a una etapa se coloquen al final (FIFO)
+                // ✅ SIEMPRE actualizar/crear entrada en etapasSecuencia con timestamp GARANTIZADO como el más reciente
+                // Agregamos milisegundos para asegurar que sea ÚNICO y el pedido se coloque AL FINAL (FIFO)
                 const existingEtapaIndex = modifiedPedido.etapasSecuencia.findIndex(
                     e => e.etapa === modifiedPedido.etapaActual
                 );
 
-                const now = new Date().toISOString();
+                // Obtener el timestamp más reciente de TODAS las etapas y agregar 1ms para garantizar que sea el más nuevo
+                const latestTimestamp = Math.max(
+                    ...modifiedPedido.etapasSecuencia.map(e => new Date(e.fecha).getTime()),
+                    Date.now()
+                );
+                const now = new Date(latestTimestamp + 1).toISOString();
 
                 if (existingEtapaIndex === -1) {
                     // Si la etapa no existe en la secuencia, agregarla al final
@@ -457,8 +474,17 @@ export const usePedidosManager = (
                 originalPedidoCopy.subEtapaActual !== modifiedPedido.subEtapaActual && 
                 modifiedPedido.subEtapaActual) {
                 
-                const now = new Date().toISOString();
                 const subEtapasSecuencia = modifiedPedido.subEtapasSecuencia || [];
+                
+                // Obtener el timestamp más reciente de TODAS las sub-etapas y agregar 1ms para garantizar que sea el más nuevo
+                const latestTimestamp = subEtapasSecuencia.length > 0
+                    ? Math.max(
+                        ...subEtapasSecuencia.map(e => new Date(e.fecha).getTime()),
+                        Date.now()
+                    )
+                    : Date.now();
+                const now = new Date(latestTimestamp + 1).toISOString();
+                
                 const existingSubEtapaIndex = subEtapasSecuencia.findIndex(
                     e => e.subEtapa === modifiedPedido.subEtapaActual
                 );
