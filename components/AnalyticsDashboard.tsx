@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Etapa, Prioridad } from '../types';
 import { DateFilterOption, getDateRange } from '../utils/date';
 import DateFilterCombined from './DateFilterCombined';
@@ -17,6 +17,7 @@ import {
     exportTimeSeriesCSV
 } from '../utils/exportAnalytics';
 import { MAQUINAS_IMPRESION } from '../constants';
+import webSocketService from '../services/websocket';
 
 // LocalStorage Keys (separate from planning filters)
 const STORAGE_KEY_ANALYTICS_DATE_FILTER = 'analytics_date_filter';
@@ -122,6 +123,44 @@ export const AnalyticsDashboard: React.FC = () => {
 
     // --- Fetch Data ---
     const { data, loading, error, refetch } = useAnalyticsData(filters);
+
+    // ---- Real-time refresh (WebSocket) ----
+    // Re-fetch analytics when pedidos or vendedores cambian en otros usuarios
+    const refreshTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const scheduleRefresh = useCallback(() => {
+        if (refreshTimeout.current) {
+            clearTimeout(refreshTimeout.current);
+        }
+        refreshTimeout.current = setTimeout(() => {
+            refetch();
+        }, 800); // leve debounce para agrupar múltiples eventos
+    }, [refetch]);
+
+    useEffect(() => {
+        const unsubscribers: Array<() => void> = [
+            webSocketService.subscribeToPedidoCreated(scheduleRefresh),
+            webSocketService.subscribeToPedidoUpdated(scheduleRefresh),
+            webSocketService.subscribeToPedidoDeleted(scheduleRefresh),
+            webSocketService.subscribeToPedidosByVendedorUpdated(scheduleRefresh),
+        ];
+
+        // Algunos despliegues todavía emiten eventos directos de vendedor
+        if (typeof webSocketService.subscribeToVendedorUpdated === 'function') {
+            unsubscribers.push(webSocketService.subscribeToVendedorUpdated(scheduleRefresh));
+        }
+        if (typeof webSocketService.subscribeToVendedorDeleted === 'function') {
+            unsubscribers.push(webSocketService.subscribeToVendedorDeleted(scheduleRefresh));
+        }
+
+        return () => {
+            unsubscribers.forEach(unsub => unsub && unsub());
+            if (refreshTimeout.current) {
+                clearTimeout(refreshTimeout.current);
+                refreshTimeout.current = null;
+            }
+        };
+    }, [scheduleRefresh]);
 
     // --- Filter Handlers ---
     const toggleStage = (stage: string) => {
