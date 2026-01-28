@@ -1738,6 +1738,13 @@ class PostgreSQLClient {
             // Comenzar transacción
             await client.query('BEGIN');
 
+            // Guardar nombre anterior (para sincronizar pedidos legacy sin vendedorId)
+            let previousName = null;
+            if (vendedorData.nombre !== undefined) {
+                const prevRes = await client.query('SELECT nombre FROM vendedores WHERE id = $1', [id]);
+                previousName = prevRes.rowCount > 0 ? prevRes.rows[0].nombre : null;
+            }
+
             const setParts = [];
             const values = [];
             let valueIndex = 1;
@@ -1805,6 +1812,44 @@ class PostgreSQLClient {
                     `;
                     const debugResult = await client.query(debugQuery);
                     console.log(`   Total de pedidos con vendedorId: ${debugResult.rows[0].total}`);
+                }
+
+                // 🔥 Caso legacy: pedidos sin vendedorId pero con vendedorNombre igual al anterior
+                if (previousName) {
+                    const updateByNameQuery = `
+                        UPDATE pedidos
+                        SET data = jsonb_set(
+                            data,
+                            '{vendedorNombre}',
+                            to_jsonb($1::text)
+                        )
+                        WHERE (data->>'vendedorId' IS NULL OR data->>'vendedorId' = '')
+                          AND upper(trim(data->>'vendedorNombre')) = upper(trim($2::text))
+                    `;
+                    const legacyResult = await client.query(updateByNameQuery, [vendedorData.nombre, previousName]);
+                    if (legacyResult.rowCount > 0) {
+                        console.log(`✅ Actualizados ${legacyResult.rowCount} pedidos legacy (sin vendedorId) de "${previousName}" a "${vendedorData.nombre}"`);
+                    }
+
+                    // 🔥 Si existe columna legacy 'vendedor', sincronizarla también
+                    const updateLegacyColumnQuery = `
+                        UPDATE pedidos
+                        SET vendedor = $1
+                        WHERE (vendedor_id IS NULL OR vendedor_id = '')
+                          AND vendedor IS NOT NULL
+                          AND upper(trim(vendedor)) = upper(trim($2::text))
+                    `;
+                    try {
+                        const legacyColResult = await client.query(updateLegacyColumnQuery, [vendedorData.nombre, previousName]);
+                        if (legacyColResult.rowCount > 0) {
+                            console.log(`✅ Columna legacy 'vendedor' actualizada en ${legacyColResult.rowCount} pedidos`);
+                        }
+                    } catch (err) {
+                        // Ignorar si la columna no existe
+                        if (err.code !== '42703') {
+                            console.warn('⚠️ Error actualizando columna legacy vendedor:', err.message);
+                        }
+                    }
                 }
             }
 
