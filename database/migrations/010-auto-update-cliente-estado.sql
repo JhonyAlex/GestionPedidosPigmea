@@ -242,4 +242,7 @@ WHERE trigger_name = 'trigger_pedido_actualiza_cliente';
 -- FIN DE LA MIGRACIÓN
 -- =================================================================
 
-RAISE NOTICE '✅ Migración completada: Sistema de actualización automática de estado de clientes instalado correctamente.';
+DO $$
+BEGIN
+    RAISE NOTICE '✅ Migración completada: Sistema de actualización automática de estado de clientes instalado correctamente.';
+END $$;
