@@ -254,6 +254,60 @@ class MigrationManager {
                 END $$;
             `
         });
+
+        // Migración 009: Tablas faltantes (Clientes y Notificaciones)
+        this.migrations.push({
+            id: '009-tablas-faltantes-v2',
+            name: 'Crear tablas clientes, notificaciones y corregir pedidos',
+            sql: `
+                -- 1. Crear tabla Clientes si no existe
+                CREATE TABLE IF NOT EXISTS limpio.clientes (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    nombre VARCHAR(255) NOT NULL,
+                    razon_social VARCHAR(255),
+                    cif VARCHAR(50),
+                    direccion_fiscal TEXT,
+                    persona_contacto VARCHAR(255),
+                    telefono VARCHAR(50),
+                    email VARCHAR(255),
+                    estado VARCHAR(50) DEFAULT 'activo',
+                    notas TEXT, 
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+
+                -- 2. Corregir tabla Pedidos (agregar cliente_id si no existe)
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_schema = 'limpio'
+                        AND table_name = 'pedidos' 
+                        AND column_name = 'cliente_id'
+                    ) THEN
+                        ALTER TABLE limpio.pedidos ADD COLUMN cliente_id UUID;
+                        CREATE INDEX IF NOT EXISTS idx_pedidos_cliente_id ON limpio.pedidos(cliente_id);
+                        RAISE NOTICE 'Columna cliente_id agregada a pedidos';
+                    END IF;
+                END $$;
+
+                -- 3. Crear tabla Notificaciones (public)
+                CREATE TABLE IF NOT EXISTS notifications (
+                    id VARCHAR(255) PRIMARY KEY,
+                    type VARCHAR(50) NOT NULL,
+                    title VARCHAR(255) NOT NULL,
+                    message TEXT,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    read BOOLEAN DEFAULT false,
+                    pedido_id VARCHAR(255),
+                    user_id UUID,
+                    metadata JSONB,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                
+                CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+            `
+        });
     }
 
     /**

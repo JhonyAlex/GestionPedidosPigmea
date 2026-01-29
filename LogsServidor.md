@@ -1,47 +1,99 @@
-2026-01-29T22:32:11.039Z [dotenv@17.2.2] injecting env (0) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
-2026-01-29T22:32:11.539Z 🔄 Intentando conectar a PostgreSQL...
-2026-01-29T22:32:11.539Z 🔄 Intentando conectar a PostgreSQL...
-2026-01-29T22:32:11.539Z 🔌 Iniciando conexión a DB (Intento 2)...
-2026-01-29T22:32:11.540Z 👂 Event listeners del pool configurados
-2026-01-29T22:32:11.617Z 🔗 Nueva conexión al pool establecida
-2026-01-29T22:32:11.619Z ✅ PostgreSQL conectado correctamente
-2026-01-29T22:32:11.619Z - Host: control-produccin-pigmea-gestionpedidosdb-vcfcjc:5432
-2026-01-29T22:32:11.620Z 🔄 Health checks periódicos iniciados (cada 10s)
-2026-01-29T22:32:11.620Z 🐘 PostgreSQL conectado exitosamente
-2026-01-29T22:32:11.620Z ✅ dbClient compartido con middlewares
-2026-01-29T22:32:11.621Z 🚀 Iniciando sistema de migraciones...
-2026-01-29T22:32:11.622Z 🔄 Verificando migraciones pendientes...
-2026-01-29T22:32:11.627Z ✅ Tabla de migraciones verificada
-2026-01-29T22:32:11.633Z ⏭️  Migración 000-initial-schema ya aplicada
-2026-01-29T22:32:11.634Z ⏭️  Migración 001-nueva-fecha-entrega ya aplicada
-2026-01-29T22:32:11.635Z ⏭️  Migración 002-numeros-compra ya aplicada
-2026-01-29T22:32:11.637Z ⏭️  Migración 003-vendedor ya aplicada
-2026-01-29T22:32:11.639Z ⏭️  Migración 004-anonimo ya aplicada
-2026-01-29T22:32:11.641Z ⏭️  Migración 005-fechas-cliche ya aplicada
-2026-01-29T22:32:11.643Z ⏭️  Migración 006-horas-confirmadas ya aplicada
-2026-01-29T22:32:11.645Z ⏭️  Migración 007-antivaho-realizado ya aplicada
-2026-01-29T22:32:11.647Z ⏭️  Migración 008-menciones-comentarios ya aplicada
-2026-01-29T22:32:11.647Z ✅ Base de datos actualizada. No hay migraciones pendientes.
-2026-01-29T22:32:11.647Z ✅ Migraciones completadas exitosamente
-2026-01-29T22:32:11.647Z 🏗️ Verificando estructura de tablas complementarias...
-2026-01-29T22:32:11.648Z 🔧 Iniciando creación/verificación de tablas...
-2026-01-29T22:32:11.650Z ✅ Extensión uuid-ossp verificada
-2026-01-29T22:32:11.654Z ✅ Tabla admin_users verificada
-2026-01-29T22:32:11.675Z 📋 Columnas existentes en admin_users: id, username, email, first_name, last_name, password_hash, role, permissions, is_active, last_login, last_activity, ip_address, user_agent, created_at, updated_at
-2026-01-29T22:32:11.679Z ✅ Constraint de rol actualizado
-2026-01-29T22:32:11.679Z 🔄 Verificando usuarios existentes...
-2026-01-29T22:32:11.682Z ✅ Todos los usuarios ya están actualizados
-2026-01-29T22:32:11.682Z ✅ Columnas de admin_users verificadas
-2026-01-29T22:32:11.690Z ✅ Tabla user_permissions verificada
-2026-01-29T22:32:11.690Z ✅ Tabla pedidos verificada (creada por migración)
-2026-01-29T22:32:11.691Z ✅ Tabla users verificada
-2026-01-29T22:32:11.693Z ✅ Tabla audit_log verificada
-2026-01-29T22:32:11.698Z ⚠️ Tabla audit_logs y clave foránea procesadas (puede haber avisos)
-2026-01-29T22:32:11.699Z ✅ Tabla pedido_comments creada
-2026-01-29T22:32:11.701Z ✅ Tabla vendedores creada
-2026-01-29T22:32:11.704Z ✅ Índices verificados
-2026-01-29T22:32:11.710Z ✅ Triggers configurados
-2026-01-29T22:32:11.715Z ✅ Columna vendedor_id verificada/creada
-2026-01-29T22:32:11.715Z 🎉 Todas las tablas han sido verificadas/creadas exitosamente
-2026-01-29T22:32:11.721Z 🚀 Servidor iniciado en puerto 3001
-2026-01-29T22:32:11.721Z ✅ PostgreSQL conectado - Sistema operativo
+2026-01-29T22:40:39.104Z at /app/backend/node_modules/pg/lib/client.js:545:17
+2026-01-29T22:40:39.104Z at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-01-29T22:40:39.104Z at async PostgreSQLClient.getNotifications (/app/backend/postgres-client.js:3526:28)
+2026-01-29T22:40:39.104Z at async /app/backend/index.js:3345:31 {
+2026-01-29T22:40:39.104Z length: 112,
+2026-01-29T22:40:39.104Z severity: 'ERROR',
+2026-01-29T22:40:39.104Z code: '42P01',
+2026-01-29T22:40:39.104Z detail: undefined,
+2026-01-29T22:40:39.104Z hint: undefined,
+2026-01-29T22:40:39.104Z position: '36',
+2026-01-29T22:40:39.104Z internalPosition: undefined,
+2026-01-29T22:40:39.104Z internalQuery: undefined,
+2026-01-29T22:40:39.104Z where: undefined,
+2026-01-29T22:40:39.104Z schema: undefined,
+2026-01-29T22:40:39.104Z table: undefined,
+2026-01-29T22:40:39.104Z column: undefined,
+2026-01-29T22:40:39.104Z dataType: undefined,
+2026-01-29T22:40:39.104Z constraint: undefined,
+2026-01-29T22:40:39.104Z file: 'parse_relation.c',
+2026-01-29T22:40:39.104Z line: '1392',
+2026-01-29T22:40:39.104Z routine: 'parserOpenTable'
+2026-01-29T22:40:39.104Z }
+2026-01-29T22:40:39.105Z 🔗 Nueva conexión al pool establecida
+2026-01-29T22:40:39.123Z 📨 [11] GET /api/vendedores - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-29T22:40:39.123Z
+2026-01-29T22:40:39.126Z 🔍 Verificando permiso 'vendedores.view' para usuario ID: b24fa21c-f2b2-4034-b10c-c0e65c09019e
+2026-01-29T22:40:39.127Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
+2026-01-29T22:40:39.127Z 📨 [12] GET /api/clientes/simple - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-29T22:40:39.125Z
+2026-01-29T22:40:39.127Z 🔍 Verificando permiso 'clientes.view' para usuario ID: b24fa21c-f2b2-4034-b10c-c0e65c09019e
+2026-01-29T22:40:39.127Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
+2026-01-29T22:40:39.127Z Error in GET /api/clientes/simple: error: relation "limpio.clientes" does not exist
+2026-01-29T22:40:39.128Z at /app/backend/node_modules/pg/lib/client.js:545:17
+2026-01-29T22:40:39.128Z at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-01-29T22:40:39.128Z at async PostgreSQLClient.getAllClientesSimple (/app/backend/postgres-client.js:2309:28)
+2026-01-29T22:40:39.128Z at async /app/backend/index.js:3982:26 {
+2026-01-29T22:40:39.128Z length: 115,
+2026-01-29T22:40:39.128Z severity: 'ERROR',
+2026-01-29T22:40:39.128Z code: '42P01',
+2026-01-29T22:40:39.128Z detail: undefined,
+2026-01-29T22:40:39.128Z hint: undefined,
+2026-01-29T22:40:39.128Z position: '611',
+2026-01-29T22:40:39.128Z internalPosition: undefined,
+2026-01-29T22:40:39.128Z internalQuery: undefined,
+2026-01-29T22:40:39.128Z where: undefined,
+2026-01-29T22:40:39.128Z schema: undefined,
+2026-01-29T22:40:39.128Z table: undefined,
+2026-01-29T22:40:39.128Z column: undefined,
+2026-01-29T22:40:39.128Z dataType: undefined,
+2026-01-29T22:40:39.128Z constraint: undefined,
+2026-01-29T22:40:39.128Z file: 'parse_relation.c',
+2026-01-29T22:40:39.128Z line: '1371',
+2026-01-29T22:40:39.128Z routine: 'parserOpenTable'
+2026-01-29T22:40:39.128Z }
+2026-01-29T22:40:39.183Z 📨 [13] GET /api/notifications - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-29T22:40:39.182Z
+2026-01-29T22:40:39.186Z ❌ Error al obtener notificaciones: error: relation "notifications" does not exist
+2026-01-29T22:40:39.186Z at /app/backend/node_modules/pg/lib/client.js:545:17
+2026-01-29T22:40:39.186Z at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-01-29T22:40:39.186Z at async PostgreSQLClient.getNotifications (/app/backend/postgres-client.js:3526:28)
+2026-01-29T22:40:39.186Z at async /app/backend/index.js:3345:31 {
+2026-01-29T22:40:39.186Z length: 112,
+2026-01-29T22:40:39.186Z severity: 'ERROR',
+2026-01-29T22:40:39.186Z code: '42P01',
+2026-01-29T22:40:39.186Z detail: undefined,
+2026-01-29T22:40:39.186Z hint: undefined,
+2026-01-29T22:40:39.186Z position: '36',
+2026-01-29T22:40:39.186Z internalPosition: undefined,
+2026-01-29T22:40:39.186Z internalQuery: undefined,
+2026-01-29T22:40:39.186Z where: undefined,
+2026-01-29T22:40:39.186Z schema: undefined,
+2026-01-29T22:40:39.186Z table: undefined,
+2026-01-29T22:40:39.186Z column: undefined,
+2026-01-29T22:40:39.186Z dataType: undefined,
+2026-01-29T22:40:39.186Z constraint: undefined,
+2026-01-29T22:40:39.186Z file: 'parse_relation.c',
+2026-01-29T22:40:39.186Z line: '1392',
+2026-01-29T22:40:39.186Z routine: 'parserOpenTable'
+2026-01-29T22:40:39.187Z }
+2026-01-29T22:40:39.187Z Error obteniendo notificaciones: error: relation "notifications" does not exist
+2026-01-29T22:40:39.187Z at /app/backend/node_modules/pg/lib/client.js:545:17
+2026-01-29T22:40:39.187Z at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-01-29T22:40:39.187Z at async PostgreSQLClient.getNotifications (/app/backend/postgres-client.js:3526:28)
+2026-01-29T22:40:39.187Z at async /app/backend/index.js:3345:31 {
+2026-01-29T22:40:39.187Z length: 112,
+2026-01-29T22:40:39.187Z severity: 'ERROR',
+2026-01-29T22:40:39.187Z code: '42P01',
+2026-01-29T22:40:39.187Z detail: undefined,
+2026-01-29T22:40:39.187Z hint: undefined,
+2026-01-29T22:40:39.187Z position: '36',
+2026-01-29T22:40:39.187Z internalPosition: undefined,
+2026-01-29T22:40:39.187Z internalQuery: undefined,
+2026-01-29T22:40:39.187Z where: undefined,
+2026-01-29T22:40:39.187Z schema: undefined,
+2026-01-29T22:40:39.187Z table: undefined,
+2026-01-29T22:40:39.187Z column: undefined,
+2026-01-29T22:40:39.187Z dataType: undefined,
+2026-01-29T22:40:39.187Z constraint: undefined,
+2026-01-29T22:40:39.187Z file: 'parse_relation.c',
+2026-01-29T22:40:39.187Z line: '1392',
+2026-01-29T22:40:39.187Z routine: 'parserOpenTable'
+2026-01-29T22:40:39.187Z }
