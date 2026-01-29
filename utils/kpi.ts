@@ -279,15 +279,25 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
         const obsNormal = p.observaciones || '';
         const observacionesCombinadas = [obsRapidas, obsNormal].filter(Boolean).join('\n') || '-';
         
-        // Formatear metros con separador de miles
-        const formattedMetros = p.metros ? p.metros.toLocaleString('es-ES') : '0';
+        // Formatear metros con separador de miles - Ensure number type for correct formatting
+        const metrosValue = typeof p.metros === 'string' ? parseFloat(p.metros) : p.metros;
+        const formattedMetros = metrosValue ? metrosValue.toLocaleString('es-ES', { maximumFractionDigits: 0 }) : '0';
         
+        // Abreviar Tipo de Impresión
+        let tipoAbreviado = p.tipoImpresion.replace(' (SUP)', '').replace(' (TTE)', '');
+        tipoAbreviado = tipoAbreviado
+            .replace(/Transparencia/i, 'Transp.')
+            .replace(/Superficie/i, 'Superf.')
+            .replace(/Reverso/i, 'Rev.')
+            .replace(/Laminación/i, 'Lam.')
+            .replace(/Impresión/i, 'Imp.');
+
         return [
             p.desarrollo || '-',
             // We pass the raw data; rendering is handled in didDrawCell to allow mixed styles (bold/normal)
             { cliente: p.cliente, pedido: p.numeroPedidoCliente },
             formattedMetros,
-            p.tipoImpresion.replace(' (SUP)', '').replace(' (TTE)', ''),
+            tipoAbreviado,
             p.capa,
             p.camisa || '-',
             p.antivaho ? 'Sí' : 'No',
@@ -324,7 +334,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             0: { cellWidth: 35 }, // Des.
             1: { cellWidth: 100, halign: 'left' }, // Cliente y # Pedido (Increased from 80)
             2: { cellWidth: 40 }, // Metros (Increased from 35)
-            3: { cellWidth: 40, fontSize: 5.5 }, // Tipo (Reduced by 30%: 8 * 0.7 = 5.6 approx)
+            3: { cellWidth: 40 }, // Tipo (Font size restored to standard 8pt)
             4: { cellWidth: 25 }, // Capa (Increased from 24)
             5: { cellWidth: 35 }, // Camisa (Increased from 32)
             6: { cellWidth: 25 }, // Antiv. (Increased from 24)
