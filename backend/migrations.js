@@ -343,6 +343,19 @@ class MigrationManager {
                 CREATE INDEX IF NOT EXISTS idx_observaciones_templates_usage ON observaciones_templates(usage_count DESC);
             `
         });
+
+        // Migración 012: Agregar columnas de dirección a clientes
+        this.migrations.push({
+            id: '012-columnas-direccion-clientes',
+            name: 'Agregar columnas de dirección faltantes a clientes',
+            sql: `
+                ALTER TABLE limpio.clientes 
+                ADD COLUMN IF NOT EXISTS codigo_postal VARCHAR(20),
+                ADD COLUMN IF NOT EXISTS poblacion VARCHAR(100),
+                ADD COLUMN IF NOT EXISTS provincia VARCHAR(100),
+                ADD COLUMN IF NOT EXISTS pais VARCHAR(100) DEFAULT 'España';
+            `
+        });
     }
 
     /**
