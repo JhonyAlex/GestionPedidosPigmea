@@ -590,18 +590,22 @@ class PostgreSQLClient {
             console.log('✅ Extensión uuid-ossp verificada');
 
             // LIMPIEZA: Verificar si existe el tipo 'admin_users' pero no la tabla (estado zombie)
+            // Intentar forzar la eliminación del tipo corrupto
             try {
                 await client.query(`
                     DO $$
                     BEGIN
-                        IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'admin_users') THEN
-                            -- Si la tabla no existe, eliminar el tipo si existe para permitir la creación
-                            DROP TYPE IF EXISTS admin_users;
-                        END IF;
+                        -- Si existe el tipo pero lanza error al consultarlo, intentar borrarlo directamente
+                        BEGIN
+                            DROP TYPE IF EXISTS admin_users CASCADE;
+                        EXCEPTION
+                            WHEN OTHERS THEN
+                                RAISE NOTICE 'Error borrando tipo: %', SQLERRM;
+                        END;
                     END $$;
                 `);
             } catch (e) {
-                console.warn('⚠️ Advertencia intentando limpiar tipo admin_users:', e.message);
+                console.warn('⚠️ Falló limpieza de tipo (no crítico):', e.message);
             }
 
             // PRIMERO: Tabla de usuarios administrativos (debe crearse ANTES que user_permissions)
