@@ -1,6 +1,7 @@
 import React from 'react';
 import { WeeklyData } from './PlanningTable';
 import InfoTooltip from './InfoTooltip';
+import { formatMinutesToHHMM } from '../utils/kpi';
 
 interface PlanningChartProps {
     data: WeeklyData[];
@@ -82,7 +83,7 @@ export const PlanningChart: React.FC<PlanningChartProps> = ({ data, machineKeys,
                 >
                     {/* Y-Axis Grid Lines */}
                     {[0, 0.2, 0.4, 0.6, 0.8, 1].map(ratio => {
-                        const value = (maxValue * (1 - ratio)).toFixed(1);
+                        const value = (maxValue * (1 - ratio));
                         const yPosition = topPadding + (ratio * chartHeight);
                         return (
                             <div 
@@ -91,7 +92,7 @@ export const PlanningChart: React.FC<PlanningChartProps> = ({ data, machineKeys,
                                 style={{ top: `${yPosition}px` }}
                             >
                                 <span className="text-sm font-mono font-semibold text-gray-600 bg-white px-2 py-1 rounded shadow-sm w-16 text-right mr-3 -mt-2">
-                                    {value}h
+                                    {formatMinutesToHHMM(value * 60)}
                                 </span>
                                 <div className="flex-1 h-px bg-gray-300" style={{ borderTop: ratio === 1 ? '2px solid #9ca3af' : '1px dashed #d1d5db' }}></div>
                             </div>
@@ -130,7 +131,7 @@ export const PlanningChart: React.FC<PlanningChartProps> = ({ data, machineKeys,
                                                     >
                                                         <div className="relative">
                                                             <span className="text-[10px] font-bold text-gray-700 bg-white px-1.5 py-0.5 rounded shadow-md inline-block border border-gray-200 group-hover:bg-blue-50 group-hover:scale-110 transition-all">
-                                                                {value.toFixed(2)}
+                                                                {formatMinutesToHHMM(value * 60)}
                                                             </span>
                                                             {/* Small arrow pointing down */}
                                                             <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[3px] border-t-white"></div>
@@ -148,7 +149,7 @@ export const PlanningChart: React.FC<PlanningChartProps> = ({ data, machineKeys,
                                                         borderColor: MACHINE_COLORS[key] || '#ccc',
                                                         minHeight: value > 0 ? '8px' : '0'
                                                     }}
-                                                    title={`${MACHINE_LABELS[key]}: ${value.toFixed(2)}h`}
+                                                    title={`${MACHINE_LABELS[key]}: ${formatMinutesToHHMM(value * 60)}`}
                                                     onClick={() => onBarClick && value > 0 && onBarClick(weekData.label, key)}
                                                 ></div>
                                             </div>

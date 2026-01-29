@@ -12,9 +12,10 @@ interface LineChartData {
 
 interface LineChartProps {
     data: LineChartData;
+    valueFormatter?: (value: number) => string;
 }
 
-const LineChart: React.FC<LineChartProps> = ({ data }) => {
+const LineChart: React.FC<LineChartProps> = ({ data, valueFormatter }) => {
     if (!data.labels || data.labels.length === 0) {
         return <div className="flex items-center justify-center h-full text-gray-500">No hay datos para mostrar.</div>;
     }
@@ -99,7 +100,7 @@ const LineChart: React.FC<LineChartProps> = ({ data }) => {
             >
                 {/* Y-Axis */}
                 <div className="flex flex-col justify-between text-xs text-gray-500 dark:text-gray-400 pr-4 text-right">
-                    {yAxisLabels.reverse().map(label => <span key={label}>{label}</span>)}
+                    {yAxisLabels.reverse().map(label => <span key={label}>{valueFormatter ? valueFormatter(label) : label}</span>)}
                 </div>
 
                 {/* Chart Area */}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatDateDDMMYYYY } from '../utils/date';
+import { formatMinutesToHHMM } from '../utils/kpi';
 import InfoTooltip from './InfoTooltip';
 
 export interface WeeklyData {
@@ -123,12 +124,12 @@ export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys 
                             </td>
                             {sortedKeys.map(key => (
                                 <td key={key} className="whitespace-nowrap px-3 py-4 text-sm text-center text-gray-900 border-r border-gray-200 font-mono">
-                                    {row.machines[key]?.toFixed(2) || '0.00'}
+                                    {formatMinutesToHHMM((row.machines[key] || 0) * 60)}
                                 </td>
                             ))}
                             <td className={`whitespace-nowrap px-3 py-4 text-sm text-center font-bold border-l-2 border-gray-300 font-mono ${row.freeCapacity < 0 ? 'text-red-600 bg-red-100' : 'text-green-600'
                                 }`}>
-                                {row.freeCapacity.toFixed(2)}
+                                {formatMinutesToHHMM(row.freeCapacity * 60)}
                             </td>
                         </tr>
                     ))}
@@ -140,11 +141,11 @@ export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys 
                         </td>
                         {sortedKeys.map(key => (
                             <td key={key} className="px-3 py-4 text-sm text-center text-gray-900 border-r border-gray-200 font-mono">
-                                {totals[key]?.toFixed(2) || '0.00'}
+                                {formatMinutesToHHMM((totals[key] || 0) * 60)}
                             </td>
                         ))}
                         <td className={`px-3 py-4 text-sm text-center border-l-2 border-gray-300 font-mono ${totalFree < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                            {totalFree.toFixed(2)}
+                            {formatMinutesToHHMM(totalFree * 60)}
                         </td>
                     </tr>
                 </tfoot>

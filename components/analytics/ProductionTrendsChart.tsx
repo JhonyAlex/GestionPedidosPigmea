@@ -3,6 +3,7 @@ import { TimeSeriesPoint } from '../../hooks/useAnalyticsData';
 import LineChart from '../LineChart';
 import { formatMetros } from '../../utils/date';
 import InfoTooltip from '../InfoTooltip';
+import { formatMinutesToHHMM } from '../../utils/kpi';
 
 interface ProductionTrendsChartProps {
     data: TimeSeriesPoint[];
@@ -142,7 +143,10 @@ export const ProductionTrendsChart: React.FC<ProductionTrendsChartProps> = ({
             </div>
 
             <div className="h-80">
-                <LineChart data={chartData} />
+                <LineChart
+                    data={chartData}
+                    valueFormatter={selectedMetric === 'tiempo' ? (val) => formatMinutesToHHMM(val * 60) : undefined}
+                />
             </div>
 
             {/* Summary Stats */}
@@ -159,7 +163,7 @@ export const ProductionTrendsChart: React.FC<ProductionTrendsChartProps> = ({
                     <p className="text-lg font-bold text-gray-900 dark:text-white">
                         {selectedMetric === 'metros' && formatMetros(chartValues.reduce((sum, v) => sum + v, 0))}
                         {selectedMetric === 'pedidos' && chartValues.reduce((sum, v) => sum + v, 0)}
-                        {selectedMetric === 'tiempo' && chartValues.reduce((sum, v) => sum + v, 0).toFixed(1) + ' h'}
+                        {selectedMetric === 'tiempo' && formatMinutesToHHMM(chartValues.reduce((sum, v) => sum + v, 0) * 60)}
                     </p>
                 </div>
                 <div className="text-center">
@@ -174,7 +178,7 @@ export const ProductionTrendsChart: React.FC<ProductionTrendsChartProps> = ({
                     <p className="text-lg font-bold text-gray-900 dark:text-white">
                         {selectedMetric === 'metros' && formatMetros(chartValues.reduce((sum, v) => sum + v, 0) / chartValues.length)}
                         {selectedMetric === 'pedidos' && (chartValues.reduce((sum, v) => sum + v, 0) / chartValues.length).toFixed(1)}
-                        {selectedMetric === 'tiempo' && (chartValues.reduce((sum, v) => sum + v, 0) / chartValues.length).toFixed(1) + ' h'}
+                        {selectedMetric === 'tiempo' && formatMinutesToHHMM((chartValues.reduce((sum, v) => sum + v, 0) / chartValues.length) * 60)}
                     </p>
                 </div>
                 <div className="text-center">
