@@ -260,6 +260,9 @@ class MigrationManager {
      * Crea la tabla de control de migraciones si no existe
      */
     async ensureMigrationsTable() {
+        // Asegurar que el esquema 'limpio' existe antes de crear la tabla de migraciones
+        await this.dbClient.pool.query('CREATE SCHEMA IF NOT EXISTS limpio;');
+
         const sql = `
             CREATE TABLE IF NOT EXISTS limpio.migrations (
                 id VARCHAR(255) PRIMARY KEY,
