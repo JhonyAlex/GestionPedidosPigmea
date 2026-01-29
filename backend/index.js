@@ -5438,7 +5438,7 @@ app.delete('/api/comments/:commentId', requireAuth, async (req, res) => {
 });
 
 // --- SERVER START ---
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
 // Catch-all handler for frontend routing (aplicación principal) - DEBE IR AL FINAL
 app.get('*', (req, res) => {
