@@ -38,7 +38,7 @@ COPY backend/package*.json ./backend/
 WORKDIR /app/backend
 RUN npm ci --only=production
 
-# Volver al directorio raíz
+# Volver al directorio raíz para copiar, pero luego cambiar a backend para ejecución
 WORKDIR /app
 
 # Copiar código del backend
@@ -55,6 +55,9 @@ RUN addgroup -g 1001 -S nodejs && \
 # Cambiar a usuario no-root
 USER nodejs
 
+# Establecer directorio de trabajo en backend para facilitar ejecución
+WORKDIR /app/backend
+
 # Exponer puerto
 EXPOSE 3001
 
@@ -62,9 +65,9 @@ EXPOSE 3001
 ENV NODE_ENV=production
 ENV PORT=3001
 
-# Health check
+# Health check (ajustado para localhost)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3001/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Comando de inicio
-CMD ["node", "backend/index.js"]
+# Comando de inicio (ahora estamos en /app/backend)
+CMD ["node", "index.js"]

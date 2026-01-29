@@ -1,107 +1,1863 @@
-root@pigmea-server:~# docker logs traefik --tail 50
-Error response from daemon: No such container: traefik
-root@pigmea-server:~# docker logs dokploy-traefik --tail 50
-2026-01-06T15:55:58Z ERR Cannot retrieve the ACME challenge for pigmea.click (token "index.php") providerName=acme
-2026-01-08T22:00:35Z ERR Cannot retrieve the ACME challenge for kkqx.zynodo.com (token "index.php") providerName=acme
-2026-01-09T05:17:16Z ERR Cannot retrieve the ACME challenge for lnvu.zynodo.com (token "index.php") providerName=acme
-2026-01-09T20:11:13Z ERR Cannot retrieve the ACME challenge for alvarezserna.space (token "about.php") providerName=acme
-2026-01-10T01:03:17Z ERR Error while Peeking first byte error="read tcp 172.17.0.3:443->119.163.40.50:49268: i/o timeout"
-2026-01-10T02:52:45Z ERR Cannot retrieve the ACME challenge for alvarezserna.space (token "about.php") providerName=acme
-2026-01-10T06:43:21Z ERR Cannot retrieve the ACME challenge for alvarezserna.space (token "index.php") providerName=acme
-2026-01-10T09:35:30Z ERR Cannot retrieve the ACME challenge for alvarezserna.space (token "about.php") providerName=acme
-2026-01-10T17:44:58Z ERR Unable to get token error="missing token" providerName=acme
-2026-01-11T01:04:05Z ERR Cannot retrieve the ACME challenge for alvarezserna.space (token "about.php") providerName=acme
-2026-01-11T04:48:12Z ERR Unable to get token error="missing token" providerName=acme
-2026-01-11T10:01:09Z ERR Error while Peeking first byte error="read tcp 172.17.0.3:80->146.70.116.228:11798: i/o timeout"
-2026-01-11T10:01:10Z ERR Error while Hello error="read tcp 172.17.0.3:443->146.70.116.228:21671: i/o timeout"
-2026-01-11T14:44:54Z ERR Cannot retrieve the ACME challenge for alvarezserna.space (token "index.php") providerName=acme
-2026-01-12T02:36:57Z ERR Cannot retrieve the ACME challenge for reportes.pigmea.click (token "index.php") providerName=acme
-2026-01-12T04:19:32Z ERR Unable to get token error="missing token" providerName=acme
-2026-01-12T04:46:23Z ERR Cannot retrieve the ACME challenge for alvarezserna.space (token "file.php") providerName=acme
-2026-01-12T04:46:23Z ERR Cannot retrieve the ACME challenge for alvarezserna.space (token "wp-login.php") providerName=acme
-2026-01-12T08:29:52Z ERR Cannot retrieve the ACME challenge for alvarezserna.space (token "file.php") providerName=acme
-2026-01-12T15:24:30Z ERR Cannot retrieve the ACME challenge for wildcard.zynodo.com (token "index.php") providerName=acme
-2026-01-12T17:25:27Z ERR Error while Peeking first byte error="read tcp 172.17.0.3:443->185.169.4.104:63556: i/o timeout"
-2026-01-13T02:12:13Z ERR Cannot retrieve the ACME challenge for alvarezserna.space (token "file.php") providerName=acme
-2026-01-13T02:12:13Z ERR Cannot retrieve the ACME challenge for alvarezserna.space (token "wp-login.php") providerName=acme
-2026-01-13T08:42:25Z ERR Error while Peeking first byte error="read tcp 172.17.0.3:80->45.93.251.137:15500: i/o timeout"
-2026-01-13T15:48:46Z ERR Cannot retrieve the ACME challenge for pigmea.click (token "file.php") providerName=acme
-2026-01-13T15:48:46Z ERR Cannot retrieve the ACME challenge for pigmea.click (token "wp-login.php") providerName=acme
-2026-01-13T15:59:09Z ERR Error while Peeking first byte error="read tcp 172.17.0.3:80->45.141.215.92:38432: i/o timeout"
-2026-01-13T15:59:39Z ERR Error while Peeking first byte error="read tcp 172.17.0.3:80->45.141.215.92:42120: i/o timeout"
-2026-01-13T15:59:57Z ERR Error while Peeking first byte error="read tcp 172.17.0.3:80->45.141.215.92:42600: i/o timeout"
-2026-01-13T16:01:03Z ERR Error while Peeking first byte error="read tcp 172.17.0.3:80->45.141.215.92:44362: i/o timeout"
-2026-01-13T18:24:41Z ERR Unable to get token error="missing token" providerName=acme
-2026-01-13T21:59:58Z ERR Unable to get token error="missing token" providerName=acme
-2026-01-13T22:10:09Z ERR Unable to get token error="missing token" providerName=acme
-2026-01-14T02:20:18Z ERR Unable to get token error="missing token" providerName=acme
-2026-01-14T08:29:39Z ERR Unable to get token error="missing token" providerName=acme
-2026-01-14T09:17:03Z ERR Unable to get token error="missing token" providerName=acme
-2026-01-14T19:42:26Z ERR Unable to get token error="missing token" providerName=acme
-2026-01-15T10:10:51Z ERR Error while Peeking first byte error="read tcp 172.17.0.3:80->119.13.157.93:44407: i/o timeout"
-2026-01-15T21:02:19Z ERR Error while Peeking first byte error="read tcp 172.17.0.3:443->109.250.207.247:51877: i/o timeout"
-2026-01-19T11:44:04Z ERR Error while Peeking first byte error="read tcp 172.17.0.3:80->173.255.221.123:54480: i/o timeout"
-2026-01-19T11:44:04Z ERR Error while Peeking first byte error="read tcp 172.17.0.3:80->173.255.221.123:54490: i/o timeout"
-2026-01-22T14:33:49Z ERR Error while Peeking first byte error="read tcp 172.17.0.3:443->5.123.230.227:59348: i/o timeout"
-2026-01-22T17:25:01Z ERR Error while Peeking first byte error="read tcp 172.17.0.3:443->213.87.151.74:29431: i/o timeout"
-2026-01-22T17:25:06Z ERR Error while Peeking first byte error="read tcp 172.17.0.3:443->213.87.151.74:55371: i/o timeout"
-2026-01-22T19:33:47Z ERR Error while Peeking first byte error="read tcp 172.17.0.3:80->195.3.222.78:55004: i/o timeout"
-2026-01-23T19:01:19Z ERR Error while Peeking first byte error="read tcp 172.17.0.3:443->5.126.204.221:26209: i/o timeout"
-2026-01-25T10:50:56Z ERR Error while Peeking first byte error="read tcp 172.17.0.3:443->116.172.248.248:19517: i/o timeout"
-2026-01-27T11:16:47Z ERR Error while Peeking first byte error="read tcp 172.17.0.3:443->2.182.236.101:43406: i/o timeout"
-2026-01-27T11:55:25Z ERR Error while Peeking first byte error="read tcp 172.17.0.3:443->5.53.39.36:28866: i/o timeout"
-2026-01-28T09:41:13Z ERR Error while Peeking first byte error="read tcp 172.17.0.3:443->146.70.116.221:18999: i/o timeout"
-root@pigmea-server:~# docker logs 1e3534c76a2b --tail 50
-  command: [Object]
-}
-[ReplyError: MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk. Commands that may modify the data set are disabled, because this instance is configured to report errors during writes if RDB snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details about the RDB error.] {
-  command: [Object]
-}
-[ReplyError: MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk. Commands that may modify the data set are disabled, because this instance is configured to report errors during writes if RDB snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details about the RDB error.] {
-  command: [Object]
-}
-[ReplyError: MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk. Commands that may modify the data set are disabled, because this instance is configured to report errors during writes if RDB snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details about the RDB error.] {
-  command: [Object]
-}
-[ReplyError: MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk. Commands that may modify the data set are disabled, because this instance is configured to report errors during writes if RDB snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details about the RDB error.] {
-  command: [Object]
-}
-[ReplyError: MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk. Commands that may modify the data set are disabled, because this instance is configured to report errors during writes if RDB snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details about the RDB error.] {
-  command: [Object]
-}
-[ReplyError: MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk. Commands that may modify the data set are disabled, because this instance is configured to report errors during writes if RDB snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details about the RDB error.] {
-  command: [Object]
-}
-[ReplyError: MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk. Commands that may modify the data set are disabled, because this instance is configured to report errors during writes if RDB snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details about the RDB error.] {
-  command: [Object]
-}
-[ReplyError: MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk. Commands that may modify the data set are disabled, because this instance is configured to report errors during writes if RDB snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details about the RDB error.] {
-  command: [Object]
-}
-[ReplyError: MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk. Commands that may modify the data set are disabled, because this instance is configured to report errors during writes if RDB snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details about the RDB error.] {
-  command: [Object]
-}
-[ReplyError: MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk. Commands that may modify the data set are disabled, because this instance is configured to report errors during writes if RDB snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details about the RDB error.] {
-  command: [Object]
-}
-[ReplyError: MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk. Commands that may modify the data set are disabled, because this instance is configured to report errors during writes if RDB snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details about the RDB error.] {
-  command: [Object]
-}
-[ReplyError: MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk. Commands that may modify the data set are disabled, because this instance is configured to report errors during writes if RDB snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details about the RDB error.] {
-  command: [Object]
-}
-[ReplyError: MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk. Commands that may modify the data set are disabled, because this instance is configured to report errors during writes if RDB snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details about the RDB error.] {
-  command: [Object]
-}
-[ReplyError: MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk. Commands that may modify the data set are disabled, because this instance is configured to report errors during writes if RDB snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details about the RDB error.] {
-  command: [Object]
-}
-[ReplyError: MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk. Commands that may modify the data set are disabled, because this instance is configured to report errors during writes if RDB snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details about the RDB error.] {
-  command: [Object]
-}
-[ReplyError: MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk. Commands that may modify the data set are disabled, because this instance is configured to report errors during writes if RDB snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details about the RDB error.] {
-  command: [Object]
-}
-root@pigmea-server:~# docker ps | grep pigmea
-root@pigmea-server:~# curl http://localhost:3000
-<!DOCTYPE html><html lang="en" class="font-sans"><head><meta charSet="utf-8" data-next-head=""/><meta name="viewport" content="width=device-width" data-next-head=""/><title class="jsx-3669811904" data-next-head="">Dokploy</title><link rel="icon" href="/icon.svg"/><link rel="preload" href="/_next/static/media/e4af272ccee01ff0-s.p.woff2" as="font" type="font/woff2" crossorigin="anonymous" data-next-font="size-adjust"/><link rel="preload" href="/_next/static/css/8ec036f544c47552.css" as="style"/><link rel="stylesheet" href="/_next/static/css/8ec036f544c47552.css" data-n-g=""/><noscript data-n-css=""></noscript><script defer="" nomodule="" src="/_next/static/chunks/polyfills-42372ed130431b0a.js"></script><script src="/_next/static/chunks/webpack-03c6766e1a92a8f4.js" defer=""></script><script src="/_next/static/chunks/framework-87b9164a6c517c1d.js" defer=""></script><script src="/_next/static/chunks/main-e8cf1bf8dfd7a7cb.js" defer=""></script><script src="/_next/static/chunks/pages/_app-8ad3d1941af035c7.js" defer=""></script><script src="/_next/static/chunks/8499-399d4600292a7db5.js" defer=""></script><script src="/_next/static/chunks/pages/_error-97668e941561dc16.js" defer=""></script><script src="/_next/static/YLPDjsbVTeFkQVrjoh9Rj/_buildManifest.js" defer=""></script><script src="/_next/static/YLPDjsbVTeFkQVrjoh9Rj/_ssgManifest.js" defer=""></script><style id="__jsx-3669811904">:root{--font-inter:'Inter', 'Inter Fallback'}</style></head><body class="flex h-full w-full flex-col font-sans"><div id="__next"><script>!function(){try{var d=document.documentElement,c=d.classList;c.remove('light','dark');var e=localStorage.getItem('theme');if('system'===e||(!e&&true)){var t='(prefers-color-scheme: dark)',m=window.matchMedia(t);if(m.media!==t||m.matches){d.style.colorScheme = 'dark';c.add('dark')}else{d.style.colorScheme = 'light';c.add('light')}}else if(e){c.add(e|| '')}if(e==='light'||e==='dark')d.style.colorScheme=e}catch(e){}}()</script><section aria-label="Notifications alt+T" tabindex="-1" aria-live="polite" aria-relevant="additions text" aria-atomic="false"></section><div></div><div class="h-screen"><div class="max-w-[50rem] flex flex-col mx-auto size-full"><header class="mb-auto flex justify-center z-50 w-full py-4"><nav class="px-4 sm:px-6 lg:px-8" aria-label="Global"><a target="_blank" class="flex flex-row items-center gap-2" href="https://dokploy.com"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 559 446" class="size-14"><path class="fill-primary stroke-primary" d="M390 56v12c.1 2.3.5 4 1 6a73 73 0 0 0 12 24c2 2.3 5.7 4 7 7 4 3.4 9.6 6.8 14 9 1.7.6 5.7 1.1 7 2 1.9 1.3 2.9 2.3 0 4v1c-.6 1.8-1.9 3.5-3 5q-3 4-7 7c-4.3 3.2-9.5 6.8-15 7h-1q-2 1.6-5 2h-4c-5.2.7-12.9 2.2-18 0h-6c-1.6 0-3-.8-4-1h-3a17 17 0 0 1-6-2h-1c-2.5-.1-4-1.2-6-2l-4-1c-8.4-2-20.3-6.6-27-12h-1c-4.6-1-9.5-4.3-13.7-6.3s-10.5-3-13.3-6.7h-1c-4-1-8.9-3.5-12-6h-1c-6.8-1.6-13.6-6-20-9-6.5-2.8-14.6-5.7-20-10h-1c-7-1.2-15.4-4-22-6h-97c-5.3 4.3-13.7 4.3-18.7 10.3S90.8 101 88 108c-.4 1.5-.8 2.3-1 4-.2 1.6-.8 4-1 5v51c.2 1.2.8 3.2 1 5 .2 2 .5 3.2 1 5a79 79 0 0 0 6 12c.8.7 1.4 2.2 2 3 1.8 2 4.9 3.4 6 6 9.5 8.3 23.5 10.3 33 18h1c5.1 1.2 12 4.8 16 8h1c4 1 8.9 3.5 12 6h1q4.6 1.2 8 4h1c2 .1 2.6 1.3 4 2 1.6.8 2.7.7 4 2h1q2.5.3 4 2h1c3 .7 6.7 2 9 4h1c4.7.8 13.4 3.1 17 6h1c2.5.1 4 1.3 6 2 1.8.4 3 .8 5 1q3 .4 5 1c1.6-.2 2 0 3 1h1q2.5-.5 4 1h1q2.5-.5 4 1h1c2.2-.2 4.5-.3 6 1h1q4-.4 7 1h45c1.2-.2 3.1-1 5-1h6c1.5-.6 2.9-1.3 5-1h1q1.5-1.4 4-1h1q1.5-1.4 4-1h1c2.4-1.3 5-1.6 8-2l5-1c2-.7 3.6-1.6 6-2 4-.7 7.2-1.7 11-3 2.3-1 4.2-2.5 7-3h1q1.5-1.7 4-2h1c1.9-1.5 3.9-2 6-3q2.9-1.6 6-3a95 95 0 0 0 11-5c4.4-2.8 8.9-6 14-8 0 0 .6.2 1 0 1.8-2.8 7-4.8 10-6 0 0 .6.2 1 0 1.5-2.4 5.3-4 8-5 0 0 .6.2 1 0 1.5-2.4 5.3-4 8-5 0 0 .6.2 1 0 1.3-2 3.8-3.1 6-4 0 0 .6.2 1 0 2-3 7.7-5.6 11-7l5-2c6.3-3.8 11.8-9.6 18-14v-1c0-1.9-.4-4.2 0-6-1-4.5-3.9-5.5-7-8h-1c-1.2 0-2.8-.2-4 0-8.9 1.7-16.5 11.3-25.2 14.8-8.8 3.4-16.9 10.7-25.8 14.2h-1c-10.9 10.6-29.2 16-42.7 23.3S343.7 234.6 328 235h-1q-1.5 1.4-4 1h-1q-1.5 1.4-4 1h-1c-1.5 1.3-3.9 1.2-6 1h-1c-1.7 1.3-4.6 1.2-7 1-1 .2-2.4 1-4 1h-5c-6.6 0-13.4.4-20 0-1.9-.1-2.7.3-4-1h-8c-2.8-.2-5.7-1.3-8-2h-2q-5.7.4-10-2h-1q-4.5 0-8-2h-1a10 10 0 0 1-6-2h-1c-5.9-.2-12-3.8-17-6l-4-1c-1.7-.5-2.8-.7-4-2h-1q-2.5-.2-4-2h-1q-3.4-.9-6-3h-1c-3.5-.8-7.3-2.9-10-5h-1c-1.7 0-2.2-.7-3-2h-1c-11.6-2.7-23.2-11.5-34.2-15.8-11-4.2-25.9-9.2-29.8-21.2h4c16.2 0 32.8-1 49 0 1.7.1 3 .8 4 1 2.1.4 3.4-.5 5 1h1c3.6.1 8.4 1.8 11 4h1a45 45 0 0 1 18 8h1q4.6 1.2 8 4h1c4.2 1 8.3 3.4 12 5q3.4 1.2 7 2c5.7 1.3 13 2.3 18 5h1c3.7-.2 7 1.1 10 2h9c1.6 0 3 .8 4 1h32c2.2-1.6 6-1 9-1h1a63 63 0 0 1 22-4 22 22 0 0 1 8-2c1.7-1.4 3.7-1.6 6-2a81 81 0 0 0 12-3c2.3-1 4.2-2.5 7-3h1q1.5-1.7 4-2h1c1.9-1.5 3.6-2.2 6-3l3-1c4.1-2.3 8.4-5.2 13-7 0 0 .6.2 1 0 1.5-2.4 6.3-5 9-6 0 0 .6.2 1 0 5.3-8.1 17.6-12.5 24.8-20.2C439.9 144 445 133 452 126v-1a12 12 0 0 1 2-5c2.1-2.2 8.9-1 12-1q2 .2 4 0c1-.2 2.3-1.2 4-1h1q2.1-1.5 5-2h1q2.1-1.9 5-3s.6.2 1 0c9-9.3 18-15.4 23-28 1.1-2.8 3.5-6.4 4-9 .2-1 .2-3 0-4-1.5-6-12.3-2.4-15.7 2.3S484.7 80 479 80h-7c-7.8 4.3-19.3 5.7-23 16a37 37 0 0 0-22-24c-1.5-.5-2.5-.7-4-1-2.1-.5-3.6-.2-5-2h-1a22 22 0 0 1-12-8c-2-2.9-3.4-6.5-6-9h-1c-3.9-.6-6.1 1-8 4m-181 45h1c2.2-.2 4.5-.3 6 1h1q2.5-.5 4 1h1a33 33 0 0 1 17 7h1c4.4 1 8.2 4.1 12 6 2.1 1 4.1 1.5 6 3h1c4 1 8.9 3.5 12 6h1c4 1 8.9 3.5 12 6h1c4 1 8.9 3.5 12 6h1a61 61 0 0 1 21 10h1c3.5.8 7.3 2.9 10 5h1c6.1 1.4 12.3 5 18 7 1.8.4 3 .8 5 1 1.8.2 3.7.8 5 1q2.5-.5 4 1h6c2.5 0 4 .3 6 1h3q-.7 2.1-3 2a46 46 0 0 1-16 7l-10 3c-2 .8-3.4 1.9-6 2h-1c-2.6 2.1-7.5 3-11 3h-1c-3.1 2.5-10.7 3.5-15 3h-1c-1.5 1.3-3.9 1.2-6 1-1 .2-2.4 1-4 1h-11c-3.8.4-8.3.4-12 0h-9c-2.3 0-4.3-.7-6-1h-3c-1.8 0-2.9-.7-4-1-3.5-.8-7-.7-10-2h-1c-4.1-.7-9.8-1.4-13-4h-1q-4-.6-7-3h-1q-2.5-.2-4-2h-1q-3.4-.9-6-3h-1c-7.2-1.7-13.3-5.9-20.2-8.8-7-2.8-16.2-4.3-22.8-7.2h-11c-14 0-28.9.3-42-1-2.3 0-4.8.3-7 0a6 6 0 0 1-5-5c-1.8-4.8-.4-10.4 0-15 0-4.3-.4-8.7 0-13 .2-3.2 2.2-7.3 4-10q2-3 5-5c2.1-2 5.4-2.3 8-3 15.6-3.9 36.3-1 53-1 5.2 0 12-.5 17 0s12.2-1.8 16 1Z"></path><path class="fill-primary stroke-primary" d="M162 132v1c1.8 2.9 4.5 5.3 8 6 .3-.2 3.7-.2 4 0 7-1.4 9.2-8.8 7-15v-1a14 14 0 0 0-7-4c-.3.2-3.7.2-4 0-6.5 1.3-8.6 6.8-8 13Z"></path><path class="fill-primary stroke-primary" d="M465 211h-1c-18.2 14.6-41.2 24.6-60 39-19 14.2-42.7 29.3-66 34l-4 1c-2.4 1-4 2-7 2h-1q-3.5 2-8 2h-1c-1.3 1.2-3 1.1-5 1h-2q-2.6 1.1-6 1h-2c-3 1.2-6.5 1-10 1-6.3.6-13.8.6-20 0-3.4 0-8.4.9-11-1h-1c-2.2.2-4.5.3-6-1h-1c-2 .2-3.7.2-5-1h-1c-7.6.5-16.5-3.4-23-6l-4-1a129 129 0 0 1-36.2-15.8c-10.4-6.6-23.2-12.8-32.5-20.5-9.2-7.7-23.8-12.8-30.3-22.7h-1c-2.3-1.4-4.5-2.7-6-5h-1c-4-2.5-8.5-5.2-12-8h-9a9 9 0 0 0-6 7c.3 3.3 0 6.7 0 10v9c.2 1.6 1 3.8 1 6v3c.2 1 1.2 2.2 1 4v1c1.2 1.2.8 2.2 1 4 .8 6.7 3 12.6 5 19 1.7 4.3 4.2 9.1 5 14v1q1.8 1.5 2 4v1a36 36 0 0 1 5 10c.7 2 1 3 2 5 8 12.7 15.7 25.5 25.8 37.3 10 11.7 20.8 20.6 32.4 30.4 11.7 9.9 28.3 14 39.8 23.3h1q2.5.3 4 2h1c2.8.4 4.8 2 7 3l7 2c5.7 1.3 13 2.3 18 5h1c2.1-.3 3.6.8 5 1h3c2.8.2 5.8 1 8 2h8c2.1 0 4.6.8 6 1h21c1.2-.2 3.2-1 5-1h9c3.3-1 7-2.4 11-2h1c2.7-2.2 7.4-2.4 11-3a55 55 0 0 0 8-2c6.5-2.6 13.9-6.3 21-8h1c8.5-6.8 20.6-9.7 29.2-16.8 8.7-7 18.3-12.8 26.8-20.2 4.4-3.8 9-9 13-13 14.8-14.8 20.7-34.6 33-50v-1q.9-3.4 3-6v-1q.3-2.5 2-4v-1c.5-3.3 2-8.6 4-11v-1q0-3.5 2-6v-1c1.1-6.7 2.4-15 5-21v-1c-.2-2-.2-3.7 1-5v-8c0-5.3-.5-10.8 0-16a14 14 0 0 0-4-6c-1-.5-1.1-.4-2-1h-6q-2.1 1.5-5 2m-6 38c-2.1 13.4-21.2 20.3-31 30-10 9.5-23.7 19-35 27-11.5 8-25.1 19.7-39 23h-1a22 22 0 0 1-10 4h-1a25 25 0 0 1-12 4h-1q-3.5 2-8 2h-1c-1.1 1.1-2.3 1-4 1h-2c-1.2.4-2.2 1-4 1h-2c-1.8.7-3.6 1.3-6 1h-1c-1.2 1.2-2.3 1-4 1h-5c-5.7.6-12.3.8-18 0h-4c-1.9 0-2.7-.6-4-1h-6c-1.9 0-2.7.3-4-1h-1q-2.5.5-4-1h-1c-8.1.5-16.8-3.6-24.2-5.8S210 329.8 204 325h-1c-12.8-5-27.1-15.6-37.7-24.3S138.8 284.2 131 273c-.3-.2-1 0-1 0-5.7-4.4-16.6-10-19-17-.9-2.6-1-5.4-2-8-.8-2.2-2.5-5-2-8a667 667 0 0 0 88 56h1q3.4.9 6 3h1c2.8.4 4.8 2 7 3q5 1.8 10 3l6 2q2.9.6 6 1 3 .4 5 1c1.6-.2 2 0 3 1h1c2-.2 3.7-.2 5 1h1c2.2-.3 3.4.4 5 1h8c1.6 0 3 .9 4 1h40c1.8-1.3 4.6-1.2 7-1h1c1.2-1.2 3.2-1.2 5-1h1c1.2-1.2 3.2-1.2 5-1h1c1.1-1.1 2.3-1 4-1h2c3.5-1.7 6.9-2.3 11-3l4-1c3.4-1.4 7.1-3 11-4 1.5-.4 2.5-.5 4-1 1.4-.7 2-1.9 4-2h1q2.6-2.1 6-3h1c2.5-2 6-3.8 9-5l3-1c1.4-.9 2-2.5 4-3h1q1.4-2.2 4-3h1c7.3-7.7 19-13.2 27.7-19.3 8.8-6.1 18.2-15 28.3-18.7.4-.2 1 0 1 0q3.8-3.9 9-6c1.3 2.5-.5 6.7-1 10m-20 55c-.2.4 0 1 0 1-3.4 9.6-12.7 19-19 27a88 88 0 0 1-12 12 214 214 0 0 1-26.7 20.3c-9.5 5.8-20 14.8-31.3 16.7h-1a22 22 0 0 1-10 4h-1c-3.2 2.6-8.9 3.3-13 4h-1q-1.5 1.4-4 1h-1q-1.5 1.4-4 1h-1c-4.9 2.3-10.5 1-16 2-1 .2-2.5 1-4 1-6.2.4-12.8.3-19 0-1.8 0-3.8-.8-5-1h-4c-1.6 0-3-.9-4-1h-4c-3.9-.3-8.8-1.3-12-3h-1c-3.3-.5-7.5-1-10-3h-1c-3.6-.1-8.4-1.8-11-4h-1c-3.9-.6-8-2.6-11-5h-1c-16.1-3.8-32.2-18.9-45-29a200 200 0 0 1-40-51c17.7 11.5 35 25.5 52 38h1c4 1.6 12.8 5.4 15 9h1c4.6 1 10.4 4.1 14 7h1q2.5.3 4 2h1c3.3.5 8.6 2 11 4h1q3.5 0 6 2h1q2.5-.5 4 1h1q2.5-.5 4 1h1c3.8-.2 7.9 1 11 2h9c1.6 0 3 .8 4 1h32c1.2-.2 3.2-1 5-1h8a139 139 0 0 1 20-4l5-1c2-.7 3.7-1.5 6-2l4-1c1.5-.6 3-1.7 5-2h1q3-2.4 7-3h1q2.6-2.1 6-3h1c11.7-9.4 27.6-14.6 39-25 11.6-10.3 25-18.5 37-28a15 15 0 0 1-5 10Z"></path></svg><span class="font-medium text-sm">Dokploy</span></a></nav></header><main id="content"><div class="text-center py-10 px-4 sm:px-6 lg:px-8"><h1 class="block text-7xl font-bold text-primary sm:text-9xl">400</h1><p class="mt-3 text-muted-foreground">Oops, something went wrong.</p><div class="mt-5 flex flex-col justify-center items-center gap-2 sm:flex-row sm:gap-3"><a class="inline-flex items-center justify-center whitespace-nowrap select-none rounded-lg transition-all will-change-transform active:hover:scale-[0.98] active:hover:transform text-sm font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 px-4 py-2 flex flex-row gap-2" href="/dashboard/projects"><svg class="flex-shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>Go to homepage</a></div></div></main><footer class="mt-auto text-center py-5"><div class="max-w-[85rem] mx-auto px-4 sm:px-6 lg:px-8"><p class="text-sm text-gray-500"><a target="_blank" class="underline hover:text-primary transition-colors" href="https://github.com/Dokploy/dokploy/issues">Submit Log in issue on Github</a></p></div></footer></div></div></div><script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{}},"page":"/_error","query":{},"buildId":"YLPDjsbVTeFkQVrjoh9Rj","nextExport":true,"autoExport":true,"isFallback":false,"locale":"en","locales":["en"],"defaultLocale":"en","scriptLoader":[]}</script></body></html>root@pigmea-server:~#
+root@pigmea-server:~# docker service logs control-produccin-pigmea-produccionpgimea-7mvrtg --tail 100
+root@pigmea-server:~# docker inspect lnpz9ivnaftdc3s6wfspngr7l
+[]
+Error: No such object: lnpz9ivnaftdc3s6wfspngr7l
+root@pigmea-server:~# docker image ls | grep pigmea
+control-produccin-pigmea-produccionpgimea-7mvrtg   latest    099604c21097   6 minutes ago       157MB
+root@pigmea-server:~# docker run --rm -it --env-file .env control-produccin-pigmea-produccionpgimea-7mvrtg sh
+docker: open .env: no such file or directory
+
+Run 'docker run --help' for more information
+root@pigmea-server:~# # Crear .env temporal
+echo "PORT=3001" > .env
+echo "DATABASE_URL=postgresql://pigmea_user:Pigmea_2025_DbSecure42@172.17.0.1:5432/gestion_pedidos" >> .env
+echo "NODE_ENV=production" >> .env
+
+# Correr contenedor manualmente para ver el error
+docker run --rm -it --env-file .env control-produccin-pigmea-produccionpgimea-7mvrtg sh
+/app $ npm start
+npm error code ENOENT
+npm error syscall open
+npm error path /app/package.json
+npm error errno -2
+npm error enoent Could not read package.json: Error: ENOENT: no such file or directory, open '/app/package.json'
+npm error enoent This is related to npm not being able to find a file.
+npm error enoent
+npm error A complete log of this run can be found in: /home/nodejs/.npm/_logs/2026-01-29T21_34_30_559Z-debug-0.log
+/app $ ls -R
+.:
+backend  dist
+
+./backend:
+deploy.sh             keep-alive.sh         node_modules          permissions-map.json  setup-db.sh
+docker-entrypoint.sh  middleware            package-lock.json     postgres-client.js    test-bcrypt.js
+index.js              migrations.js         package.json          scripts               test-sql.sh
+
+./backend/middleware:
+auth.js         db-health.js    permissions.js
+
+./backend/node_modules:
+@socket.io                  es-errors                   lodash.once                 qs
+@types                      es-object-atoms             math-intrinsics             range-parser
+accepts                     escape-html                 media-typer                 raw-body
+array-flatten               etag                        merge-descriptors           safe-buffer
+base64id                    express                     methods                     safer-buffer
+bcryptjs                    express-rate-limit          mime                        semver
+body-parser                 finalhandler                mime-db                     send
+buffer-equal-constant-time  forwarded                   mime-types                  serve-static
+bytes                       fresh                       ms                          setprototypeof
+call-bind-apply-helpers     function-bind               negotiator                  side-channel
+call-bound                  get-intrinsic               object-assign               side-channel-list
+compressible                get-proto                   object-inspect              side-channel-map
+compression                 gopd                        on-finished                 side-channel-weakmap
+content-disposition         has-symbols                 on-headers                  socket.io
+content-type                hasown                      parseurl                    socket.io-adapter
+cookie                      helmet                      path-to-regexp              socket.io-parser
+cookie-signature            http-errors                 pg                          split2
+cors                        iconv-lite                  pg-cloudflare               statuses
+debug                       inherits                    pg-connection-string        toidentifier
+depd                        ipaddr.js                   pg-int8                     type-is
+destroy                     jsonwebtoken                pg-pool                     undici-types
+dotenv                      jwa                         pg-protocol                 unpipe
+dunder-proto                jws                         pg-types                    utils-merge
+ecdsa-sig-formatter         lodash.includes             pgpass                      uuid
+ee-first                    lodash.isboolean            postgres-array              vary
+encodeurl                   lodash.isinteger            postgres-bytea              ws
+engine.io                   lodash.isnumber             postgres-date               xtend
+engine.io-parser            lodash.isplainobject        postgres-interval
+es-define-property          lodash.isstring             proxy-addr
+
+./backend/node_modules/@socket.io:
+component-emitter
+
+./backend/node_modules/@socket.io/component-emitter:
+LICENSE       Readme.md     lib           package.json
+
+./backend/node_modules/@socket.io/component-emitter/lib:
+cjs  esm
+
+./backend/node_modules/@socket.io/component-emitter/lib/cjs:
+index.d.ts    index.js      package.json
+
+./backend/node_modules/@socket.io/component-emitter/lib/esm:
+index.d.ts    index.js      package.json
+
+./backend/node_modules/@types:
+cors  node
+
+./backend/node_modules/@types/cors:
+LICENSE       README.md     index.d.ts    package.json
+
+./backend/node_modules/@types/node:
+LICENSE                   dns.d.ts                  package.json              timers.d.ts
+README.md                 dom-events.d.ts           path.d.ts                 tls.d.ts
+assert                    domain.d.ts               perf_hooks.d.ts           trace_events.d.ts
+assert.d.ts               events.d.ts               process.d.ts              ts5.6
+async_hooks.d.ts          fs                        punycode.d.ts             ts5.7
+buffer.buffer.d.ts        fs.d.ts                   querystring.d.ts          tty.d.ts
+buffer.d.ts               globals.d.ts              readline                  url.d.ts
+child_process.d.ts        globals.typedarray.d.ts   readline.d.ts             util.d.ts
+cluster.d.ts              http.d.ts                 repl.d.ts                 v8.d.ts
+compatibility             http2.d.ts                sea.d.ts                  vm.d.ts
+console.d.ts              https.d.ts                sqlite.d.ts               wasi.d.ts
+constants.d.ts            index.d.ts                stream                    worker_threads.d.ts
+crypto.d.ts               inspector.d.ts            stream.d.ts               zlib.d.ts
+dgram.d.ts                module.d.ts               string_decoder.d.ts
+diagnostics_channel.d.ts  net.d.ts                  test.d.ts
+dns                       os.d.ts                   timers
+
+./backend/node_modules/@types/node/assert:
+strict.d.ts
+
+./backend/node_modules/@types/node/compatibility:
+iterators.d.ts
+
+./backend/node_modules/@types/node/dns:
+promises.d.ts
+
+./backend/node_modules/@types/node/fs:
+promises.d.ts
+
+./backend/node_modules/@types/node/readline:
+promises.d.ts
+
+./backend/node_modules/@types/node/stream:
+consumers.d.ts  promises.d.ts   web.d.ts
+
+./backend/node_modules/@types/node/timers:
+promises.d.ts
+
+./backend/node_modules/@types/node/ts5.6:
+buffer.buffer.d.ts       compatibility            globals.typedarray.d.ts  index.d.ts
+
+./backend/node_modules/@types/node/ts5.6/compatibility:
+float16array.d.ts
+
+./backend/node_modules/@types/node/ts5.7:
+compatibility  index.d.ts
+
+./backend/node_modules/@types/node/ts5.7/compatibility:
+float16array.d.ts
+
+./backend/node_modules/accepts:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/array-flatten:
+LICENSE           README.md         array-flatten.js  package.json
+
+./backend/node_modules/base64id:
+CHANGELOG.md  LICENSE       README.md     lib           package.json
+
+./backend/node_modules/base64id/lib:
+base64id.js
+
+./backend/node_modules/bcryptjs:
+LICENSE       bin           dist          index.js      scripts       tests
+README.md     bower.json    externs       package.json  src
+
+./backend/node_modules/bcryptjs/bin:
+bcrypt
+
+./backend/node_modules/bcryptjs/dist:
+README.md         bcrypt.js         bcrypt.min.js     bcrypt.min.js.gz  bcrypt.min.map
+
+./backend/node_modules/bcryptjs/externs:
+bcrypt.js       minimal-env.js
+
+./backend/node_modules/bcryptjs/scripts:
+build.js
+
+./backend/node_modules/bcryptjs/src:
+bcrypt      bcrypt.js   bower.json  wrap.js
+
+./backend/node_modules/bcryptjs/src/bcrypt:
+impl.js  prng     util     util.js
+
+./backend/node_modules/bcryptjs/src/bcrypt/prng:
+README.md  accum.js   isaac.js
+
+./backend/node_modules/bcryptjs/src/bcrypt/util:
+base64.js
+
+./backend/node_modules/bcryptjs/tests:
+quickbrown.txt  suite.js
+
+./backend/node_modules/body-parser:
+HISTORY.md    LICENSE       README.md     SECURITY.md   index.js      lib           package.json
+
+./backend/node_modules/body-parser/lib:
+read.js  types
+
+./backend/node_modules/body-parser/lib/types:
+json.js        raw.js         text.js        urlencoded.js
+
+./backend/node_modules/buffer-equal-constant-time:
+LICENSE.txt   README.md     index.js      package.json  test.js
+
+./backend/node_modules/bytes:
+History.md    LICENSE       Readme.md     index.js      package.json
+
+./backend/node_modules/call-bind-apply-helpers:
+CHANGELOG.md        actualApply.js      functionApply.js    index.js            test
+LICENSE             applyBind.d.ts      functionCall.d.ts   package.json        tsconfig.json
+README.md           applyBind.js        functionCall.js     reflectApply.d.ts
+actualApply.d.ts    functionApply.d.ts  index.d.ts          reflectApply.js
+
+./backend/node_modules/call-bind-apply-helpers/test:
+index.js
+
+./backend/node_modules/call-bound:
+CHANGELOG.md   README.md      index.js       test
+LICENSE        index.d.ts     package.json   tsconfig.json
+
+./backend/node_modules/call-bound/test:
+index.js
+
+./backend/node_modules/compressible:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/compression:
+HISTORY.md    LICENSE       README.md     index.js      node_modules  package.json
+
+./backend/node_modules/compression/node_modules:
+negotiator
+
+./backend/node_modules/compression/node_modules/negotiator:
+HISTORY.md    LICENSE       README.md     index.js      lib           package.json
+
+./backend/node_modules/compression/node_modules/negotiator/lib:
+charset.js    encoding.js   language.js   mediaType.js
+
+./backend/node_modules/content-disposition:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/content-type:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/cookie:
+LICENSE       README.md     SECURITY.md   index.js      package.json
+
+./backend/node_modules/cookie-signature:
+History.md    Readme.md     index.js      package.json
+
+./backend/node_modules/cors:
+CONTRIBUTING.md  HISTORY.md       LICENSE          README.md        lib              package.json
+
+./backend/node_modules/cors/lib:
+index.js
+
+./backend/node_modules/debug:
+CHANGELOG.md    Makefile        component.json  node.js         src
+LICENSE         README.md       karma.conf.js   package.json
+
+./backend/node_modules/debug/src:
+browser.js        debug.js          index.js          inspector-log.js  node.js
+
+./backend/node_modules/depd:
+History.md    LICENSE       Readme.md     index.js      lib           package.json
+
+./backend/node_modules/depd/lib:
+browser
+
+./backend/node_modules/depd/lib/browser:
+index.js
+
+./backend/node_modules/destroy:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/dotenv:
+CHANGELOG.md  README-es.md  SECURITY.md   config.js     package.json
+LICENSE       README.md     config.d.ts   lib
+
+./backend/node_modules/dotenv/lib:
+cli-options.js  env-options.js  main.d.ts       main.js
+
+./backend/node_modules/dunder-proto:
+CHANGELOG.md   README.md      get.js         set.d.ts       test
+LICENSE        get.d.ts       package.json   set.js         tsconfig.json
+
+./backend/node_modules/dunder-proto/test:
+get.js    index.js  set.js
+
+./backend/node_modules/ecdsa-sig-formatter:
+CODEOWNERS    LICENSE       README.md     package.json  src
+
+./backend/node_modules/ecdsa-sig-formatter/src:
+ecdsa-sig-formatter.d.ts  ecdsa-sig-formatter.js    param-bytes-for-alg.js
+
+./backend/node_modules/ee-first:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/encodeurl:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/engine.io:
+LICENSE       README.md     build         node_modules  package.json  wrapper.mjs
+
+./backend/node_modules/engine.io/build:
+contrib         engine.io.js    server.d.ts     socket.d.ts     transport.d.ts  transports      userver.d.ts
+engine.io.d.ts  parser-v3       server.js       socket.js       transport.js    transports-uws  userver.js
+
+./backend/node_modules/engine.io/build/contrib:
+types.cookie.d.ts  types.cookie.js
+
+./backend/node_modules/engine.io/build/parser-v3:
+index.d.ts  index.js    utf8.d.ts   utf8.js
+
+./backend/node_modules/engine.io/build/transports:
+index.d.ts          polling-jsonp.d.ts  polling.d.ts        websocket.d.ts      webtransport.d.ts
+index.js            polling-jsonp.js    polling.js          websocket.js        webtransport.js
+
+./backend/node_modules/engine.io/build/transports-uws:
+index.d.ts      index.js        polling.d.ts    polling.js      websocket.d.ts  websocket.js
+
+./backend/node_modules/engine.io/node_modules:
+cookie  debug   ms
+
+./backend/node_modules/engine.io/node_modules/cookie:
+LICENSE       README.md     SECURITY.md   index.js      package.json
+
+./backend/node_modules/engine.io/node_modules/debug:
+LICENSE       README.md     package.json  src
+
+./backend/node_modules/engine.io/node_modules/debug/src:
+browser.js  common.js   index.js    node.js
+
+./backend/node_modules/engine.io/node_modules/ms:
+index.js      license.md    package.json  readme.md
+
+./backend/node_modules/engine.io-parser:
+LICENSE       Readme.md     build         package.json
+
+./backend/node_modules/engine.io-parser/build:
+cjs  esm
+
+./backend/node_modules/engine.io-parser/build/cjs:
+commons.d.ts               decodePacket.browser.js    encodePacket.browser.js    index.js
+commons.js                 decodePacket.d.ts          encodePacket.d.ts          package.json
+contrib                    decodePacket.js            encodePacket.js
+decodePacket.browser.d.ts  encodePacket.browser.d.ts  index.d.ts
+
+./backend/node_modules/engine.io-parser/build/cjs/contrib:
+base64-arraybuffer.d.ts  base64-arraybuffer.js
+
+./backend/node_modules/engine.io-parser/build/esm:
+commons.d.ts               decodePacket.browser.js    encodePacket.browser.js    index.js
+commons.js                 decodePacket.d.ts          encodePacket.d.ts          package.json
+contrib                    decodePacket.js            encodePacket.js
+decodePacket.browser.d.ts  encodePacket.browser.d.ts  index.d.ts
+
+./backend/node_modules/engine.io-parser/build/esm/contrib:
+base64-arraybuffer.d.ts  base64-arraybuffer.js
+
+./backend/node_modules/es-define-property:
+CHANGELOG.md   README.md      index.js       test
+LICENSE        index.d.ts     package.json   tsconfig.json
+
+./backend/node_modules/es-define-property/test:
+index.js
+
+./backend/node_modules/es-errors:
+CHANGELOG.md   eval.d.ts      index.js       range.js       syntax.d.ts    tsconfig.json  uri.d.ts
+LICENSE        eval.js        package.json   ref.d.ts       syntax.js      type.d.ts      uri.js
+README.md      index.d.ts     range.d.ts     ref.js         test           type.js
+
+./backend/node_modules/es-errors/test:
+index.js
+
+./backend/node_modules/es-object-atoms:
+CHANGELOG.md                 RequireObjectCoercible.js    index.js                     test
+LICENSE                      ToObject.d.ts                isObject.d.ts                tsconfig.json
+README.md                    ToObject.js                  isObject.js
+RequireObjectCoercible.d.ts  index.d.ts                   package.json
+
+./backend/node_modules/es-object-atoms/test:
+index.js
+
+./backend/node_modules/escape-html:
+LICENSE       Readme.md     index.js      package.json
+
+./backend/node_modules/etag:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/express:
+History.md    LICENSE       Readme.md     index.js      lib           package.json
+
+./backend/node_modules/express/lib:
+application.js  middleware      response.js     utils.js
+express.js      request.js      router          view.js
+
+./backend/node_modules/express/lib/middleware:
+init.js   query.js
+
+./backend/node_modules/express/lib/router:
+index.js  layer.js  route.js
+
+./backend/node_modules/express-rate-limit:
+dist           license.md     package.json   readme.md      tsconfig.json
+
+./backend/node_modules/express-rate-limit/dist:
+index.cjs    index.d.cts  index.d.mts  index.d.ts   index.mjs
+
+./backend/node_modules/finalhandler:
+HISTORY.md    LICENSE       README.md     SECURITY.md   index.js      package.json
+
+./backend/node_modules/forwarded:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/fresh:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/function-bind:
+CHANGELOG.md       README.md          index.js           test
+LICENSE            implementation.js  package.json
+
+./backend/node_modules/function-bind/test:
+index.js
+
+./backend/node_modules/get-intrinsic:
+CHANGELOG.md  LICENSE       README.md     index.js      package.json  test
+
+./backend/node_modules/get-intrinsic/test:
+GetIntrinsic.js
+
+./backend/node_modules/get-proto:
+CHANGELOG.md                 Object.getPrototypeOf.js     Reflect.getPrototypeOf.js    package.json
+LICENSE                      README.md                    index.d.ts                   test
+Object.getPrototypeOf.d.ts   Reflect.getPrototypeOf.d.ts  index.js                     tsconfig.json
+
+./backend/node_modules/get-proto/test:
+index.js
+
+./backend/node_modules/gopd:
+CHANGELOG.md   README.md      gOPD.js        index.js       test
+LICENSE        gOPD.d.ts      index.d.ts     package.json   tsconfig.json
+
+./backend/node_modules/gopd/test:
+index.js
+
+./backend/node_modules/has-symbols:
+CHANGELOG.md   README.md      index.js       shams.d.ts     test
+LICENSE        index.d.ts     package.json   shams.js       tsconfig.json
+
+./backend/node_modules/has-symbols/test:
+index.js  shams     tests.js
+
+./backend/node_modules/has-symbols/test/shams:
+core-js.js                   get-own-property-symbols.js
+
+./backend/node_modules/hasown:
+CHANGELOG.md   LICENSE        README.md      index.d.ts     index.js       package.json   tsconfig.json
+
+./backend/node_modules/helmet:
+CHANGELOG.md  README.md     index.cjs     index.d.mts   package.json
+LICENSE       SECURITY.md   index.d.cts   index.mjs
+
+./backend/node_modules/http-errors:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/iconv-lite:
+Changelog.md  LICENSE       README.md     encodings     lib           package.json
+
+./backend/node_modules/iconv-lite/encodings:
+dbcs-codec.js           internal.js             sbcs-data.js            utf7.js
+dbcs-data.js            sbcs-codec.js           tables
+index.js                sbcs-data-generated.js  utf16.js
+
+./backend/node_modules/iconv-lite/encodings/tables:
+big5-added.json      cp949.json           eucjp.json           gbk-added.json
+cp936.json           cp950.json           gb18030-ranges.json  shiftjis.json
+
+./backend/node_modules/iconv-lite/lib:
+bom-handling.js  extend-node.js   index.d.ts       index.js         streams.js
+
+./backend/node_modules/inherits:
+LICENSE              README.md            inherits.js          inherits_browser.js  package.json
+
+./backend/node_modules/ipaddr.js:
+LICENSE        README.md      ipaddr.min.js  lib            package.json
+
+./backend/node_modules/ipaddr.js/lib:
+ipaddr.js       ipaddr.js.d.ts
+
+./backend/node_modules/jsonwebtoken:
+LICENSE       decode.js     lib           package.json  verify.js
+README.md     index.js      node_modules  sign.js
+
+./backend/node_modules/jsonwebtoken/lib:
+JsonWebTokenError.js              asymmetricKeyDetailsSupported.js  timespan.js
+NotBeforeError.js                 psSupported.js                    validateAsymmetricKey.js
+TokenExpiredError.js              rsaPssKeyDetailsSupported.js
+
+./backend/node_modules/jsonwebtoken/node_modules:
+ms
+
+./backend/node_modules/jsonwebtoken/node_modules/ms:
+index.js      license.md    package.json  readme.md
+
+./backend/node_modules/jwa:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/jws:
+CHANGELOG.md  LICENSE       index.js      lib           package.json  readme.md
+
+./backend/node_modules/jws/lib:
+data-stream.js    sign-stream.js    tostring.js       verify-stream.js
+
+./backend/node_modules/lodash.includes:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/lodash.isboolean:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/lodash.isinteger:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/lodash.isnumber:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/lodash.isplainobject:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/lodash.isstring:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/lodash.once:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/math-intrinsics:
+CHANGELOG.md         floor.js             isNegativeZero.d.ts  mod.js               sign.js
+LICENSE              isFinite.d.ts        isNegativeZero.js    package.json         test
+README.md            isFinite.js          max.d.ts             pow.d.ts             tsconfig.json
+abs.d.ts             isInteger.d.ts       max.js               pow.js
+abs.js               isInteger.js         min.d.ts             round.d.ts
+constants            isNaN.d.ts           min.js               round.js
+floor.d.ts           isNaN.js             mod.d.ts             sign.d.ts
+
+./backend/node_modules/math-intrinsics/constants:
+maxArrayLength.d.ts  maxSafeInteger.d.ts  maxValue.d.ts
+maxArrayLength.js    maxSafeInteger.js    maxValue.js
+
+./backend/node_modules/math-intrinsics/test:
+index.js
+
+./backend/node_modules/media-typer:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/merge-descriptors:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/methods:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/mime:
+CHANGELOG.md  LICENSE       README.md     cli.js        mime.js       package.json  src           types.json
+
+./backend/node_modules/mime/src:
+build.js  test.js
+
+./backend/node_modules/mime-db:
+HISTORY.md    LICENSE       README.md     db.json       index.js      package.json
+
+./backend/node_modules/mime-types:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/ms:
+index.js      license.md    package.json  readme.md
+
+./backend/node_modules/negotiator:
+HISTORY.md    LICENSE       README.md     index.js      lib           package.json
+
+./backend/node_modules/negotiator/lib:
+charset.js    encoding.js   language.js   mediaType.js
+
+./backend/node_modules/object-assign:
+index.js      license       package.json  readme.md
+
+./backend/node_modules/object-inspect:
+CHANGELOG.md          example               package-support.json  readme.markdown       test-core-js.js
+LICENSE               index.js              package.json          test                  util.inspect.js
+
+./backend/node_modules/object-inspect/example:
+all.js       circular.js  fn.js        inspect.js
+
+./backend/node_modules/object-inspect/test:
+bigint.js         element.js        global.js         inspect.js        toStringTag.js
+browser           err.js            has.js            lowbyte.js        undef.js
+circular.js       fakes.js          holes.js          number.js         values.js
+deep.js           fn.js             indent-option.js  quoteStyle.js
+
+./backend/node_modules/object-inspect/test/browser:
+dom.js
+
+./backend/node_modules/on-finished:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/on-headers:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/parseurl:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/path-to-regexp:
+LICENSE       Readme.md     index.js      package.json
+
+./backend/node_modules/pg:
+LICENSE       README.md     esm           lib           package.json
+
+./backend/node_modules/pg/esm:
+index.mjs
+
+./backend/node_modules/pg/lib:
+client.js                 crypto                    native                    stream.js
+connection-parameters.js  defaults.js               query.js                  type-overrides.js
+connection.js             index.js                  result.js                 utils.js
+
+./backend/node_modules/pg/lib/crypto:
+cert-signatures.js  sasl.js             utils-legacy.js     utils-webcrypto.js  utils.js
+
+./backend/node_modules/pg/lib/native:
+client.js  index.js   query.js
+
+./backend/node_modules/pg-cloudflare:
+LICENSE       README.md     dist          esm           package.json  src
+
+./backend/node_modules/pg-cloudflare/dist:
+empty.d.ts    empty.js      empty.js.map  index.d.ts    index.js      index.js.map
+
+./backend/node_modules/pg-cloudflare/esm:
+index.mjs
+
+./backend/node_modules/pg-cloudflare/src:
+empty.ts    index.ts    types.d.ts
+
+./backend/node_modules/pg-connection-string:
+LICENSE       README.md     esm           index.d.ts    index.js      package.json
+
+./backend/node_modules/pg-connection-string/esm:
+index.mjs
+
+./backend/node_modules/pg-int8:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/pg-pool:
+LICENSE       README.md     esm           index.js      package.json
+
+./backend/node_modules/pg-pool/esm:
+index.mjs
+
+./backend/node_modules/pg-protocol:
+LICENSE       README.md     dist          esm           package.json  src
+
+./backend/node_modules/pg-protocol/dist:
+b.d.ts                           inbound-parser.test.d.ts         outbound-serializer.test.d.ts
+b.js                             inbound-parser.test.js           outbound-serializer.test.js
+b.js.map                         inbound-parser.test.js.map       outbound-serializer.test.js.map
+buffer-reader.d.ts               index.d.ts                       parser.d.ts
+buffer-reader.js                 index.js                         parser.js
+buffer-reader.js.map             index.js.map                     parser.js.map
+buffer-writer.d.ts               messages.d.ts                    serializer.d.ts
+buffer-writer.js                 messages.js                      serializer.js
+buffer-writer.js.map             messages.js.map                  serializer.js.map
+
+./backend/node_modules/pg-protocol/esm:
+index.js
+
+./backend/node_modules/pg-protocol/src:
+b.ts                         inbound-parser.test.ts       outbound-serializer.test.ts  testing
+buffer-reader.ts             index.ts                     parser.ts                    types
+buffer-writer.ts             messages.ts                  serializer.ts
+
+./backend/node_modules/pg-protocol/src/testing:
+buffer-list.ts   test-buffers.ts
+
+./backend/node_modules/pg-protocol/src/types:
+chunky.d.ts
+
+./backend/node_modules/pg-types:
+Makefile         index.d.ts       index.test-d.ts  package.json
+README.md        index.js         lib              test
+
+./backend/node_modules/pg-types/lib:
+arrayParser.js    binaryParsers.js  builtins.js       textParsers.js
+
+./backend/node_modules/pg-types/test:
+index.js  types.js
+
+./backend/node_modules/pgpass:
+README.md     lib           package.json
+
+./backend/node_modules/pgpass/lib:
+helper.js  index.js
+
+./backend/node_modules/postgres-array:
+index.d.ts    index.js      license       package.json  readme.md
+
+./backend/node_modules/postgres-bytea:
+index.js      license       package.json  readme.md
+
+./backend/node_modules/postgres-date:
+index.js      license       package.json  readme.md
+
+./backend/node_modules/postgres-interval:
+index.d.ts    index.js      license       package.json  readme.md
+
+./backend/node_modules/proxy-addr:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/qs:
+CHANGELOG.md  LICENSE.md    README.md     dist          lib           package.json  test
+
+./backend/node_modules/qs/dist:
+qs.js
+
+./backend/node_modules/qs/lib:
+formats.js    index.js      parse.js      stringify.js  utils.js
+
+./backend/node_modules/qs/test:
+empty-keys-cases.js  parse.js             stringify.js         utils.js
+
+./backend/node_modules/range-parser:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/raw-body:
+HISTORY.md    LICENSE       README.md     SECURITY.md   index.d.ts    index.js      package.json
+
+./backend/node_modules/safe-buffer:
+LICENSE       README.md     index.d.ts    index.js      package.json
+
+./backend/node_modules/safer-buffer:
+LICENSE            Readme.md          package.json       tests.js
+Porting-Buffer.md  dangerous.js       safer.js
+
+./backend/node_modules/semver:
+LICENSE       bin           functions     internal      preload.js    ranges
+README.md     classes       index.js      package.json  range.bnf
+
+./backend/node_modules/semver/bin:
+semver.js
+
+./backend/node_modules/semver/classes:
+comparator.js  index.js       range.js       semver.js
+
+./backend/node_modules/semver/functions:
+clean.js          compare-loose.js  gt.js             lte.js            parse.js          rsort.js
+cmp.js            compare.js        gte.js            major.js          patch.js          satisfies.js
+coerce.js         diff.js           inc.js            minor.js          prerelease.js     sort.js
+compare-build.js  eq.js             lt.js             neq.js            rcompare.js       valid.js
+
+./backend/node_modules/semver/internal:
+constants.js      debug.js          identifiers.js    lrucache.js       parse-options.js  re.js
+
+./backend/node_modules/semver/ranges:
+gtr.js             ltr.js             min-satisfying.js  outside.js         subset.js          valid.js
+intersects.js      max-satisfying.js  min-version.js     simplify.js        to-comparators.js
+
+./backend/node_modules/send:
+HISTORY.md    LICENSE       README.md     SECURITY.md   index.js      node_modules  package.json
+
+./backend/node_modules/send/node_modules:
+encodeurl  ms
+
+./backend/node_modules/send/node_modules/encodeurl:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/send/node_modules/ms:
+index.js      license.md    package.json  readme.md
+
+./backend/node_modules/serve-static:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/setprototypeof:
+LICENSE       README.md     index.d.ts    index.js      package.json  test
+
+./backend/node_modules/setprototypeof/test:
+index.js
+
+./backend/node_modules/side-channel:
+CHANGELOG.md   README.md      index.js       test
+LICENSE        index.d.ts     package.json   tsconfig.json
+
+./backend/node_modules/side-channel/test:
+index.js
+
+./backend/node_modules/side-channel-list:
+CHANGELOG.md   README.md      index.js       package.json   tsconfig.json
+LICENSE        index.d.ts     list.d.ts      test
+
+./backend/node_modules/side-channel-list/test:
+index.js
+
+./backend/node_modules/side-channel-map:
+CHANGELOG.md   README.md      index.js       test
+LICENSE        index.d.ts     package.json   tsconfig.json
+
+./backend/node_modules/side-channel-map/test:
+index.js
+
+./backend/node_modules/side-channel-weakmap:
+CHANGELOG.md   README.md      index.js       test
+LICENSE        index.d.ts     package.json   tsconfig.json
+
+./backend/node_modules/side-channel-weakmap/test:
+index.js
+
+./backend/node_modules/socket.io:
+LICENSE       Readme.md     client-dist   dist          node_modules  package.json  wrapper.mjs
+
+./backend/node_modules/socket.io/client-dist:
+socket.io.esm.min.js          socket.io.js.map              socket.io.msgpack.min.js
+socket.io.esm.min.js.map      socket.io.min.js              socket.io.msgpack.min.js.map
+socket.io.js                  socket.io.min.js.map
+
+./backend/node_modules/socket.io/dist:
+broadcast-operator.d.ts  index.js                 socket-types.d.ts        typed-events.js
+broadcast-operator.js    namespace.d.ts           socket-types.js          uws.d.ts
+client.d.ts              namespace.js             socket.d.ts              uws.js
+client.js                parent-namespace.d.ts    socket.js
+index.d.ts               parent-namespace.js      typed-events.d.ts
+
+./backend/node_modules/socket.io/node_modules:
+debug  ms
+
+./backend/node_modules/socket.io/node_modules/debug:
+LICENSE       README.md     package.json  src
+
+./backend/node_modules/socket.io/node_modules/debug/src:
+browser.js  common.js   index.js    node.js
+
+./backend/node_modules/socket.io/node_modules/ms:
+index.js      license.md    package.json  readme.md
+
+./backend/node_modules/socket.io-adapter:
+LICENSE       Readme.md     dist          node_modules  package.json
+
+./backend/node_modules/socket.io-adapter/dist:
+cluster-adapter.d.ts    contrib                 in-memory-adapter.js    index.js
+cluster-adapter.js      in-memory-adapter.d.ts  index.d.ts
+
+./backend/node_modules/socket.io-adapter/dist/contrib:
+yeast.d.ts  yeast.js
+
+./backend/node_modules/socket.io-adapter/node_modules:
+debug  ms
+
+./backend/node_modules/socket.io-adapter/node_modules/debug:
+LICENSE       README.md     package.json  src
+
+./backend/node_modules/socket.io-adapter/node_modules/debug/src:
+browser.js  common.js   index.js    node.js
+
+./backend/node_modules/socket.io-adapter/node_modules/ms:
+index.js      license.md    package.json  readme.md
+
+./backend/node_modules/socket.io-parser:
+LICENSE       Readme.md     build         node_modules  package.json
+
+./backend/node_modules/socket.io-parser/build:
+cjs        esm        esm-debug
+
+./backend/node_modules/socket.io-parser/build/cjs:
+binary.d.ts     binary.js       index.d.ts      index.js        is-binary.d.ts  is-binary.js    package.json
+
+./backend/node_modules/socket.io-parser/build/esm:
+binary.d.ts     binary.js       index.d.ts      index.js        is-binary.d.ts  is-binary.js    package.json
+
+./backend/node_modules/socket.io-parser/build/esm-debug:
+binary.d.ts     binary.js       index.d.ts      index.js        is-binary.d.ts  is-binary.js    package.json
+
+./backend/node_modules/socket.io-parser/node_modules:
+debug  ms
+
+./backend/node_modules/socket.io-parser/node_modules/debug:
+LICENSE       README.md     package.json  src
+
+./backend/node_modules/socket.io-parser/node_modules/debug/src:
+browser.js  common.js   index.js    node.js
+
+./backend/node_modules/socket.io-parser/node_modules/ms:
+index.js      license.md    package.json  readme.md
+
+./backend/node_modules/split2:
+LICENSE       README.md     bench.js      index.js      package.json  test.js
+
+./backend/node_modules/statuses:
+HISTORY.md    LICENSE       README.md     codes.json    index.js      package.json
+
+./backend/node_modules/toidentifier:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/type-is:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/undici-types:
+LICENSE                    cookies.d.ts               handlers.d.ts              patch.d.ts
+README.md                  diagnostics-channel.d.ts   header.d.ts                pool-stats.d.ts
+agent.d.ts                 dispatcher.d.ts            index.d.ts                 pool.d.ts
+api.d.ts                   env-http-proxy-agent.d.ts  interceptors.d.ts          proxy-agent.d.ts
+balanced-pool.d.ts         errors.d.ts                mock-agent.d.ts            readable.d.ts
+cache-interceptor.d.ts     eventsource.d.ts           mock-call-history.d.ts     retry-agent.d.ts
+cache.d.ts                 fetch.d.ts                 mock-client.d.ts           retry-handler.d.ts
+client-stats.d.ts          formdata.d.ts              mock-errors.d.ts           util.d.ts
+client.d.ts                global-dispatcher.d.ts     mock-interceptor.d.ts      utility.d.ts
+connector.d.ts             global-origin.d.ts         mock-pool.d.ts             webidl.d.ts
+content-type.d.ts          h2c-client.d.ts            package.json               websocket.d.ts
+
+./backend/node_modules/unpipe:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/utils-merge:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/uuid:
+CHANGELOG.md     CONTRIBUTING.md  LICENSE.md       README.md        dist             package.json     wrapper.mjs
+
+./backend/node_modules/uuid/dist:
+bin                md5-browser.js     parse.js           sha1.js            v35.js
+commonjs-browser   md5.js             regex.js           stringify.js       v4.js
+esm-browser        native-browser.js  rng-browser.js     uuid-bin.js        v5.js
+esm-node           native.js          rng.js             v1.js              validate.js
+index.js           nil.js             sha1-browser.js    v3.js              version.js
+
+./backend/node_modules/uuid/dist/bin:
+uuid
+
+./backend/node_modules/uuid/dist/commonjs-browser:
+index.js      native.js     parse.js      rng.js        stringify.js  v3.js         v4.js         validate.js
+md5.js        nil.js        regex.js      sha1.js       v1.js         v35.js        v5.js         version.js
+
+./backend/node_modules/uuid/dist/esm-browser:
+index.js      native.js     parse.js      rng.js        stringify.js  v3.js         v4.js         validate.js
+/app $ ls -R
+.:
+backend  dist
+
+./backend:
+deploy.sh             keep-alive.sh         node_modules          permissions-map.json  setup-db.sh
+docker-entrypoint.sh  middleware            package-lock.json     postgres-client.js    test-bcrypt.js
+index.js              migrations.js         package.json          scripts               test-sql.sh
+
+./backend/middleware:
+auth.js         db-health.js    permissions.js
+
+./backend/node_modules:
+@socket.io                  es-errors                   lodash.once                 qs
+@types                      es-object-atoms             math-intrinsics             range-parser
+accepts                     escape-html                 media-typer                 raw-body
+array-flatten               etag                        merge-descriptors           safe-buffer
+base64id                    express                     methods                     safer-buffer
+bcryptjs                    express-rate-limit          mime                        semver
+body-parser                 finalhandler                mime-db                     send
+buffer-equal-constant-time  forwarded                   mime-types                  serve-static
+bytes                       fresh                       ms                          setprototypeof
+call-bind-apply-helpers     function-bind               negotiator                  side-channel
+call-bound                  get-intrinsic               object-assign               side-channel-list
+compressible                get-proto                   object-inspect              side-channel-map
+compression                 gopd                        on-finished                 side-channel-weakmap
+content-disposition         has-symbols                 on-headers                  socket.io
+content-type                hasown                      parseurl                    socket.io-adapter
+cookie                      helmet                      path-to-regexp              socket.io-parser
+cookie-signature            http-errors                 pg                          split2
+cors                        iconv-lite                  pg-cloudflare               statuses
+debug                       inherits                    pg-connection-string        toidentifier
+depd                        ipaddr.js                   pg-int8                     type-is
+destroy                     jsonwebtoken                pg-pool                     undici-types
+dotenv                      jwa                         pg-protocol                 unpipe
+dunder-proto                jws                         pg-types                    utils-merge
+ecdsa-sig-formatter         lodash.includes             pgpass                      uuid
+ee-first                    lodash.isboolean            postgres-array              vary
+encodeurl                   lodash.isinteger            postgres-bytea              ws
+engine.io                   lodash.isnumber             postgres-date               xtend
+engine.io-parser            lodash.isplainobject        postgres-interval
+es-define-property          lodash.isstring             proxy-addr
+
+./backend/node_modules/@socket.io:
+component-emitter
+
+./backend/node_modules/@socket.io/component-emitter:
+LICENSE       Readme.md     lib           package.json
+
+./backend/node_modules/@socket.io/component-emitter/lib:
+cjs  esm
+
+./backend/node_modules/@socket.io/component-emitter/lib/cjs:
+index.d.ts    index.js      package.json
+
+./backend/node_modules/@socket.io/component-emitter/lib/esm:
+index.d.ts    index.js      package.json
+
+./backend/node_modules/@types:
+cors  node
+
+./backend/node_modules/@types/cors:
+LICENSE       README.md     index.d.ts    package.json
+
+./backend/node_modules/@types/node:
+LICENSE                   dns.d.ts                  package.json              timers.d.ts
+README.md                 dom-events.d.ts           path.d.ts                 tls.d.ts
+assert                    domain.d.ts               perf_hooks.d.ts           trace_events.d.ts
+assert.d.ts               events.d.ts               process.d.ts              ts5.6
+async_hooks.d.ts          fs                        punycode.d.ts             ts5.7
+buffer.buffer.d.ts        fs.d.ts                   querystring.d.ts          tty.d.ts
+buffer.d.ts               globals.d.ts              readline                  url.d.ts
+child_process.d.ts        globals.typedarray.d.ts   readline.d.ts             util.d.ts
+cluster.d.ts              http.d.ts                 repl.d.ts                 v8.d.ts
+compatibility             http2.d.ts                sea.d.ts                  vm.d.ts
+console.d.ts              https.d.ts                sqlite.d.ts               wasi.d.ts
+constants.d.ts            index.d.ts                stream                    worker_threads.d.ts
+crypto.d.ts               inspector.d.ts            stream.d.ts               zlib.d.ts
+dgram.d.ts                module.d.ts               string_decoder.d.ts
+diagnostics_channel.d.ts  net.d.ts                  test.d.ts
+dns                       os.d.ts                   timers
+
+./backend/node_modules/@types/node/assert:
+strict.d.ts
+
+./backend/node_modules/@types/node/compatibility:
+iterators.d.ts
+
+./backend/node_modules/@types/node/dns:
+promises.d.ts
+
+./backend/node_modules/@types/node/fs:
+promises.d.ts
+
+./backend/node_modules/@types/node/readline:
+promises.d.ts
+
+./backend/node_modules/@types/node/stream:
+consumers.d.ts  promises.d.ts   web.d.ts
+
+./backend/node_modules/@types/node/timers:
+promises.d.ts
+
+./backend/node_modules/@types/node/ts5.6:
+buffer.buffer.d.ts       compatibility            globals.typedarray.d.ts  index.d.ts
+
+./backend/node_modules/@types/node/ts5.6/compatibility:
+float16array.d.ts
+
+./backend/node_modules/@types/node/ts5.7:
+compatibility  index.d.ts
+
+./backend/node_modules/@types/node/ts5.7/compatibility:
+float16array.d.ts
+
+./backend/node_modules/accepts:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/array-flatten:
+LICENSE           README.md         array-flatten.js  package.json
+
+./backend/node_modules/base64id:
+CHANGELOG.md  LICENSE       README.md     lib           package.json
+
+./backend/node_modules/base64id/lib:
+base64id.js
+
+./backend/node_modules/bcryptjs:
+LICENSE       bin           dist          index.js      scripts       tests
+README.md     bower.json    externs       package.json  src
+
+./backend/node_modules/bcryptjs/bin:
+bcrypt
+
+./backend/node_modules/bcryptjs/dist:
+README.md         bcrypt.js         bcrypt.min.js     bcrypt.min.js.gz  bcrypt.min.map
+
+./backend/node_modules/bcryptjs/externs:
+bcrypt.js       minimal-env.js
+
+./backend/node_modules/bcryptjs/scripts:
+build.js
+
+./backend/node_modules/bcryptjs/src:
+bcrypt      bcrypt.js   bower.json  wrap.js
+
+./backend/node_modules/bcryptjs/src/bcrypt:
+impl.js  prng     util     util.js
+
+./backend/node_modules/bcryptjs/src/bcrypt/prng:
+README.md  accum.js   isaac.js
+
+./backend/node_modules/bcryptjs/src/bcrypt/util:
+base64.js
+
+./backend/node_modules/bcryptjs/tests:
+quickbrown.txt  suite.js
+
+./backend/node_modules/body-parser:
+HISTORY.md    LICENSE       README.md     SECURITY.md   index.js      lib           package.json
+
+./backend/node_modules/body-parser/lib:
+read.js  types
+
+./backend/node_modules/body-parser/lib/types:
+json.js        raw.js         text.js        urlencoded.js
+
+./backend/node_modules/buffer-equal-constant-time:
+LICENSE.txt   README.md     index.js      package.json  test.js
+
+./backend/node_modules/bytes:
+History.md    LICENSE       Readme.md     index.js      package.json
+
+./backend/node_modules/call-bind-apply-helpers:
+CHANGELOG.md        actualApply.js      functionApply.js    index.js            test
+LICENSE             applyBind.d.ts      functionCall.d.ts   package.json        tsconfig.json
+README.md           applyBind.js        functionCall.js     reflectApply.d.ts
+actualApply.d.ts    functionApply.d.ts  index.d.ts          reflectApply.js
+
+./backend/node_modules/call-bind-apply-helpers/test:
+index.js
+
+./backend/node_modules/call-bound:
+CHANGELOG.md   README.md      index.js       test
+LICENSE        index.d.ts     package.json   tsconfig.json
+
+./backend/node_modules/call-bound/test:
+index.js
+
+./backend/node_modules/compressible:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/compression:
+HISTORY.md    LICENSE       README.md     index.js      node_modules  package.json
+
+./backend/node_modules/compression/node_modules:
+negotiator
+
+./backend/node_modules/compression/node_modules/negotiator:
+HISTORY.md    LICENSE       README.md     index.js      lib           package.json
+
+./backend/node_modules/compression/node_modules/negotiator/lib:
+charset.js    encoding.js   language.js   mediaType.js
+
+./backend/node_modules/content-disposition:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/content-type:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/cookie:
+LICENSE       README.md     SECURITY.md   index.js      package.json
+
+./backend/node_modules/cookie-signature:
+History.md    Readme.md     index.js      package.json
+
+./backend/node_modules/cors:
+CONTRIBUTING.md  HISTORY.md       LICENSE          README.md        lib              package.json
+
+./backend/node_modules/cors/lib:
+index.js
+
+./backend/node_modules/debug:
+CHANGELOG.md    Makefile        component.json  node.js         src
+LICENSE         README.md       karma.conf.js   package.json
+
+./backend/node_modules/debug/src:
+browser.js        debug.js          index.js          inspector-log.js  node.js
+
+./backend/node_modules/depd:
+History.md    LICENSE       Readme.md     index.js      lib           package.json
+
+./backend/node_modules/depd/lib:
+browser
+
+./backend/node_modules/depd/lib/browser:
+index.js
+
+./backend/node_modules/destroy:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/dotenv:
+CHANGELOG.md  README-es.md  SECURITY.md   config.js     package.json
+LICENSE       README.md     config.d.ts   lib
+
+./backend/node_modules/dotenv/lib:
+cli-options.js  env-options.js  main.d.ts       main.js
+
+./backend/node_modules/dunder-proto:
+CHANGELOG.md   README.md      get.js         set.d.ts       test
+LICENSE        get.d.ts       package.json   set.js         tsconfig.json
+
+./backend/node_modules/dunder-proto/test:
+get.js    index.js  set.js
+
+./backend/node_modules/ecdsa-sig-formatter:
+CODEOWNERS    LICENSE       README.md     package.json  src
+
+./backend/node_modules/ecdsa-sig-formatter/src:
+ecdsa-sig-formatter.d.ts  ecdsa-sig-formatter.js    param-bytes-for-alg.js
+
+./backend/node_modules/ee-first:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/encodeurl:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/engine.io:
+LICENSE       README.md     build         node_modules  package.json  wrapper.mjs
+
+./backend/node_modules/engine.io/build:
+contrib         engine.io.js    server.d.ts     socket.d.ts     transport.d.ts  transports      userver.d.ts
+engine.io.d.ts  parser-v3       server.js       socket.js       transport.js    transports-uws  userver.js
+
+./backend/node_modules/engine.io/build/contrib:
+types.cookie.d.ts  types.cookie.js
+
+./backend/node_modules/engine.io/build/parser-v3:
+index.d.ts  index.js    utf8.d.ts   utf8.js
+
+./backend/node_modules/engine.io/build/transports:
+index.d.ts          polling-jsonp.d.ts  polling.d.ts        websocket.d.ts      webtransport.d.ts
+index.js            polling-jsonp.js    polling.js          websocket.js        webtransport.js
+
+./backend/node_modules/engine.io/build/transports-uws:
+index.d.ts      index.js        polling.d.ts    polling.js      websocket.d.ts  websocket.js
+
+./backend/node_modules/engine.io/node_modules:
+cookie  debug   ms
+
+./backend/node_modules/engine.io/node_modules/cookie:
+LICENSE       README.md     SECURITY.md   index.js      package.json
+
+./backend/node_modules/engine.io/node_modules/debug:
+LICENSE       README.md     package.json  src
+
+./backend/node_modules/engine.io/node_modules/debug/src:
+browser.js  common.js   index.js    node.js
+
+./backend/node_modules/engine.io/node_modules/ms:
+index.js      license.md    package.json  readme.md
+
+./backend/node_modules/engine.io-parser:
+LICENSE       Readme.md     build         package.json
+
+./backend/node_modules/engine.io-parser/build:
+cjs  esm
+
+./backend/node_modules/engine.io-parser/build/cjs:
+commons.d.ts               decodePacket.browser.js    encodePacket.browser.js    index.js
+commons.js                 decodePacket.d.ts          encodePacket.d.ts          package.json
+contrib                    decodePacket.js            encodePacket.js
+decodePacket.browser.d.ts  encodePacket.browser.d.ts  index.d.ts
+
+./backend/node_modules/engine.io-parser/build/cjs/contrib:
+base64-arraybuffer.d.ts  base64-arraybuffer.js
+
+./backend/node_modules/engine.io-parser/build/esm:
+commons.d.ts               decodePacket.browser.js    encodePacket.browser.js    index.js
+commons.js                 decodePacket.d.ts          encodePacket.d.ts          package.json
+contrib                    decodePacket.js            encodePacket.js
+decodePacket.browser.d.ts  encodePacket.browser.d.ts  index.d.ts
+
+./backend/node_modules/engine.io-parser/build/esm/contrib:
+base64-arraybuffer.d.ts  base64-arraybuffer.js
+
+./backend/node_modules/es-define-property:
+CHANGELOG.md   README.md      index.js       test
+LICENSE        index.d.ts     package.json   tsconfig.json
+
+./backend/node_modules/es-define-property/test:
+index.js
+
+./backend/node_modules/es-errors:
+CHANGELOG.md   eval.d.ts      index.js       range.js       syntax.d.ts    tsconfig.json  uri.d.ts
+LICENSE        eval.js        package.json   ref.d.ts       syntax.js      type.d.ts      uri.js
+README.md      index.d.ts     range.d.ts     ref.js         test           type.js
+
+./backend/node_modules/es-errors/test:
+index.js
+
+./backend/node_modules/es-object-atoms:
+CHANGELOG.md                 RequireObjectCoercible.js    index.js                     test
+LICENSE                      ToObject.d.ts                isObject.d.ts                tsconfig.json
+README.md                    ToObject.js                  isObject.js
+RequireObjectCoercible.d.ts  index.d.ts                   package.json
+
+./backend/node_modules/es-object-atoms/test:
+index.js
+
+./backend/node_modules/escape-html:
+LICENSE       Readme.md     index.js      package.json
+
+./backend/node_modules/etag:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/express:
+History.md    LICENSE       Readme.md     index.js      lib           package.json
+
+./backend/node_modules/express/lib:
+application.js  middleware      response.js     utils.js
+express.js      request.js      router          view.js
+
+./backend/node_modules/express/lib/middleware:
+init.js   query.js
+
+./backend/node_modules/express/lib/router:
+index.js  layer.js  route.js
+
+./backend/node_modules/express-rate-limit:
+dist           license.md     package.json   readme.md      tsconfig.json
+
+./backend/node_modules/express-rate-limit/dist:
+index.cjs    index.d.cts  index.d.mts  index.d.ts   index.mjs
+
+./backend/node_modules/finalhandler:
+HISTORY.md    LICENSE       README.md     SECURITY.md   index.js      package.json
+
+./backend/node_modules/forwarded:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/fresh:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/function-bind:
+CHANGELOG.md       README.md          index.js           test
+LICENSE            implementation.js  package.json
+
+./backend/node_modules/function-bind/test:
+index.js
+
+./backend/node_modules/get-intrinsic:
+CHANGELOG.md  LICENSE       README.md     index.js      package.json  test
+
+./backend/node_modules/get-intrinsic/test:
+GetIntrinsic.js
+
+./backend/node_modules/get-proto:
+CHANGELOG.md                 Object.getPrototypeOf.js     Reflect.getPrototypeOf.js    package.json
+LICENSE                      README.md                    index.d.ts                   test
+Object.getPrototypeOf.d.ts   Reflect.getPrototypeOf.d.ts  index.js                     tsconfig.json
+
+./backend/node_modules/get-proto/test:
+index.js
+
+./backend/node_modules/gopd:
+CHANGELOG.md   README.md      gOPD.js        index.js       test
+LICENSE        gOPD.d.ts      index.d.ts     package.json   tsconfig.json
+
+./backend/node_modules/gopd/test:
+index.js
+
+./backend/node_modules/has-symbols:
+CHANGELOG.md   README.md      index.js       shams.d.ts     test
+LICENSE        index.d.ts     package.json   shams.js       tsconfig.json
+
+./backend/node_modules/has-symbols/test:
+index.js  shams     tests.js
+
+./backend/node_modules/has-symbols/test/shams:
+core-js.js                   get-own-property-symbols.js
+
+./backend/node_modules/hasown:
+CHANGELOG.md   LICENSE        README.md      index.d.ts     index.js       package.json   tsconfig.json
+
+./backend/node_modules/helmet:
+CHANGELOG.md  README.md     index.cjs     index.d.mts   package.json
+LICENSE       SECURITY.md   index.d.cts   index.mjs
+
+./backend/node_modules/http-errors:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/iconv-lite:
+Changelog.md  LICENSE       README.md     encodings     lib           package.json
+
+./backend/node_modules/iconv-lite/encodings:
+dbcs-codec.js           internal.js             sbcs-data.js            utf7.js
+dbcs-data.js            sbcs-codec.js           tables
+index.js                sbcs-data-generated.js  utf16.js
+
+./backend/node_modules/iconv-lite/encodings/tables:
+big5-added.json      cp949.json           eucjp.json           gbk-added.json
+cp936.json           cp950.json           gb18030-ranges.json  shiftjis.json
+
+./backend/node_modules/iconv-lite/lib:
+bom-handling.js  extend-node.js   index.d.ts       index.js         streams.js
+
+./backend/node_modules/inherits:
+LICENSE              README.md            inherits.js          inherits_browser.js  package.json
+
+./backend/node_modules/ipaddr.js:
+LICENSE        README.md      ipaddr.min.js  lib            package.json
+
+./backend/node_modules/ipaddr.js/lib:
+ipaddr.js       ipaddr.js.d.ts
+
+./backend/node_modules/jsonwebtoken:
+LICENSE       decode.js     lib           package.json  verify.js
+README.md     index.js      node_modules  sign.js
+
+./backend/node_modules/jsonwebtoken/lib:
+JsonWebTokenError.js              asymmetricKeyDetailsSupported.js  timespan.js
+NotBeforeError.js                 psSupported.js                    validateAsymmetricKey.js
+TokenExpiredError.js              rsaPssKeyDetailsSupported.js
+
+./backend/node_modules/jsonwebtoken/node_modules:
+ms
+
+./backend/node_modules/jsonwebtoken/node_modules/ms:
+index.js      license.md    package.json  readme.md
+
+./backend/node_modules/jwa:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/jws:
+CHANGELOG.md  LICENSE       index.js      lib           package.json  readme.md
+
+./backend/node_modules/jws/lib:
+data-stream.js    sign-stream.js    tostring.js       verify-stream.js
+
+./backend/node_modules/lodash.includes:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/lodash.isboolean:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/lodash.isinteger:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/lodash.isnumber:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/lodash.isplainobject:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/lodash.isstring:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/lodash.once:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/math-intrinsics:
+CHANGELOG.md         floor.js             isNegativeZero.d.ts  mod.js               sign.js
+LICENSE              isFinite.d.ts        isNegativeZero.js    package.json         test
+README.md            isFinite.js          max.d.ts             pow.d.ts             tsconfig.json
+abs.d.ts             isInteger.d.ts       max.js               pow.js
+abs.js               isInteger.js         min.d.ts             round.d.ts
+constants            isNaN.d.ts           min.js               round.js
+floor.d.ts           isNaN.js             mod.d.ts             sign.d.ts
+
+./backend/node_modules/math-intrinsics/constants:
+maxArrayLength.d.ts  maxSafeInteger.d.ts  maxValue.d.ts
+maxArrayLength.js    maxSafeInteger.js    maxValue.js
+
+./backend/node_modules/math-intrinsics/test:
+index.js
+
+./backend/node_modules/media-typer:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/merge-descriptors:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/methods:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/mime:
+CHANGELOG.md  LICENSE       README.md     cli.js        mime.js       package.json  src           types.json
+
+./backend/node_modules/mime/src:
+build.js  test.js
+
+./backend/node_modules/mime-db:
+HISTORY.md    LICENSE       README.md     db.json       index.js      package.json
+
+./backend/node_modules/mime-types:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/ms:
+index.js      license.md    package.json  readme.md
+
+./backend/node_modules/negotiator:
+HISTORY.md    LICENSE       README.md     index.js      lib           package.json
+
+./backend/node_modules/negotiator/lib:
+charset.js    encoding.js   language.js   mediaType.js
+
+./backend/node_modules/object-assign:
+index.js      license       package.json  readme.md
+
+./backend/node_modules/object-inspect:
+CHANGELOG.md          example               package-support.json  readme.markdown       test-core-js.js
+LICENSE               index.js              package.json          test                  util.inspect.js
+
+./backend/node_modules/object-inspect/example:
+all.js       circular.js  fn.js        inspect.js
+
+./backend/node_modules/object-inspect/test:
+bigint.js         element.js        global.js         inspect.js        toStringTag.js
+browser           err.js            has.js            lowbyte.js        undef.js
+circular.js       fakes.js          holes.js          number.js         values.js
+deep.js           fn.js             indent-option.js  quoteStyle.js
+
+./backend/node_modules/object-inspect/test/browser:
+dom.js
+
+./backend/node_modules/on-finished:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/on-headers:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/parseurl:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/path-to-regexp:
+LICENSE       Readme.md     index.js      package.json
+
+./backend/node_modules/pg:
+LICENSE       README.md     esm           lib           package.json
+
+./backend/node_modules/pg/esm:
+index.mjs
+
+./backend/node_modules/pg/lib:
+client.js                 crypto                    native                    stream.js
+connection-parameters.js  defaults.js               query.js                  type-overrides.js
+connection.js             index.js                  result.js                 utils.js
+
+./backend/node_modules/pg/lib/crypto:
+cert-signatures.js  sasl.js             utils-legacy.js     utils-webcrypto.js  utils.js
+
+./backend/node_modules/pg/lib/native:
+client.js  index.js   query.js
+
+./backend/node_modules/pg-cloudflare:
+LICENSE       README.md     dist          esm           package.json  src
+
+./backend/node_modules/pg-cloudflare/dist:
+empty.d.ts    empty.js      empty.js.map  index.d.ts    index.js      index.js.map
+
+./backend/node_modules/pg-cloudflare/esm:
+index.mjs
+
+./backend/node_modules/pg-cloudflare/src:
+empty.ts    index.ts    types.d.ts
+
+./backend/node_modules/pg-connection-string:
+LICENSE       README.md     esm           index.d.ts    index.js      package.json
+
+./backend/node_modules/pg-connection-string/esm:
+index.mjs
+
+./backend/node_modules/pg-int8:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/pg-pool:
+LICENSE       README.md     esm           index.js      package.json
+
+./backend/node_modules/pg-pool/esm:
+index.mjs
+
+./backend/node_modules/pg-protocol:
+LICENSE       README.md     dist          esm           package.json  src
+
+./backend/node_modules/pg-protocol/dist:
+b.d.ts                           inbound-parser.test.d.ts         outbound-serializer.test.d.ts
+b.js                             inbound-parser.test.js           outbound-serializer.test.js
+b.js.map                         inbound-parser.test.js.map       outbound-serializer.test.js.map
+buffer-reader.d.ts               index.d.ts                       parser.d.ts
+buffer-reader.js                 index.js                         parser.js
+buffer-reader.js.map             index.js.map                     parser.js.map
+buffer-writer.d.ts               messages.d.ts                    serializer.d.ts
+buffer-writer.js                 messages.js                      serializer.js
+buffer-writer.js.map             messages.js.map                  serializer.js.map
+
+./backend/node_modules/pg-protocol/esm:
+index.js
+
+./backend/node_modules/pg-protocol/src:
+b.ts                         inbound-parser.test.ts       outbound-serializer.test.ts  testing
+buffer-reader.ts             index.ts                     parser.ts                    types
+buffer-writer.ts             messages.ts                  serializer.ts
+
+./backend/node_modules/pg-protocol/src/testing:
+buffer-list.ts   test-buffers.ts
+
+./backend/node_modules/pg-protocol/src/types:
+chunky.d.ts
+
+./backend/node_modules/pg-types:
+Makefile         index.d.ts       index.test-d.ts  package.json
+README.md        index.js         lib              test
+
+./backend/node_modules/pg-types/lib:
+arrayParser.js    binaryParsers.js  builtins.js       textParsers.js
+
+./backend/node_modules/pg-types/test:
+index.js  types.js
+
+./backend/node_modules/pgpass:
+README.md     lib           package.json
+
+./backend/node_modules/pgpass/lib:
+helper.js  index.js
+
+./backend/node_modules/postgres-array:
+index.d.ts    index.js      license       package.json  readme.md
+
+./backend/node_modules/postgres-bytea:
+index.js      license       package.json  readme.md
+
+./backend/node_modules/postgres-date:
+index.js      license       package.json  readme.md
+
+./backend/node_modules/postgres-interval:
+index.d.ts    index.js      license       package.json  readme.md
+
+./backend/node_modules/proxy-addr:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/qs:
+CHANGELOG.md  LICENSE.md    README.md     dist          lib           package.json  test
+
+./backend/node_modules/qs/dist:
+qs.js
+
+./backend/node_modules/qs/lib:
+formats.js    index.js      parse.js      stringify.js  utils.js
+
+./backend/node_modules/qs/test:
+empty-keys-cases.js  parse.js             stringify.js         utils.js
+
+./backend/node_modules/range-parser:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/raw-body:
+HISTORY.md    LICENSE       README.md     SECURITY.md   index.d.ts    index.js      package.json
+
+./backend/node_modules/safe-buffer:
+LICENSE       README.md     index.d.ts    index.js      package.json
+
+./backend/node_modules/safer-buffer:
+LICENSE            Readme.md          package.json       tests.js
+Porting-Buffer.md  dangerous.js       safer.js
+
+./backend/node_modules/semver:
+LICENSE       bin           functions     internal      preload.js    ranges
+README.md     classes       index.js      package.json  range.bnf
+
+./backend/node_modules/semver/bin:
+semver.js
+
+./backend/node_modules/semver/classes:
+comparator.js  index.js       range.js       semver.js
+
+./backend/node_modules/semver/functions:
+clean.js          compare-loose.js  gt.js             lte.js            parse.js          rsort.js
+cmp.js            compare.js        gte.js            major.js          patch.js          satisfies.js
+coerce.js         diff.js           inc.js            minor.js          prerelease.js     sort.js
+compare-build.js  eq.js             lt.js             neq.js            rcompare.js       valid.js
+
+./backend/node_modules/semver/internal:
+constants.js      debug.js          identifiers.js    lrucache.js       parse-options.js  re.js
+
+./backend/node_modules/semver/ranges:
+gtr.js             ltr.js             min-satisfying.js  outside.js         subset.js          valid.js
+intersects.js      max-satisfying.js  min-version.js     simplify.js        to-comparators.js
+
+./backend/node_modules/send:
+HISTORY.md    LICENSE       README.md     SECURITY.md   index.js      node_modules  package.json
+
+./backend/node_modules/send/node_modules:
+encodeurl  ms
+
+./backend/node_modules/send/node_modules/encodeurl:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/send/node_modules/ms:
+index.js      license.md    package.json  readme.md
+
+./backend/node_modules/serve-static:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/setprototypeof:
+LICENSE       README.md     index.d.ts    index.js      package.json  test
+
+./backend/node_modules/setprototypeof/test:
+index.js
+
+./backend/node_modules/side-channel:
+CHANGELOG.md   README.md      index.js       test
+LICENSE        index.d.ts     package.json   tsconfig.json
+
+./backend/node_modules/side-channel/test:
+index.js
+
+./backend/node_modules/side-channel-list:
+CHANGELOG.md   README.md      index.js       package.json   tsconfig.json
+LICENSE        index.d.ts     list.d.ts      test
+
+./backend/node_modules/side-channel-list/test:
+index.js
+
+./backend/node_modules/side-channel-map:
+CHANGELOG.md   README.md      index.js       test
+LICENSE        index.d.ts     package.json   tsconfig.json
+
+./backend/node_modules/side-channel-map/test:
+index.js
+
+./backend/node_modules/side-channel-weakmap:
+CHANGELOG.md   README.md      index.js       test
+LICENSE        index.d.ts     package.json   tsconfig.json
+
+./backend/node_modules/side-channel-weakmap/test:
+index.js
+
+./backend/node_modules/socket.io:
+LICENSE       Readme.md     client-dist   dist          node_modules  package.json  wrapper.mjs
+
+./backend/node_modules/socket.io/client-dist:
+socket.io.esm.min.js          socket.io.js.map              socket.io.msgpack.min.js
+socket.io.esm.min.js.map      socket.io.min.js              socket.io.msgpack.min.js.map
+socket.io.js                  socket.io.min.js.map
+
+./backend/node_modules/socket.io/dist:
+broadcast-operator.d.ts  index.js                 socket-types.d.ts        typed-events.js
+broadcast-operator.js    namespace.d.ts           socket-types.js          uws.d.ts
+client.d.ts              namespace.js             socket.d.ts              uws.js
+client.js                parent-namespace.d.ts    socket.js
+index.d.ts               parent-namespace.js      typed-events.d.ts
+
+./backend/node_modules/socket.io/node_modules:
+debug  ms
+
+./backend/node_modules/socket.io/node_modules/debug:
+LICENSE       README.md     package.json  src
+
+./backend/node_modules/socket.io/node_modules/debug/src:
+browser.js  common.js   index.js    node.js
+
+./backend/node_modules/socket.io/node_modules/ms:
+index.js      license.md    package.json  readme.md
+
+./backend/node_modules/socket.io-adapter:
+LICENSE       Readme.md     dist          node_modules  package.json
+
+./backend/node_modules/socket.io-adapter/dist:
+cluster-adapter.d.ts    contrib                 in-memory-adapter.js    index.js
+cluster-adapter.js      in-memory-adapter.d.ts  index.d.ts
+
+./backend/node_modules/socket.io-adapter/dist/contrib:
+yeast.d.ts  yeast.js
+
+./backend/node_modules/socket.io-adapter/node_modules:
+debug  ms
+
+./backend/node_modules/socket.io-adapter/node_modules/debug:
+LICENSE       README.md     package.json  src
+
+./backend/node_modules/socket.io-adapter/node_modules/debug/src:
+browser.js  common.js   index.js    node.js
+
+./backend/node_modules/socket.io-adapter/node_modules/ms:
+index.js      license.md    package.json  readme.md
+
+./backend/node_modules/socket.io-parser:
+LICENSE       Readme.md     build         node_modules  package.json
+
+./backend/node_modules/socket.io-parser/build:
+cjs        esm        esm-debug
+
+./backend/node_modules/socket.io-parser/build/cjs:
+binary.d.ts     binary.js       index.d.ts      index.js        is-binary.d.ts  is-binary.js    package.json
+
+./backend/node_modules/socket.io-parser/build/esm:
+binary.d.ts     binary.js       index.d.ts      index.js        is-binary.d.ts  is-binary.js    package.json
+
+./backend/node_modules/socket.io-parser/build/esm-debug:
+binary.d.ts     binary.js       index.d.ts      index.js        is-binary.d.ts  is-binary.js    package.json
+
+./backend/node_modules/socket.io-parser/node_modules:
+debug  ms
+
+./backend/node_modules/socket.io-parser/node_modules/debug:
+LICENSE       README.md     package.json  src
+
+./backend/node_modules/socket.io-parser/node_modules/debug/src:
+browser.js  common.js   index.js    node.js
+
+./backend/node_modules/socket.io-parser/node_modules/ms:
+index.js      license.md    package.json  readme.md
+
+./backend/node_modules/split2:
+LICENSE       README.md     bench.js      index.js      package.json  test.js
+
+./backend/node_modules/statuses:
+HISTORY.md    LICENSE       README.md     codes.json    index.js      package.json
+
+./backend/node_modules/toidentifier:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/type-is:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/undici-types:
+LICENSE                    cookies.d.ts               handlers.d.ts              patch.d.ts
+README.md                  diagnostics-channel.d.ts   header.d.ts                pool-stats.d.ts
+agent.d.ts                 dispatcher.d.ts            index.d.ts                 pool.d.ts
+api.d.ts                   env-http-proxy-agent.d.ts  interceptors.d.ts          proxy-agent.d.ts
+balanced-pool.d.ts         errors.d.ts                mock-agent.d.ts            readable.d.ts
+cache-interceptor.d.ts     eventsource.d.ts           mock-call-history.d.ts     retry-agent.d.ts
+cache.d.ts                 fetch.d.ts                 mock-client.d.ts           retry-handler.d.ts
+client-stats.d.ts          formdata.d.ts              mock-errors.d.ts           util.d.ts
+client.d.ts                global-dispatcher.d.ts     mock-interceptor.d.ts      utility.d.ts
+connector.d.ts             global-origin.d.ts         mock-pool.d.ts             webidl.d.ts
+content-type.d.ts          h2c-client.d.ts            package.json               websocket.d.ts
+
+./backend/node_modules/unpipe:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/utils-merge:
+LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/uuid:
+CHANGELOG.md     CONTRIBUTING.md  LICENSE.md       README.md        dist             package.json     wrapper.mjs
+
+./backend/node_modules/uuid/dist:
+bin                md5-browser.js     parse.js           sha1.js            v35.js
+commonjs-browser   md5.js             regex.js           stringify.js       v4.js
+esm-browser        native-browser.js  rng-browser.js     uuid-bin.js        v5.js
+esm-node           native.js          rng.js             v1.js              validate.js
+index.js           nil.js             sha1-browser.js    v3.js              version.js
+
+./backend/node_modules/uuid/dist/bin:
+uuid
+
+./backend/node_modules/uuid/dist/commonjs-browser:
+index.js      native.js     parse.js      rng.js        stringify.js  v3.js         v4.js         validate.js
+md5.js        nil.js        regex.js      sha1.js       v1.js         v35.js        v5.js         version.js
+
+./backend/node_modules/uuid/dist/esm-browser:
+index.js      native.js     parse.js      rng.js        stringify.js  v3.js         v4.js         validate.js
+md5.js        nil.js        regex.js      sha1.js       v1.js         v35.js        v5.js         version.js
+
+./backend/node_modules/uuid/dist/esm-node:
+index.js      native.js     parse.js      rng.js        stringify.js  v3.js         v4.js         validate.js
+md5.js        nil.js        regex.js      sha1.js       v1.js         v35.js        v5.js         version.js
+
+./backend/node_modules/vary:
+HISTORY.md    LICENSE       README.md     index.js      package.json
+
+./backend/node_modules/ws:
+LICENSE       README.md     browser.js    index.js      lib           package.json  wrapper.mjs
+
+./backend/node_modules/ws/lib:
+buffer-util.js         extension.js           receiver.js            subprotocol.js         websocket.js
+constants.js           limiter.js             sender.js              validation.js
+event-target.js        permessage-deflate.js  stream.js              websocket-server.js
+
+./backend/node_modules/xtend:
+LICENSE       README.md     immutable.js  mutable.js    package.json  test.js
+
+./backend/scripts:
+aplicar-migraciones-optimizacion.sh  auto-archive-old-pedidos.js          verificar-estado-bd.sh
+
+./dist:
+assets      icon.png    index.html  logo.png
+
+./dist/assets:
+dnd-DtNVwobw.js        index-B0cSY_55.js      index.es-CZQ-cXMs.js   purify.es-DpMHVkxQ.js  vendor-DtuzQOD1.js
+/app $
