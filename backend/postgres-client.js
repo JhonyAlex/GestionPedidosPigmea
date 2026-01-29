@@ -890,7 +890,7 @@ class PostgreSQLClient {
                             WHERE vendedor IS NOT NULL 
                               AND TRIM(vendedor) != ''
                               AND NOT EXISTS (
-                                SELECT 1 FROM vendedores v 
+                                SELECT 1 FROM limpio.vendedores v 
                                 WHERE LOWER(v.nombre) = LOWER(TRIM(pedidos.vendedor))
                               )
                             ON CONFLICT DO NOTHING;
@@ -898,7 +898,7 @@ class PostgreSQLClient {
                             -- Actualizar pedidos con el vendedor_id correspondiente
                             UPDATE pedidos p
                             SET vendedor_id = v.id
-                            FROM vendedores v
+                            FROM limpio.vendedores v
                             WHERE LOWER(TRIM(p.vendedor)) = LOWER(v.nombre)
                               AND p.vendedor IS NOT NULL
                               AND p.vendedor != ''
@@ -985,7 +985,7 @@ class PostgreSQLClient {
         const client = await this.pool.connect();
         try {
             const query = `
-                SELECT * FROM clientes_history
+                SELECT * FROM limpio.clientes_history
                 WHERE cliente_id = $1
                 ORDER BY changed_at DESC
                 LIMIT 100
@@ -1007,7 +1007,7 @@ class PostgreSQLClient {
         const client = await this.pool.connect();
         try {
             const query = `
-                SELECT * FROM vendedores_history
+                SELECT * FROM limpio.vendedores_history
                 WHERE vendedor_id = $1
                 ORDER BY changed_at DESC
                 LIMIT 100
@@ -1053,7 +1053,7 @@ class PostgreSQLClient {
         try {
             // Si se proporciona clienteId, asegurarse de que el nombre del cliente coincida
             if (pedido.clienteId) {
-                const clienteResult = await client.query('SELECT nombre FROM clientes WHERE id = $1', [pedido.clienteId]);
+                const clienteResult = await client.query('SELECT nombre FROM limpio.clientes WHERE id = $1', [pedido.clienteId]);
                 if (clienteResult.rowCount > 0) {
                     pedido.cliente = clienteResult.rows[0].nombre;
                 }
@@ -1061,7 +1061,7 @@ class PostgreSQLClient {
 
             // Si se proporciona vendedorId, obtener el nombre del vendedor
             if (pedido.vendedorId) {
-                const vendedorResult = await client.query('SELECT nombre FROM vendedores WHERE id = $1', [pedido.vendedorId]);
+                const vendedorResult = await client.query('SELECT nombre FROM limpio.vendedores WHERE id = $1', [pedido.vendedorId]);
                 if (vendedorResult.rowCount > 0) {
                     pedido.vendedorNombre = vendedorResult.rows[0].nombre;
                 } else {
@@ -1195,7 +1195,7 @@ class PostgreSQLClient {
         try {
             // Si se proporciona clienteId, asegurarse de que el nombre del cliente coincida
             if (pedido.clienteId) {
-                const clienteResult = await client.query('SELECT nombre FROM clientes WHERE id = $1', [pedido.clienteId]);
+                const clienteResult = await client.query('SELECT nombre FROM limpio.clientes WHERE id = $1', [pedido.clienteId]);
                 if (clienteResult.rowCount > 0) {
                     pedido.cliente = clienteResult.rows[0].nombre;
                 }
@@ -1203,7 +1203,7 @@ class PostgreSQLClient {
 
             // Si se proporciona vendedorId, obtener el nombre del vendedor
             if (pedido.vendedorId) {
-                const vendedorResult = await client.query('SELECT nombre FROM vendedores WHERE id = $1', [pedido.vendedorId]);
+                const vendedorResult = await client.query('SELECT nombre FROM limpio.vendedores WHERE id = $1', [pedido.vendedorId]);
                 if (vendedorResult.rowCount > 0) {
                     pedido.vendedorNombre = vendedorResult.rows[0].nombre;
                 } else {
@@ -1665,7 +1665,7 @@ class PostgreSQLClient {
         if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
         try {
-            const query = 'SELECT * FROM vendedores ORDER BY nombre ASC;';
+            const query = 'SELECT * FROM limpio.vendedores ORDER BY nombre ASC;';
             const result = await client.query(query);
             // Transformar snake_case a camelCase
             return result.rows.map(row => ({
@@ -1686,7 +1686,7 @@ class PostgreSQLClient {
         if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
         try {
-            const query = 'SELECT * FROM vendedores WHERE id = $1;';
+            const query = 'SELECT * FROM limpio.vendedores WHERE id = $1;';
             const result = await client.query(query, [id]);
             if (!result.rows[0]) return null;
             // Transformar snake_case a camelCase
@@ -1743,7 +1743,7 @@ class PostgreSQLClient {
             // Guardar nombre anterior (para sincronizar pedidos legacy sin vendedorId)
             let previousName = null;
             if (vendedorData.nombre !== undefined) {
-                const prevRes = await client.query('SELECT nombre FROM vendedores WHERE id = $1', [id]);
+                const prevRes = await client.query('SELECT nombre FROM limpio.vendedores WHERE id = $1', [id]);
                 previousName = prevRes.rowCount > 0 ? prevRes.rows[0].nombre : null;
             }
 
@@ -1894,7 +1894,7 @@ class PostgreSQLClient {
             console.log(`✅ Limpiados datos de ${cleanResult.rowCount} pedidos del vendedor ${id}`);
 
             // Eliminar el vendedor
-            const deleteResult = await client.query('DELETE FROM vendedores WHERE id = $1 RETURNING nombre', [id]);
+            const deleteResult = await client.query('DELETE FROM limpio.vendedores WHERE id = $1 RETURNING nombre', [id]);
             const vendedorEliminado = deleteResult.rows[0];
 
             // Confirmar transacción
@@ -1997,7 +1997,7 @@ class PostgreSQLClient {
             await client.query('BEGIN');
 
             // Obtener el cliente anterior para auditoría
-            const previousResult = await client.query('SELECT * FROM clientes WHERE id = $1', [id]);
+            const previousResult = await client.query('SELECT * FROM limpio.clientes WHERE id = $1', [id]);
             if (previousResult.rowCount === 0) {
                 await client.query('ROLLBACK');
                 throw new Error(`Cliente con ID ${id} no encontrado.`);
@@ -2184,8 +2184,8 @@ class PostgreSQLClient {
             const safeSortOrder = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
 
             const baseQuery = `
-                FROM clientes c
-                LEFT JOIN pedidos p ON c.id = p.cliente_id
+                FROM limpio.clientes c
+                LEFT JOIN limpio.pedidos p ON c.id = p.cliente_id
                 GROUP BY c.id, c.nombre, c.razon_social, c.cif, c.telefono, c.email, 
                          c.direccion_fiscal, c.codigo_postal, c.poblacion, c.provincia, 
                          c.pais, c.persona_contacto, c.notas, c.estado, c.fecha_baja, 
@@ -2274,8 +2274,8 @@ class PostgreSQLClient {
                         END) THEN 'inactivo'
                         ELSE 'activo'
                     END as estado
-                FROM clientes c
-                LEFT JOIN pedidos p ON c.id = p.cliente_id
+                FROM limpio.clientes c
+                LEFT JOIN limpio.pedidos p ON c.id = p.cliente_id
                 GROUP BY c.id, c.nombre, c.estado
                 ORDER BY 
                     CASE 
@@ -2306,7 +2306,7 @@ class PostgreSQLClient {
                        COALESCE(p_activos.count, 0) as pedidos_activos,
                        COALESCE(p_total.count, 0) as pedidos_historicos,
                        p_total.ultima_fecha_pedido
-                FROM clientes c
+                FROM limpio.clientes c
                 LEFT JOIN (
                     SELECT cliente_id, COUNT(*) as count
                     FROM pedidos
@@ -2589,7 +2589,7 @@ class PostgreSQLClient {
 
             // Finalmente, eliminamos el cliente
             const deleteResult = await client.query(
-                'DELETE FROM clientes WHERE id = $1 RETURNING *',
+                'DELETE FROM limpio.clientes WHERE id = $1 RETURNING *',
                 [id]
             );
 
@@ -2637,8 +2637,8 @@ class PostgreSQLClient {
                         END) THEN false
                         ELSE true
                     END as activo_calculado
-                FROM vendedores v
-                LEFT JOIN pedidos p ON v.id = p.vendedor_id
+                FROM limpio.vendedores v
+                LEFT JOIN limpio.pedidos p ON v.id = p.vendedor_id
                 GROUP BY v.id, v.nombre, v.email, v.telefono, v.activo, v.created_at, v.updated_at
                 ORDER BY 
                     CASE 
@@ -2676,7 +2676,7 @@ class PostgreSQLClient {
         if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
         try {
-            const query = 'SELECT * FROM vendedores WHERE id = $1';
+            const query = 'SELECT * FROM limpio.vendedores WHERE id = $1';
             const result = await client.query(query, [id]);
             return result.rows[0] || null;
         } finally {
@@ -2741,7 +2741,7 @@ class PostgreSQLClient {
             await client.query('BEGIN');
 
             // Obtener el vendedor anterior para auditoría
-            const previousResult = await client.query('SELECT * FROM vendedores WHERE id = $1', [id]);
+            const previousResult = await client.query('SELECT * FROM limpio.vendedores WHERE id = $1', [id]);
             if (previousResult.rowCount === 0) {
                 await client.query('ROLLBACK');
                 throw new Error(`Vendedor con ID ${id} no encontrado.`);
@@ -2819,7 +2819,7 @@ class PostgreSQLClient {
         if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
         try {
-            const query = 'DELETE FROM vendedores WHERE id = $1';
+            const query = 'DELETE FROM limpio.vendedores WHERE id = $1';
             await client.query(query, [id]);
         } finally {
             client.release();
@@ -3039,14 +3039,14 @@ class PostgreSQLClient {
                 `),
                 client.query(`
                     SELECT cif, COUNT(*) as count, ARRAY_AGG(id) as ids, ARRAY_AGG(nombre) as nombres
-                    FROM clientes
+                    FROM limpio.clientes
                     WHERE cif IS NOT NULL AND cif != ''
                     GROUP BY cif
                     HAVING COUNT(*) > 1;
                 `),
                 client.query(`
                     SELECT nombre, COUNT(*) as count, ARRAY_AGG(id) as ids
-                    FROM clientes
+                    FROM limpio.clientes
                     GROUP BY nombre
                     HAVING COUNT(*) > 1;
                 `)
@@ -3085,7 +3085,7 @@ class PostgreSQLClient {
             const updateResult = await client.query(`
                 UPDATE pedidos p
                 SET cliente_id = c.id
-                FROM clientes c
+                FROM limpio.clientes c
                 WHERE p.cliente_id IS NULL AND p.cliente = c.nombre;
             `);
 
@@ -3943,7 +3943,7 @@ class PostgreSQLClient {
                     m.created_at AS "createdAt",
                     m.updated_at AS "updatedAt"
                 FROM materiales m
-                INNER JOIN pedidos_materiales pm ON m.id = pm.material_id
+                INNER JOIN limpio.pedidos_materiales pm ON m.id = pm.material_id
                 WHERE pm.pedido_id = $1
                 ORDER BY m.created_at ASC
             `;
