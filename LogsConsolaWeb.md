@@ -1,48 +1,103 @@
-index-B0cSY_55.js:2 🔓 [MODAL] Cerrando modal - desbloqueando pedido: 1769707411735
-index-B0cSY_55.js:2 🔒 [MODAL] Modal montado - verificando permisos para bloqueo
-index-B0cSY_55.js:2 ✅ [MODAL] Tiene permisos - solicitando bloqueo
-index-B0cSY_55.js:2 🔍 fetchClientes llamado. globalLoading: false isInitialized: true
-index-B0cSY_55.js:2 🚀 Iniciando fetch de clientes...
-index-B0cSY_55.js:2 ✅ Limpiadas 0 acciones antiguas
-index-B0cSY_55.js:2 ✅ Limpiadas 0 acciones antiguas
-index-B0cSY_55.js:2 ✅ Limpiadas 0 acciones antiguas
-index-B0cSY_55.js:2 ✅ Clientes recibidos: 1
-index-B0cSY_55.js:2 ✅ Fetch completado. globalLoading: false
-index-B0cSY_55.js:2   GET https://planning.pigmea.click/api/pedidos/1769707411735/materiales 500 (Internal Server Error)
-(anonymous) @ index-B0cSY_55.js:2
-(anonymous) @ index-B0cSY_55.js:2
-(anonymous) @ index-B0cSY_55.js:2
-li @ vendor-DtuzQOD1.js:10
-xs @ vendor-DtuzQOD1.js:10
-(anonymous) @ vendor-DtuzQOD1.js:10
-Ss @ vendor-DtuzQOD1.js:10
-ss @ vendor-DtuzQOD1.js:10
-Bl @ vendor-DtuzQOD1.js:10
-(anonymous) @ vendor-DtuzQOD1.js:10
-index-B0cSY_55.js:2  Error fetching materiales for pedido 1769707411735: Error: Error al obtener materiales del pedido: 
-    at index-B0cSY_55.js:2:88925
-    at async index-B0cSY_55.js:2:225498
+index-B0cSY_55.js:2 🔓 [MODAL] Desbloqueando antes de guardar pedido: 1769707411735
+index-B0cSY_55.js:2 ✅ Acción agregada al historial local: action-1769715391732-hterrsy7o
+index-B0cSY_55.js:2 ✅ Acción sincronizada con el servidor: action-1769715391732-hterrsy7o
+index-B0cSY_55.js:2   PUT https://planning.pigmea.click/api/pedidos/1769707411735 500 (Internal Server Error)
+ca @ index-B0cSY_55.js:2
+da @ index-B0cSY_55.js:2
+update @ index-B0cSY_55.js:2
+E @ index-B0cSY_55.js:222
+Ot @ index-B0cSY_55.js:222
 (anonymous) @ index-B0cSY_55.js:2
 await in (anonymous)
-(anonymous) @ index-B0cSY_55.js:2
-(anonymous) @ index-B0cSY_55.js:2
-li @ vendor-DtuzQOD1.js:10
-xs @ vendor-DtuzQOD1.js:10
+De @ index-B0cSY_55.js:2
+De @ vendor-DtuzQOD1.js:10
+je @ vendor-DtuzQOD1.js:10
 (anonymous) @ vendor-DtuzQOD1.js:10
-Ss @ vendor-DtuzQOD1.js:10
-ss @ vendor-DtuzQOD1.js:10
-Bl @ vendor-DtuzQOD1.js:10
+Ur @ vendor-DtuzQOD1.js:10
+Vr @ vendor-DtuzQOD1.js:10
 (anonymous) @ vendor-DtuzQOD1.js:10
-index-B0cSY_55.js:2  Error cargando materiales: Error: Error al obtener materiales del pedido: 
-    at index-B0cSY_55.js:2:88925
-    at async index-B0cSY_55.js:2:225498
+Re @ vendor-DtuzQOD1.js:10
+Wr @ vendor-DtuzQOD1.js:10
+Yn @ vendor-DtuzQOD1.js:10
+qn @ vendor-DtuzQOD1.js:10
+onClick @ index-B0cSY_55.js:2
+De @ vendor-DtuzQOD1.js:10
+je @ vendor-DtuzQOD1.js:10
+(anonymous) @ vendor-DtuzQOD1.js:10
+Ur @ vendor-DtuzQOD1.js:10
+Vr @ vendor-DtuzQOD1.js:10
+(anonymous) @ vendor-DtuzQOD1.js:10
+cs @ vendor-DtuzQOD1.js:10
+Re @ vendor-DtuzQOD1.js:10
+Wr @ vendor-DtuzQOD1.js:10
+Yn @ vendor-DtuzQOD1.js:10
+qn @ vendor-DtuzQOD1.js:10
+index-B0cSY_55.js:2  Error en la llamada a la API (/pedidos/1769707411735): Error: Error interno del servidor al actualizar el pedido.
+    at ca (index-B0cSY_55.js:2:212280)
+    at async da (index-B0cSY_55.js:2:211254)
+    at async E (index-B0cSY_55.js:222:431962)
+    at async Ot (index-B0cSY_55.js:222:449334)
+ca @ index-B0cSY_55.js:2
+await in ca
+da @ index-B0cSY_55.js:2
+update @ index-B0cSY_55.js:2
+E @ index-B0cSY_55.js:222
+Ot @ index-B0cSY_55.js:222
 (anonymous) @ index-B0cSY_55.js:2
 await in (anonymous)
+De @ index-B0cSY_55.js:2
+De @ vendor-DtuzQOD1.js:10
+je @ vendor-DtuzQOD1.js:10
+(anonymous) @ vendor-DtuzQOD1.js:10
+Ur @ vendor-DtuzQOD1.js:10
+Vr @ vendor-DtuzQOD1.js:10
+(anonymous) @ vendor-DtuzQOD1.js:10
+Re @ vendor-DtuzQOD1.js:10
+Wr @ vendor-DtuzQOD1.js:10
+Yn @ vendor-DtuzQOD1.js:10
+qn @ vendor-DtuzQOD1.js:10
+onClick @ index-B0cSY_55.js:2
+De @ vendor-DtuzQOD1.js:10
+je @ vendor-DtuzQOD1.js:10
+(anonymous) @ vendor-DtuzQOD1.js:10
+Ur @ vendor-DtuzQOD1.js:10
+Vr @ vendor-DtuzQOD1.js:10
+(anonymous) @ vendor-DtuzQOD1.js:10
+cs @ vendor-DtuzQOD1.js:10
+Re @ vendor-DtuzQOD1.js:10
+Wr @ vendor-DtuzQOD1.js:10
+Yn @ vendor-DtuzQOD1.js:10
+qn @ vendor-DtuzQOD1.js:10
+index-B0cSY_55.js:222  Error al actualizar el pedido: Error: Error interno del servidor al actualizar el pedido.
+    at ca (index-B0cSY_55.js:2:212532)
+    at async da (index-B0cSY_55.js:2:211254)
+    at async E (index-B0cSY_55.js:222:431962)
+    at async Ot (index-B0cSY_55.js:222:449334)
+E @ index-B0cSY_55.js:222
+await in E
+Ot @ index-B0cSY_55.js:222
 (anonymous) @ index-B0cSY_55.js:2
-li @ vendor-DtuzQOD1.js:10
-xs @ vendor-DtuzQOD1.js:10
+await in (anonymous)
+De @ index-B0cSY_55.js:2
+De @ vendor-DtuzQOD1.js:10
+je @ vendor-DtuzQOD1.js:10
 (anonymous) @ vendor-DtuzQOD1.js:10
-Ss @ vendor-DtuzQOD1.js:10
-ss @ vendor-DtuzQOD1.js:10
-Bl @ vendor-DtuzQOD1.js:10
+Ur @ vendor-DtuzQOD1.js:10
+Vr @ vendor-DtuzQOD1.js:10
 (anonymous) @ vendor-DtuzQOD1.js:10
+Re @ vendor-DtuzQOD1.js:10
+Wr @ vendor-DtuzQOD1.js:10
+Yn @ vendor-DtuzQOD1.js:10
+qn @ vendor-DtuzQOD1.js:10
+onClick @ index-B0cSY_55.js:2
+De @ vendor-DtuzQOD1.js:10
+je @ vendor-DtuzQOD1.js:10
+(anonymous) @ vendor-DtuzQOD1.js:10
+Ur @ vendor-DtuzQOD1.js:10
+Vr @ vendor-DtuzQOD1.js:10
+(anonymous) @ vendor-DtuzQOD1.js:10
+cs @ vendor-DtuzQOD1.js:10
+Re @ vendor-DtuzQOD1.js:10
+Wr @ vendor-DtuzQOD1.js:10
+Yn @ vendor-DtuzQOD1.js:10
+qn @ vendor-DtuzQOD1.js:10

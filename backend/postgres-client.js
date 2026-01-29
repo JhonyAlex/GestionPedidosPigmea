@@ -1032,7 +1032,7 @@ class PostgreSQLClient {
 
             const query = `
                 SELECT id
-                FROM pedidos
+                FROM limpio.pedidos
                 WHERE numero_pedido_cliente = $1
                    OR data->>'numeroPedidoCliente' = $1
                 ${excludeId ? 'AND id <> $2' : ''}
@@ -1242,6 +1242,7 @@ class PostgreSQLClient {
                 SELECT column_name 
                 FROM information_schema.columns 
                 WHERE table_name = 'pedidos' 
+                AND table_schema = 'limpio'
                 AND column_name IN ('nueva_fecha_entrega', 'numeros_compra', 'vendedor', 'vendedor_id', 'cliche_info_adicional', 'anonimo', 'compra_cliche', 'recepcion_cliche', 'observaciones_material', 'tiempo_produccion_decimal', 'horas_confirmadas', 'antivaho_realizado')
             `);
 
@@ -1407,7 +1408,7 @@ class PostgreSQLClient {
             updateFields.push('updated_at = CURRENT_TIMESTAMP');
 
             const query = `
-                UPDATE pedidos SET 
+                UPDATE limpio.pedidos SET 
                     ${updateFields.join(', ')}
                 WHERE id = $1
                 RETURNING *;
@@ -1432,7 +1433,7 @@ class PostgreSQLClient {
         const client = await this.pool.connect();
 
         try {
-            const result = await client.query('SELECT data FROM pedidos WHERE id = $1', [id]);
+            const result = await client.query('SELECT data FROM limpio.pedidos WHERE id = $1', [id]);
 
             if (result.rows.length === 0) {
                 return null;
@@ -1453,7 +1454,7 @@ class PostgreSQLClient {
         const client = await this.pool.connect();
 
         try {
-            const result = await client.query('SELECT data FROM pedidos ORDER BY secuencia_pedido DESC');
+            const result = await client.query('SELECT data FROM limpio.pedidos ORDER BY secuencia_pedido DESC');
             return result.rows.map(row => row.data);
 
         } finally {
@@ -1494,7 +1495,7 @@ class PostgreSQLClient {
         const client = await this.pool.connect();
 
         try {
-            let query = 'SELECT data FROM pedidos WHERE 1=1';
+            let query = 'SELECT data FROM limpio.pedidos WHERE 1=1';
             const params = [];
             let paramCount = 1;
 
@@ -1542,7 +1543,7 @@ class PostgreSQLClient {
             const result = await client.query(query, params);
 
             // Obtener total de registros (para calcular páginas)
-            let countQuery = 'SELECT COUNT(*) FROM pedidos WHERE 1=1';
+            let countQuery = 'SELECT COUNT(*) FROM limpio.pedidos WHERE 1=1';
             const countParams = [];
             let countParamCount = 1;
 
@@ -1594,7 +1595,7 @@ class PostgreSQLClient {
         const client = await this.pool.connect();
 
         try {
-            const result = await client.query('DELETE FROM pedidos WHERE id = $1', [id]);
+            const result = await client.query('DELETE FROM limpio.pedidos WHERE id = $1', [id]);
 
             if (result.rowCount === 0) {
                 throw new Error(`Pedido ${id} no encontrado para eliminar`);
@@ -1615,7 +1616,7 @@ class PostgreSQLClient {
         const client = await this.pool.connect();
 
         try {
-            await client.query('DELETE FROM pedidos');
+            await client.query('DELETE FROM limpio.pedidos');
 
         } finally {
             client.release();
@@ -1655,7 +1656,7 @@ class PostgreSQLClient {
 
         try {
             const query = `
-                SELECT data FROM pedidos 
+                SELECT data FROM limpio.pedidos 
                 WHERE 
                     numero_pedido_cliente ILIKE $1 OR
                     cliente ILIKE $1 OR
@@ -1811,7 +1812,7 @@ class PostgreSQLClient {
 
                 // Actualizar todos los pedidos que tengan este vendedor_id asignado
                 const updatePedidosQuery = `
-                    UPDATE pedidos
+                    UPDATE limpio.pedidos
                     SET data = jsonb_set(
                         data, 
                         '{vendedorNombre}', 
@@ -1838,7 +1839,7 @@ class PostgreSQLClient {
                 // 🔥 Caso legacy: pedidos sin vendedorId pero con vendedorNombre igual al anterior
                 if (previousName) {
                     const updateByNameQuery = `
-                        UPDATE pedidos
+                        UPDATE limpio.pedidos
                         SET data = jsonb_set(
                             data,
                             '{vendedorNombre}',
@@ -1854,7 +1855,7 @@ class PostgreSQLClient {
 
                     // 🔥 Si existe columna legacy 'vendedor', sincronizarla también
                     const updateLegacyColumnQuery = `
-                        UPDATE pedidos
+                        UPDATE limpio.pedidos
                         SET vendedor = $1
                         WHERE (vendedor_id IS NULL OR vendedor_id = '')
                           AND vendedor IS NOT NULL
@@ -1905,7 +1906,7 @@ class PostgreSQLClient {
 
             // 🔥 Primero, limpiar los datos del vendedor en los pedidos
             const cleanResult = await client.query(`
-                UPDATE pedidos
+                UPDATE limpio.pedidos
                 SET data = data - 'vendedorNombre' - 'vendedorId'
                 WHERE (data->>'vendedorId')::text = $1::text
             `, [id]);
@@ -2082,7 +2083,7 @@ class PostgreSQLClient {
             if (clienteData.nombre !== undefined) {
                 // 1) Pedidos con cliente_id o clienteId (JSON)
                 const updateByIdQuery = `
-                    UPDATE pedidos
+                    UPDATE limpio.pedidos
                     SET data = jsonb_set(
                         data,
                         '{cliente}',
@@ -2097,7 +2098,7 @@ class PostgreSQLClient {
                 // 2) Pedidos legacy sin clienteId pero con nombre coincidido
                 if (previousName) {
                     const updateByNameQuery = `
-                        UPDATE pedidos
+                        UPDATE limpio.pedidos
                         SET data = jsonb_set(
                             data,
                             '{cliente}',
@@ -2328,13 +2329,13 @@ class PostgreSQLClient {
                 FROM limpio.clientes c
                 LEFT JOIN (
                     SELECT cliente_id, COUNT(*) as count
-                    FROM pedidos
+                    FROM limpio.pedidos
                     WHERE etapa_actual NOT IN ('Entregado', 'Cancelado')
                     GROUP BY cliente_id
                 ) p_activos ON c.id = p_activos.cliente_id
                 LEFT JOIN (
                     SELECT cliente_id, COUNT(*) as count, MAX(fecha_pedido) as ultima_fecha_pedido
-                    FROM pedidos
+                    FROM limpio.pedidos
                     GROUP BY cliente_id
                 ) p_total ON c.id = p_total.cliente_id
                 WHERE c.id = $1;
@@ -2363,13 +2364,13 @@ class PostgreSQLClient {
         try {
             const offset = (page - 1) * limit;
 
-            const countQuery = "SELECT COUNT(*) as total FROM pedidos WHERE cliente_id = $1 OR data->>'clienteId' = $1::text";
+            const countQuery = "SELECT COUNT(*) as total FROM limpio.pedidos WHERE cliente_id = $1 OR data->>'clienteId' = $1::text";
             const totalResult = await client.query(countQuery, [id]);
             const total = parseInt(totalResult.rows[0].total, 10);
 
             const dataQuery = `
                 SELECT id, data->>'numeroPedidoCliente' as numero_pedido_cliente, etapa_actual, fecha_pedido, fecha_entrega, (data->>'cantidadPiezas')::int as cantidad_piezas
-                FROM pedidos
+                FROM limpio.pedidos
                 WHERE cliente_id = $1 OR data->>'clienteId' = $1::text
                 ORDER BY fecha_pedido DESC
                 LIMIT $2 OFFSET $3
@@ -2424,7 +2425,7 @@ class PostgreSQLClient {
                     fecha_entrega,
                     created_at,
                     updated_at
-                FROM pedidos
+                FROM limpio.pedidos
                 ${whereClause}
                 ORDER BY created_at DESC
             `;
@@ -2469,7 +2470,7 @@ class PostgreSQLClient {
                     COUNT(*) as total_pedidos,
                     SUM((data->>'metros')::numeric) FILTER (WHERE etapa_actual = 'COMPLETADO') as metros_producidos,
                     MAX(COALESCE(fecha_pedido, created_at)) as ultimo_pedido_fecha
-                FROM pedidos
+                FROM limpio.pedidos
                 WHERE cliente_id = $1 OR data->>'clienteId' = $1::text
             `;
 
@@ -2506,7 +2507,7 @@ class PostgreSQLClient {
                     COUNT(*) FILTER (WHERE etapa_actual NOT IN ('COMPLETADO', 'ARCHIVADO', 'CANCELADO')) as pedidos_activos,
                     COUNT(*) FILTER (WHERE etapa_actual = 'COMPLETADO') as pedidos_completados,
                     COUNT(*) as total_pedidos
-                FROM pedidos
+                FROM limpio.pedidos
                 WHERE cliente_id::text = ANY($1) OR data->>'clienteId' = ANY($1)
                 GROUP BY COALESCE(cliente_id::text, data->>'clienteId')
             `;
@@ -2895,7 +2896,7 @@ class PostgreSQLClient {
                     fecha_entrega,
                     created_at,
                     updated_at
-                FROM pedidos
+                FROM limpio.pedidos
                 ${whereClause}
                 ORDER BY created_at DESC
             `;
@@ -2940,7 +2941,7 @@ class PostgreSQLClient {
                     COUNT(*) as total_pedidos,
                     SUM((data->>'metros')::numeric) FILTER (WHERE etapa_actual = 'COMPLETADO') as metros_producidos,
                     MAX(COALESCE(fecha_pedido, created_at)) as ultimo_pedido_fecha
-                FROM pedidos
+                FROM limpio.pedidos
                 WHERE vendedor_id = $1 OR data->>'vendedorId' = $1::text
             `;
 
@@ -2977,7 +2978,7 @@ class PostgreSQLClient {
                     COUNT(*) FILTER (WHERE etapa_actual NOT IN ('COMPLETADO', 'ARCHIVADO', 'CANCELADO')) as pedidos_activos,
                     COUNT(*) FILTER (WHERE etapa_actual = 'COMPLETADO') as pedidos_completados,
                     COUNT(*) as total_pedidos
-                FROM pedidos
+                FROM limpio.pedidos
                 WHERE vendedor_id::text = ANY($1) OR data->>'vendedorId' = ANY($1)
                 GROUP BY COALESCE(vendedor_id::text, data->>'vendedorId')
             `;
@@ -3061,12 +3062,12 @@ class PostgreSQLClient {
             const [pedidosSinClienteId, pedidosConClienteIdInvalido, clientesDuplicadosCif, clientesDuplicadosNombre] = await Promise.all([
                 client.query(`
                     SELECT id, cliente, numero_pedido_cliente
-                    FROM pedidos
+                    FROM limpio.pedidos
                     WHERE cliente_id IS NULL;
                 `),
                 client.query(`
                     SELECT p.id, p.cliente_id, p.cliente
-                    FROM pedidos p
+                    FROM limpio.pedidos p
                     LEFT JOIN clientes c ON p.cliente_id = c.id
                     WHERE p.cliente_id IS NOT NULL AND c.id IS NULL;
                 `),
@@ -3116,7 +3117,7 @@ class PostgreSQLClient {
 
             // Intenta matchear por nombre de cliente exacto
             const updateResult = await client.query(`
-                UPDATE pedidos p
+                UPDATE limpio.pedidos p
                 SET cliente_id = c.id
                 FROM limpio.clientes c
                 WHERE p.cliente_id IS NULL AND p.cliente = c.nombre;

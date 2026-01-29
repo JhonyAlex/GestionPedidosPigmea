@@ -1,0 +1,4 @@
+SELECT count(*) FROM public.pedidos: ERROR - 
+SELECT count(*) FROM limpio.pedidos: ERROR - 
+SELECT count(*) FROM public.materiales: ERROR - 
+SELECT count(*) FROM limpio.materiales: ERROR - 
