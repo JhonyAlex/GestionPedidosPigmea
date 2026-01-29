@@ -356,6 +356,29 @@ class MigrationManager {
                 ADD COLUMN IF NOT EXISTS pais VARCHAR(100) DEFAULT 'España';
             `
         });
+
+        // Migración 013: Agregar columna numero_pedido_cliente
+        this.migrations.push({
+            id: '013-columna-numero-pedido-cliente',
+            name: 'Agregar columna numero_pedido_cliente a pedidos',
+            sql: `
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_schema = 'limpio'
+                        AND table_name = 'pedidos' 
+                        AND column_name = 'numero_pedido_cliente'
+                    ) THEN
+                        ALTER TABLE limpio.pedidos ADD COLUMN numero_pedido_cliente VARCHAR(255);
+                        CREATE INDEX IF NOT EXISTS idx_pedidos_numero_pedido_cliente ON limpio.pedidos(numero_pedido_cliente);
+                        RAISE NOTICE 'Columna numero_pedido_cliente agregada';
+                    ELSE
+                        RAISE NOTICE 'Columna numero_pedido_cliente ya existe';
+                    END IF;
+                END $$;
+            `
+        });
     }
 
     /**
