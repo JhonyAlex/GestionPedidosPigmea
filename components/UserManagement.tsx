@@ -41,7 +41,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
     });
     const [formData, setFormData] = useState<UserFormData>({
         username: '',
-        role: 'Operador',
+        role: 'Visualizador',
         displayName: '',
         password: '',
         permissions: []
@@ -70,16 +70,16 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
 
         // Si aún no hay userId, retornar vacío (no autenticado)
         if (!userId) return {};
-        
+
         const headers: any = {
             'x-user-id': String(userId),
-            'x-user-role': userRole || 'Operador'
+            'x-user-role': userRole || 'Visualizador'
         };
-        
+
         if (userPermissions && Array.isArray(userPermissions)) {
             headers['x-user-permissions'] = JSON.stringify(userPermissions);
         }
-        
+
         return headers;
     }, [user]);
 
@@ -88,7 +88,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
         try {
             setLoading(true);
             setError(null);
-            
+
             const response = await fetch('/api/auth/users', {
                 headers: {
                     'Content-Type': 'application/json',
@@ -96,7 +96,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                 }
             });
             const data = await response.json();
-            
+
             if (data.success) {
                 setUsers(data.users || []);
             } else {
@@ -112,23 +112,23 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
 
     useEffect(() => {
         fetchUsers();
-        
+
         // ✅ Suscribirse al evento de actualización de login
         const socket = (webSocketService as any).socket;
         if (socket) {
             socket.on('user-login-updated', (data: { userId: number; username: string; lastLogin: string }) => {
                 console.log('🔄 Usuario actualizó último login:', data);
                 // Actualizar el usuario en la lista sin recargar todo
-                setUsers(prevUsers => 
-                    prevUsers.map(u => 
-                        u.id === data.userId 
+                setUsers(prevUsers =>
+                    prevUsers.map(u =>
+                        u.id === data.userId
                             ? { ...u, lastLogin: data.lastLogin }
                             : u
                     )
                 );
             });
         }
-        
+
         // Cleanup: desuscribirse al desmontar
         return () => {
             if (socket) {
@@ -140,16 +140,16 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
     // Manejar envío del formulario
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         // Validar permisos antes de hacer la petición
         if (!canManageUsers()) {
             setError('No tienes permisos para administrar usuarios.');
             return;
         }
-        
+
         try {
             let response;
-            
+
             if (editingUser) {
                 // Actualizar usuario
                 response = await fetch(`/api/auth/users/${editingUser.id}`, {
@@ -186,14 +186,14 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                 setError('No autenticado. Por favor, inicia sesión nuevamente.');
                 return;
             }
-            
+
             if (response.status === 403) {
                 setError('No tienes permisos para esta acción.');
                 return;
             }
 
             const result = await response.json();
-            
+
             if (result.success) {
                 await fetchUsers();
                 resetForm();
@@ -232,14 +232,14 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                 setError('No autenticado. Por favor, inicia sesión nuevamente.');
                 return;
             }
-            
+
             if (response.status === 403) {
                 setError('No tienes permisos para eliminar usuarios.');
                 return;
             }
 
             const result = await response.json();
-            
+
             if (result.success) {
                 await fetchUsers();
                 setError(null);
@@ -271,7 +271,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
         setShowAddForm(false);
         setFormData({
             username: '',
-            role: 'Operador',
+            role: 'Visualizador',
             displayName: '',
             password: '',
             permissions: []
@@ -288,16 +288,16 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
         try {
             // Aquí iría la llamada a la API para actualizar permisos del usuario
             console.log('Actualizando permisos del usuario:', userId, permissions);
-            
+
             // Actualizar estado local
-            setUsers(prevUsers => 
-                prevUsers.map(user => 
-                    user.id === userId 
+            setUsers(prevUsers =>
+                prevUsers.map(user =>
+                    user.id === userId
                         ? { ...user, permissions }
                         : user
                 )
             );
-            
+
             setShowUserPermissions(null);
         } catch (err) {
             setError('Error al actualizar permisos del usuario');
@@ -322,7 +322,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
 
             // Usar ruta administrativa si no se proporciona contraseña actual
             const isAdminChange = !passwordData.currentPassword;
-            const endpoint = isAdminChange 
+            const endpoint = isAdminChange
                 ? `/api/auth/admin/users/${showPasswordModal.id}/password`
                 : `/api/auth/users/${showPasswordModal.id}/password`;
 
@@ -346,7 +346,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                 setError('No autenticado. Por favor, inicia sesión nuevamente.');
                 return;
             }
-            
+
             if (response.status === 403) {
                 setError('No tienes permisos para cambiar contraseñas.');
                 return;
@@ -377,8 +377,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                 return 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-200';
             case 'Supervisor':
                 return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200';
-            case 'Operador':
-                return 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200';
+
             default:
                 return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
         }
@@ -418,21 +417,19 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                         <nav className="-mb-px flex space-x-8">
                             <button
                                 onClick={() => setActiveTab('users')}
-                                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                                    activeTab === 'users'
+                                className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'users'
                                         ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-                                }`}
+                                    }`}
                             >
                                 Usuarios
                             </button>
                             <button
                                 onClick={() => setActiveTab('permissions')}
-                                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                                    activeTab === 'permissions'
+                                className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'permissions'
                                         ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-                                }`}
+                                    }`}
                             >
                                 Configuración de Permisos
                             </button>
@@ -468,7 +465,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                                         <input
                                             type="text"
                                             value={formData.username}
-                                            onChange={(e) => setFormData({...formData, username: e.target.value})}
+                                            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                                             required
                                         />
@@ -480,7 +477,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                                         <input
                                             type="text"
                                             value={formData.displayName}
-                                            onChange={(e) => setFormData({...formData, displayName: e.target.value})}
+                                            onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                                             required
                                         />
@@ -491,10 +488,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                                         </label>
                                         <select
                                             value={formData.role}
-                                            onChange={(e) => setFormData({...formData, role: e.target.value as UserRole})}
+                                            onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                                         >
-                                            <option value="Operador">Operador</option>
+                                            <option value="Visualizador">Visualizador</option>
                                             <option value="Supervisor">Supervisor</option>
                                             <option value="Administrador">Administrador</option>
                                         </select>
@@ -506,7 +503,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                                         <input
                                             type="password"
                                             value={formData.password}
-                                            onChange={(e) => setFormData({...formData, password: e.target.value})}
+                                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                                             required={!editingUser}
                                             placeholder={editingUser ? 'Dejar vacío para mantener actual' : ''}
@@ -670,7 +667,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                                 Cambiar Contraseña - {showPasswordModal.username}
                             </h3>
-                            
+
                             {error && (
                                 <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
                                     {error}

@@ -9,7 +9,7 @@ const LoginModal: React.FC = () => {
         username: '',
         password: '',
         displayName: '',
-        role: 'Operador' as UserRole
+        role: 'Visualizador' as UserRole
     });
     const [success, setSuccess] = useState('');
 
@@ -55,7 +55,7 @@ const LoginModal: React.FC = () => {
         try {
             console.log('📝 Iniciando submit del formulario...');
             let result;
-            
+
             if (isRegisterMode) {
                 console.log('📝 Modo registro');
                 result = await register({
@@ -93,7 +93,7 @@ const LoginModal: React.FC = () => {
             username: '',
             password: '',
             displayName: '',
-            role: 'Operador'
+            role: 'Visualizador'
         });
     };
 
@@ -174,7 +174,7 @@ const LoginModal: React.FC = () => {
                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                                     disabled={loading}
                                 >
-                                    <option value="Operador">Operador</option>
+                                    <option value="Visualizador">Visualizador</option>
                                     <option value="Supervisor">Supervisor</option>
                                     <option value="Administrador">Administrador</option>
                                 </select>
@@ -262,17 +262,17 @@ const LoginModal: React.FC = () => {
                         disabled={loading}
                         className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors duration-200"
                     >
-                        {isRegisterMode 
-                            ? '¿Ya tienes cuenta? Inicia sesión' 
+                        {isRegisterMode
+                            ? '¿Ya tienes cuenta? Inicia sesión'
                             : '¿No tienes cuenta? Créala aquí'
                         }
                     </button>
-                    
+
                     {!isRegisterMode && (
                         <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
                             <p className="text-sm text-blue-700 dark:text-blue-300">
-                                <span className="font-medium">Para pruebas:</span><br/>
-                                Usuario: <span className="font-mono bg-blue-100 dark:bg-blue-800 px-1 rounded">admin</span> | 
+                                <span className="font-medium">Para pruebas:</span><br />
+                                Usuario: <span className="font-mono bg-blue-100 dark:bg-blue-800 px-1 rounded">admin</span> |
                                 Contraseña: <span className="font-mono bg-blue-100 dark:bg-blue-800 px-1 rounded">admin123</span>
                             </p>
                         </div>

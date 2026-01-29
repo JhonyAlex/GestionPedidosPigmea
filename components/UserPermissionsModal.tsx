@@ -16,13 +16,13 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ user, onClo
     // Inicializar permisos del usuario
     useEffect(() => {
         const initialPermissions: { [permissionId: string]: boolean } = {};
-        
+
         // Obtener permisos por defecto del rol
         const rolePermissions = getPermissionsByRole(user.role);
-        
+
         // Si el usuario tiene permisos personalizados, usarlos
         const currentPermissions = user.permissions || rolePermissions;
-        
+
         // Inicializar todos los permisos disponibles
         Object.values(PERMISSION_CONFIG.categories).forEach(category => {
             category.permissions.forEach(permission => {
@@ -32,7 +32,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ user, onClo
                 initialPermissions[permission.id] = hasPermission;
             });
         });
-        
+
         setUserPermissions(initialPermissions);
     }, [user]);
 
@@ -50,7 +50,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ user, onClo
         if (confirm(`¿Resetear los permisos a los valores por defecto del rol ${user.role}?`)) {
             const rolePermissions = getPermissionsByRole(user.role);
             const resetPermissions: { [permissionId: string]: boolean } = {};
-            
+
             Object.values(PERMISSION_CONFIG.categories).forEach(category => {
                 category.permissions.forEach(permission => {
                     const hasPermission = rolePermissions.some(
@@ -59,7 +59,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ user, onClo
                     resetPermissions[permission.id] = hasPermission;
                 });
             });
-            
+
             setUserPermissions(resetPermissions);
             setHasChanges(true);
         }
@@ -68,11 +68,11 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ user, onClo
     // Guardar cambios
     const handleSave = async () => {
         setLoading(true);
-        
+
         try {
             // Convertir el objeto de permisos a array de Permission
             const permissionsArray: Permission[] = [];
-            
+
             Object.values(PERMISSION_CONFIG.categories).forEach(category => {
                 category.permissions.forEach(permission => {
                     permissionsArray.push({
@@ -81,7 +81,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ user, onClo
                     });
                 });
             });
-            
+
             await onSave(user.id, permissionsArray);
         } catch (error) {
             console.error('Error saving user permissions:', error);
@@ -108,8 +108,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ user, onClo
                 return 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-200';
             case 'Supervisor':
                 return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200';
-            case 'Operador':
-                return 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200';
+
             default:
                 return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
         }
@@ -213,7 +212,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ user, onClo
                     <div className="text-sm text-gray-500 dark:text-gray-400">
                         {hasChanges && '* Tienes cambios sin guardar'}
                     </div>
-                    
+
                     <div className="flex gap-2">
                         <button
                             onClick={onClose}
@@ -224,11 +223,10 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ user, onClo
                         <button
                             onClick={handleSave}
                             disabled={!hasChanges || loading}
-                            className={`px-6 py-2 rounded-lg transition-colors ${
-                                hasChanges && !loading
+                            className={`px-6 py-2 rounded-lg transition-colors ${hasChanges && !loading
                                     ? 'bg-blue-600 text-white hover:bg-blue-700'
                                     : 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400'
-                            }`}
+                                }`}
                         >
                             {loading ? 'Guardando...' : 'Guardar Permisos'}
                         </button>

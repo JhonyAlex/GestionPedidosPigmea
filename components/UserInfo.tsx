@@ -16,8 +16,7 @@ const UserInfo: React.FC = () => {
                 return 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-200';
             case 'Supervisor':
                 return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200';
-            case 'Operador':
-                return 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200';
+
             default:
                 return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
         }
@@ -45,10 +44,10 @@ const UserInfo: React.FC = () => {
                         {user.role}
                     </p>
                 </div>
-                <svg 
-                    className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`} 
-                    fill="none" 
-                    stroke="currentColor" 
+                <svg
+                    className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
                     viewBox="0 0 24 24"
                 >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -75,7 +74,7 @@ const UserInfo: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="p-2">
                         <button
                             onClick={handleLogout}

@@ -23,10 +23,10 @@ const PermissionsManager: React.FC<PermissionsManagerProps> = ({ onClose }) => {
     // Inicializar permisos por rol
     useEffect(() => {
         const initialState: RolePermissionState = {};
-        
+
         DEFAULT_ROLE_PERMISSIONS.forEach(roleConfig => {
             const permissionsMap: { [permissionId: string]: boolean } = {};
-            
+
             // Obtener todos los permisos disponibles
             Object.values(PERMISSION_CONFIG.categories).forEach(category => {
                 category.permissions.forEach(permission => {
@@ -37,13 +37,13 @@ const PermissionsManager: React.FC<PermissionsManagerProps> = ({ onClose }) => {
                     permissionsMap[permission.id] = hasPermission;
                 });
             });
-            
+
             initialState[roleConfig.role] = {
                 role: roleConfig.role,
                 permissions: permissionsMap
             };
         });
-        
+
         setRolePermissions(initialState);
     }, []);
 
@@ -66,14 +66,14 @@ const PermissionsManager: React.FC<PermissionsManagerProps> = ({ onClose }) => {
     const handleSave = async () => {
         setLoading(true);
         setError(null);
-        
+
         try {
             // Aquí iría la llamada a la API para guardar los permisos
             console.log('Guardando permisos:', rolePermissions);
-            
+
             // Simular delay de API
             await new Promise(resolve => setTimeout(resolve, 1000));
-            
+
             setHasChanges(false);
             // Podrías mostrar un mensaje de éxito aquí
         } catch (err) {
@@ -88,10 +88,10 @@ const PermissionsManager: React.FC<PermissionsManagerProps> = ({ onClose }) => {
     const handleReset = () => {
         if (confirm('¿Estás seguro de que quieres resetear todos los permisos a su configuración por defecto?')) {
             const initialState: RolePermissionState = {};
-            
+
             DEFAULT_ROLE_PERMISSIONS.forEach(roleConfig => {
                 const permissionsMap: { [permissionId: string]: boolean } = {};
-                
+
                 Object.values(PERMISSION_CONFIG.categories).forEach(category => {
                     category.permissions.forEach(permission => {
                         const hasPermission = roleConfig.permissions.some(
@@ -100,13 +100,13 @@ const PermissionsManager: React.FC<PermissionsManagerProps> = ({ onClose }) => {
                         permissionsMap[permission.id] = hasPermission;
                     });
                 });
-                
+
                 initialState[roleConfig.role] = {
                     role: roleConfig.role,
                     permissions: permissionsMap
                 };
             });
-            
+
             setRolePermissions(initialState);
             setHasChanges(true);
         }
@@ -118,8 +118,7 @@ const PermissionsManager: React.FC<PermissionsManagerProps> = ({ onClose }) => {
                 return 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-200';
             case 'Supervisor':
                 return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200';
-            case 'Operador':
-                return 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200';
+
             default:
                 return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
         }
@@ -179,15 +178,14 @@ const PermissionsManager: React.FC<PermissionsManagerProps> = ({ onClose }) => {
                         Seleccionar Rol para Editar:
                     </label>
                     <div className="flex gap-2">
-                        {(['Administrador', 'Supervisor', 'Operador'] as UserRole[]).map((role) => (
+                        {(['Administrador', 'Supervisor', 'Visualizador'] as UserRole[]).map((role) => (
                             <button
                                 key={role}
                                 onClick={() => setSelectedRole(role)}
-                                className={`px-4 py-2 rounded-lg transition-colors ${
-                                    selectedRole === role
+                                className={`px-4 py-2 rounded-lg transition-colors ${selectedRole === role
                                         ? getRoleColor(role) + ' ring-2 ring-offset-2 ring-blue-500'
                                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-                                }`}
+                                    }`}
                             >
                                 <div className="text-sm font-medium">{role}</div>
                                 <div className="text-xs opacity-75">
@@ -255,7 +253,7 @@ const PermissionsManager: React.FC<PermissionsManagerProps> = ({ onClose }) => {
                             Resetear a Defecto
                         </button>
                     </div>
-                    
+
                     <div className="flex gap-2">
                         <button
                             onClick={onClose}
@@ -266,11 +264,10 @@ const PermissionsManager: React.FC<PermissionsManagerProps> = ({ onClose }) => {
                         <button
                             onClick={handleSave}
                             disabled={!hasChanges || loading}
-                            className={`px-6 py-2 rounded-lg transition-colors ${
-                                hasChanges && !loading
+                            className={`px-6 py-2 rounded-lg transition-colors ${hasChanges && !loading
                                     ? 'bg-blue-600 text-white hover:bg-blue-700'
                                     : 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400'
-                            }`}
+                                }`}
                         >
                             {loading ? 'Guardando...' : 'Guardar Cambios'}
                         </button>

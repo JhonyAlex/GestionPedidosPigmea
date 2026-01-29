@@ -10,11 +10,11 @@ interface CommentItemProps {
   onDelete?: (commentId: string) => void;
 }
 
-const CommentItem: React.FC<CommentItemProps> = ({ 
-  comment, 
-  currentUserId, 
+const CommentItem: React.FC<CommentItemProps> = ({
+  comment,
+  currentUserId,
   canDeleteComments = false,
-  onDelete 
+  onDelete
 }) => {
   const isOwnComment = currentUserId === comment.userId;
   const canDelete = canDeleteComments || isOwnComment;
@@ -40,8 +40,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
         return 'text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/30 border-red-200 dark:border-red-700';
       case 'Supervisor':
         return 'text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700';
-      case 'Operador':
-        return 'text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/30 border-green-200 dark:border-green-700';
+
       case 'Visualizador':
         return 'text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600';
       default:
@@ -85,7 +84,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
           {comment.username.charAt(0).toUpperCase()}
         </div>
       </div>
-      
+
       <div className="flex-1 min-w-0">
         <div className="flex items-center space-x-2 mb-1">
           <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
@@ -103,7 +102,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
             </span>
           )}
         </div>
-        
+
         <div className="text-sm text-gray-800 dark:text-gray-200 break-words leading-relaxed bg-gray-50 dark:bg-gray-700/50 
                         rounded-lg px-3 py-2 border border-gray-200 dark:border-gray-600 shadow-sm">
           {comment.mentionedUsers && comment.mentionedUsers.length > 0 ? (
@@ -131,7 +130,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
             comment.message
           )}
         </div>
-        
+
         {canDelete && (
           <button
             onClick={handleDelete}
