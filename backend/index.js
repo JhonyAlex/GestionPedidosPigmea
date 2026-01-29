@@ -12,7 +12,6 @@ const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcryptjs');
 const { v5: uuidv5 } = require('uuid');
 const PostgreSQLClient = require('./postgres-client');
-const ProduccionOperations = require('./produccion-operations');
 const { requirePermission, requireAnyPermission, setDbClient: setPermissionsDbClient } = require('./middleware/permissions');
 const { authenticateUser, requireAuth, extractUserFromRequest, setDbClient: setAuthDbClient } = require('./middleware/auth');
 const { setDbClient: setDbHealthClient, ensureDatabaseHealth } = require('./middleware/db-health');
@@ -22,29 +21,26 @@ const ROLE_MAPPING = {
     // Frontend -> Base de datos
     'Administrador': 'ADMIN',
     'Supervisor': 'SUPERVISOR',
-    'Operador': 'OPERATOR',
     'Visualizador': 'VIEWER',
     // Base de datos -> Frontend
     'ADMIN': 'Administrador',
     'SUPERVISOR': 'Supervisor',
-    'OPERATOR': 'Operador',
     'VIEWER': 'Visualizador'
 };
 
 // Función para mapear roles
 const mapRole = (role, toDatabase = true) => {
     if (toDatabase) {
-        return ROLE_MAPPING[role] || 'OPERATOR';
+        return ROLE_MAPPING[role] || 'VIEWER';
     } else {
-        return ROLE_MAPPING[role] || 'Operador';
+        return ROLE_MAPPING[role] || 'Visualizador';
     }
 };
 
 // Inicializar el cliente de PostgreSQL
 const dbClient = new PostgreSQLClient();
 
-// Inicializar el módulo de operaciones de producción
-const produccionOps = new ProduccionOperations(dbClient);
+
 
 // --- EXPRESS APP SETUP ---
 const app = express();
@@ -121,7 +117,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Middleware para asegurar Content-Type con charset UTF-8
 app.use((req, res, next) => {
     const originalJson = res.json;
-    res.json = function(data) {
+    res.json = function (data) {
         res.type('application/json; charset=utf-8');
         return originalJson.call(this, data);
     };
@@ -787,7 +783,7 @@ io.on('connection', (socket) => {
         const { userId, userRole, displayName } = userData;
         connectedUsers.set(userId, {
             socketId: socket.id,
-            userRole: userRole || 'Operador',
+            userRole: userRole || 'Visualizador',
             displayName: displayName || userId, // ✅ Guardar displayName
             joinedAt: new Date().toISOString()
         });
@@ -5536,11 +5532,11 @@ async function startServer() {
                     console.log('📝 Aplicando migración 036: Antivaho Realizado...');
                     try {
                         await dbClient.pool.query(`ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS antivaho_realizado BOOLEAN DEFAULT false;`);
-                        
+
                         await dbClient.pool.query(`COMMENT ON COLUMN pedidos.antivaho_realizado IS 'Marca si el proceso de antivaho ha sido completado para pedidos en producción';`);
-                        
+
                         await dbClient.pool.query(`CREATE INDEX IF NOT EXISTS idx_pedidos_antivaho_realizado ON pedidos(antivaho_realizado) WHERE antivaho = true AND antivaho_realizado = false;`);
-                        
+
                         console.log('✅ Migración 036 aplicada exitosamente');
                     } catch (indexError) {
                         // Si el índice falla, no es crítico

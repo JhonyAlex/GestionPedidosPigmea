@@ -144,9 +144,9 @@ export interface KanbanEtapa {
     color: string;
 }
 
-export type ViewType = 'preparacion' | 'listoProduccion' | 'clientes' | 'vendedores' | 'kanban' | 'list' | 'archived' | 'report' | 'permissions-debug' | 'operador';
+export type ViewType = 'preparacion' | 'listoProduccion' | 'clientes' | 'vendedores' | 'kanban' | 'list' | 'archived' | 'report' | 'permissions-debug';
 
-export type UserRole = 'Administrador' | 'Supervisor' | 'Operador' | 'Visualizador';
+export type UserRole = 'Administrador' | 'Supervisor' | 'Visualizador';
 
 export interface AuditEntry {
     id?: number;
@@ -293,128 +293,7 @@ export interface NotificationContextType {
     deleteNotification: (notificationId: string) => Promise<void>;
     refreshNotifications: () => Promise<void>;
 }
-// === OPERACIONES DE PRODUCCIÓN ===
 
-export type EstadoOperacion = 'en_progreso' | 'pausada' | 'completada' | 'cancelada';
-export type CalidadProduccion = 'ok' | 'defectuoso' | 'merma';
-export type TipoObservacion = 'normal' | 'problema' | 'alerta' | 'nota_calidad';
-
-export interface OperacionProduccion {
-    id: string;
-    pedidoId: string;
-    operadorId: string;
-    operadorNombre: string;
-    maquina: string;
-    etapa: Etapa;
-    estado: EstadoOperacion;
-    fechaInicio: string;
-    fechaFin?: string;
-    tiempoTotalSegundos: number;
-    tiempoPausadoSegundos: number;
-    metrosProducidos: number;
-    metrosObjetivo?: number;
-    observaciones?: string;
-    motivoPausa?: string;
-    metadata?: Record<string, any>;
-    createdAt: string;
-    updatedAt: string;
-}
-
-export interface PausaOperacion {
-    id: string;
-    operacionId: string;
-    fechaInicioPausa: string;
-    fechaFinPausa?: string;
-    duracionSegundos?: number;
-    motivo?: string;
-    createdAt: string;
-}
-
-export interface MetrajeProduccion {
-    id: string;
-    operacionId: string;
-    pedidoId: string;
-    metrosRegistrados: number;
-    metrosAcumulados: number;
-    observaciones?: string;
-    calidad: CalidadProduccion;
-    registradoPor: string;
-    registradoNombre: string;
-    fechaRegistro: string;
-}
-
-export interface ObservacionProduccion {
-    id: string;
-    operacionId: string;
-    pedidoId: string;
-    observacion: string;
-    tipo: TipoObservacion;
-    creadoPor: string;
-    creadoNombre: string;
-    fechaCreacion: string;
-}
-
-export interface OperacionActivaCompleta extends OperacionProduccion {
-    numeroPedidoCliente: string;
-    cliente: string;
-    metrosTotalesPedido: number;
-    producto?: string;
-    colores?: number;
-    prioridad: Prioridad;
-    fechaEntrega: string;
-    observacionesPedido?: string;
-    segundosDesdeInicio: number;
-    tiempoTranscurridoFormateado: string;
-    eficiencia?: number;
-}
-
-export interface EstadisticasOperador {
-    operadorId: string;
-    operadorNombre: string;
-    totalOperaciones: number;
-    operacionesCompletadas: number;
-    operacionesEnProgreso: number;
-    operacionesPausadas: number;
-    metrosProducidosHoy: number;
-    tiempoTrabajadoSegundos: number;
-    tiempoPromedioOperacion: number;
-}
-
-export interface IniciarOperacionInput {
-    pedidoId: string;
-    maquina: string;
-    metrosObjetivo?: number;
-    observaciones?: string;
-}
-
-export interface CompletarOperacionInput {
-    operacionId: string;
-    metrosProducidos: number;
-    observaciones?: string;
-    calidad?: CalidadProduccion;
-}
-
-export interface PausarOperacionInput {
-    operacionId: string;
-    motivo?: string;
-}
-
-export interface OperacionResponse {
-    success: boolean;
-    operacion?: OperacionProduccion;
-    message?: string;
-    error?: string;
-}
-
-export interface PedidoConProduccion extends Pedido {
-    operadorActualId?: string;
-    operadorActualNombre?: string;
-    operacionEnCursoId?: string;
-    metrosProducidos?: number;
-    metrosRestantes?: number;
-    porcentajeCompletado?: number;
-    tiempoRealProduccionSegundos?: number;
-}
 
 // === HISTORIAL DE ACCIONES ===
 

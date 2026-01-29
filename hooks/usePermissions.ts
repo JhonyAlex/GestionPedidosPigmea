@@ -10,7 +10,7 @@ export const usePermissions = () => {
         if (!user || !user.permissions) {
             return [];
         }
-        
+
         // Ya están como Permission[] en el user
         return user.permissions;
     };
@@ -30,7 +30,7 @@ export const usePermissions = () => {
     const canViewPedidos = () => canAccess('vista.pedidos');
     const canViewClientes = () => canAccess('vista.clientes');
     const canViewVendedores = () => canAccess('vista.vendedores');
-    const canViewOperador = () => canAccess('vista.operador');
+
     const canViewPreparacion = () => canAccess('vista.preparacion');
     const canViewListoProduccion = () => canAccess('vista.listo_produccion');
     const canViewReportes = () => canAccess('vista.reportes');
@@ -45,7 +45,7 @@ export const usePermissions = () => {
     // Forzar roles para modo de pruebas: todos administradores
     const isAdmin = () => true;
     const isSupervisor = () => true;
-    const isOperador = () => true;
+
     const isVisualizador = () => false;
 
     // ============================================================
@@ -70,7 +70,7 @@ export const usePermissions = () => {
         canViewPedidos,
         canViewClientes,
         canViewVendedores,
-        canViewOperador,
+
         canViewPreparacion,
         canViewListoProduccion,
         canViewReportes,
@@ -90,7 +90,7 @@ export const usePermissions = () => {
         // Roles
         isAdmin,
         isSupervisor,
-        isOperador,
+
         isVisualizador,
         // Utilidades
         getUserPermissions

@@ -151,7 +151,7 @@ const Header: React.FC<HeaderProps> = ({
     const canViewConfig = canManageConfig;
     const canAccessAdmin = () => isAdmin() || canManageUsers() || canManageConfig();
     const { state: actionHistoryState, markAllAsRead } = useActionHistory();
-    const currentUserRole = user?.role || 'Operador';
+    const currentUserRole = user?.role || 'Visualizador';
     const [isStageFiltersCollapsed, setIsStageFiltersCollapsed] = useState(true);
     const [showSearchDropdown, setShowSearchDropdown] = useState(false);
     const [showBurgerMenu, setShowBurgerMenu] = useState(false);
@@ -244,7 +244,6 @@ const Header: React.FC<HeaderProps> = ({
 
     // Vistas secundarias (operación)
     const operationViews: { id: ViewType; label: string }[] = [
-        { id: 'operador', label: 'Operador' },
         { id: 'list', label: 'Lista' },
     ];
 
@@ -302,8 +301,8 @@ const Header: React.FC<HeaderProps> = ({
                             <button
                                 onClick={() => onViewChange('archived')}
                                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 ${currentView === 'archived'
-                                        ? 'bg-gray-800 dark:bg-gray-700 text-white shadow'
-                                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600'
+                                    ? 'bg-gray-800 dark:bg-gray-700 text-white shadow'
+                                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600'
                                     }`}
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
@@ -317,8 +316,8 @@ const Header: React.FC<HeaderProps> = ({
                                 <button
                                     onClick={() => onViewChange('report')}
                                     className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-all flex items-center gap-1.5 ${currentView === 'report'
-                                            ? 'bg-gradient-to-r from-indigo-600 to-blue-700 text-white shadow-lg'
-                                            : 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white hover:from-indigo-700 hover:to-blue-700 shadow-md'
+                                        ? 'bg-gradient-to-r from-indigo-600 to-blue-700 text-white shadow-lg'
+                                        : 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white hover:from-indigo-700 hover:to-blue-700 shadow-md'
                                         }`}
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
@@ -340,8 +339,8 @@ const Header: React.FC<HeaderProps> = ({
                                     }
                                 }}
                                 className={`relative p-2 rounded-md transition-colors ${showActivityPanel
-                                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                                     }`}
                                 title="Notificaciones y Actividad"
                                 aria-label="Notificaciones y Actividad"
@@ -826,8 +825,8 @@ const Header: React.FC<HeaderProps> = ({
                                 <button
                                     onClick={() => onStageToggle('all')}
                                     className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${selectedStages.length === 0
-                                            ? 'bg-indigo-600 text-white shadow-sm'
-                                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                                        ? 'bg-indigo-600 text-white shadow-sm'
+                                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                                         }`}
                                 >
                                     ✨ Todas las Etapas
@@ -837,8 +836,8 @@ const Header: React.FC<HeaderProps> = ({
                             {/* Grupos de etapas con animación de colapso */}
                             <div
                                 className={`transition-all duration-300 ease-in-out overflow-hidden ${isStageFiltersCollapsed
-                                        ? 'max-h-0 opacity-0'
-                                        : 'max-h-96 opacity-100'
+                                    ? 'max-h-0 opacity-0'
+                                    : 'max-h-96 opacity-100'
                                     }`}
                             >
                                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -853,8 +852,8 @@ const Header: React.FC<HeaderProps> = ({
                                                         key={etapaId}
                                                         onClick={() => onStageToggle(etapaId)}
                                                         className={`px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-left ${selectedStages.includes(etapaId)
-                                                                ? 'bg-indigo-600 text-white shadow-sm'
-                                                                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
+                                                            ? 'bg-indigo-600 text-white shadow-sm'
+                                                            : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
                                                             }`}
                                                         title={ETAPAS[etapaId].title}
                                                     >
