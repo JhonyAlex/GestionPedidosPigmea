@@ -1,43 +1,72 @@
-FROM node:18-alpine
+# ============================================
+# STAGE 1: Build Frontend
+# ============================================
+FROM node:18-alpine AS frontend-builder
 
-# Set the working directory
 WORKDIR /app
 
-# Copy package files
+# Copiar package files del frontend
 COPY package*.json ./
-COPY backend/package*.json ./backend/
+COPY tsconfig*.json ./
+COPY vite.config.ts ./
+COPY tailwind.config.js ./
+COPY postcss.config.js ./
 
-# Install dependencies
-RUN npm install
-RUN cd backend && npm install
+# Instalar dependencias del frontend
+RUN npm ci --only=production
 
-# Copy source code
-COPY . .
+# Copiar código fuente del frontend
+COPY src ./src
+COPY index.html ./
+COPY public ./public
 
-# Install missing Vite dependencies explicitly
-RUN npm install @vitejs/plugin-react vite terser --save-dev
-
-# Build the frontend (aplicación principal)
+# Build del frontend
 RUN npm run build
 
-# Install psql client and dos2unix utility
-RUN apk add --no-cache postgresql-client dos2unix
+# ============================================
+# STAGE 2: Production Image
+# ============================================
+FROM node:18-alpine
 
-# Copy entrypoint and migration scripts
-COPY backend/run-migrations.sh backend/run-migrations.sh
-COPY backend/docker-entrypoint.sh backend/docker-entrypoint.sh
+WORKDIR /app
 
-# Fix line endings and make scripts executable
-RUN dos2unix backend/run-migrations.sh
-RUN dos2unix backend/docker-entrypoint.sh
-RUN chmod +x backend/run-migrations.sh
-RUN chmod +x backend/docker-entrypoint.sh
+# Instalar PostgreSQL client para migraciones
+RUN apk add --no-cache postgresql-client
 
-# Expose port
-EXPOSE 8080
+# Copiar package files del backend
+COPY backend/package*.json ./backend/
 
-# Set environment
-ENV PORT=8080
+# Instalar dependencias del backend (solo producción)
+WORKDIR /app/backend
+RUN npm ci --only=production
 
-# Set the entrypoint to our custom script
-ENTRYPOINT ["/app/backend/docker-entrypoint.sh"]
+# Volver al directorio raíz
+WORKDIR /app
+
+# Copiar código del backend
+COPY backend ./backend
+
+# Copiar build del frontend desde la etapa anterior
+COPY --from=frontend-builder /app/dist ./dist
+
+# Crear usuario no-root para seguridad
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001 && \
+    chown -R nodejs:nodejs /app
+
+# Cambiar a usuario no-root
+USER nodejs
+
+# Exponer puerto
+EXPOSE 3001
+
+# Variables de entorno por defecto
+ENV NODE_ENV=production
+ENV PORT=3001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3001/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+# Comando de inicio
+CMD ["node", "backend/index.js"]

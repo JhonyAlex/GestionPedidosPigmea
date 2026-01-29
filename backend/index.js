@@ -12,6 +12,7 @@ const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcryptjs');
 const { v5: uuidv5 } = require('uuid');
 const PostgreSQLClient = require('./postgres-client');
+const MigrationManager = require('./migrations');
 const { requirePermission, requireAnyPermission, setDbClient: setPermissionsDbClient } = require('./middleware/permissions');
 const { authenticateUser, requireAuth, extractUserFromRequest, setDbClient: setAuthDbClient } = require('./middleware/auth');
 const { setDbClient: setDbHealthClient, ensureDatabaseHealth } = require('./middleware/db-health');
@@ -1269,6 +1270,7 @@ async function createAndBroadcastNotification(type, title, message, options = {}
         }
     }
 
+
     // Emitir notificación por WebSocket a todos los clientes
     broadcastToClients('notification', notification);
 
@@ -1276,6 +1278,40 @@ async function createAndBroadcastNotification(type, title, message, options = {}
 }
 
 // --- API ROUTES ---
+
+// Health Check Endpoint - Para Docker y Dokploy
+app.get('/api/health', async (req, res) => {
+    const health = {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'development'
+    };
+
+    // Verificar conexión a base de datos
+    if (dbClient.isInitialized) {
+        try {
+            await dbClient.pool.query('SELECT 1');
+            health.database = 'connected';
+        } catch (error) {
+            health.status = 'degraded';
+            health.database = 'error';
+            health.databaseError = error.message;
+        }
+    } else {
+        health.status = 'degraded';
+        health.database = 'not_initialized';
+    }
+
+    // Verificar WebSocket
+    health.websocket = {
+        connected: io.engine.clientsCount || 0,
+        status: 'operational'
+    };
+
+    const statusCode = health.status === 'ok' ? 200 : 503;
+    res.status(statusCode).json(health);
+});
 
 // === RUTAS DE AUTENTICACIÓN ===
 
@@ -5424,133 +5460,16 @@ async function startServer() {
             setDbHealthClient(dbClient);
             console.log('✅ dbClient compartido con middlewares');
 
-            // 🔄 Ejecutar migraciones automáticamente en startup
+            // 🔄 Ejecutar migraciones automáticamente usando el nuevo sistema
             try {
-                console.log('🔄 Verificando y aplicando migraciones pendientes...');
+                const migrationManager = new MigrationManager(dbClient);
+                const migrationResult = await migrationManager.runPendingMigrations();
 
-                // Verificar si la columna mentioned_users existe
-                const checkColumnQuery = `
-                    SELECT EXISTS (
-                        SELECT 1 
-                        FROM information_schema.columns 
-                        WHERE table_name = 'pedido_comments' 
-                        AND column_name = 'mentioned_users'
-                    ) as column_exists;
-                `;
-                const checkResult = await dbClient.pool.query(checkColumnQuery);
-                const columnExists = checkResult.rows[0]?.column_exists;
-
-                if (!columnExists) {
-                    console.log('📝 Aplicando migración 032: Sistema de menciones...');
-
-                    // Aplicar migración 032
-                    await dbClient.pool.query(`
-                        -- Agregar columna mentioned_users si no existe
-                        DO $$ 
-                        BEGIN
-                            IF NOT EXISTS (
-                                SELECT 1 FROM information_schema.columns 
-                                WHERE table_name = 'pedido_comments' 
-                                AND column_name = 'mentioned_users'
-                            ) THEN
-                                ALTER TABLE pedido_comments 
-                                ADD COLUMN mentioned_users JSONB DEFAULT '[]'::jsonb;
-                                
-                                COMMENT ON COLUMN pedido_comments.mentioned_users IS 
-                                'Array de user_ids mencionados con @ en el comentario (máximo 5)';
-                            END IF;
-                        END $$;
-
-                        -- Crear índice GIN para búsquedas eficientes
-                        CREATE INDEX IF NOT EXISTS idx_pedido_comments_mentioned_users 
-                        ON pedido_comments USING GIN (mentioned_users);
-
-                        -- Función para obtener comentarios donde un usuario fue mencionado
-                        CREATE OR REPLACE FUNCTION get_comments_mentioning_user(target_user_id UUID)
-                        RETURNS TABLE (
-                            id UUID,
-                            pedido_id UUID,
-                            user_id UUID,
-                            comentario TEXT,
-                            mentioned_users JSONB,
-                            created_at TIMESTAMP WITH TIME ZONE
-                        ) AS $$
-                        BEGIN
-                            RETURN QUERY
-                            SELECT 
-                                pc.id,
-                                pc.pedido_id,
-                                pc.user_id,
-                                pc.comentario,
-                                pc.mentioned_users,
-                                pc.created_at
-                            FROM pedido_comments pc
-                            WHERE mentioned_users @> to_jsonb(ARRAY[target_user_id::text])
-                            ORDER BY pc.created_at DESC;
-                        END;
-                        $$ LANGUAGE plpgsql;
-                    `);
-
-                    console.log('✅ Migración 032 aplicada exitosamente');
-                } else {
-                    console.log('✅ Migración 032 ya aplicada previamente');
-                }
-
-                // ===== MIGRACIÓN 033: Checkbox Horas Confirmadas =====
-                const checkHorasQuery = `
-                    SELECT EXISTS (
-                        SELECT 1 
-                        FROM information_schema.columns 
-                        WHERE table_name = 'pedidos' 
-                        AND column_name = 'horas_confirmadas'
-                    ) as column_exists;
-                `;
-                const checkHorasResult = await dbClient.pool.query(checkHorasQuery);
-                const horasColumnExists = checkHorasResult.rows[0]?.column_exists;
-
-                if (!horasColumnExists) {
-                    console.log('📝 Aplicando migración 033: Checkbox Horas Confirmadas...');
-                    await dbClient.pool.query(`
-                        ALTER TABLE pedidos ADD COLUMN horas_confirmadas BOOLEAN DEFAULT false;
-                        COMMENT ON COLUMN pedidos.horas_confirmadas IS 'Indica si las horas de cliché han sido confirmadas';
-                    `);
-                    console.log('✅ Migración 033 aplicada exitosamente');
-                } else {
-                    console.log('✅ Migración 033 ya aplicada previamente');
-                }
-
-                // ===== MIGRACIÓN 036: Antivaho Realizado =====
-                const checkAntivahoRealizadoQuery = `
-                    SELECT EXISTS (
-                        SELECT 1 
-                        FROM information_schema.columns 
-                        WHERE table_name = 'pedidos' 
-                        AND column_name = 'antivaho_realizado'
-                    ) as column_exists;
-                `;
-                const checkAntivahoRealizadoResult = await dbClient.pool.query(checkAntivahoRealizadoQuery);
-                const antivahoRealizadoColumnExists = checkAntivahoRealizadoResult.rows[0]?.column_exists;
-
-                if (!antivahoRealizadoColumnExists) {
-                    console.log('📝 Aplicando migración 036: Antivaho Realizado...');
-                    try {
-                        await dbClient.pool.query(`ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS antivaho_realizado BOOLEAN DEFAULT false;`);
-
-                        await dbClient.pool.query(`COMMENT ON COLUMN pedidos.antivaho_realizado IS 'Marca si el proceso de antivaho ha sido completado para pedidos en producción';`);
-
-                        await dbClient.pool.query(`CREATE INDEX IF NOT EXISTS idx_pedidos_antivaho_realizado ON pedidos(antivaho_realizado) WHERE antivaho = true AND antivaho_realizado = false;`);
-
-                        console.log('✅ Migración 036 aplicada exitosamente');
-                    } catch (indexError) {
-                        // Si el índice falla, no es crítico
-                        console.warn('⚠️ Index creation failed (non-critical):', indexError.message);
-                        console.log('✅ Migración 036 aplicada (sin índice)');
-                    }
-                } else {
-                    console.log('✅ Migración 036 ya aplicada previamente');
+                if (!migrationResult.success) {
+                    console.error('⚠️ Algunas migraciones fallaron, pero el servidor continuará:', migrationResult.error);
                 }
             } catch (migrationError) {
-                console.error('⚠️ Error al aplicar migraciones automáticas:', migrationError.message);
+                console.error('⚠️ Error al ejecutar migraciones automáticas:', migrationError.message);
                 // No detener el servidor, continuar con retrocompatibilidad
             }
 
