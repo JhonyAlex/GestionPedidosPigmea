@@ -589,6 +589,21 @@ class PostgreSQLClient {
             await client.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`);
             console.log('✅ Extensión uuid-ossp verificada');
 
+            // LIMPIEZA: Verificar si existe el tipo 'admin_users' pero no la tabla (estado zombie)
+            try {
+                await client.query(`
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'admin_users') THEN
+                            -- Si la tabla no existe, eliminar el tipo si existe para permitir la creación
+                            DROP TYPE IF EXISTS admin_users;
+                        END IF;
+                    END $$;
+                `);
+            } catch (e) {
+                console.warn('⚠️ Advertencia intentando limpiar tipo admin_users:', e.message);
+            }
+
             // PRIMERO: Tabla de usuarios administrativos (debe crearse ANTES que user_permissions)
             await client.query(`
                 CREATE TABLE IF NOT EXISTS admin_users (
