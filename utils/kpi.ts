@@ -209,7 +209,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
     const doc = new jsPDF('p', 'pt', 'a4'); // 'p' for portrait (vertical orientation) - A4 portrait = 595x842 pt
 
     // --- HEADER ---
-    doc.setFontSize(16);
+    doc.setFontSize(18);
     doc.setFont(undefined, 'bold');
     doc.text('PIGMEA S.L.', 20, 28);
 
@@ -243,12 +243,12 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
     const dynamicSubtitle = subtitleParts.join(' | ');
 
     if (dynamicSubtitle) {
-        doc.setFontSize(7);
+        doc.setFontSize(8);
         doc.setTextColor(150);
-        doc.text(dynamicSubtitle, 20, 52, { 
+        doc.text(dynamicSubtitle, 20, 55, {
             maxWidth: 595 - 20 - 20, // Page width (portrait: 595pt) - margins
         });
-        tableStartY = 60; 
+        tableStartY = 65;
     }
     
     // Date
@@ -302,10 +302,10 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
         head: [tableColumn],
         body: tableRows,
         theme: 'grid',
-        margin: { left: 14, right: 14, top: 14, bottom: 14 }, // Márgenes reducidos (aproximadamente 5mm)
+        margin: { left: 10, right: 10, top: 14, bottom: 14 }, // Margins reduced to ~3.5mm
         styles: {
-            fontSize: 6, // Reduced font size for content
-            cellPadding: { top: 1.5, right: 2, bottom: 1.5, left: 2 }, // Minimal padding
+            fontSize: 8, // Increased from 6
+            cellPadding: { top: 2, right: 2, bottom: 2, left: 2 },
             valign: 'middle',
             textColor: [31, 41, 55],
             overflow: 'linebreak',
@@ -316,21 +316,21 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             textColor: 255,
             fontStyle: 'bold',
             halign: 'center',
-            fontSize: 6.5, // Reduced header font size
-            cellPadding: { top: 1.5, right: 2, bottom: 1.5, left: 2 },
+            fontSize: 9, // Increased from 6.5
+            cellPadding: { top: 2, right: 2, bottom: 2, left: 2 },
         },
         columnStyles: {
             0: { cellWidth: 35 }, // Des.
-            1: { cellWidth: 80, halign: 'left' }, // Cliente y # Pedido
-            2: { cellWidth: 35 }, // Metros
-            3: { cellWidth: 38, fontSize: 5.5 }, // Tipo (font ligeramente menor para evitar cortes)
-            4: { cellWidth: 24 }, // Capa
-            5: { cellWidth: 32 }, // Camisa
-            6: { cellWidth: 24 }, // Antiv.
-            7: { cellWidth: 24 }, // Láser
-            8: { cellWidth: 55 }, // Sig. Etapa
-            9: { cellWidth: 120, halign: 'left' }, // Observaciones
-            10: { cellWidth: 38 }, // Creación
+            1: { cellWidth: 100, halign: 'left' }, // Cliente y # Pedido (Increased from 80)
+            2: { cellWidth: 40 }, // Metros (Increased from 35)
+            3: { cellWidth: 40, fontSize: 7 }, // Tipo (Increased from 38)
+            4: { cellWidth: 25 }, // Capa (Increased from 24)
+            5: { cellWidth: 35 }, // Camisa (Increased from 32)
+            6: { cellWidth: 25 }, // Antiv. (Increased from 24)
+            7: { cellWidth: 25 }, // Láser (Increased from 24)
+            8: { cellWidth: 60 }, // Sig. Etapa (Increased from 55)
+            9: { cellWidth: 140, halign: 'left' }, // Observaciones (Increased from 120)
+            10: { cellWidth: 40 }, // Creación (Increased from 38)
         },
         didParseCell: (data) => {
             const pedido = pedidos[data.row.index];
