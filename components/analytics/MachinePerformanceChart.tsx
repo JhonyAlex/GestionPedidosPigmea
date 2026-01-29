@@ -3,6 +3,7 @@ import { MachineMetric } from '../../hooks/useAnalyticsData';
 import BarChart from '../BarChart';
 import { formatMetros } from '../../utils/date';
 import InfoTooltip from '../InfoTooltip';
+import { formatMinutesToHHMM } from '../../utils/kpi';
 
 interface MachinePerformanceChartProps {
     data: MachineMetric[];
@@ -159,7 +160,10 @@ export const MachinePerformanceChart: React.FC<MachinePerformanceChartProps> = (
             </div>
 
             <div className="h-80 mb-4">
-                <BarChart data={chartData} />
+                <BarChart
+                    data={chartData}
+                    valueFormatter={selectedMetric === 'tiempo' ? (val) => formatMinutesToHHMM(val * 60) : undefined}
+                />
             </div>
 
             {/* Detailed Stats Table */}
@@ -221,7 +225,7 @@ export const MachinePerformanceChart: React.FC<MachinePerformanceChartProps> = (
                                             {formatMetros(machine.metros_totales)} m
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-700 dark:text-gray-300">
-                                            {Number(machine.tiempo_total_horas).toFixed(1)} h
+                                            {formatMinutesToHHMM(Number(machine.tiempo_total_horas) * 60)}
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-700 dark:text-gray-300">
                                             {percentage}%
@@ -240,7 +244,7 @@ export const MachinePerformanceChart: React.FC<MachinePerformanceChartProps> = (
                                 {formatMetros(totals.metros)} m
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
-                                {Number(totals.tiempo || 0).toFixed(1)} h
+                                {formatMinutesToHHMM(Number(totals.tiempo || 0) * 60)}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
                                 100%

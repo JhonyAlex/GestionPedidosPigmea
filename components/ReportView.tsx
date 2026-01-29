@@ -4,7 +4,7 @@ import { DateFilterOption, getDateRange, formatMetros } from '../utils/date';
 import { getWeekNumber, getWeekDateRange } from '../utils/weekUtils';
 import DateFilterCombined from './DateFilterCombined';
 import { MAQUINAS_IMPRESION, PREPARACION_SUB_ETAPAS_IDS, ETAPAS } from '../constants';
-import { parseTimeToMinutes } from '../utils/kpi';
+import { parseTimeToMinutes, formatMinutesToHHMM } from '../utils/kpi';
 import { PlanningTable, WeeklyData } from './PlanningTable';
 import { PlanningChart } from './PlanningChart';
 import CustomAnalysisModal from './CustomAnalysisModal';
@@ -871,16 +871,16 @@ const ReportView: React.FC<ReportViewProps> = ({
 
         const tableRows = processedData.weeklyData.map(row => {
             const machineValues = processedData.machineKeys.map(key =>
-                (row.machines[key] || 0).toFixed(1)
+                formatMinutesToHHMM((row.machines[key] || 0) * 60)
             );
 
             return [
                 row.label,
                 row.dateRange,
                 ...machineValues,
-                row.totalLoad.toFixed(1),
-                row.totalCapacity.toFixed(0),
-                row.freeCapacity.toFixed(1)
+                formatMinutesToHHMM(row.totalLoad * 60),
+                formatMinutesToHHMM(row.totalCapacity * 60),
+                formatMinutesToHHMM(row.freeCapacity * 60)
             ];
         });
 
@@ -1283,7 +1283,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                         onClick={() => handleColumnSort('tiempo')}
                                     >
                                         <div className="flex items-center justify-end">
-                                            Tiempo (h)
+                                            Tiempo
                                             {renderSortIndicator('tiempo')}
                                         </div>
                                     </th>
@@ -1339,7 +1339,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                                     {formatMetros(pedido.metros)} m
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono text-gray-900 dark:text-white">
-                                                    {hours.toFixed(2)}
+                                                    {formatMinutesToHHMM(hours * 60)}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                     <span className="text-indigo-600 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">
