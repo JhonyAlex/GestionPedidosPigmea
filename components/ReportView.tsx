@@ -825,14 +825,14 @@ const ReportView: React.FC<ReportViewProps> = ({
         const doc = new jsPDF();
 
         // --- Header ---
-        doc.setFontSize(18);
-        doc.text('Informe de Planificación - PIGMEA', 14, 20);
+        doc.setFontSize(24);
+        doc.text('Informe de Planificación - PIGMEA', 10, 20);
 
-        doc.setFontSize(10);
-        doc.text(`Fecha de emisión: ${new Date().toLocaleDateString()}`, 14, 28);
-        doc.text(`Filtro: ${dateFilter === 'all' ? 'Todos' : dateFilter}`, 14, 33);
+        doc.setFontSize(13);
+        doc.text(`Fecha de emisión: ${new Date().toLocaleDateString()}`, 10, 30);
+        doc.text(`Filtro: ${dateFilter === 'all' ? 'Todos' : dateFilter}`, 10, 36);
 
-        let startY = 40;
+        let startY = 45;
 
         // --- Chart Capture ---
         const chartElement = document.getElementById('planning-chart-container');
@@ -845,16 +845,16 @@ const ReportView: React.FC<ReportViewProps> = ({
                 });
 
                 const imgData = canvas.toDataURL('image/png');
-                const imgWidth = 180; // A4 width is ~210mm, leaving margins
+                const imgWidth = 190; // A4 width is ~210mm, leaving margins
                 const pageHeight = 295;
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
                 // Add Image
-                doc.addImage(imgData, 'PNG', 15, startY, imgWidth, imgHeight);
+                doc.addImage(imgData, 'PNG', 10, startY, imgWidth, imgHeight);
                 startY += imgHeight + 10; // Move Y down for table
             } catch (error) {
                 console.error("Error capturing chart for PDF", error);
-                doc.text('(Error al generar gráfico)', 14, startY);
+                doc.text('(Error al generar gráfico)', 10, startY);
                 startY += 10;
             }
         }
@@ -890,9 +890,9 @@ const ReportView: React.FC<ReportViewProps> = ({
             head: [tableColumn],
             body: tableRows,
             startY: startY,
-            styles: { fontSize: 8 },
+            styles: { fontSize: 11 },
             headStyles: { fillColor: [66, 139, 202] }, // Blue-ish
-            margin: { top: 20 }
+            margin: { top: 20, left: 10, right: 10 }
         });
 
         // --- Footer / Save ---
