@@ -759,7 +759,7 @@ class PostgreSQLClient {
 
             // TABLA DE COMENTARIOS
             await client.query(`
-                CREATE TABLE IF NOT EXISTS pedido_comments (
+                CREATE TABLE IF NOT EXISTS limpio.pedido_comments (
                     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
                     pedido_id VARCHAR(50) NOT NULL,
                     user_id UUID,
@@ -777,7 +777,7 @@ class PostgreSQLClient {
 
             // TABLA DE VENDEDORES
             await client.query(`
-                CREATE TABLE IF NOT EXISTS vendedores (
+                CREATE TABLE IF NOT EXISTS limpio.vendedores (
                     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
                     nombre VARCHAR(255) UNIQUE NOT NULL,
                     email VARCHAR(255),
@@ -791,11 +791,11 @@ class PostgreSQLClient {
 
             // Índices para mejorar performance
             await client.query(`
-                CREATE INDEX IF NOT EXISTS idx_pedidos_etapa ON pedidos(etapa_actual);
-                CREATE INDEX IF NOT EXISTS idx_pedidos_cliente ON pedidos(cliente);
-                CREATE INDEX IF NOT EXISTS idx_pedidos_fecha_entrega ON pedidos(fecha_entrega);
-                CREATE INDEX IF NOT EXISTS idx_pedidos_secuencia ON pedidos(secuencia_pedido);
-                CREATE INDEX IF NOT EXISTS idx_pedidos_numeros_compra_gin ON pedidos USING gin((data->'numerosCompra'));
+                CREATE INDEX IF NOT EXISTS idx_pedidos_etapa ON limpio.pedidos(etapa_actual);
+                CREATE INDEX IF NOT EXISTS idx_pedidos_cliente ON limpio.pedidos(cliente);
+                CREATE INDEX IF NOT EXISTS idx_pedidos_fecha_entrega ON limpio.pedidos(fecha_entrega);
+                CREATE INDEX IF NOT EXISTS idx_pedidos_secuencia ON limpio.pedidos(secuencia_pedido);
+                CREATE INDEX IF NOT EXISTS idx_pedidos_numeros_compra_gin ON limpio.pedidos USING gin((data->'numerosCompra'));
                 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
                 CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp);
                 CREATE INDEX IF NOT EXISTS idx_audit_user_role ON audit_log(user_role);
@@ -804,11 +804,11 @@ class PostgreSQLClient {
                 CREATE INDEX IF NOT EXISTS idx_admin_users_role ON admin_users(role);
                 CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
                 CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
-                CREATE INDEX IF NOT EXISTS idx_pedido_comments_pedido_id ON pedido_comments(pedido_id);
-                CREATE INDEX IF NOT EXISTS idx_pedido_comments_user_id ON pedido_comments(user_id);
-                CREATE INDEX IF NOT EXISTS idx_pedido_comments_created_at ON pedido_comments(created_at);
-                CREATE INDEX IF NOT EXISTS idx_vendedores_nombre ON vendedores(nombre);
-                CREATE INDEX IF NOT EXISTS idx_vendedores_activo ON vendedores(activo);
+                CREATE INDEX IF NOT EXISTS idx_pedido_comments_pedido_id ON limpio.pedido_comments(pedido_id);
+                CREATE INDEX IF NOT EXISTS idx_pedido_comments_user_id ON limpio.pedido_comments(user_id);
+                CREATE INDEX IF NOT EXISTS idx_pedido_comments_created_at ON limpio.pedido_comments(created_at);
+                CREATE INDEX IF NOT EXISTS idx_vendedores_nombre ON limpio.vendedores(nombre);
+                CREATE INDEX IF NOT EXISTS idx_vendedores_activo ON limpio.vendedores(activo);
             `);
             console.log('✅ Índices verificados');
 
@@ -825,9 +825,9 @@ class PostgreSQLClient {
 
             // Trigger para actualizar updated_at en pedidos
             await client.query(`
-                DROP TRIGGER IF EXISTS update_pedidos_updated_at ON pedidos;
+                DROP TRIGGER IF EXISTS update_pedidos_updated_at ON limpio.pedidos;
                 CREATE TRIGGER update_pedidos_updated_at 
-                    BEFORE UPDATE ON pedidos 
+                    BEFORE UPDATE ON limpio.pedidos 
                     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
             `);
 
@@ -841,9 +841,9 @@ class PostgreSQLClient {
 
             // Trigger para actualizar updated_at en vendedores
             await client.query(`
-                DROP TRIGGER IF EXISTS update_vendedores_updated_at ON vendedores;
+                DROP TRIGGER IF EXISTS update_vendedores_updated_at ON limpio.vendedores;
                 CREATE TRIGGER update_vendedores_updated_at 
-                    BEFORE UPDATE ON vendedores 
+                    BEFORE UPDATE ON limpio.vendedores 
                     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
             `);
             console.log('✅ Triggers configurados');
@@ -857,17 +857,17 @@ class PostgreSQLClient {
                     -- Verificar si la columna vendedor_id ya existe
                     IF NOT EXISTS (
                         SELECT 1 FROM information_schema.columns 
-                        WHERE table_name = 'pedidos' AND column_name = 'vendedor_id'
+                        WHERE table_schema = 'limpio' AND table_name = 'pedidos' AND column_name = 'vendedor_id'
                     ) THEN
                         -- Crear columna vendedor_id
-                        ALTER TABLE pedidos ADD COLUMN vendedor_id UUID;
-                        CREATE INDEX IF NOT EXISTS idx_pedidos_vendedor_id ON pedidos(vendedor_id);
+                        ALTER TABLE limpio.pedidos ADD COLUMN vendedor_id UUID;
+                        CREATE INDEX IF NOT EXISTS idx_pedidos_vendedor_id ON limpio.pedidos(vendedor_id);
                         
                         -- Añadir foreign key
-                        ALTER TABLE pedidos
+                        ALTER TABLE limpio.pedidos
                         ADD CONSTRAINT fk_pedidos_vendedor
                         FOREIGN KEY (vendedor_id)
-                        REFERENCES vendedores(id)
+                        REFERENCES limpio.vendedores(id)
                         ON DELETE SET NULL;
                         
                         RAISE NOTICE '✅ Columna vendedor_id creada';
@@ -875,25 +875,25 @@ class PostgreSQLClient {
                         -- Verificar si existe la columna legacy "vendedor" (string)
                         SELECT EXISTS (
                             SELECT 1 FROM information_schema.columns 
-                            WHERE table_name = 'pedidos' AND column_name = 'vendedor'
+                            WHERE table_schema = 'limpio' AND table_name = 'pedidos' AND column_name = 'vendedor'
                         ) INTO vendedor_column_exists;
                         
                         -- Solo migrar datos si existe la columna legacy
                         IF vendedor_column_exists THEN
                             -- Crear vendedores para cada nombre único
-                            INSERT INTO vendedores (nombre, activo)
+                            INSERT INTO limpio.vendedores (nombre, activo)
                             SELECT DISTINCT TRIM(vendedor) as nombre, true
-                            FROM pedidos
+                            FROM limpio.pedidos
                             WHERE vendedor IS NOT NULL 
                               AND TRIM(vendedor) != ''
                               AND NOT EXISTS (
                                 SELECT 1 FROM limpio.vendedores v 
-                                WHERE LOWER(v.nombre) = LOWER(TRIM(pedidos.vendedor))
+                                WHERE LOWER(v.nombre) = LOWER(TRIM(limpio.pedidos.vendedor))
                               )
                             ON CONFLICT DO NOTHING;
                             
                             -- Actualizar pedidos con el vendedor_id correspondiente
-                            UPDATE pedidos p
+                            UPDATE limpio.pedidos p
                             SET vendedor_id = v.id
                             FROM limpio.vendedores v
                             WHERE LOWER(TRIM(p.vendedor)) = LOWER(v.nombre)
