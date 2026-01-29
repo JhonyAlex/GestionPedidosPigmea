@@ -5452,6 +5452,7 @@ async function startServer() {
         if (process.env.DATABASE_URL || process.env.DB_HOST || process.env.POSTGRES_HOST) {
             console.log('🔄 Intentando conectar a PostgreSQL...');
             console.log('🔄 Intentando conectar a PostgreSQL...');
+            console.log('🔌 Iniciando conexión a DB (Intento 2)...');
             // 1. Conectar a la base de datos (sin crear tablas aún)
             await dbClient.connect();
             console.log('🐘 PostgreSQL conectado exitosamente');
