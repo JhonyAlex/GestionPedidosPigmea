@@ -7,16 +7,16 @@ import { calculateTotalProductionTime } from './kpi';
 
 
 type ProcessDragEndArgs = {
-  result: DropResult;
-  pedidos: Pedido[];
-  processedPedidos: Pedido[];
-  currentUserRole: UserRole;
-  generarEntradaHistorial: (usuarioRole: UserRole, accion: string, detalles: string) => HistorialEntry;
-  logAction: (action: string, pedidoId?: string) => void;
-  setPedidos: React.Dispatch<React.SetStateAction<Pedido[]>>;
-  handleSavePedido: (pedido: Pedido) => Promise<any>;
+    result: DropResult;
+    pedidos: Pedido[];
+    processedPedidos: Pedido[];
+    currentUserRole: UserRole;
+    generarEntradaHistorial: (usuarioRole: UserRole, accion: string, detalles: string) => HistorialEntry;
+    logAction: (action: string, pedidoId?: string) => void;
+    setPedidos: React.Dispatch<React.SetStateAction<Pedido[]>>;
+    handleSavePedido: (pedido: Pedido) => Promise<any>;
     handleUpdatePedidoEtapa: (pedido: Pedido, newEtapa: Etapa, newSubEtapa?: string | null) => Promise<void>;
-  setSortConfig: (key: keyof Pedido, direction?: 'ascending' | 'descending') => void;
+    setSortConfig: (key: keyof Pedido, direction?: 'ascending' | 'descending') => void;
 };
 
 export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> => {
@@ -41,7 +41,7 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
     // Handle reordering in the list view (session only)
     if (destination.droppableId === 'pedido-list' && source.droppableId === 'pedido-list') {
         // Obtener solo los pedidos activos (los que se muestran en la lista)
-        const currentActivePedidos = processedPedidos.filter(p => 
+        const currentActivePedidos = processedPedidos.filter(p =>
             p.etapaActual !== Etapa.ARCHIVADO && p.etapaActual !== Etapa.PREPARACION
         );
 
@@ -61,14 +61,14 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
             const newOrder = updatedOrders.get(pedido.id);
             if (newOrder !== undefined && newOrder !== pedido.orden) {
                 const historialEntry = generarEntradaHistorial(
-                    currentUserRole, 
-                    'Reordenamiento Manual', 
+                    currentUserRole,
+                    'Reordenamiento Manual',
                     `Orden cambiado de ${pedido.orden || 'sin orden'} a ${newOrder}.`
                 );
-                return { 
-                    ...pedido, 
-                    orden: newOrder, 
-                    historial: [...pedido.historial, historialEntry] 
+                return {
+                    ...pedido,
+                    orden: newOrder,
+                    historial: [...pedido.historial, historialEntry]
                 };
             }
             // Para pedidos activos que no cambiaron de orden, mantener su orden actual
@@ -81,18 +81,18 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
 
         // Actualizar el estado inmediatamente
         setPedidos(newPedidosList);
-        
+
         // Cambiar el sorting a 'orden' para mantener el orden manual
         setSortConfig('orden', 'ascending');
-        
+
         logAction(`Pedido ${movedPedido.numeroPedidoCliente} reordenado manualmente en la lista.`, movedPedido.id);
-        
+
         // Actualización en background (solo para los pedidos que cambiaron)
         const changedPedidos = newPedidosList.filter(p => {
             const originalPedido = pedidos.find(op => op.id === p.id);
             return originalPedido && originalPedido.orden !== p.orden;
         });
-        
+
         if (changedPedidos.length > 0) {
             Promise.all(changedPedidos.map(p => store.update(p))).catch(error => {
                 console.error("Error al actualizar pedidos reordenados:", error);
@@ -125,7 +125,7 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
         let warningMessage = '';
 
         if (destId === PREPARACION_SUB_ETAPAS_IDS.MATERIAL_NO_DISPONIBLE && movedPedido.materialDisponible === true) {
-            warningMessage = 
+            warningMessage =
                 '⚠️ Advertencia de Inconsistencia\n\n' +
                 'El material está marcado como DISPONIBLE en este pedido, ' +
                 'pero lo estás moviendo a "Material No Disponible".\n\n' +
@@ -133,7 +133,7 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
                 '(El estado del material en el pedido no se modificará automáticamente)';
             showWarning = true;
         } else if (destId === PREPARACION_SUB_ETAPAS_IDS.CLICHE_NO_DISPONIBLE && movedPedido.clicheDisponible === true) {
-            warningMessage = 
+            warningMessage =
                 '⚠️ Advertencia de Inconsistencia\n\n' +
                 'El cliché está marcado como DISPONIBLE en este pedido, ' +
                 'pero lo estás moviendo a "Cliché No Disponible".\n\n' +
@@ -156,15 +156,15 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
 
         // Persistir cambio - el hook aplicará determinarEtapaPreparacion basado en los flags
         await handleSavePedido(tempUpdatedPedido);
-        
+
         return;
     }
 
     const newEtapa = destination.droppableId as Etapa;
     const oldEtapa = source.droppableId as Etapa;
-    
+
     // Use the centralized stage change handler
     await handleUpdatePedidoEtapa(movedPedido, newEtapa);
-    
-    logAction(`Pedido ${movedPedido.numeroPedidoCliente} movido (manual) de ${ETAPAS[oldEtapa].title} a ${ETAPAS[newEtapa].title}.`, movedPedido.id);
+
+    logAction(`Pedido ${movedPedido.numeroPedidoCliente} movido (manual) de ${ETAPAS[oldEtapa]?.title ?? oldEtapa} a ${ETAPAS[newEtapa]?.title ?? newEtapa}.`, movedPedido.id);
 };

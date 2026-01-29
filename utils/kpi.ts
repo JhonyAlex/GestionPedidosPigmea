@@ -60,11 +60,11 @@ export const formatMinutesToDaysAndMinutes = (totalMinutes: number): string => {
     if (totalMinutes < 0) totalMinutes = 0;
     const days = Math.floor(totalMinutes / (60 * 24));
     const remainingMinutes = Math.round(totalMinutes % (60 * 24));
-    
+
     if (days === 0) {
         return `${remainingMinutes} min`;
     }
-    
+
     return `${days} día(s), ${remainingMinutes} min`;
 };
 
@@ -82,7 +82,7 @@ export const calcularTiempoRealProduccion = (pedido: Pedido): number => {
 
     for (let i = 0; i < sortedTimeline.length; i++) {
         const currentStageInfo = sortedTimeline[i];
-        
+
         // Only calculate time for production stages
         if (ETAPAS_PRODUCCION.includes(currentStageInfo.etapa)) {
             const startTime = new Date(currentStageInfo.fecha).getTime();
@@ -117,12 +117,12 @@ export const calculateTotalProductionTime = (startDate: string, endDate: string)
     const start = new Date(startDate).getTime();
     const end = new Date(endDate).getTime();
     if (isNaN(start) || isNaN(end) || end < start) return 'N/A';
-    
+
     const durationMillis = end - start;
     const totalHours = durationMillis / (1000 * 60 * 60);
     const days = Math.floor(totalHours / 24);
     const hours = Math.round(totalHours % 24);
-    
+
     return `${days} día(s), ${hours} hora(s)`;
 };
 
@@ -134,24 +134,24 @@ export const calculateTotalProductionTime = (startDate: string, endDate: string)
 export const getTiempoTotalOEtapa = (pedido: Pedido): string => {
     // Check if the order is in a production stage
     const isInProduction = ETAPAS_PRODUCCION.includes(pedido.etapaActual);
-    
+
     if (!isInProduction) {
         // Return current stage name from ETAPAS constant
         return ETAPAS[pedido.etapaActual]?.title || pedido.etapaActual;
     }
-    
+
     // If in production and has completion time, show it
     if (pedido.tiempoTotalProduccion) {
         return pedido.tiempoTotalProduccion;
     }
-    
+
     // If currently in production, calculate time from first production stage to now
-    const sortedTimeline = [...pedido.etapasSecuencia].sort((a, b) => 
+    const sortedTimeline = [...pedido.etapasSecuencia].sort((a, b) =>
         new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
     );
-    
+
     const firstProductionStage = sortedTimeline.find(e => ETAPAS_PRODUCCION.includes(e.etapa));
-    
+
     if (firstProductionStage) {
         const start = new Date(firstProductionStage.fecha).getTime();
         const now = new Date().getTime();
@@ -159,10 +159,10 @@ export const getTiempoTotalOEtapa = (pedido: Pedido): string => {
         const totalHours = durationMillis / (1000 * 60 * 60);
         const days = Math.floor(totalHours / 24);
         const hours = Math.round(totalHours % 24);
-        
+
         return `${days} día(s), ${hours} hora(s)`;
     }
-    
+
     return 'En Progreso';
 };
 
@@ -180,26 +180,26 @@ const CLIENT_COLOR_PALETTE: number[][] = [
 
 const getNextStageTitle = (pedido: Pedido): string => {
     const { etapaActual, secuenciaTrabajo } = pedido;
-    
+
     if (!secuenciaTrabajo) return 'N/A';
 
     const isPrinting = KANBAN_FUNNELS.IMPRESION.stages.includes(etapaActual);
     const isPostPrinting = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(etapaActual);
 
     if (isPrinting && secuenciaTrabajo.length > 0) {
-        return ETAPAS[secuenciaTrabajo[0]].title;
+        return ETAPAS[secuenciaTrabajo[0]]?.title ?? 'N/A';
     }
 
     if (isPostPrinting) {
         const currentIndex = secuenciaTrabajo.indexOf(etapaActual);
         if (currentIndex > -1 && currentIndex < secuenciaTrabajo.length - 1) {
-            return ETAPAS[secuenciaTrabajo[currentIndex + 1]].title;
+            return ETAPAS[secuenciaTrabajo[currentIndex + 1]]?.title ?? 'N/A';
         }
         if (currentIndex === secuenciaTrabajo.length - 1) {
-            return ETAPAS[Etapa.COMPLETADO].title;
+            return ETAPAS[Etapa.COMPLETADO]?.title ?? 'Completado';
         }
     }
-    
+
     return 'N/A';
 };
 
@@ -227,12 +227,14 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
 
     pedidos.forEach(p => {
         if (KANBAN_FUNNELS.IMPRESION.stages.includes(p.etapaActual)) {
-            printingMachines.add(ETAPAS[p.etapaActual].title);
+            const title = ETAPAS[p.etapaActual]?.title;
+            if (title) printingMachines.add(title);
         } else if (KANBAN_FUNNELS.POST_IMPRESION.stages.includes(p.etapaActual)) {
-            postPrintingStages.add(ETAPAS[p.etapaActual].title);
+            const title = ETAPAS[p.etapaActual]?.title;
+            if (title) postPrintingStages.add(title);
         }
     });
-    
+
     const subtitleParts: string[] = [];
     if (printingMachines.size > 0) {
         subtitleParts.push(`Impresión: ${Array.from(printingMachines).join(', ')}`);
@@ -250,12 +252,12 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
         });
         tableStartY = 65;
     }
-    
+
     // Date
     const today = new Date();
     doc.setFontSize(8);
     doc.setFont(undefined, 'normal');
-    doc.setTextColor(0); 
+    doc.setTextColor(0);
     doc.text(formatDateDDMMYYYY(today), 575, 28, { align: 'right' });
 
     // Table
@@ -272,16 +274,16 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
         "Observaciones",
         "Creación"
     ];
-    
+
     const tableRows = pedidos.map(p => {
         // Combinar observaciones rápidas y observaciones normales
         const obsRapidas = p.observacionesRapidas ? p.observacionesRapidas.split(' | ').filter(Boolean).join(' • ') : '';
         const obsNormal = p.observaciones || '';
         const observacionesCombinadas = [obsRapidas, obsNormal].filter(Boolean).join('\n') || '-';
-        
+
         // Formatear metros con separador de miles
         const formattedMetros = p.metros ? p.metros.toLocaleString('es-ES') : '0';
-        
+
         return [
             p.desarrollo || '-',
             // We pass the raw data; rendering is handled in didDrawCell to allow mixed styles (bold/normal)
@@ -297,7 +299,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             formatDateDDMMYYYY(p.fechaCreacion),
         ];
     });
-    
+
     doc.autoTable({
         startY: tableStartY,
         head: [tableColumn],
@@ -313,7 +315,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             halign: 'center', // Default center alignment
         },
         headStyles: {
-            fillColor: [45, 55, 72], 
+            fillColor: [45, 55, 72],
             textColor: 255,
             fontStyle: 'bold',
             halign: 'center',

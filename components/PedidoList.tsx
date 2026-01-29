@@ -86,14 +86,14 @@ const SortableHeaderTh = ({
     );
 };
 
-const PedidoRow: React.FC<{ 
-    pedido: Pedido, 
-    index: number, 
-    onSelectPedido: (pedido: Pedido) => void, 
-    onArchiveToggle: (pedido: Pedido) => void, 
-    isArchivedView: boolean, 
-    currentUserRole: UserRole, 
-    onAdvanceStage: (pedido: Pedido) => void, 
+const PedidoRow: React.FC<{
+    pedido: Pedido,
+    index: number,
+    onSelectPedido: (pedido: Pedido) => void,
+    onArchiveToggle: (pedido: Pedido) => void,
+    isArchivedView: boolean,
+    currentUserRole: UserRole,
+    onAdvanceStage: (pedido: Pedido) => void,
     isHighlighted: boolean,
     provided: any,
     snapshot: any,
@@ -102,16 +102,16 @@ const PedidoRow: React.FC<{
     onToggleSelection?: (id: string) => void
 }> = ({ pedido, index, onSelectPedido, onArchiveToggle, isArchivedView, currentUserRole, onAdvanceStage, isHighlighted, provided, snapshot, highlightedPedidoId, isSelected, onToggleSelection }) => {
     const { canMovePedidos, canArchivePedidos } = usePermissions();
-    
+
     const { canAdvance, advanceButtonTitle } = useMemo(() => {
         // Usar la nueva lógica centralizada
         const canAdvanceSequence = puedeAvanzarSecuencia(
-            pedido.etapaActual, 
-            pedido.secuenciaTrabajo, 
-            pedido.antivaho, 
+            pedido.etapaActual,
+            pedido.secuenciaTrabajo,
+            pedido.antivaho,
             pedido.antivahoRealizado
         );
-        
+
         if (!canAdvanceSequence) {
             return { canAdvance: false, advanceButtonTitle: '' };
         }
@@ -124,18 +124,18 @@ const PedidoRow: React.FC<{
         if (isPrinting && pedido.secuenciaTrabajo?.length > 0) {
             return { canAdvance: true, advanceButtonTitle: 'Iniciar Post-Impresión' };
         }
-        
+
         if (isPostPrinting) {
             // Para pedidos con antivaho en post-impresión, permitir "continuar" para reconfirmar
             if (pedido.antivaho && !pedido.antivahoRealizado) {
                 return { canAdvance: true, advanceButtonTitle: 'Continuar Secuencia' };
             }
-            
+
             // Si está fuera de secuencia, ofrecer reordenar
             if (isOutOfSequence) {
                 return { canAdvance: true, advanceButtonTitle: 'Reordenar y Continuar' };
             }
-            
+
             // Lógica normal para pedidos en secuencia
             const currentIndex = pedido.secuenciaTrabajo?.indexOf(pedido.etapaActual) ?? -1;
             if (currentIndex > -1 && currentIndex < pedido.secuenciaTrabajo.length - 1) {
@@ -145,7 +145,7 @@ const PedidoRow: React.FC<{
                 return { canAdvance: true, advanceButtonTitle: 'Marcar como Completado' };
             }
         }
-        
+
         return { canAdvance: false, advanceButtonTitle: '' };
     }, [pedido]);
 
@@ -180,7 +180,7 @@ const PedidoRow: React.FC<{
                     {pedido.prioridad}
                 </span>
             </td>
-            <td className="px-6 py-4 text-gray-900 dark:text-white w-36">{ETAPAS[pedido.etapaActual].title}</td>
+            <td className="px-6 py-4 text-gray-900 dark:text-white w-36">{ETAPAS[pedido.etapaActual]?.title ?? pedido.etapaActual}</td>
             <td className="px-6 py-4 text-right text-gray-900 dark:text-white w-24">{formatMetros(pedido.metros)} m</td>
             <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-28">{pedido.tiempoProduccionPlanificado}</td>
             <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-28">{formatDateDDMMYYYY(pedido.fechaEntrega)}</td>
