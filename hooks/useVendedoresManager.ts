@@ -17,6 +17,56 @@ const notifyListeners = () => {
     stateListeners.forEach(listener => listener());
 };
 
+const MAX_RECONNECT_ATTEMPTS = 3;
+
+/**
+ * Función para actualizar el estado global y notificar a los listeners
+ */
+const updateGlobalState = (
+    updater: (currentVendedores: Vendedor[]) => Vendedor[]
+) => {
+    globalVendedores = updater(globalVendedores);
+    notifyListeners();
+};
+
+// Configurar listeners globales de WebSocket (Solo una vez)
+let wsListenersSetup = false;
+
+const setupGlobalWebSocketListeners = () => {
+    if (wsListenersSetup) return;
+    wsListenersSetup = true;
+
+    console.log('🔌 Configurando listeners globales de WebSocket para Vendedores...');
+
+    webSocketService.subscribeToVendedorCreated((data: { vendedor: Vendedor; message: string; timestamp: string }) => {
+        console.log('🔄 WS: Nuevo vendedor:', data.vendedor.nombre);
+        updateGlobalState(current => {
+            if (current.some(v => v.id === data.vendedor.id)) return current;
+            return [...current, data.vendedor];
+        });
+    });
+
+    webSocketService.subscribeToVendedorUpdated((data: { vendedor: Vendedor; message: string; timestamp: string }) => {
+        console.log('🔄 WS: Vendedor actualizado:', data.vendedor.nombre);
+        updateGlobalState(current =>
+            current.map(v => v.id === data.vendedor.id ? data.vendedor : v)
+        );
+    });
+
+    webSocketService.subscribeToVendedorDeleted((data: { vendedorId: string; vendedor?: Vendedor; message: string; timestamp: string }) => {
+        console.log('🔄 WS: Vendedor eliminado:', data.vendedorId);
+        updateGlobalState(current => {
+            if (data.vendedor) {
+                // Soft delete (updated)
+                return current.map(v => v.id === data.vendedorId ? data.vendedor! : v);
+            } else {
+                // Hard delete
+                return current.filter(v => v.id !== data.vendedorId);
+            }
+        });
+    });
+};
+
 export function useVendedoresManager() {
     const [vendedores, setVendedores] = useState<Vendedor[]>(globalVendedores);
     const [loading, setLoading] = useState(globalLoading);
@@ -26,31 +76,31 @@ export function useVendedoresManager() {
     // Helper para obtener headers de autenticación
     const getAuthHeaders = useCallback(() => {
         if (!user?.id) return {};
-        
+
         const headers: any = {
             'x-user-id': String(user.id),
             'x-user-role': user.role || 'OPERATOR'
         };
-        
+
         // Enviar también los permisos del usuario
         if (user.permissions && Array.isArray(user.permissions)) {
             headers['x-user-permissions'] = JSON.stringify(user.permissions);
         }
-        
+
         return headers;
     }, [user]);
 
     // Función para obtener todos los vendedores
     const fetchVendedores = useCallback(async () => {
         if (globalLoading) return;
-        
+
         try {
             globalLoading = true;
             setLoading(true);
-            notifyListeners();
+            notifyListeners(); // Notificar estado de carga
             setError(null);
             globalError = null;
-            
+
             const response = await fetch(`${API_URL}/vendedores`, {
                 method: 'GET',
                 headers: {
@@ -65,8 +115,10 @@ export function useVendedoresManager() {
             }
 
             const data = await response.json();
-            globalVendedores = data;
-            setVendedores(globalVendedores);
+
+            // Actualizar estado global
+            updateGlobalState(() => data);
+
         } catch (err) {
             console.error('Error fetching vendedores:', err);
             const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
@@ -75,7 +127,7 @@ export function useVendedoresManager() {
         } finally {
             globalLoading = false;
             setLoading(false);
-            notifyListeners();
+            notifyListeners(); // Notificar fin de carga
         }
     }, [getAuthHeaders]);
 
@@ -83,7 +135,7 @@ export function useVendedoresManager() {
     const addVendedor = useCallback(async (vendedorData: VendedorCreateRequest): Promise<Vendedor> => {
         try {
             setError(null);
-            
+
             const response = await fetch(`${API_URL}/vendedores`, {
                 method: 'POST',
                 headers: {
@@ -100,10 +152,13 @@ export function useVendedoresManager() {
             }
 
             const nuevoVendedor = await response.json();
-            
-            // Actualizar la lista local
-            setVendedores(prev => [...prev, nuevoVendedor]);
-            
+
+            // Actualizar estado global (evitar duplicados si WS ya lo insertó)
+            updateGlobalState(current => {
+                if (current.some(v => v.id === nuevoVendedor.id)) return current;
+                return [...current, nuevoVendedor];
+            });
+
             return nuevoVendedor;
         } catch (err) {
             console.error('Error creating vendedor:', err);
@@ -117,7 +172,7 @@ export function useVendedoresManager() {
     const updateVendedor = useCallback(async (id: string, vendedorData: VendedorUpdateRequest): Promise<Vendedor> => {
         try {
             setError(null);
-            
+
             const response = await fetch(`${API_URL}/vendedores/${id}`, {
                 method: 'PUT',
                 headers: {
@@ -134,10 +189,12 @@ export function useVendedoresManager() {
             }
 
             const vendedorActualizado = await response.json();
-            
-            // Actualizar la lista local
-            setVendedores(prev => prev.map(v => v.id === id ? vendedorActualizado : v));
-            
+
+            // Actualizar estado global
+            updateGlobalState(current =>
+                current.map(v => v.id === id ? vendedorActualizado : v)
+            );
+
             return vendedorActualizado;
         } catch (err) {
             console.error('Error updating vendedor:', err);
@@ -151,7 +208,7 @@ export function useVendedoresManager() {
     const deleteVendedor = useCallback(async (id: string): Promise<void> => {
         try {
             setError(null);
-            
+
             const response = await fetch(`${API_URL}/vendedores/${id}`, {
                 method: 'DELETE',
                 headers: {
@@ -166,8 +223,13 @@ export function useVendedoresManager() {
                 throw new Error(errorData.message || `Error al eliminar vendedor: ${response.statusText}`);
             }
 
-            // Actualizar la lista local
-            setVendedores(prev => prev.filter(v => v.id !== id));
+            // Actualizar estado global
+            // Nota: Si el backend hizo soft-delete, el WS enviará el objeto actualizado.
+            // Si hizo hard-delete, el WS enviará el ID.
+            // Como no sabemos aquí qué pasó exactamente (la respuesta es 204),
+            // asumimos hard-delete en local hasta que WS confirme.
+            updateGlobalState(current => current.filter(v => v.id !== id));
+
         } catch (err) {
             console.error('Error deleting vendedor:', err);
             const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
@@ -176,79 +238,46 @@ export function useVendedoresManager() {
         }
     }, [getAuthHeaders]);
 
-    // Cargar vendedores al montar el componente (SINGLETON)
+    // Inicialización del Singleton y suscripción a cambios
     useEffect(() => {
-        const updateState = () => {
+        // Suscribirse a cambios del estado global
+        const onStateChange = () => {
             setVendedores(globalVendedores);
             setLoading(globalLoading);
             setError(globalError);
         };
-        
-        stateListeners.add(updateState);
-        
+
+        stateListeners.add(onStateChange);
+
+        // Inicialización única
         if (!isInitialized && user?.id) {
             isInitialized = true;
+            setupGlobalWebSocketListeners(); // Activar listeners WS
+
             if (!initializationPromise) {
-                console.log('🚀 Iniciando carga de vendedores (singleton)...');
+                console.log('🚀 Iniciando carga inicial de vendedores...');
                 initializationPromise = fetchVendedores().finally(() => {
                     initializationPromise = null;
                 });
             }
         } else {
-            updateState();
+            // Si ya estaba inicializado, asegurarse de tener los datos más recientes
+            // si el array está vacío (por si acaso)
+            if (globalVendedores.length === 0 && !globalLoading && !globalError) {
+                fetchVendedores();
+            } else {
+                onStateChange();
+            }
+
+            // Asegurar listeners WS activados (idempotente)
+            setupGlobalWebSocketListeners();
         }
-        
+
         return () => {
-            stateListeners.delete(updateState);
+            stateListeners.delete(onStateChange);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user?.id]);
-
-    // 🔥 Socket.IO: Sincronización en tiempo real para vendedores
-    useEffect(() => {
-        // Suscribirse a eventos de vendedores
-        const unsubscribeCreated = webSocketService.subscribeToVendedorCreated((data: { vendedor: Vendedor; message: string; timestamp: string }) => {
-            console.log('🔄 Sincronizando nuevo vendedor:', data.vendedor.nombre);
-            
-            setVendedores(current => {
-                // Verificar si el vendedor ya existe para evitar duplicados
-                const exists = current.some(v => v.id === data.vendedor.id);
-                if (!exists) {
-                    return [...current, data.vendedor];
-                }
-                return current;
-            });
-        });
-
-        const unsubscribeUpdated = webSocketService.subscribeToVendedorUpdated((data: { vendedor: Vendedor; message: string; timestamp: string }) => {
-            console.log('🔄 Sincronizando vendedor actualizado:', data.vendedor.nombre);
-            
-            setVendedores(current => 
-                current.map(v => v.id === data.vendedor.id ? data.vendedor : v)
-            );
-        });
-
-        const unsubscribeDeleted = webSocketService.subscribeToVendedorDeleted((data: { vendedorId: string; vendedor?: Vendedor; message: string; timestamp: string }) => {
-            console.log('🔄 Sincronizando vendedor eliminado:', data.vendedorId);
-            
-            if (data.vendedor) {
-                // Si el backend devuelve el vendedor, actualizarlo (por si es soft delete)
-                setVendedores(current => 
-                    current.map(v => v.id === data.vendedorId ? data.vendedor! : v)
-                );
-            } else {
-                // Si no, remover de la lista
-                setVendedores(current => current.filter(v => v.id !== data.vendedorId));
-            }
-        });
-
-        // Cleanup al desmontar
-        return () => {
-            unsubscribeCreated();
-            unsubscribeUpdated();
-            unsubscribeDeleted();
-        };
-    }, []);
 
     // 🚀 NUEVO: Función para obtener estadísticas en batch
     const fetchVendedoresStatsBatch = useCallback(async (vendedorIds: string[]): Promise<Record<string, any>> => {

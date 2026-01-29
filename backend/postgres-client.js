@@ -1081,7 +1081,7 @@ class PostgreSQLClient {
                 SELECT column_name 
                 FROM information_schema.columns 
                 WHERE table_name = 'pedidos' 
-                AND table_schema = 'public'
+                AND table_schema = 'limpio'
             `);
 
             const existingColumns = columnsResult.rows.map(row => row.column_name);
@@ -1103,6 +1103,25 @@ class PostgreSQLClient {
                     columnsToInsert.push(col);
                 }
             });
+
+            // Si no se encuentran columnas (error de schema), fallar gracefully o usar fallback
+            if (columnsToInsert.length === 0) {
+                console.error('❌ No se encontraron columnas para la tabla pedidos en schema limpio.');
+                // Intentar fallback a public por si acaso
+                const publicColumns = await client.query(`
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'pedidos' 
+                    AND table_schema = 'public'
+                `);
+                if (publicColumns.rows.length > 0) {
+                    console.log('⚠️ Encontradas columnas en public, usando public.pedidos');
+                    // Recalcular columnsToInsert logicamente para public... 
+                    // Pero para simplicidad, aquí asumimos que debemos usar limpio. 
+                    // Si llegamos a length 0, lanzamos error claro.
+                }
+                throw new Error('No se pudieron determinar las columnas de la tabla pedidos. Verifique el esquema (limpio).');
+            }
 
             // Construir lista de valores correspondientes
             const baseValues = [
@@ -1177,7 +1196,7 @@ class PostgreSQLClient {
             const placeholders = columnsToInsert.map((_, index) => `$${index + 1}`).join(', ');
 
             const query = `
-                INSERT INTO pedidos (${columnsToInsert.join(', ')})
+                INSERT INTO limpio.pedidos (${columnsToInsert.join(', ')})
                 VALUES (${placeholders})
                 RETURNING *;
             `;
@@ -1778,7 +1797,7 @@ class PostgreSQLClient {
             // 🔥 Si se cambió el nombre, actualizar también en los pedidos
             if (vendedorData.nombre !== undefined) {
                 console.log(`🔍 Buscando pedidos con vendedorId=${id}...`);
-                
+
                 // Primero, verificar cuáles pedidos tienen este vendedorId
                 const checkQuery = `
                     SELECT id, data->>'vendedorId' as vendedorId, data->>'vendedorNombre' as vendedorNombre
@@ -1786,7 +1805,7 @@ class PostgreSQLClient {
                     WHERE data->>'vendedorId' = $1 OR data->>'vendedorId' = $2
                     LIMIT 5
                 `;
-                
+
                 const checkResult = await client.query(checkQuery, [id, id.toString()]);
                 console.log(`🔍 Encontrados ${checkResult.rowCount} pedidos de muestra:`, checkResult.rows);
 
@@ -1802,9 +1821,9 @@ class PostgreSQLClient {
                 `;
 
                 const updateResult = await client.query(updatePedidosQuery, [vendedorData.nombre, id]);
-                
+
                 console.log(`✅ Actualizados ${updateResult.rowCount} pedidos del vendedor ${row.nombre} (ID: ${id}) con el nuevo nombre "${vendedorData.nombre}"`);
-                
+
                 if (updateResult.rowCount === 0) {
                     console.warn(`⚠️ ADVERTENCIA: No se encontraron pedidos para actualizar con vendedorId=${id}`);
                     // Intentar una búsqueda adicional para debugging
@@ -2660,8 +2679,8 @@ class PostgreSQLClient {
                 nombre: row.nombre,
                 email: row.email,
                 telefono: row.telefono,
-                activo: row.activo_calculado, // Usar el calculado dinámicamente
-                activoManual: row.activo, // Mantener el original
+                activo: row.activo, // Usar el campo activo de la BD, no el calculado por pedidos
+                activoManual: row.activo,
                 totalPedidos: parseInt(row.total_pedidos),
                 pedidosActivos: parseInt(row.pedidos_activos),
                 createdAt: row.created_at,
@@ -2819,8 +2838,22 @@ class PostgreSQLClient {
         if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
         try {
+            // Intentar eliminación física (hard delete)
             const query = 'DELETE FROM limpio.vendedores WHERE id = $1';
             await client.query(query, [id]);
+            console.log(`✅ Vendedor eliminado físicamente: ${id}`);
+        } catch (error) {
+            // Si falla por Foreign Key (código 23503), hacer Soft Delete (desactivar)
+            if (error.code === '23503') {
+                console.warn(`⚠️ No se puede eliminar vendedor ${id} por dependencias (FK). Procediendo a desactivar (Soft Delete).`);
+
+                const updateQuery = 'UPDATE limpio.vendedores SET activo = false WHERE id = $1';
+                await client.query(updateQuery, [id]);
+
+                console.log(`✅ Vendedor desactivado (Soft Delete): ${id}`);
+            } else {
+                throw error;
+            }
         } finally {
             client.release();
         }
