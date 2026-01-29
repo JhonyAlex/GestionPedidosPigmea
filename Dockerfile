@@ -12,8 +12,8 @@ COPY vite.config.ts ./
 COPY tailwind.config.js ./
 COPY postcss.config.js ./
 
-# Instalar dependencias del frontend
-RUN npm ci --only=production
+# Instalar dependencias del frontend (incluyendo devDependencies para el build)
+RUN npm ci
 
 # Copiar código fuente del frontend
 COPY src ./src
