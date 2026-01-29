@@ -15,12 +15,8 @@ COPY postcss.config.js ./
 # Instalar dependencias del frontend (incluyendo devDependencies para el build)
 RUN npm ci
 
-# Copiar código fuente del frontend
-COPY src ./src
-COPY index.html ./
-COPY index.tsx ./
-COPY App.tsx ./
-COPY public ./public
+# Copiar todo el código fuente del frontend
+COPY . ./
 
 # Build del frontend
 RUN npm run build
