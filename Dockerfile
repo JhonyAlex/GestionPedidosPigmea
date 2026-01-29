@@ -19,6 +19,7 @@ RUN npm ci
 COPY src ./src
 COPY index.html ./
 COPY index.tsx ./
+COPY App.tsx ./
 COPY public ./public
 
 # Build del frontend
