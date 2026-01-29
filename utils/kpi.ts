@@ -284,7 +284,8 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
         
         return [
             p.desarrollo || '-',
-            { content: `${p.cliente}\n${p.numeroPedidoCliente}`, styles: { fontStyle: 'bold' }},
+            // We pass the raw data; rendering is handled in didDrawCell to allow mixed styles (bold/normal)
+            { cliente: p.cliente, pedido: p.numeroPedidoCliente },
             formattedMetros,
             p.tipoImpresion.replace(' (SUP)', '').replace(' (TTE)', ''),
             p.capa,
@@ -316,28 +317,85 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             textColor: 255,
             fontStyle: 'bold',
             halign: 'center',
-            fontSize: 9, // Increased from 6.5
+            fontSize: 6.5, // Reduced from 9 (approx 30% reduction: 9 * 0.7 = 6.3)
             cellPadding: { top: 2, right: 2, bottom: 2, left: 2 },
         },
         columnStyles: {
             0: { cellWidth: 35 }, // Des.
             1: { cellWidth: 100, halign: 'left' }, // Cliente y # Pedido (Increased from 80)
             2: { cellWidth: 40 }, // Metros (Increased from 35)
-            3: { cellWidth: 40, fontSize: 7 }, // Tipo (Increased from 38)
+            3: { cellWidth: 40, fontSize: 5.5 }, // Tipo (Reduced by 30%: 8 * 0.7 = 5.6 approx)
             4: { cellWidth: 25 }, // Capa (Increased from 24)
             5: { cellWidth: 35 }, // Camisa (Increased from 32)
             6: { cellWidth: 25 }, // Antiv. (Increased from 24)
             7: { cellWidth: 25 }, // Láser (Increased from 24)
             8: { cellWidth: 60 }, // Sig. Etapa (Increased from 55)
             9: { cellWidth: 140, halign: 'left' }, // Observaciones (Increased from 120)
-            10: { cellWidth: 40 }, // Creación (Increased from 38)
+            10: { cellWidth: 40, fontSize: 5.5 }, // Creación (Reduced by 30%: 8 * 0.7 = 5.6 approx)
+        },
+        willDrawCell: (data) => {
+            // Prevent standard text drawing for the custom rendered column by clearing text JUST BEFORE drawing
+            // This ensures row height was calculated correctly based on content in didParseCell
+            if (data.section === 'body' && data.column.index === 1) {
+                data.cell.text = [];
+            }
+        },
+        didDrawCell: (data) => {
+            const pedido = pedidos[data.row.index];
+            if (pedido && data.section === 'body' && data.column.index === 1) {
+                // Manual rendering for "Cliente / # Pedido" to mix normal and bold text
+                const cell = data.cell;
+                const { x, y, width } = cell;
+
+                // Get data (it was passed as an object in the row array)
+                const content = cell.raw as { cliente: string, pedido: string };
+                if (!content || typeof content !== 'object') return;
+
+                // Check for Urgent priority color
+                if (pedido.prioridad === 'Urgente') {
+                    doc.setTextColor(139, 0, 0); // Dark red
+                } else {
+                    doc.setTextColor(31, 41, 55); // Default dark gray
+                }
+
+                const fontSize = cell.styles.fontSize;
+                doc.setFontSize(fontSize);
+
+                // Draw Cliente (Normal)
+                doc.setFont(undefined, 'normal');
+
+                // We calculate Y position based on cell top + padding
+                // Note: jspdf-autotable cells have padding. top padding is cell.styles.cellPadding.top
+                // But accessing cell.styles inside didDrawCell is reliable.
+                // Default padding we set is 2.
+                const padding = 2;
+                const textX = x + padding;
+                const textY = y + padding + fontSize; // Approx baseline for first line
+
+                // Use splitTextToSize to handle wrapping if client name is too long
+                const clientLines = doc.splitTextToSize(content.cliente || '', width - (padding * 2));
+                doc.text(clientLines, textX, textY);
+
+                // Draw Pedido (Bold) below client
+                doc.setFont(undefined, 'bold');
+                // Calculate height of client block to offset order number
+                const lineHeight = fontSize * 1.15;
+                const clientBlockHeight = clientLines.length * lineHeight;
+
+                doc.text(content.pedido || '', textX, textY + clientBlockHeight);
+            }
         },
         didParseCell: (data) => {
             const pedido = pedidos[data.row.index];
             if (pedido && data.section === 'body') {
-                // Color red text for "Cliente / # Pedido" column when priority is urgent
-                if (data.column.index === 1 && pedido.prioridad === 'Urgente') { // "Cliente / # Pedido" column
-                    data.cell.styles.textColor = [139, 0, 0]; // Dark red color
+                // "Cliente / # Pedido" column: Ensure text property reflects content size for row height calculation
+                if (data.column.index === 1) {
+                    const content = data.cell.raw as { cliente: string, pedido: string };
+                    // Set text to an array of strings to simulate height.
+                    // jspdf-autotable uses this to calculate row height.
+                    if (content && typeof content === 'object') {
+                        data.cell.text = [content.cliente, content.pedido];
+                    }
                 }
 
                 // Highlight 'Capa' cell if layer is 3 or more
