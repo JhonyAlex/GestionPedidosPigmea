@@ -323,6 +323,26 @@ class MigrationManager {
                 );
             `
         });
+
+        // Migración 011: Tabla de templates de observaciones
+        this.migrations.push({
+            id: '011-tabla-observaciones-templates',
+            name: 'Crear tabla observaciones_templates',
+            sql: `
+                CREATE TABLE IF NOT EXISTS observaciones_templates (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    text VARCHAR(100) UNIQUE NOT NULL,
+                    usage_count INTEGER DEFAULT 0,
+                    last_used TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    is_active BOOLEAN DEFAULT true,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_observaciones_templates_text ON observaciones_templates(text);
+                CREATE INDEX IF NOT EXISTS idx_observaciones_templates_usage ON observaciones_templates(usage_count DESC);
+            `
+        });
     }
 
     /**
