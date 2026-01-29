@@ -277,7 +277,10 @@ class PostgreSQLClient {
         }
     }
 
-    async init() {
+    // Método solo para establecer conexión sin crear tablas
+    async connect() {
+        if (this.pool) return; // Ya conectado
+
         const isProduction = process.env.NODE_ENV === 'production';
 
         try {
@@ -296,47 +299,22 @@ class PostgreSQLClient {
 
             console.log('✅ PostgreSQL conectado correctamente');
             console.log(`   - Host: ${this.config.host || this.config.connectionString?.split('@')[1]?.split('/')[0]}`);
-            console.log(`   - Database: ${this.config.database || 'desde DATABASE_URL'}`);
-            console.log(`   - Max connections: ${this.config.max}`);
             client.release();
 
-            // Crear las tablas si no existen
-            await this.createTables();
-            this.isInitialized = true;
-            this.isHealthy = true; // 🔴 NUEVO: Marcar como saludable al inicio
-
-            // 🔴 NUEVO: Iniciar health checks periódicos
+            this.isInitialized = true; // Parcialmente inicializado (conexión lista)
+            this.isHealthy = true;
             this.startHealthCheckInterval();
 
         } catch (error) {
-            console.error('❌ Error conectando a PostgreSQL:', error.message);
-
-            // 🔴 EN PRODUCCIÓN: FALLAR INMEDIATAMENTE - NO PERMITIR QUE EL SISTEMA FUNCIONE SIN BD
-            if (isProduction) {
-                console.error('🚨 ERROR CRÍTICO EN PRODUCCIÓN: La base de datos NO está disponible');
-                console.error('🚨 El sistema NO puede funcionar sin base de datos');
-                console.error('🚨 Deteniendo la aplicación...');
-                this.isInitialized = false;
-                throw new Error('CRITICAL: Database connection failed in production');
-            }
-
-            // Si el error es específicamente de clave foránea o columnas faltantes, intentar recuperación
-            if (error.message.includes('foreign key constraint') ||
-                error.message.includes('audit_logs_user_id_fkey') ||
-                error.message.includes('column') && error.message.includes('does not exist')) {
-                console.log('🔄 Intentando recuperación con estructura simplificada...');
-                try {
-                    await this.createTablesWithoutAuditLogs();
-                    this.isInitialized = true;
-                    console.log('✅ Recuperación exitosa - funcionando con estructura simplificada');
-                    return;
-                } catch (recoveryError) {
-                    console.error('❌ Fallo en recuperación:', recoveryError.message);
-                }
-            }
-
-            throw error;
+            console.error('❌ Error conectando a PostgreSQL (connect):', error.message);
+            if (isProduction) throw error;
         }
+    }
+
+    async init() {
+        // Mantener compatibilidad: conectar Y crear tablas
+        await this.connect();
+        await this.createTables();
     }
 
     async createTablesWithoutAuditLogs() {

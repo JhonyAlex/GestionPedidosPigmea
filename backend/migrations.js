@@ -16,6 +16,35 @@ class MigrationManager {
      * Define todas las migraciones en orden cronológico
      */
     initializeMigrations() {
+        // Migración 000: Schema inicial y tabla pedidos base
+        this.migrations.push({
+            id: '000-initial-schema',
+            name: 'Crear esquema limpio y tabla pedidos base',
+            sql: `
+                -- Crear esquema limpio si no existe
+                CREATE SCHEMA IF NOT EXISTS limpio;
+
+                -- Crear tabla pedidos si no existe
+                CREATE TABLE IF NOT EXISTS limpio.pedidos (
+                    id VARCHAR(255) PRIMARY KEY,
+                    cliente VARCHAR(255) NOT NULL,
+                    descripcion TEXT,
+                    fecha_entrega TIMESTAMP,
+                    estado VARCHAR(50) DEFAULT 'pendiente',
+                    etapa_actual VARCHAR(50) DEFAULT 'ingreso',
+                    prioridad VARCHAR(20) DEFAULT 'normal',
+                    secuencia_pedido SERIAL,
+                    data JSONB DEFAULT '{}'::jsonb,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+
+                -- Crear índices base
+                CREATE INDEX IF NOT EXISTS idx_pedidos_cliente ON limpio.pedidos(cliente);
+                CREATE INDEX IF NOT EXISTS idx_pedidos_estado ON limpio.pedidos(estado);
+            `
+        });
+
         // Migración 001: Nueva fecha de entrega
         this.migrations.push({
             id: '001-nueva-fecha-entrega',

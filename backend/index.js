@@ -5451,7 +5451,9 @@ async function startServer() {
         // Intentar inicializar PostgreSQL
         if (process.env.DATABASE_URL || process.env.DB_HOST || process.env.POSTGRES_HOST) {
             console.log('🔄 Intentando conectar a PostgreSQL...');
-            await dbClient.init();
+            console.log('🔄 Intentando conectar a PostgreSQL...');
+            // 1. Conectar a la base de datos (sin crear tablas aún)
+            await dbClient.connect();
             console.log('🐘 PostgreSQL conectado exitosamente');
 
             // 🔴 CRÍTICO: Configurar el dbClient en los middlewares
@@ -5460,18 +5462,25 @@ async function startServer() {
             setDbHealthClient(dbClient);
             console.log('✅ dbClient compartido con middlewares');
 
-            // 🔄 Ejecutar migraciones automáticamente usando el nuevo sistema
+            // 2. Ejecutar migraciones (ESTO CREA LA TABLA PEDIDOS BASE)
+            console.log('🚀 Iniciando sistema de migraciones...');
             try {
                 const migrationManager = new MigrationManager(dbClient);
                 const migrationResult = await migrationManager.runPendingMigrations();
 
                 if (!migrationResult.success) {
-                    console.error('⚠️ Algunas migraciones fallaron, pero el servidor continuará:', migrationResult.error);
+                    console.error('⚠️ Algunas migraciones fallaron:', migrationResult.error);
+                } else {
+                    console.log('✅ Migraciones completadas exitosamente');
                 }
             } catch (migrationError) {
-                console.error('⚠️ Error al ejecutar migraciones automáticas:', migrationError.message);
-                // No detener el servidor, continuar con retrocompatibilidad
+                console.error('⚠️ Error crítico en migraciones:', migrationError.message);
+                // No detener, intentar createTables como red de seguridad
             }
+
+            // 3. Crear resto de tablas e índices (ahora seguro porque 'pedidos' existe)
+            console.log('🏗️ Verificando estructura de tablas complementarias...');
+            await dbClient.createTables();
 
         } else {
             console.log('⚠️ No se encontró configuración de base de datos');
