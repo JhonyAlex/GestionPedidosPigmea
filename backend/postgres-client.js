@@ -1939,7 +1939,7 @@ class PostgreSQLClient {
             await client.query('BEGIN');
 
             const query = `
-                INSERT INTO clientes (nombre, razon_social, cif, telefono, email, direccion_fiscal, codigo_postal, poblacion, provincia, pais, persona_contacto, notas, estado)
+                INSERT INTO limpio.clientes (nombre, razon_social, cif, telefono, email, direccion_fiscal, codigo_postal, poblacion, provincia, pais, persona_contacto, notas, estado)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                 RETURNING *;
             `;
@@ -2064,7 +2064,7 @@ class PostgreSQLClient {
 
             values.push(id);
             const query = `
-                UPDATE clientes
+                UPDATE limpio.clientes
                 SET ${setParts.join(', ')}, updated_at = CURRENT_TIMESTAMP
                 WHERE id = $${valueIndex}
                 RETURNING *;
