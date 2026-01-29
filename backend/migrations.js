@@ -308,6 +308,21 @@ class MigrationManager {
                 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
             `
         });
+
+        // Migración 010: Tabla de instrucciones de análisis
+        this.migrations.push({
+            id: '010-tabla-instrucciones-analisis',
+            name: 'Crear tabla analysis_instructions',
+            sql: `
+                CREATE TABLE IF NOT EXISTS analysis_instructions (
+                    id SERIAL PRIMARY KEY,
+                    instructions TEXT,
+                    updated_by UUID,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            `
+        });
     }
 
     /**
