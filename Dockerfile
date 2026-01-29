@@ -18,6 +18,7 @@ RUN npm ci --only=production
 # Copiar código fuente del frontend
 COPY src ./src
 COPY index.html ./
+COPY index.tsx ./
 COPY public ./public
 
 # Build del frontend
