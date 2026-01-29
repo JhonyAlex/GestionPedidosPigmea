@@ -754,7 +754,7 @@ function cleanupGhostUsers() {
 setInterval(cleanupGhostUsers, 10000);
 
 // Versión/buildTime del servidor (estable durante el proceso)
-const packageJson = require('../package.json');
+const packageJson = require('./package.json');
 const serverVersion = packageJson.version || '1.0.0';
 const serverBuildTime = process.env.BUILD_TIME || new Date().toISOString();
 
