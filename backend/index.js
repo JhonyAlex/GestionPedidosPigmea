@@ -5051,6 +5051,7 @@ app.get('/api/comments/:pedidoId', requireAuth, async (req, res) => {
             SELECT EXISTS (
                 SELECT 1 FROM information_schema.columns 
                 WHERE table_name = 'pedido_comments' 
+                AND table_schema = 'limpio' 
                 AND column_name = 'mentioned_users'
             ) as column_exists;
         `);
@@ -5072,7 +5073,7 @@ app.get('/api/comments/:pedidoId', requireAuth, async (req, res) => {
                     is_edited as "isEdited",
                     edited_at as "editedAt",
                     created_at as "timestamp"
-                FROM pedido_comments 
+                FROM limpio.pedido_comments 
                 WHERE pedido_id = $1 
                 ORDER BY created_at ASC
             `, [pedidoId]);
@@ -5090,11 +5091,12 @@ app.get('/api/comments/:pedidoId', requireAuth, async (req, res) => {
                     is_edited as "isEdited",
                     edited_at as "editedAt",
                     created_at as "timestamp"
-                FROM pedido_comments 
+                FROM limpio.pedido_comments 
                 WHERE pedido_id = $1 
                 ORDER BY created_at ASC
             `, [pedidoId]);
         }
+
 
         res.json({
             success: true,
@@ -5162,6 +5164,7 @@ app.post('/api/comments', requireAuth, async (req, res) => {
             SELECT EXISTS (
                 SELECT 1 FROM information_schema.columns 
                 WHERE table_name = 'pedido_comments' 
+                AND table_schema = 'limpio'
                 AND column_name = 'mentioned_users'
             ) as column_exists;
         `);
@@ -5175,7 +5178,7 @@ app.post('/api/comments', requireAuth, async (req, res) => {
         if (hasMentionedUsersColumn) {
             // Versión con soporte para menciones
             result = await dbClient.pool.query(`
-                INSERT INTO pedido_comments (
+                INSERT INTO limpio.pedido_comments (
                     pedido_id, user_id, user_role, username, message, mentioned_users, is_system_message
                 ) VALUES ($1, $2, $3, $4, $5, $6, false)
                 RETURNING 
@@ -5192,7 +5195,7 @@ app.post('/api/comments', requireAuth, async (req, res) => {
         } else {
             // Versión sin menciones (retrocompatibilidad)
             result = await dbClient.pool.query(`
-                INSERT INTO pedido_comments (
+                INSERT INTO limpio.pedido_comments (
                     pedido_id, user_id, user_role, username, message, is_system_message
                 ) VALUES ($1, $2, $3, $4, $5, false)
                 RETURNING 
@@ -5334,7 +5337,7 @@ app.delete('/api/comments/:commentId', requireAuth, async (req, res) => {
         // Verificar que el comentario existe y obtener info
         const commentResult = await dbClient.pool.query(`
             SELECT user_id, pedido_id, username 
-            FROM pedido_comments 
+            FROM limpio.pedido_comments 
             WHERE id = $1
         `, [commentId]);
 
@@ -5358,7 +5361,7 @@ app.delete('/api/comments/:commentId', requireAuth, async (req, res) => {
         }
 
         // Eliminar comentario
-        await dbClient.pool.query('DELETE FROM pedido_comments WHERE id = $1', [commentId]);
+        await dbClient.pool.query('DELETE FROM limpio.pedido_comments WHERE id = $1', [commentId]);
 
         // Emitir evento WebSocket
         io.emit('comment:deleted', {

@@ -3975,7 +3975,7 @@ class PostgreSQLClient {
                     m.pendiente_gestion AS "pendienteGestion",
                     m.created_at AS "createdAt",
                     m.updated_at AS "updatedAt"
-                FROM materiales m
+                FROM limpio.materiales m
                 INNER JOIN limpio.pedidos_materiales pm ON m.id = pm.material_id
                 WHERE pm.pedido_id = $1
                 ORDER BY m.created_at ASC
@@ -4016,7 +4016,7 @@ class PostgreSQLClient {
         const client = await this.pool.connect();
         try {
             const query = `
-                INSERT INTO pedidos_materiales (pedido_id, material_id)
+                INSERT INTO limpio.pedidos_materiales (pedido_id, material_id)
                 VALUES ($1, $2)
                 ON CONFLICT (pedido_id, material_id) DO NOTHING
             `;
@@ -4045,7 +4045,7 @@ class PostgreSQLClient {
         const client = await this.pool.connect();
         try {
             const query = `
-                DELETE FROM pedidos_materiales 
+                DELETE FROM limpio.pedidos_materiales 
                 WHERE pedido_id = $1 AND material_id = $2
             `;
 
