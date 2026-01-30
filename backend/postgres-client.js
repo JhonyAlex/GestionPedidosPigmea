@@ -1732,7 +1732,10 @@ class PostgreSQLClient {
         if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
         try {
-            const { nombre, email, telefono, activo } = vendedorData;
+            const { nombre, email, telefono, activo, _changedBy, _userRole } = vendedorData;
+
+            await client.query('BEGIN');
+
             const query = `
                 INSERT INTO limpio.vendedores (nombre, email, telefono, activo)
                 VALUES ($1, $2, $3, $4)
@@ -1740,8 +1743,23 @@ class PostgreSQLClient {
             `;
             const values = [nombre, email, telefono, activo !== undefined ? activo : true];
             const result = await client.query(query, values);
-            // Transformar snake_case a camelCase
             const row = result.rows[0];
+
+            // Registrar historial
+            await this.logVendedorHistory(
+                client,
+                row.id,
+                _changedBy || 'Sistema',
+                _userRole || 'SYSTEM',
+                'created',
+                null,
+                null,
+                null,
+                `Vendedor creado: ${row.nombre}`
+            );
+
+            await client.query('COMMIT');
+
             return {
                 id: row.id,
                 nombre: row.nombre,
@@ -1751,6 +1769,10 @@ class PostgreSQLClient {
                 createdAt: row.created_at,
                 updatedAt: row.updated_at
             };
+        } catch (error) {
+            await client.query('ROLLBACK');
+            console.error('❌ Error creating vendedor:', error);
+            throw error;
         } finally {
             client.release();
         }

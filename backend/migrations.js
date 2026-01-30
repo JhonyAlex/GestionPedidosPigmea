@@ -462,6 +462,32 @@ class MigrationManager {
                 CREATE INDEX IF NOT EXISTS idx_vendedores_history_vendedor_id ON limpio.vendedores_history(vendedor_id);
             `
         });
+
+        // Migración 017: Corregir tabla action_history
+        this.migrations.push({
+            id: '017-corregir-action-history',
+            name: 'Recrear tabla action_history con esquema correcto',
+            sql: `
+                DROP TABLE IF EXISTS action_history;
+
+                CREATE TABLE action_history (
+                    id VARCHAR(255) PRIMARY KEY,
+                    context_id VARCHAR(255),
+                    context_type VARCHAR(50),
+                    action_type VARCHAR(50),
+                    payload JSONB,
+                    timestamp TIMESTAMP,
+                    user_id UUID,
+                    user_name VARCHAR(255),
+                    description TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_action_history_context_id ON action_history(context_id);
+                CREATE INDEX IF NOT EXISTS idx_action_history_user_id ON action_history(user_id);
+                CREATE INDEX IF NOT EXISTS idx_action_history_timestamp ON action_history(timestamp);
+            `
+        });
     }
 
     /**

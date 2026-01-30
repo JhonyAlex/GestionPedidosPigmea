@@ -1,99 +1,98 @@
-2026-01-30T00:15:12.549Z ⏭️  Migración 004-anonimo ya aplicada
-2026-01-30T00:15:12.550Z ⏭️  Migración 005-fechas-cliche ya aplicada
-2026-01-30T00:15:12.552Z ⏭️  Migración 006-horas-confirmadas ya aplicada
-2026-01-30T00:15:12.553Z ⏭️  Migración 007-antivaho-realizado ya aplicada
-2026-01-30T00:15:12.554Z ⏭️  Migración 008-menciones-comentarios ya aplicada
-2026-01-30T00:15:12.555Z ⏭️  Migración 009-tablas-faltantes-v2 ya aplicada
-2026-01-30T00:15:12.557Z ⏭️  Migración 010-tabla-instrucciones-analisis ya aplicada
-2026-01-30T00:15:12.557Z ⏭️  Migración 011-tabla-observaciones-templates ya aplicada
-2026-01-30T00:15:12.558Z ⏭️  Migración 012-columnas-direccion-clientes ya aplicada
-2026-01-30T00:15:12.559Z ⏭️  Migración 013-columna-numero-pedido-cliente ya aplicada
-2026-01-30T00:15:12.560Z ⏭️  Migración 014-tablas-materiales ya aplicada
-2026-01-30T00:15:12.560Z 🔄 Aplicando migración: Crear tabla action_history...
-2026-01-30T00:15:12.574Z ✅ Migración 015-tabla-action-history aplicada exitosamente
-2026-01-30T00:15:12.575Z ✅ Proceso de migraciones completado. 1 migraciones procesadas.
-2026-01-30T00:15:12.575Z ✅ Migraciones completadas exitosamente
-2026-01-30T00:15:12.575Z 🏗️ Verificando estructura de tablas complementarias...
-2026-01-30T00:15:12.575Z 🔧 Iniciando creación/verificación de tablas...
-2026-01-30T00:15:12.576Z ✅ Extensión uuid-ossp verificada
-2026-01-30T00:15:12.581Z ✅ Tabla admin_users verificada
-2026-01-30T00:15:12.594Z 📋 Columnas existentes en admin_users: id, username, email, first_name, last_name, password_hash, role, permissions, is_active, last_login, last_activity, ip_address, user_agent, created_at, updated_at
-2026-01-30T00:15:12.597Z ✅ Constraint de rol actualizado
-2026-01-30T00:15:12.598Z 🔄 Verificando usuarios existentes...
-2026-01-30T00:15:12.598Z ✅ Todos los usuarios ya están actualizados
-2026-01-30T00:15:12.599Z ✅ Columnas de admin_users verificadas
-2026-01-30T00:15:12.603Z ✅ Tabla user_permissions verificada
-2026-01-30T00:15:12.603Z ✅ Tabla pedidos verificada (creada por migración)
-2026-01-30T00:15:12.604Z ✅ Tabla users verificada
-2026-01-30T00:15:12.604Z ✅ Tabla audit_log verificada
-2026-01-30T00:15:12.609Z ⚠️ Tabla audit_logs y clave foránea procesadas (puede haber avisos)
-2026-01-30T00:15:12.610Z ✅ Tabla pedido_comments creada
-2026-01-30T00:15:12.611Z ✅ Tabla vendedores creada
-2026-01-30T00:15:12.616Z ✅ Índices verificados
-2026-01-30T00:15:12.625Z ✅ Triggers configurados
-2026-01-30T00:15:12.636Z ✅ Columna vendedor_id verificada/creada
-2026-01-30T00:15:12.636Z 🎉 Todas las tablas han sido verificadas/creadas exitosamente
-2026-01-30T00:15:12.641Z 🚀 Servidor iniciado en puerto 3001
-2026-01-30T00:15:12.641Z ✅ PostgreSQL conectado - Sistema operativo
-2026-01-30T00:17:32.513Z 📨 [1] GET /api/audit - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T00:17:32.511Z
-2026-01-30T00:17:32.519Z 📨 [2] GET /api/notifications - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T00:17:32.519Z
-2026-01-30T00:17:32.521Z 📨 [3] GET /api/pedidos - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T00:17:32.520Z
-2026-01-30T00:17:32.538Z 📊 [2026-01-30T00:17:32.538Z] GET /api/pedidos (LEGACY) - Total: 1 pedidos
-2026-01-30T00:17:32.554Z 📨 [4] GET /api/vendedores - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T00:17:32.553Z
-2026-01-30T00:17:32.561Z 🔍 Verificando permiso 'vendedores.view' para usuario ID: b24fa21c-f2b2-4034-b10c-c0e65c09019e
-2026-01-30T00:17:32.563Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
-2026-01-30T00:17:32.565Z 📨 [5] GET /api/clientes/simple - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T00:17:32.563Z
-2026-01-30T00:17:32.569Z 🔍 Verificando permiso 'clientes.view' para usuario ID: b24fa21c-f2b2-4034-b10c-c0e65c09019e
-2026-01-30T00:17:32.569Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
-2026-01-30T00:17:32.579Z 🔗 Nueva conexión al pool establecida
-2026-01-30T00:17:32.588Z 🔗 Nueva conexión al pool establecida
-2026-01-30T00:17:32.604Z 🔗 Nueva conexión al pool establecida
-2026-01-30T00:17:32.610Z 📊 [getAllClientesSimple] Total clientes encontrados: 0
-2026-01-30T00:17:32.666Z 📨 [6] GET /api/materiales - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T00:17:32.666Z
-2026-01-30T00:17:32.684Z ❌ Error al obtener materiales: error: relation "materiales" does not exist
-2026-01-30T00:17:32.684Z at /app/backend/node_modules/pg/lib/client.js:545:17
-2026-01-30T00:17:32.684Z at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-2026-01-30T00:17:32.684Z at async PostgreSQLClient.getAllMateriales (/app/backend/postgres-client.js:3753:28)
-2026-01-30T00:17:32.684Z at async /app/backend/index.js:4471:28 {
-2026-01-30T00:17:32.684Z length: 110,
-2026-01-30T00:17:32.684Z severity: 'ERROR',
-2026-01-30T00:17:32.684Z code: '42P01',
-2026-01-30T00:17:32.684Z detail: undefined,
-2026-01-30T00:17:32.684Z hint: undefined,
-2026-01-30T00:17:32.684Z position: '347',
-2026-01-30T00:17:32.684Z internalPosition: undefined,
-2026-01-30T00:17:32.684Z internalQuery: undefined,
-2026-01-30T00:17:32.684Z where: undefined,
-2026-01-30T00:17:32.684Z schema: undefined,
-2026-01-30T00:17:32.684Z table: undefined,
-2026-01-30T00:17:32.685Z column: undefined,
-2026-01-30T00:17:32.685Z dataType: undefined,
-2026-01-30T00:17:32.685Z constraint: undefined,
-2026-01-30T00:17:32.685Z file: 'parse_relation.c',
-2026-01-30T00:17:32.685Z line: '1392',
-2026-01-30T00:17:32.685Z routine: 'parserOpenTable'
-2026-01-30T00:17:32.685Z }
-2026-01-30T00:17:32.685Z Error in GET /api/materiales: error: relation "materiales" does not exist
-2026-01-30T00:17:32.685Z at /app/backend/node_modules/pg/lib/client.js:545:17
-2026-01-30T00:17:32.685Z at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-2026-01-30T00:17:32.685Z at async PostgreSQLClient.getAllMateriales (/app/backend/postgres-client.js:3753:28)
-2026-01-30T00:17:32.685Z at async /app/backend/index.js:4471:28 {
-2026-01-30T00:17:32.686Z length: 110,
-2026-01-30T00:17:32.686Z severity: 'ERROR',
-2026-01-30T00:17:32.686Z code: '42P01',
-2026-01-30T00:17:32.686Z detail: undefined,
-2026-01-30T00:17:32.686Z hint: undefined,
-2026-01-30T00:17:32.686Z position: '347',
-2026-01-30T00:17:32.686Z internalPosition: undefined,
-2026-01-30T00:17:32.686Z internalQuery: undefined,
-2026-01-30T00:17:32.686Z where: undefined,
-2026-01-30T00:17:32.686Z schema: undefined,
-2026-01-30T00:17:32.686Z table: undefined,
-2026-01-30T00:17:32.686Z column: undefined,
-2026-01-30T00:17:32.686Z dataType: undefined,
-2026-01-30T00:17:32.686Z constraint: undefined,
-2026-01-30T00:17:32.686Z file: 'parse_relation.c',
-2026-01-30T00:17:32.686Z line: '1392',
-2026-01-30T00:17:32.686Z routine: 'parserOpenTable'
-2026-01-30T00:17:32.686Z }
-2026-01-30T00:17:32.688Z 📨 [7] GET /api/notifications - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T00:17:32.687Z
+2026-01-30T00:42:47.098Z "nombre": "Prueba",
+2026-01-30T00:42:47.098Z "razon_social": "",
+2026-01-30T00:42:47.099Z "cif": "",
+2026-01-30T00:42:47.099Z "direccion": "",
+2026-01-30T00:42:47.099Z "poblacion": "",
+2026-01-30T00:42:47.099Z "codigo_postal": "",
+2026-01-30T00:42:47.099Z "provincia": "",
+2026-01-30T00:42:47.099Z "pais": "España",
+2026-01-30T00:42:47.099Z "telefono": "",
+2026-01-30T00:42:47.099Z "email": "",
+2026-01-30T00:42:47.099Z "persona_contacto": "",
+2026-01-30T00:42:47.100Z "observaciones": "",
+2026-01-30T00:42:47.100Z "_changedBy": "admin",
+2026-01-30T00:42:47.100Z "_userRole": "ADMIN"
+2026-01-30T00:42:47.100Z }
+2026-01-30T00:42:47.100Z 🔍 createCliente - Query:
+2026-01-30T00:42:47.100Z INSERT INTO limpio.clientes (nombre, razon_social, cif, telefono, email, direccion_fiscal, codigo_postal, poblacion, provincia, pais, persona_contacto, notas, estado)
+2026-01-30T00:42:47.100Z VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+2026-01-30T00:42:47.100Z RETURNING *;
+2026-01-30T00:42:47.101Z 🔍 createCliente - Values: [
+2026-01-30T00:42:47.101Z 'Prueba', null,
+2026-01-30T00:42:47.101Z null,     null,
+2026-01-30T00:42:47.101Z null,     null,
+2026-01-30T00:42:47.101Z null,     null,
+2026-01-30T00:42:47.101Z null,     'España',
+2026-01-30T00:42:47.101Z null,     null,
+2026-01-30T00:42:47.101Z 'Activo'
+2026-01-30T00:42:47.101Z ]
+2026-01-30T00:42:47.108Z ✅ Cliente creado exitosamente: 4df7235e-aa85-4d08-8fc1-95bc7f972497
+2026-01-30T00:42:47.108Z ✅ Cliente creado exitosamente: 4df7235e-aa85-4d08-8fc1-95bc7f972497
+2026-01-30T00:42:55.490Z 📨 [12] POST /api/vendedores - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T00:42:55.489Z
+2026-01-30T00:42:55.493Z 🔐 requirePermission middleware
+2026-01-30T00:42:55.493Z - Ruta: POST /api/vendedores
+2026-01-30T00:42:55.494Z - Permiso requerido: vendedores.create
+2026-01-30T00:42:55.494Z - Usuario: b24fa21c-f2b2-4034-b10c-c0e65c09019e (ADMIN)
+2026-01-30T00:42:55.496Z - Headers: {
+2026-01-30T00:42:55.496Z userId: 'b24fa21c-f2b2-4034-b10c-c0e65c09019e',
+2026-01-30T00:42:55.496Z userRole: 'Administrador'
+2026-01-30T00:42:55.496Z }
+2026-01-30T00:42:55.496Z - Permisos a verificar (incluyendo aliases): [ 'vendedores.create' ]
+2026-01-30T00:42:55.496Z - Verificando permiso en BD...
+2026-01-30T00:42:55.496Z 🔍 Verificando permiso 'vendedores.create' para usuario ID: b24fa21c-f2b2-4034-b10c-c0e65c09019e
+2026-01-30T00:42:55.496Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
+2026-01-30T00:42:55.496Z - ✅ Usuario tiene permiso: vendedores.create
+2026-01-30T00:42:55.496Z - Resultado: ✅ PERMITIDO
+2026-01-30T00:42:55.496Z ✅ Permiso concedido - continuando con la request
+2026-01-30T00:42:55.509Z ❌ Error registrando historial de vendedor: insert or update on table "vendedores_history" violates foreign key constraint "vendedores_history_vendedor_id_fkey"
+2026-01-30T00:43:02.991Z 📨 [13] GET /api/pedidos/exists - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T00:43:02.990Z
+2026-01-30T00:43:07.502Z 📨 [14] GET /api/pedidos/exists - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T00:43:07.501Z
+2026-01-30T00:43:13.644Z 📨 [15] GET /api/pedidos/exists - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T00:43:13.644Z
+2026-01-30T00:44:01.017Z 📨 [16] POST /api/pedidos - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T00:44:01.017Z
+2026-01-30T00:44:01.020Z 🔐 requirePermission middleware
+2026-01-30T00:44:01.021Z - Ruta: POST /api/pedidos
+2026-01-30T00:44:01.021Z - Permiso requerido: pedidos.create
+2026-01-30T00:44:01.021Z - Usuario: b24fa21c-f2b2-4034-b10c-c0e65c09019e (ADMIN)
+2026-01-30T00:44:01.021Z - Headers: {
+2026-01-30T00:44:01.021Z userId: 'b24fa21c-f2b2-4034-b10c-c0e65c09019e',
+2026-01-30T00:44:01.021Z userRole: 'Administrador'
+2026-01-30T00:44:01.021Z }
+2026-01-30T00:44:01.021Z - Permisos a verificar (incluyendo aliases): [ 'pedidos.create', 'vista.pedidos' ]
+2026-01-30T00:44:01.021Z - Verificando permiso en BD...
+2026-01-30T00:44:01.021Z 🔍 Verificando permiso 'pedidos.create' para usuario ID: b24fa21c-f2b2-4034-b10c-c0e65c09019e
+2026-01-30T00:44:01.021Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
+2026-01-30T00:44:01.021Z - ✅ Usuario tiene permiso: pedidos.create
+2026-01-30T00:44:01.021Z - Resultado: ✅ PERMITIDO
+2026-01-30T00:44:01.021Z ✅ Permiso concedido - continuando con la request
+2026-01-30T00:44:01.021Z 📦 Creando nuevo pedido:
+2026-01-30T00:44:01.021Z - Cliente: Prueba
+2026-01-30T00:44:01.021Z - ClienteId: 4df7235e-aa85-4d08-8fc1-95bc7f972497
+2026-01-30T00:44:01.021Z - ID Pedido: 1769733842532
+2026-01-30T00:44:01.026Z ⚠️ Vendedor 22481409-c15a-45e1-a821-af8a36422faa no encontrado. Estableciendo vendedorId como null.
+2026-01-30T00:44:01.051Z 🧹 Notificaciones antiguas limpiadas para usuario: GLOBAL
+2026-01-30T00:44:01.052Z ✅ Notificación guardada en BD: notif-1769733841044-5itdgojfh
+2026-01-30T00:44:01.469Z 📨 [17] POST /api/audit - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T00:44:01.468Z
+2026-01-30T00:44:01.475Z 📨 [18] POST /api/action-history - User: anonymous - 2026-01-30T00:44:01.475Z
+2026-01-30T00:44:01.501Z 🔗 Nueva conexión al pool establecida
+2026-01-30T00:44:01.507Z Error al guardar historial: error: column "context_id" of relation "action_history" does not exist
+2026-01-30T00:44:01.507Z at /app/backend/node_modules/pg-pool/index.js:45:11
+2026-01-30T00:44:01.507Z at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-01-30T00:44:01.507Z at async /app/backend/index.js:3873:24 {
+2026-01-30T00:44:01.507Z length: 137,
+2026-01-30T00:44:01.507Z severity: 'ERROR',
+2026-01-30T00:44:01.507Z code: '42703',
+2026-01-30T00:44:01.507Z detail: undefined,
+2026-01-30T00:44:01.507Z hint: undefined,
+2026-01-30T00:44:01.507Z position: '63',
+2026-01-30T00:44:01.507Z internalPosition: undefined,
+2026-01-30T00:44:01.507Z internalQuery: undefined,
+2026-01-30T00:44:01.507Z where: undefined,
+2026-01-30T00:44:01.507Z schema: undefined,
+2026-01-30T00:44:01.507Z table: undefined,
+2026-01-30T00:44:01.507Z column: undefined,
+2026-01-30T00:44:01.507Z dataType: undefined,
+2026-01-30T00:44:01.507Z constraint: undefined,
+2026-01-30T00:44:01.507Z file: 'parse_target.c',
+2026-01-30T00:44:01.507Z line: '1075',
+2026-01-30T00:44:01.508Z routine: 'checkInsertTargets'
+2026-01-30T00:44:01.508Z }
