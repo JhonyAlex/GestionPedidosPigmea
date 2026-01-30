@@ -3,12 +3,11 @@ import { Etapa, Prioridad, KanbanEtapa, EstadoCliché } from './types';
 export const ETAPAS: Record<Etapa, KanbanEtapa> = {
     [Etapa.PREPARACION]: { id: Etapa.PREPARACION, title: 'Preparación', color: 'bg-yellow-500' },
     [Etapa.PENDIENTE]: { id: Etapa.PENDIENTE, title: 'Pendiente', color: 'bg-gray-500' },
-    
+
     // Colores para el embudo de Impresión (tonos Cian/Azul)
     [Etapa.IMPRESION_WM1]: { id: Etapa.IMPRESION_WM1, title: 'Windmöller 1', color: 'bg-cyan-600' },
     [Etapa.IMPRESION_GIAVE]: { id: Etapa.IMPRESION_GIAVE, title: 'GIAVE', color: 'bg-cyan-700' },
     [Etapa.IMPRESION_WM3]: { id: Etapa.IMPRESION_WM3, title: 'Windmöller 3', color: 'bg-cyan-800' },
-    [Etapa.IMPRESION_ANON]: { id: Etapa.IMPRESION_ANON, title: 'ANON', color: 'bg-cyan-900' },
 
     // Colores para el embudo de Post-Impresión (tonos variados: Indigo, Púrpura, Rosa)
     [Etapa.POST_LAMINACION_SL2]: { id: Etapa.POST_LAMINACION_SL2, title: 'Laminación SL2', color: 'bg-indigo-500' },
@@ -25,10 +24,10 @@ export const ETAPAS: Record<Etapa, KanbanEtapa> = {
 
 // Columnas para la nueva vista de Preparación
 export const PREPARACION_SUB_ETAPAS_IDS = {
-  GESTION_NO_INICIADA: 'GESTION_NO_INICIADA',
-  MATERIAL_NO_DISPONIBLE: 'MATERIAL_NO_DISPONIBLE',
-  CLICHE_NO_DISPONIBLE: 'CLICHE_NO_DISPONIBLE',
-  LISTO_PARA_PRODUCCION: 'LISTO_PARA_PRODUCCION',
+    GESTION_NO_INICIADA: 'GESTION_NO_INICIADA',
+    MATERIAL_NO_DISPONIBLE: 'MATERIAL_NO_DISPONIBLE',
+    CLICHE_NO_DISPONIBLE: 'CLICHE_NO_DISPONIBLE',
+    LISTO_PARA_PRODUCCION: 'LISTO_PARA_PRODUCCION',
 } as const;
 
 
@@ -37,7 +36,7 @@ export const PREPARACION_COLUMNS = [
     { id: PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA, title: 'Sin Gestión Iniciada', color: 'bg-gray-500' },
     { id: PREPARACION_SUB_ETAPAS_IDS.MATERIAL_NO_DISPONIBLE, title: 'Material No Disponible', color: 'bg-red-500' },
     { id: PREPARACION_SUB_ETAPAS_IDS.CLICHE_NO_DISPONIBLE, title: 'Cliché no disponible', color: 'bg-yellow-600' },
-    
+
     // FILA 2: Listos para Fabricación (1 columna)
     { id: PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION, title: 'Listo para Producción', color: 'bg-green-500' },
 ];
@@ -49,7 +48,7 @@ export const KANBAN_FUNNELS = {
             Etapa.IMPRESION_WM1,
             Etapa.IMPRESION_GIAVE,
             Etapa.IMPRESION_WM3,
-            Etapa.IMPRESION_ANON,
+
         ],
     },
     POST_IMPRESION: {
@@ -74,7 +73,7 @@ export const STAGE_GROUPS = {
             Etapa.IMPRESION_WM1,
             Etapa.IMPRESION_GIAVE,
             Etapa.IMPRESION_WM3,
-            Etapa.IMPRESION_ANON,
+
         ],
     },
     LAMINACION: {
@@ -129,5 +128,5 @@ export const MAQUINAS_IMPRESION = [
     { id: 'Windmöller 1', nombre: 'Windmöller 1' },
     { id: 'GIAVE', nombre: 'GIAVE' },
     { id: 'Windmöller 3', nombre: 'Windmöller 3' },
-    { id: 'ANON', nombre: 'ANON' },
+
 ] as const;

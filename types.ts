@@ -25,7 +25,7 @@ export enum Etapa {
     IMPRESION_WM1 = 'IMPRESION_WM1',
     IMPRESION_GIAVE = 'IMPRESION_GIAVE',
     IMPRESION_WM3 = 'IMPRESION_WM3',
-    IMPRESION_ANON = 'IMPRESION_ANON',
+
 
     // Embudo Post-Impresión
     POST_LAMINACION_SL2 = 'POST_LAMINACION_SL2',
@@ -103,7 +103,6 @@ export interface Pedido {
     microperforado?: boolean;
     macroperforado?: boolean;
     anonimo?: boolean;
-    anonimoPostImpresion?: string; // Opción de post-impresión para pedidos anónimos
     atencionObservaciones?: boolean; // Marca pedidos que requieren atención especial en observaciones
 
     /** El nombre o código del producto final. */

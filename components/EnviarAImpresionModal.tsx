@@ -15,8 +15,6 @@ interface EnviarAImpresionModalProps {
 
 const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, onClose, onConfirm }) => {
     const getInitialStage = (): Etapa => {
-        if (pedido.anonimo) return 'IMPRESION_ANON' as Etapa;
-
         if (pedido.maquinaImpresion) {
             const matchingStage = KANBAN_FUNNELS.IMPRESION.stages.find(
                 stage => ETAPAS[stage].title === pedido.maquinaImpresion
@@ -60,9 +58,7 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
                         ? `El pedido ${pedido.numeroPedidoCliente} tiene antivaho activado. Seleccione la nueva etapa de destino y configure la secuencia.`
                         : pedido.antivaho && !pedido.antivahoRealizado && pedido.etapaActual === 'PREPARACION'
                             ? `Este pedido tiene antivaho activado y será enviado directamente a post-impresión. Configure la secuencia para el pedido ${pedido.numeroPedidoCliente}.`
-                            : pedido.anonimo
-                                ? `Este pedido está marcado como anónimo. Se ha pre-seleccionado la máquina de impresión anónima (ANON) para el pedido ${pedido.numeroPedidoCliente}.`
-                                : `Configura la etapa inicial de impresión y la secuencia de post-impresión para el pedido ${pedido.numeroPedidoCliente}.`
+                            : `Configura la etapa inicial de impresión y la secuencia de post-impresión para el pedido ${pedido.numeroPedidoCliente}.`
                     }
                 </p>
 
@@ -81,17 +77,7 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
                             </div>
                         </div>
                     )}
-                    {pedido.anonimo && pedido.anonimoPostImpresion && (
-                        <div className="flex items-center gap-2 p-3 bg-yellow-100 dark:bg-yellow-900/30 border-2 border-yellow-500 rounded-lg">
-                            <span className="text-2xl">🎭</span>
-                            <div className="flex-1">
-                                <p className="text-sm font-bold text-yellow-800 dark:text-yellow-300">PEDIDO ANÓNIMO</p>
-                                <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                                    Post-Impresión: <span className="font-semibold">{pedido.anonimoPostImpresion}</span>
-                                </p>
-                            </div>
-                        </div>
-                    )}
+
                     {pedido.microperforado && (
                         <div className="flex items-center gap-2 p-3 bg-purple-100 dark:bg-purple-900/30 border-2 border-purple-500 rounded-lg">
                             <span className="text-2xl">🔵</span>
@@ -176,7 +162,9 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
                                 ? "Confirmar Cambio (Antivaho Realizado)"
                                 : pedido.antivaho && !pedido.antivahoRealizado && pedido.etapaActual === 'PREPARACION'
                                     ? "Confirmar y Enviar a Post-Impresión"
-                                    : "Confirmar y Enviar"
+                                    : pedido.anonimo
+                                        ? "Enviar a Post-Impresión"
+                                        : "Confirmar y Enviar"
                             }
                         </button>
                     </div>
