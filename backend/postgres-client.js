@@ -2124,7 +2124,7 @@ class PostgreSQLClient {
                             '{cliente}',
                             to_jsonb($1::text)
                         )
-                        WHERE (cliente_id IS NULL OR cliente_id = '')
+                        WHERE cliente_id IS NULL
                           AND (data->>'clienteId' IS NULL OR data->>'clienteId' = '')
                           AND upper(trim(data->>'cliente')) = upper(trim($2::text))
                     `;
