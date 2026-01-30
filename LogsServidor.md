@@ -1,99 +1,99 @@
-2026-01-30T01:35:23.884Z - Permiso requerido: vendedores.create
-2026-01-30T01:35:23.884Z - Usuario: b24fa21c-f2b2-4034-b10c-c0e65c09019e (ADMIN)
-2026-01-30T01:35:23.884Z - Headers: {
-2026-01-30T01:35:23.884Z userId: 'b24fa21c-f2b2-4034-b10c-c0e65c09019e',
-2026-01-30T01:35:23.884Z userRole: 'Administrador'
-2026-01-30T01:35:23.884Z }
-2026-01-30T01:35:23.884Z - Permisos a verificar (incluyendo aliases): [ 'vendedores.create' ]
-2026-01-30T01:35:23.885Z - Verificando permiso en BD...
-2026-01-30T01:35:23.885Z 🔍 Verificando permiso 'vendedores.create' para usuario ID: b24fa21c-f2b2-4034-b10c-c0e65c09019e
-2026-01-30T01:35:23.885Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
-2026-01-30T01:35:23.885Z - ✅ Usuario tiene permiso: vendedores.create
-2026-01-30T01:35:23.885Z - Resultado: ✅ PERMITIDO
-2026-01-30T01:35:23.885Z ✅ Permiso concedido - continuando con la request
-2026-01-30T01:35:23.895Z ❌ Error registrando historial de vendedor: insert or update on table "vendedores_history" violates foreign key constraint "vendedores_history_vendedor_id_fkey"
-2026-01-30T01:35:26.850Z 📨 [28] POST /api/action-history - User: anonymous - 2026-01-30T01:35:26.849Z
-2026-01-30T01:35:26.856Z ✅ Historial guardado: pedido 1769733842532 - UPDATE
-2026-01-30T01:35:27.226Z 🔓 Pedido 1769733842532 desbloqueado por Jhony Admin
-2026-01-30T01:35:27.232Z 📨 [29] PUT /api/pedidos/1769733842532 - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:35:27.232Z
-2026-01-30T01:35:27.233Z 🔐 requirePermission middleware
-2026-01-30T01:35:27.233Z - Ruta: PUT /api/pedidos/1769733842532
-2026-01-30T01:35:27.233Z - Permiso requerido: pedidos.edit
-2026-01-30T01:35:27.233Z - Usuario: b24fa21c-f2b2-4034-b10c-c0e65c09019e (ADMIN)
-2026-01-30T01:35:27.233Z - Headers: {
-2026-01-30T01:35:27.233Z userId: 'b24fa21c-f2b2-4034-b10c-c0e65c09019e',
-2026-01-30T01:35:27.233Z userRole: 'Administrador'
-2026-01-30T01:35:27.233Z }
-2026-01-30T01:35:27.233Z - Permisos a verificar (incluyendo aliases): [ 'pedidos.edit', 'vista.pedidos' ]
-2026-01-30T01:35:27.233Z - Verificando permiso en BD...
-2026-01-30T01:35:27.235Z 🔍 Verificando permiso 'pedidos.edit' para usuario ID: b24fa21c-f2b2-4034-b10c-c0e65c09019e
-2026-01-30T01:35:27.235Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
-2026-01-30T01:35:27.235Z - ✅ Usuario tiene permiso: pedidos.edit
-2026-01-30T01:35:27.235Z - Resultado: ✅ PERMITIDO
-2026-01-30T01:35:27.235Z ✅ Permiso concedido - continuando con la request
-2026-01-30T01:35:27.242Z ⚠️ Vendedor 6823ad42-477a-472d-b187-ab4615c017e2 no encontrado. Estableciendo vendedorId como null.
-2026-01-30T01:35:27.255Z 🔄 Actualizando pedido 1769733842532 con columnas disponibles: nueva_fecha_entrega=true, numeros_compra=true, vendedor=true, cliche_info=false, anonimo=true
-2026-01-30T01:35:27.823Z 📨 [30] POST /api/audit - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:35:27.823Z
-2026-01-30T01:35:30.412Z 📨 [31] GET /api/vendedores/stats/batch - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:35:30.412Z
-2026-01-30T01:35:30.413Z 🔐 requirePermission middleware
-2026-01-30T01:35:30.413Z - Ruta: GET /api/vendedores/stats/batch
-2026-01-30T01:35:30.413Z - Permiso requerido: vendedores.view
-2026-01-30T01:35:30.413Z - Usuario: b24fa21c-f2b2-4034-b10c-c0e65c09019e (ADMIN)
-2026-01-30T01:35:30.413Z - Headers: {
-2026-01-30T01:35:30.413Z userId: 'b24fa21c-f2b2-4034-b10c-c0e65c09019e',
-2026-01-30T01:35:30.413Z userRole: 'Administrador'
-2026-01-30T01:35:30.413Z }
-2026-01-30T01:35:30.414Z - Permisos a verificar (incluyendo aliases): [ 'vendedores.view' ]
-2026-01-30T01:35:30.414Z - Verificando permiso en BD...
-2026-01-30T01:35:30.414Z 🔍 Verificando permiso 'vendedores.view' para usuario ID: b24fa21c-f2b2-4034-b10c-c0e65c09019e
-2026-01-30T01:35:30.414Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
-2026-01-30T01:35:30.414Z - ✅ Usuario tiene permiso: vendedores.view
-2026-01-30T01:35:30.414Z - Resultado: ✅ PERMITIDO
-2026-01-30T01:35:30.417Z ✅ Permiso concedido - continuando con la request
-2026-01-30T01:35:30.420Z 📊 Estadísticas batch cargadas para 1 vendedores
-2026-01-30T01:35:32.545Z 📨 [32] GET /api/comments/1769733842532 - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:35:32.545Z
-2026-01-30T01:35:32.734Z 🔒 Pedido 1769733842532 bloqueado por Jhony Admin (b24fa21c-f2b2-4034-b10c-c0e65c09019e)
-2026-01-30T01:35:32.736Z 📨 [33] GET /api/users/active - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:35:32.736Z
-2026-01-30T01:35:32.738Z 📨 [34] GET /api/clientes/simple - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:35:32.738Z
-2026-01-30T01:35:32.742Z 📨 [35] GET /api/vendedores - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:35:32.742Z
-2026-01-30T01:35:32.742Z 🔍 Verificando permiso 'vendedores.view' para usuario ID: b24fa21c-f2b2-4034-b10c-c0e65c09019e
-2026-01-30T01:35:32.742Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
-2026-01-30T01:35:32.756Z 🔗 Nueva conexión al pool establecida
-2026-01-30T01:35:32.758Z 🔍 Verificando permiso 'clientes.view' para usuario ID: b24fa21c-f2b2-4034-b10c-c0e65c09019e
-2026-01-30T01:35:32.758Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
-2026-01-30T01:35:32.763Z 📊 [getAllClientesSimple] Total clientes encontrados: 1
-2026-01-30T01:35:36.566Z 🔓 Pedido 1769733842532 desbloqueado por Jhony Admin
-2026-01-30T01:35:39.058Z 📨 [36] GET /api/vendedores - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:35:39.057Z
-2026-01-30T01:35:39.058Z 🔍 Verificando permiso 'vendedores.view' para usuario ID: b24fa21c-f2b2-4034-b10c-c0e65c09019e
-2026-01-30T01:35:39.059Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
-2026-01-30T01:35:44.588Z 📨 [37] GET /api/audit - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:35:44.586Z
-2026-01-30T01:35:44.588Z 📨 [38] GET /api/pedidos - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:35:44.588Z
-2026-01-30T01:35:44.596Z 📨 [39] GET /api/notifications - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:35:44.595Z
-2026-01-30T01:35:44.634Z 🔗 Nueva conexión al pool establecida
-2026-01-30T01:35:44.636Z 🔗 Nueva conexión al pool establecida
-2026-01-30T01:35:44.643Z 📊 [2026-01-30T01:35:44.642Z] GET /api/pedidos (LEGACY) - Total: 2 pedidos
-2026-01-30T01:35:44.778Z 📨 [40] GET /api/vendedores - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:35:44.778Z
-2026-01-30T01:35:44.779Z 🔍 Verificando permiso 'vendedores.view' para usuario ID: b24fa21c-f2b2-4034-b10c-c0e65c09019e
-2026-01-30T01:35:44.779Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
-2026-01-30T01:35:44.780Z 📨 [41] GET /api/clientes/simple - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:35:44.780Z
-2026-01-30T01:35:44.780Z 🔍 Verificando permiso 'clientes.view' para usuario ID: b24fa21c-f2b2-4034-b10c-c0e65c09019e
-2026-01-30T01:35:44.780Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
-2026-01-30T01:35:44.787Z 📨 [42] GET /api/notifications - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:35:44.785Z
-2026-01-30T01:35:44.795Z 📊 [getAllClientesSimple] Total clientes encontrados: 1
-2026-01-30T01:35:45.059Z 📨 [43] GET /api/materiales - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:35:45.058Z
-2026-01-30T01:35:45.062Z ✅ Materiales obtenidos: 0
-2026-01-30T01:35:51.613Z 📨 [44] GET /api/observaciones/templates - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:35:51.611Z
-2026-01-30T01:35:51.802Z 📨 [45] GET /api/comments/1769731617434 - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:35:51.802Z
-2026-01-30T01:35:51.811Z 📨 [46] GET /api/clientes/simple - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:35:51.807Z
-2026-01-30T01:35:51.811Z 🔍 Verificando permiso 'clientes.view' para usuario ID: b24fa21c-f2b2-4034-b10c-c0e65c09019e
-2026-01-30T01:35:51.811Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
-2026-01-30T01:35:51.811Z 📨 [47] GET /api/pedidos/1769731617434/materiales - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:35:51.808Z
-2026-01-30T01:35:51.811Z 📨 [48] GET /api/vendedores - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:35:51.809Z
-2026-01-30T01:35:51.811Z 🔍 Verificando permiso 'vendedores.view' para usuario ID: b24fa21c-f2b2-4034-b10c-c0e65c09019e
-2026-01-30T01:35:51.811Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
-2026-01-30T01:35:51.814Z 🔒 Pedido 1769731617434 bloqueado por Jhony Admin (b24fa21c-f2b2-4034-b10c-c0e65c09019e)
-2026-01-30T01:35:51.815Z 📨 [49] GET /api/users/active - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:35:51.815Z
-2026-01-30T01:35:51.819Z 📊 [getAllClientesSimple] Total clientes encontrados: 1
-2026-01-30T01:35:51.819Z 📦 GET /api/pedidos/1769731617434/materiales → 0 materiales encontrados
-2026-01-30T01:35:51.836Z 🔗 Nueva conexión al pool establecida
-2026-01-30T01:35:51.840Z 🔗 Nueva conexión al pool establecida
+2026-01-30T01:50:32.864Z ✅ Base de datos actualizada. No hay migraciones pendientes.
+2026-01-30T01:50:32.865Z ✅ Migraciones completadas exitosamente
+2026-01-30T01:50:32.866Z 🏗️ Verificando estructura de tablas complementarias...
+2026-01-30T01:50:32.867Z 🔧 Iniciando creación/verificación de tablas...
+2026-01-30T01:50:32.868Z ✅ Extensión uuid-ossp verificada
+2026-01-30T01:50:32.878Z ✅ Tabla admin_users verificada
+2026-01-30T01:50:32.897Z 📋 Columnas existentes en admin_users: id, username, email, first_name, last_name, password_hash, role, permissions, is_active, last_login, last_activity, ip_address, user_agent, created_at, updated_at
+2026-01-30T01:50:32.902Z ✅ Constraint de rol actualizado
+2026-01-30T01:50:32.902Z 🔄 Verificando usuarios existentes...
+2026-01-30T01:50:32.904Z ✅ Todos los usuarios ya están actualizados
+2026-01-30T01:50:32.904Z ✅ Columnas de admin_users verificadas
+2026-01-30T01:50:32.912Z ✅ Tabla user_permissions verificada
+2026-01-30T01:50:32.912Z ✅ Tabla pedidos verificada (creada por migración)
+2026-01-30T01:50:32.913Z ✅ Tabla users verificada
+2026-01-30T01:50:32.914Z ✅ Tabla audit_log verificada
+2026-01-30T01:50:32.921Z ⚠️ Tabla audit_logs y clave foránea procesadas (puede haber avisos)
+2026-01-30T01:50:32.922Z ✅ Tabla pedido_comments creada
+2026-01-30T01:50:32.923Z ✅ Tabla vendedores creada
+2026-01-30T01:50:32.927Z ✅ Índices verificados
+2026-01-30T01:50:32.935Z ✅ Triggers configurados
+2026-01-30T01:50:32.942Z ✅ Columna vendedor_id verificada/creada
+2026-01-30T01:50:32.942Z 🎉 Todas las tablas han sido verificadas/creadas exitosamente
+2026-01-30T01:50:32.947Z 🚀 Servidor iniciado en puerto 3001
+2026-01-30T01:50:32.947Z ✅ PostgreSQL conectado - Sistema operativo
+2026-01-30T01:53:23.664Z 📨 [1] GET /api/pedidos - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:53:23.664Z
+2026-01-30T01:53:23.681Z 📊 [2026-01-30T01:53:23.681Z] GET /api/pedidos (LEGACY) - Total: 2 pedidos
+2026-01-30T01:53:23.838Z 📨 [2] GET /api/notifications - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:53:23.838Z
+2026-01-30T01:53:23.845Z 📨 [3] GET /api/audit - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:53:23.843Z
+2026-01-30T01:53:23.859Z 📨 [4] GET /api/vendedores - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:53:23.858Z
+2026-01-30T01:53:23.863Z 🔍 Verificando permiso 'vendedores.view' para usuario ID: b24fa21c-f2b2-4034-b10c-c0e65c09019e
+2026-01-30T01:53:23.865Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
+2026-01-30T01:53:23.865Z 📨 [5] GET /api/clientes/simple - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:53:23.863Z
+2026-01-30T01:53:23.865Z 🔍 Verificando permiso 'clientes.view' para usuario ID: b24fa21c-f2b2-4034-b10c-c0e65c09019e
+2026-01-30T01:53:23.865Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
+2026-01-30T01:53:23.866Z 📨 [6] GET /api/notifications - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:53:23.866Z
+2026-01-30T01:53:23.907Z 🔗 Nueva conexión al pool establecida
+2026-01-30T01:53:23.908Z 🔗 Nueva conexión al pool establecida
+2026-01-30T01:53:23.915Z 🔗 Nueva conexión al pool establecida
+2026-01-30T01:53:23.916Z 📊 [getAllClientesSimple] Total clientes encontrados: 1
+2026-01-30T01:53:24.390Z 📨 [7] GET /api/materiales - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:53:24.390Z
+2026-01-30T01:53:24.397Z ✅ Materiales obtenidos: 0
+2026-01-30T01:53:25.781Z 📨 [8] GET /api/observaciones/templates - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:53:25.780Z
+2026-01-30T01:53:25.839Z 🔒 Pedido 1769733842532 bloqueado por Jhony Admin (b24fa21c-f2b2-4034-b10c-c0e65c09019e)
+2026-01-30T01:53:25.977Z 📨 [9] GET /api/comments/1769733842532 - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:53:25.977Z
+2026-01-30T01:53:25.983Z 📨 [10] GET /api/users/active - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:53:25.983Z
+2026-01-30T01:53:25.984Z 📨 [11] GET /api/pedidos/1769733842532/materiales - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:53:25.984Z
+2026-01-30T01:53:25.986Z 📨 [12] GET /api/vendedores - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:53:25.985Z
+2026-01-30T01:53:25.987Z 🔍 Verificando permiso 'vendedores.view' para usuario ID: b24fa21c-f2b2-4034-b10c-c0e65c09019e
+2026-01-30T01:53:25.987Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
+2026-01-30T01:53:25.990Z 📨 [13] GET /api/clientes/simple - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:53:25.987Z
+2026-01-30T01:53:25.990Z 🔍 Verificando permiso 'clientes.view' para usuario ID: b24fa21c-f2b2-4034-b10c-c0e65c09019e
+2026-01-30T01:53:25.990Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
+2026-01-30T01:53:26.000Z 📦 GET /api/pedidos/1769733842532/materiales → 0 materiales encontrados
+2026-01-30T01:53:26.012Z 🔗 Nueva conexión al pool establecida
+2026-01-30T01:53:26.018Z 📊 [getAllClientesSimple] Total clientes encontrados: 1
+2026-01-30T01:53:30.287Z 🔓 Pedido 1769733842532 desbloqueado por Jhony Admin
+2026-01-30T01:53:32.901Z 📨 [14] GET /api/vendedores - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:53:32.901Z
+2026-01-30T01:53:32.903Z 🔍 Verificando permiso 'vendedores.view' para usuario ID: b24fa21c-f2b2-4034-b10c-c0e65c09019e
+2026-01-30T01:53:32.903Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
+2026-01-30T01:53:38.716Z 📨 [15] POST /api/vendedores - User: b24fa21c-f2b2-4034-b10c-c0e65c09019e - 2026-01-30T01:53:38.715Z
+2026-01-30T01:53:38.720Z 🔐 requirePermission middleware
+2026-01-30T01:53:38.721Z - Ruta: POST /api/vendedores
+2026-01-30T01:53:38.721Z - Permiso requerido: vendedores.create
+2026-01-30T01:53:38.721Z - Usuario: b24fa21c-f2b2-4034-b10c-c0e65c09019e (ADMIN)
+2026-01-30T01:53:38.729Z - Headers: {
+2026-01-30T01:53:38.729Z userId: 'b24fa21c-f2b2-4034-b10c-c0e65c09019e',
+2026-01-30T01:53:38.729Z userRole: 'Administrador'
+2026-01-30T01:53:38.729Z }
+2026-01-30T01:53:38.729Z - Permisos a verificar (incluyendo aliases): [ 'vendedores.create' ]
+2026-01-30T01:53:38.729Z - Verificando permiso en BD...
+2026-01-30T01:53:38.730Z 🔍 Verificando permiso 'vendedores.create' para usuario ID: b24fa21c-f2b2-4034-b10c-c0e65c09019e
+2026-01-30T01:53:38.730Z 👑 Usuario administrador - TODOS LOS PERMISOS CONCEDIDOS
+2026-01-30T01:53:38.730Z - ✅ Usuario tiene permiso: vendedores.create
+2026-01-30T01:53:38.730Z - Resultado: ✅ PERMITIDO
+2026-01-30T01:53:38.730Z ✅ Permiso concedido - continuando con la request
+2026-01-30T01:53:38.745Z Error in POST /api/vendedores: error: insert or update on table "vendedores_history" violates foreign key constraint "vendedores_history_vendedor_id_fkey"
+2026-01-30T01:53:38.745Z at /app/backend/node_modules/pg/lib/client.js:545:17
+2026-01-30T01:53:38.745Z at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-01-30T01:53:38.745Z at async PostgreSQLClient.logVendedorHistory (/app/backend/postgres-client.js:962:9)
+2026-01-30T01:53:38.746Z at async PostgreSQLClient.createVendedor (/app/backend/postgres-client.js:2753:13)
+2026-01-30T01:53:38.746Z at async /app/backend/index.js:4276:31 {
+2026-01-30T01:53:38.746Z length: 346,
+2026-01-30T01:53:38.746Z severity: 'ERROR',
+2026-01-30T01:53:38.746Z code: '23503',
+2026-01-30T01:53:38.746Z detail: 'Key (vendedor_id)=(a0fb5c19-e2c1-4764-9204-f29a9913052f) is not present in table "vendedores".',
+2026-01-30T01:53:38.746Z hint: undefined,
+2026-01-30T01:53:38.746Z position: undefined,
+2026-01-30T01:53:38.746Z internalPosition: undefined,
+2026-01-30T01:53:38.746Z internalQuery: undefined,
+2026-01-30T01:53:38.746Z where: undefined,
+2026-01-30T01:53:38.746Z schema: 'limpio',
+2026-01-30T01:53:38.746Z table: 'vendedores_history',
+2026-01-30T01:53:38.746Z column: undefined,
+2026-01-30T01:53:38.746Z dataType: undefined,
+2026-01-30T01:53:38.746Z constraint: 'vendedores_history_vendedor_id_fkey',
+2026-01-30T01:53:38.746Z file: 'ri_triggers.c',
+2026-01-30T01:53:38.746Z line: '2596',
+2026-01-30T01:53:38.746Z routine: 'ri_ReportViolation'
+2026-01-30T01:53:38.746Z }
