@@ -1279,8 +1279,7 @@ class PostgreSQLClient {
             updateFields.push(`cliente = $${paramIndex++}`);
             values.push(pedido.cliente);
 
-            updateFields.push(`fecha_pedido = $${paramIndex++}`);
-            values.push(pedido.fechaPedido ? new Date(pedido.fechaPedido) : null);
+
 
             updateFields.push(`fecha_entrega = $${paramIndex++}`);
             values.push(pedido.fechaEntrega ? new Date(pedido.fechaEntrega) : null);

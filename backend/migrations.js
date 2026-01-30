@@ -408,6 +408,23 @@ class MigrationManager {
                 CREATE INDEX IF NOT EXISTS idx_pedidos_materiales_material ON limpio.pedidos_materiales(material_id);
             `
         });
+
+        // Migración 015: Tabla de historial de acciones (frontend legacy)
+        this.migrations.push({
+            id: '015-tabla-action-history',
+            name: 'Crear tabla action_history',
+            sql: `
+                CREATE TABLE IF NOT EXISTS action_history (
+                    id SERIAL PRIMARY KEY,
+                    user_id UUID,
+                    action VARCHAR(255) NOT NULL,
+                    details JSONB,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                
+                CREATE INDEX IF NOT EXISTS idx_action_history_user_id ON action_history(user_id);
+            `
+        });
     }
 
     /**
