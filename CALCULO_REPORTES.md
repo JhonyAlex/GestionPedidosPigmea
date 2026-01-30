@@ -57,10 +57,10 @@ La capacidad libre se calcula semanalmente mediante una fórmula fija solicitada
 
 **Fórmula:**
 ```
-LIBRES = 180 - (Carga WH1) - (Carga WH3) - (Carga DNT)
+LIBRES = 190 - (Carga WH1) - (Carga WH3) - (Carga DNT)
 ```
 
-*   **180**: Capacidad base fija por semana (horas).
+*   **190**: Capacidad base fija por semana (horas).
 *   **Carga WH1**: Suma de horas de pedidos en Windmöller 1.
 *   **Carga WH3**: Suma de horas de pedidos en Windmöller 3.
 *   **Carga DNT**: Suma de horas de pedidos clasificados como DNT.
