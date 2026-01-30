@@ -1299,20 +1299,15 @@ class PostgreSQLClient {
             updateFields.push(`secuencia_pedido = $${paramIndex++}`);
             values.push(pedido.secuenciaPedido);
 
-            updateFields.push(`cantidad_piezas = $${paramIndex++}`);
-            values.push(pedido.cantidadPiezas);
 
-            updateFields.push(`observaciones = $${paramIndex++}`);
-            values.push(pedido.observaciones);
 
-            updateFields.push(`datos_tecnicos = $${paramIndex++}`);
-            values.push(JSON.stringify(pedido.datosTecnicos || {}));
 
-            updateFields.push(`antivaho = $${paramIndex++}`);
-            values.push(pedido.antivaho || false);
 
-            updateFields.push(`camisa = $${paramIndex++}`);
-            values.push(pedido.camisa);
+
+
+
+
+
 
             // Agregar numero_compra solo si la columna existe
             if (hasNumerosCompra) {
@@ -1669,7 +1664,7 @@ class PostgreSQLClient {
                         WHERE numero ILIKE $1
                     ) OR
                     etapa_actual ILIKE $1 OR
-                    observaciones ILIKE $1
+                    data->>'observaciones' ILIKE $1
                 ORDER BY secuencia_pedido DESC
             `;
 
