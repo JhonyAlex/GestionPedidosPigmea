@@ -54,8 +54,26 @@ export const usePermissions = () => {
     // Nota: el sistema actual es por vistas. Para acciones (mover/archivar/crear),
     // aplicamos una regla segura: el rol Visualizador es solo lectura.
     const canCreatePedidos = () => true;
+    const canEditPedidos = () => true;
+    const canDeletePedidos = () => true;
     const canMovePedidos = () => true;
     const canArchivePedidos = () => true;
+
+    // Gestión de usuarios
+    const canViewUsers = () => true;
+    const canCreateUsers = () => true;
+    const canEditUsers = () => true;
+    const canDeleteUsers = () => true;
+    const canManagePermissions = () => true;
+
+    // Reportes avanzados
+    const canViewKPI = () => true;
+    const canExportReports = () => true;
+
+    // Configuración y sistema
+    const canEditConfig = () => true;
+    const canViewSystemHealth = () => true;
+    const canAccessMaintenance = () => true;
 
     // Alias históricos usados por algunos componentes
     const canViewReports = () => canViewReportes();
@@ -70,7 +88,7 @@ export const usePermissions = () => {
         canViewPedidos,
         canViewClientes,
         canViewVendedores,
-
+        // Vistas específicas
         canViewPreparacion,
         canViewListoProduccion,
         canViewReportes,
@@ -79,10 +97,25 @@ export const usePermissions = () => {
         canManageUsers,
         canManageConfig,
         canViewAudit,
-        // Acciones (compatibilidad / solo lectura)
+        // Acciones Pedidos
         canCreatePedidos,
+        canEditPedidos,
+        canDeletePedidos,
         canMovePedidos,
         canArchivePedidos,
+        // Gestión Usuarios
+        canViewUsers,
+        canCreateUsers,
+        canEditUsers,
+        canDeleteUsers,
+        canManagePermissions,
+        // Reportes y Analítica
+        canViewKPI,
+        canExportReports,
+        // Sistema
+        canEditConfig,
+        canViewSystemHealth,
+        canAccessMaintenance,
         // Alias históricos
         canViewReports,
         canViewConfig,
@@ -90,7 +123,6 @@ export const usePermissions = () => {
         // Roles
         isAdmin,
         isSupervisor,
-
         isVisualizador,
         // Utilidades
         getUserPermissions

@@ -38,8 +38,8 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Si el pedido tiene antivaho y está en preparación, enviar directamente a post-impresión
-        if (pedido.antivaho && pedido.etapaActual === 'PREPARACION' && postImpresionSequence.length > 0) {
+        // Si el pedido tiene antivaho, no se ha realizado y está en preparación, enviar directamente a post-impresión
+        if (pedido.antivaho && !pedido.antivahoRealizado && pedido.etapaActual === 'PREPARACION' && postImpresionSequence.length > 0) {
             onConfirm(pedido, postImpresionSequence[0], postImpresionSequence.slice(1));
         } else {
             onConfirm(pedido, impresionEtapa, postImpresionSequence);
@@ -58,7 +58,7 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
                 <p className="mb-6 text-gray-600 dark:text-gray-300">
                     {isAntivahoReconfirmation
                         ? `El pedido ${pedido.numeroPedidoCliente} tiene antivaho activado. Seleccione la nueva etapa de destino y configure la secuencia.`
-                        : pedido.antivaho && pedido.etapaActual === 'PREPARACION'
+                        : pedido.antivaho && !pedido.antivahoRealizado && pedido.etapaActual === 'PREPARACION'
                             ? `Este pedido tiene antivaho activado y será enviado directamente a post-impresión. Configure la secuencia para el pedido ${pedido.numeroPedidoCliente}.`
                             : pedido.anonimo
                                 ? `Este pedido está marcado como anónimo. Se ha pre-seleccionado la máquina de impresión anónima (ANON) para el pedido ${pedido.numeroPedidoCliente}.`
@@ -69,11 +69,15 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
                 {/* Indicaciones llamativas para características especiales */}
                 <div className="mb-6 space-y-2">
                     {pedido.antivaho && (
-                        <div className="flex items-center gap-2 p-3 bg-blue-100 dark:bg-blue-900/30 border-2 border-blue-500 rounded-lg">
-                            <span className="text-2xl">✨</span>
+                        <div className={`flex items-center gap-2 p-3 ${pedido.antivahoRealizado ? 'bg-green-100 dark:bg-green-900/30 border-green-500' : 'bg-blue-100 dark:bg-blue-900/30 border-blue-500'} border-2 rounded-lg`}>
+                            <span className="text-2xl">{pedido.antivahoRealizado ? '✅' : '✨'}</span>
                             <div className="flex-1">
-                                <p className="text-sm font-bold text-blue-800 dark:text-blue-300">ANTIVAHO ACTIVADO</p>
-                                <p className="text-xs text-blue-700 dark:text-blue-400">Este pedido requiere tratamiento antivaho</p>
+                                <p className={`text-sm font-bold ${pedido.antivahoRealizado ? 'text-green-800 dark:text-green-300' : 'text-blue-800 dark:text-blue-300'}`}>
+                                    {pedido.antivahoRealizado ? 'ANTIVAHO REALIZADO' : 'ANTIVAHO ACTIVADO'}
+                                </p>
+                                <p className={`text-xs ${pedido.antivahoRealizado ? 'text-green-700 dark:text-green-400' : 'text-blue-700 dark:text-blue-400'}`}>
+                                    {pedido.antivahoRealizado ? 'El tratamiento antivaho ya ha sido completado. Se enviará a impresión normalmente.' : 'Este pedido requiere tratamiento antivaho'}
+                                </p>
                             </div>
                         </div>
                     )}
@@ -110,7 +114,8 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
 
                 <form onSubmit={handleSubmit}>
                     <div className="space-y-6">
-                        {(!pedido.antivaho || isAntivahoReconfirmation) && (
+                        {/* Mostrar selector de máquina si NO es antivaho, SI es antivaho realizado, O es reconfirmación */}
+                        {(!pedido.antivaho || pedido.antivahoRealizado || isAntivahoReconfirmation) && (
                             <div>
                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
                                     {isAntivahoReconfirmation ? 'Etapa de Destino' : 'Máquina de Impresión (Etapa Inicial)'}
@@ -165,11 +170,11 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
                         <button
                             type="submit"
                             className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                            disabled={pedido.antivaho && pedido.etapaActual === 'PREPARACION' && postImpresionSequence.length === 0}
+                            disabled={pedido.antivaho && !pedido.antivahoRealizado && pedido.etapaActual === 'PREPARACION' && postImpresionSequence.length === 0}
                         >
                             {isAntivahoReconfirmation
                                 ? "Confirmar Cambio (Antivaho Realizado)"
-                                : pedido.antivaho && pedido.etapaActual === 'PREPARACION'
+                                : pedido.antivaho && !pedido.antivahoRealizado && pedido.etapaActual === 'PREPARACION'
                                     ? "Confirmar y Enviar a Post-Impresión"
                                     : "Confirmar y Enviar"
                             }
