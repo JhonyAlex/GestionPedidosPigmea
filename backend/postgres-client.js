@@ -1121,25 +1121,32 @@ class PostgreSQLClient {
             }
 
             // Construir lista de valores correspondientes
-            const baseValues = [
-                pedido.id,
-                pedido.numeroPedidoCliente,
-                pedido.cliente,
-                pedido.fechaPedido ? new Date(pedido.fechaPedido) : null,
-                pedido.fechaEntrega ? new Date(pedido.fechaEntrega) : null,
-                pedido.etapaActual,
-                pedido.prioridad,
-                pedido.secuenciaPedido,
-                pedido.cantidadPiezas,
-                pedido.observaciones,
-                JSON.stringify(pedido.datosTecnicos || {}),
-                pedido.antivaho || false,
-                pedido.camisa,
-                JSON.stringify(pedido),
-                pedido.clienteId || null
-            ];
+            const baseValuesMap = {
+                'id': pedido.id,
+                'numero_pedido_cliente': pedido.numeroPedidoCliente,
+                'cliente': pedido.cliente,
+                'fecha_pedido': pedido.fechaPedido ? new Date(pedido.fechaPedido) : null,
+                'fecha_entrega': pedido.fechaEntrega ? new Date(pedido.fechaEntrega) : null,
+                'etapa_actual': pedido.etapaActual,
+                'prioridad': pedido.prioridad,
+                'secuencia_pedido': pedido.secuenciaPedido,
+                'cantidad_piezas': pedido.cantidadPiezas,
+                'observaciones': pedido.observaciones,
+                'datos_tecnicos': JSON.stringify(pedido.datosTecnicos || {}),
+                'antivaho': pedido.antivaho || false,
+                'camisa': pedido.camisa,
+                'data': JSON.stringify(pedido),
+                'cliente_id': pedido.clienteId || null
+            };
 
-            const values = [...baseValues];
+            const values = [];
+
+            // Agregar valores base en el orden correcto
+            baseColumns.forEach(col => {
+                if (existingColumns.includes(col)) {
+                    values.push(baseValuesMap[col]);
+                }
+            });
 
             // Agregar valores opcionales solo si las columnas existen
             if (existingColumns.includes('nueva_fecha_entrega')) {
