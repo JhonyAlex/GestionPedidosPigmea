@@ -134,7 +134,7 @@ export const usePedidosManager = (
         if (subscribeToPedidoUpdated) {
             const unsubscribeUpdated = subscribeToPedidoUpdated((updatedPedido: Pedido) => {
                 console.log('🔄 Sincronizando pedido actualizado:', updatedPedido.numeroPedidoCliente);
-                
+
                 // Verificar si cambió de etapa o sub-etapa (para debug de ordenamiento)
                 const currentPedido = pedidos.find(p => p.id === updatedPedido.id);
                 if (currentPedido) {
@@ -145,7 +145,7 @@ export const usePedidosManager = (
                         console.log(`📍 Sub-etapa cambiada: ${currentPedido.subEtapaActual} → ${updatedPedido.subEtapaActual}`);
                     }
                 }
-                
+
                 setPedidos(current =>
                     current.map(p => p.id === updatedPedido.id ? updatedPedido : p)
                 );
@@ -470,12 +470,12 @@ export const usePedidosManager = (
             }
 
             // ✅ Actualizar subEtapasSecuencia cuando cambia la sub-etapa (dentro de Preparación)
-            if (modifiedPedido.etapaActual === Etapa.PREPARACION && 
-                originalPedidoCopy.subEtapaActual !== modifiedPedido.subEtapaActual && 
+            if (modifiedPedido.etapaActual === Etapa.PREPARACION &&
+                originalPedidoCopy.subEtapaActual !== modifiedPedido.subEtapaActual &&
                 modifiedPedido.subEtapaActual) {
-                
+
                 const subEtapasSecuencia = modifiedPedido.subEtapasSecuencia || [];
-                
+
                 // Obtener el timestamp más reciente de TODAS las sub-etapas y agregar 1ms para garantizar que sea el más nuevo
                 const latestTimestamp = subEtapasSecuencia.length > 0
                     ? Math.max(
@@ -484,7 +484,7 @@ export const usePedidosManager = (
                     )
                     : Date.now();
                 const now = new Date(latestTimestamp + 1).toISOString();
-                
+
                 const existingSubEtapaIndex = subEtapasSecuencia.findIndex(
                     e => e.subEtapa === modifiedPedido.subEtapaActual
                 );
@@ -825,8 +825,11 @@ export const usePedidosManager = (
         // Después de actualizar el pedido, verificar si viene de post-impresión y va a impresión
         if (result?.modifiedPedido) {
             const finalUpdatedPedido = { ...result.modifiedPedido };
-            
+
             // Si viene de post-impresión y va a impresión, abrir modal de destino
+            // ⚠️ MODIFICADO: El usuario solicitó que si antivaho está hecho, ya puede irse como un pedido normal
+            // Se elimina la apertura del modal de destino y se deja fluir normal hacia la etapa destino
+            /*
             if (isReconfirmationFromPostImpresion && KANBAN_FUNNELS.IMPRESION.stages.includes(antivahoModalState.toEtapa)) {
                 // Cerrar el modal de confirmación de antivaho
                 setAntivahoModalState({ isOpen: false, pedido: null, toEtapa: null });
@@ -834,6 +837,7 @@ export const usePedidosManager = (
                 setAntivahoDestinationModalState({ isOpen: true, pedido: finalUpdatedPedido });
                 return;
             }
+            */
 
             // Si no, proceder con el flujo normal
             finalUpdatedPedido.etapaActual = antivahoModalState.toEtapa;
@@ -862,7 +866,7 @@ export const usePedidosManager = (
         if (!antivahoDestinationModalState.pedido) return;
 
         const pedido = antivahoDestinationModalState.pedido;
-        
+
         // Regresar a impresión - abrir el modal de envío a impresión
         setAntivahoDestinationModalState({ isOpen: false, pedido: null });
         setPedidoToSend(pedido);
@@ -872,7 +876,7 @@ export const usePedidosManager = (
         if (!antivahoDestinationModalState.pedido) return;
 
         const pedido = antivahoDestinationModalState.pedido;
-        
+
         // Mover a Listo a Producción (sub-etapa de Preparación)
         const updatedPedido = {
             ...pedido,
