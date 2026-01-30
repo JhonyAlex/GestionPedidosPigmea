@@ -402,6 +402,7 @@ const AppContent: React.FC = () => {
             logAction(`Nuevo pedido ${newPedido.numeroPedidoCliente} creado.`, newPedido.id);
             setIsAddModalOpen(false);
             setClientePreseleccionado(null); // ✅ Limpiar cliente preseleccionado
+            setSearchTerm(''); // ✅ Limpiar búsqueda para asegurar visibilidad
             // 🚀 Emitir actividad WebSocket
             emitActivity('pedido-created', {
                 pedidoId: newPedido.id,
@@ -563,6 +564,7 @@ const AppContent: React.FC = () => {
 
                 // Abrir el modal del pedido duplicado y forzar edición del número
                 setSelectedPedido({ ...newPedido, numeroPedidoCliente: '' });
+                setSearchTerm(''); // ✅ Limpiar búsqueda para asegurar visibilidad
             }
         } catch (error) {
             console.error('Error al duplicar pedido:', error);

@@ -665,6 +665,7 @@ export const usePedidosManager = (
             orden: maxOrder + 1,
             numeroRegistro: numeroRegistro,
             fechaCreacion: now.toISOString(),
+            numeroPedidoCliente: '', // ✅ Resetear número de pedido del cliente para que ingresen uno nuevo
             etapaActual: initialStage,
             subEtapaActual: PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA, // ✅ Resetear sub-etapa a "Sin Gestión Iniciada"
             etapasSecuencia: [{ etapa: initialStage, fecha: now.toISOString() }],
