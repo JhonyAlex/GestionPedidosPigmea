@@ -1061,6 +1061,7 @@ class PostgreSQLClient {
                 const vendedorResult = await client.query('SELECT nombre FROM limpio.vendedores WHERE id = $1', [pedido.vendedorId]);
                 if (vendedorResult.rowCount > 0) {
                     pedido.vendedorNombre = vendedorResult.rows[0].nombre;
+                    pedido.vendedor = pedido.vendedorNombre; // Sync legacy field
                 } else {
                     // Si el vendedor no existe, establecer vendedorId como null
                     console.warn(`⚠️ Vendedor ${pedido.vendedorId} no encontrado. Estableciendo vendedorId como null.`);
@@ -1229,6 +1230,7 @@ class PostgreSQLClient {
                 const vendedorResult = await client.query('SELECT nombre FROM limpio.vendedores WHERE id = $1', [pedido.vendedorId]);
                 if (vendedorResult.rowCount > 0) {
                     pedido.vendedorNombre = vendedorResult.rows[0].nombre;
+                    pedido.vendedor = pedido.vendedorNombre; // Sync legacy field
                 } else {
                     // Si el vendedor no existe, establecer vendedorId como null
                     console.warn(`⚠️ Vendedor ${pedido.vendedorId} no encontrado. Estableciendo vendedorId como null.`);
