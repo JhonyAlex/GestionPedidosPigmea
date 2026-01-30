@@ -1823,7 +1823,7 @@ class PostgreSQLClient {
                 // Primero, verificar cuáles pedidos tienen este vendedorId
                 const checkQuery = `
                     SELECT id, data->>'vendedorId' as vendedorId, data->>'vendedorNombre' as vendedorNombre
-                    FROM pedidos
+                    FROM limpio.pedidos
                     WHERE data->>'vendedorId' = $1 OR data->>'vendedorId' = $2
                     LIMIT 5
                 `;
@@ -1850,7 +1850,7 @@ class PostgreSQLClient {
                     console.warn(`⚠️ ADVERTENCIA: No se encontraron pedidos para actualizar con vendedorId=${id}`);
                     // Intentar una búsqueda adicional para debugging
                     const debugQuery = `
-                        SELECT COUNT(*) as total FROM pedidos 
+                        SELECT COUNT(*) as total FROM limpio.pedidos 
                         WHERE data->>'vendedorId' IS NOT NULL
                     `;
                     const debugResult = await client.query(debugQuery);
@@ -2489,8 +2489,9 @@ class PostgreSQLClient {
                     COUNT(*) FILTER (WHERE etapa_actual = 'COMPLETADO') as pedidos_completados,
                     COUNT(*) FILTER (WHERE etapa_actual = 'ARCHIVADO') as pedidos_archivados,
                     COUNT(*) as total_pedidos,
+
                     SUM((data->>'metros')::numeric) FILTER (WHERE etapa_actual = 'COMPLETADO') as metros_producidos,
-                    MAX(COALESCE(fecha_pedido, created_at)) as ultimo_pedido_fecha
+                    MAX(data->>'fechaPedido') as ultimo_pedido_fecha
                 FROM limpio.pedidos
                 WHERE cliente_id = $1 OR data->>'clienteId' = $1::text
             `;
@@ -2595,15 +2596,15 @@ class PostgreSQLClient {
             if (deletePedidos) {
                 // Primero eliminamos los comentarios de los pedidos del cliente
                 await client.query(`
-                    DELETE FROM pedido_comments
+                    DELETE FROM limpio.pedido_comments
                     WHERE pedido_id IN (
-                        SELECT id FROM pedidos WHERE cliente_id = $1
+                        SELECT id FROM limpio.pedidos WHERE cliente_id = $1
                     )
                 `, [id]);
 
                 // Luego eliminamos los pedidos del cliente y guardamos sus IDs
                 const deletePedidosResult = await client.query(
-                    'DELETE FROM pedidos WHERE cliente_id = $1 RETURNING id',
+                    'DELETE FROM limpio.pedidos WHERE cliente_id = $1 RETURNING id',
                     [id]
                 );
 
@@ -2747,8 +2748,6 @@ class PostgreSQLClient {
                     id,
                     data,
                     etapa_actual,
-                    fecha_pedido,
-                    fecha_entrega,
                     created_at,
                     updated_at
                 FROM limpio.pedidos
@@ -2765,8 +2764,8 @@ class PostgreSQLClient {
                     id: row.id,
                     ...pedidoData,
                     etapaActual: row.etapa_actual,
-                    fechaCreacion: pedidoData.fechaCreacion || row.fecha_pedido || row.created_at,
-                    fechaEntrega: pedidoData.fechaEntrega || row.fecha_entrega || null,
+                    fechaCreacion: pedidoData.fechaCreacion || row.created_at,
+                    fechaEntrega: pedidoData.fechaEntrega || null,
                     fechaActualizacion: row.updated_at,
                 };
             });
@@ -2794,8 +2793,9 @@ class PostgreSQLClient {
                     COUNT(*) FILTER (WHERE etapa_actual = 'COMPLETADO') as pedidos_completados,
                     COUNT(*) FILTER (WHERE etapa_actual = 'ARCHIVADO') as pedidos_archivados,
                     COUNT(*) as total_pedidos,
+
                     SUM((data->>'metros')::numeric) FILTER (WHERE etapa_actual = 'COMPLETADO') as metros_producidos,
-                    MAX(COALESCE(fecha_pedido, created_at)) as ultimo_pedido_fecha
+                    MAX(data->>'fechaPedido') as ultimo_pedido_fecha
                 FROM limpio.pedidos
                 WHERE vendedor_id = $1 OR data->>'vendedorId' = $1::text
             `;
