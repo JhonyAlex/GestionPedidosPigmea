@@ -50,6 +50,13 @@ const notifyListeners = () => {
 
 // --- Custom Hook ---
 
+// 🔥 Helper para actualizar estado global y notificar
+const updateGlobalClientes = (updater: (current: Cliente[]) => Cliente[]) => {
+  globalClientes = updater(globalClientes);
+  globalTotal = globalClientes.length;
+  notifyListeners();
+};
+
 export const useClientesManager = () => {
   const [clientes, setClientes] = useState<Cliente[]>(globalClientes);
   const [isLoading, setIsLoading] = useState(globalLoading);
@@ -57,15 +64,11 @@ export const useClientesManager = () => {
   const [totalClientes, setTotalClientes] = useState(globalTotal);
 
   const fetchClientes = useCallback(async () => {
-    console.log('🔍 fetchClientes llamado. globalLoading:', globalLoading, 'isInitialized:', isInitialized);
-
     // Solo evitar fetch si ya hay una petición en curso
     if (globalLoading && isInitialized && globalClientes.length > 0) {
-      console.log('⏭️ Fetch omitido - clientes ya cargados');
       return;
     }
 
-    console.log('🚀 Iniciando fetch de clientes...');
     globalLoading = true;
     setIsLoading(true);
     notifyListeners();
@@ -74,16 +77,10 @@ export const useClientesManager = () => {
 
     try {
       const clientesData = await clienteService.obtenerClientesSimple();
-      console.log('✅ Clientes recibidos:', clientesData.length);
-
-      if (clientesData.length === 0) {
-        console.warn('⚠️ No se encontraron clientes activos.');
-      }
 
       globalClientes = clientesData;
       globalTotal = clientesData.length;
-      setClientes(globalClientes);
-      setTotalClientes(globalTotal);
+      updateGlobalClientes(() => clientesData);
     } catch (err) {
       globalError = err as Error;
       setError(err as Error);
@@ -92,10 +89,10 @@ export const useClientesManager = () => {
       globalLoading = false;
       setIsLoading(false);
       notifyListeners();
-      console.log('✅ Fetch completado. globalLoading:', false);
     }
   }, []);
 
+  // Suscripción al estado global
   useEffect(() => {
     const updateState = () => {
       setClientes(globalClientes);
@@ -114,6 +111,7 @@ export const useClientesManager = () => {
         });
       }
     } else {
+      // Si ya está inicializado, sincronizar estado local con global actual
       updateState();
     }
 
@@ -124,46 +122,40 @@ export const useClientesManager = () => {
   }, []);
 
   // 🔥 Socket.IO: Sincronización en tiempo real para clientes
+  // Se mueve FUERA del hook para ser verdadera suscripción global única o 
+  // se mantiene dentro pero con cuidado de no duplicar listeners si hay multiples hooks.
+  // MEJOR: Mantenerlo dentro pero usando un ref para saber si ya se suscribió este componente,
+  // O MEJOR AUN: Mover la suscripción WS a nivel global fuera del hook?
+  // Para simplificar y no romper nada, lo dejamos en el hook pero usando updateGlobalClientes.
+
   useEffect(() => {
-    // Suscribirse a eventos de clientes
     const unsubscribeCreated = webSocketService.subscribeToClienteCreated((data: { cliente: Cliente; timestamp: string }) => {
       console.log('🔄 Sincronizando nuevo cliente:', data.cliente.nombre);
-
-      setClientes(current => {
-        // Verificar si el cliente ya existe para evitar duplicados
+      updateGlobalClientes(current => {
         const exists = current.some(c => c.id === data.cliente.id);
-        if (!exists) {
-          setTotalClientes(prev => prev + 1);
-          return [data.cliente, ...current];
-        }
+        if (!exists) return [data.cliente, ...current];
         return current;
       });
     });
 
     const unsubscribeUpdated = webSocketService.subscribeToClienteUpdated((data: { cliente: Cliente; timestamp: string }) => {
       console.log('🔄 Sincronizando cliente actualizado:', data.cliente.nombre);
-
-      setClientes(current =>
+      updateGlobalClientes(current =>
         current.map(c => c.id === data.cliente.id ? data.cliente : c)
       );
     });
 
     const unsubscribeDeleted = webSocketService.subscribeToClienteDeleted((data: { clienteId: string; cliente?: Cliente; timestamp: string }) => {
       console.log('🔄 Sincronizando cliente eliminado:', data.clienteId);
-
       if (data.cliente) {
-        // Si es soft delete (archivado), actualizar el estado
-        setClientes(current =>
+        updateGlobalClientes(current =>
           current.map(c => c.id === data.clienteId ? data.cliente! : c)
         );
       } else {
-        // Si es eliminación completa, remover de la lista
-        setClientes(current => current.filter(c => c.id !== data.clienteId));
-        setTotalClientes(prev => prev - 1);
+        updateGlobalClientes(current => current.filter(c => c.id !== data.clienteId));
       }
     });
 
-    // Cleanup al desmontar
     return () => {
       unsubscribeCreated();
       unsubscribeUpdated();
@@ -174,13 +166,10 @@ export const useClientesManager = () => {
   const addCliente = async (clienteData: ClienteCreateRequest) => {
     try {
       const nuevoCliente = await clienteService.crearCliente(clienteData);
-      // Actualizamos el estado local inmediatamente para feedback rápido
-      setClientes(prev => {
-        // Evitar duplicados si el WS llega antes o al mismo tiempo
+      updateGlobalClientes(prev => {
         if (prev.some(c => c.id === nuevoCliente.id)) return prev;
         return [nuevoCliente, ...prev];
       });
-      setTotalClientes(prev => prev + 1);
       return nuevoCliente;
     } catch (err) {
       console.error("Error adding client:", err);
@@ -191,8 +180,7 @@ export const useClientesManager = () => {
   const updateCliente = async (id: string, clienteData: ClienteUpdateRequest) => {
     try {
       const clienteActualizado = await clienteService.actualizarCliente(id, clienteData);
-      // Actualizamos estado local inmediatamente
-      setClientes(prev => prev.map(c => c.id === id ? clienteActualizado : c));
+      updateGlobalClientes(prev => prev.map(c => c.id === id ? clienteActualizado : c));
       return clienteActualizado;
     } catch (err) {
       console.error("Error updating client:", err);
@@ -203,8 +191,7 @@ export const useClientesManager = () => {
   const deleteCliente = async (id: string) => {
     try {
       await clienteService.eliminarCliente(id);
-      setClientes(prev => prev.filter(c => c.id !== id));
-      setTotalClientes(prev => prev - 1);
+      updateGlobalClientes(prev => prev.filter(c => c.id !== id));
     } catch (err) {
       console.error("Error deleting client:", err);
       throw err;
@@ -214,8 +201,7 @@ export const useClientesManager = () => {
   const deleteClientePermanently = async (id: string, deletePedidos: boolean = false) => {
     try {
       await clienteService.eliminarClientePermanentemente(id, deletePedidos);
-      setClientes(prev => prev.filter(c => c.id !== id));
-      setTotalClientes(prev => prev - 1);
+      updateGlobalClientes(prev => prev.filter(c => c.id !== id));
     } catch (err) {
       console.error("Error permanently deleting client:", err);
       throw err;
