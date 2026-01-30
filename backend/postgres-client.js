@@ -2110,9 +2110,8 @@ class PostgreSQLClient {
                         '{cliente}',
                         to_jsonb($1::text)
                     )
-                    WHERE cliente_id = $2
-                       OR data->>'clienteId' = $2
-                       OR data->>'clienteId' = $3
+                    WHERE cliente_id = $2::uuid
+                       OR data->>'clienteId' = $3::text
                 `;
                 await client.query(updateByIdQuery, [clienteData.nombre, id, id.toString()]);
 
@@ -2613,7 +2612,7 @@ class PostgreSQLClient {
             } else {
                 // Verificamos si tiene pedidos activos
                 const pedidosCheck = await client.query(
-                    `SELECT COUNT(*) as count FROM pedidos 
+                    `SELECT COUNT(*) as count FROM limpio.pedidos 
                      WHERE cliente_id = $1 AND etapa_actual NOT IN ('COMPLETADO', 'ARCHIVADO', 'CANCELADO')`,
                     [id]
                 );
