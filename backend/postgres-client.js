@@ -935,16 +935,11 @@ class PostgreSQLClient {
      * @param {string|null} details - Detalles adicionales
      */
     async logClienteHistory(client, clienteId, changedBy, userRole, action, fieldName = null, oldValue = null, newValue = null, details = null) {
-        try {
-            const query = `
-                INSERT INTO limpio.clientes_history (cliente_id, changed_by, user_role, action, field_name, old_value, new_value, details)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            `;
-            await client.query(query, [clienteId, changedBy, userRole, action, fieldName, oldValue, newValue, details]);
-        } catch (error) {
-            console.error('❌ Error registrando historial de cliente:', error.message);
-            // No lanzar error para no bloquear la operación principal
-        }
+        const query = `
+            INSERT INTO limpio.clientes_history (cliente_id, changed_by, user_role, action, field_name, old_value, new_value, details)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `;
+        await client.query(query, [clienteId, changedBy, userRole, action, fieldName, oldValue, newValue, details]);
     }
 
     /**
@@ -960,16 +955,11 @@ class PostgreSQLClient {
      * @param {string|null} details - Detalles adicionales
      */
     async logVendedorHistory(client, vendedorId, changedBy, userRole, action, fieldName = null, oldValue = null, newValue = null, details = null) {
-        try {
-            const query = `
-                INSERT INTO limpio.vendedores_history (vendedor_id, changed_by, user_role, action, field_name, old_value, new_value, details)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            `;
-            await client.query(query, [vendedorId, changedBy, userRole, action, fieldName, oldValue, newValue, details]);
-        } catch (error) {
-            console.error('❌ Error registrando historial de vendedor:', error.message);
-            // No lanzar error para no bloquear la operación principal
-        }
+        const query = `
+            INSERT INTO limpio.vendedores_history (vendedor_id, changed_by, user_role, action, field_name, old_value, new_value, details)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `;
+        await client.query(query, [vendedorId, changedBy, userRole, action, fieldName, oldValue, newValue, details]);
     }
 
     /**
