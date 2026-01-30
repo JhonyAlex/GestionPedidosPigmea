@@ -103,6 +103,7 @@ export interface Pedido {
     microperforado?: boolean;
     macroperforado?: boolean;
     anonimo?: boolean;
+    anonimoPostImpresion?: string; // ✅ NUEVO: Campo para especificar el tipo de post-impresión en anónimos
     atencionObservaciones?: boolean; // Marca pedidos que requieren atención especial en observaciones
 
     /** El nombre o código del producto final. */

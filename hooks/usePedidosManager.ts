@@ -563,7 +563,9 @@ export const usePedidosManager = (
 
         try {
             const createdPedido = await store.create(newPedido);
-            // No actualizamos estado local manualmente, esperamos al WebSocket.
+
+            // ✅ Fix: Actualizar estado local INMEDIATAMENTE para feedback instantáneo
+            setPedidos(current => [createdPedido, ...current]);
 
             // ✅ Remover del Set despues de un delay para permitir que el WS procese el evento
             setTimeout(() => {
@@ -687,7 +689,9 @@ export const usePedidosManager = (
 
         try {
             const createdPedido = await store.create(newPedido);
-            // No actualizamos estado local, esperamos WebSocket
+
+            // ✅ Fix: Actualizar estado local INMEDIATAMENTE para feedback instantáneo
+            setPedidos(current => [createdPedido, ...current]);
 
             setTimeout(() => {
                 creatingPedidoIds.delete(newId);

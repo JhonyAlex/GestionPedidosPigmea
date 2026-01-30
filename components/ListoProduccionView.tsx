@@ -19,13 +19,13 @@ interface ListoProduccionViewProps {
     onSelectAll?: (ids: string[]) => void;
 }
 
-const ListoProduccionView: React.FC<ListoProduccionViewProps> = ({ 
-    pedidos, 
-    onSelectPedido, 
+const ListoProduccionView: React.FC<ListoProduccionViewProps> = ({
+    pedidos,
+    onSelectPedido,
     onArchiveToggle,
-    currentUserRole, 
-    onSendToPrint, 
-    highlightedPedidoId, 
+    currentUserRole,
+    onSendToPrint,
+    highlightedPedidoId,
     onUpdatePedido,
     selectedIds = [],
     isSelectionActive = false,
@@ -36,8 +36,8 @@ const ListoProduccionView: React.FC<ListoProduccionViewProps> = ({
 
     // Filtrar solo los pedidos que están en la sub-etapa "Listo para Producción"
     const pedidosListos = pedidos.filter(
-        pedido => pedido.etapaActual === Etapa.PREPARACION && 
-                  pedido.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION
+        pedido => pedido.etapaActual === Etapa.PREPARACION &&
+            pedido.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION
     );
 
     // Encontrar la configuración de la columna "Listo para Producción"
@@ -56,7 +56,13 @@ const ListoProduccionView: React.FC<ListoProduccionViewProps> = ({
 
         pedidosListos.forEach(pedido => {
             // Tiempo por máquina
-            const maquina = pedido.maquinaImpresion || 'Sin asignar';
+            let maquina = pedido.maquinaImpresion || 'Sin asignar';
+
+            // Si la máquina es ANON (legacy), ignorar o reasignar a 'Sin asignar'
+            if (maquina === 'ANON') {
+                maquina = 'Sin asignar';
+            }
+
             const tiempo = pedido.tiempoProduccionDecimal || 0;
             tiemposPorMaquina[maquina] = (tiemposPorMaquina[maquina] || 0) + tiempo;
             tiempoTotal += tiempo;
@@ -229,7 +235,7 @@ const ListoProduccionView: React.FC<ListoProduccionViewProps> = ({
                     </button>
                 </div>
             </div>
-            
+
             <div className="flex gap-6 flex-1 min-h-0">
                 {/* Columna de Pedidos */}
                 <div className="flex-1 flex flex-col max-h-[calc(100vh-12rem)]">
@@ -292,8 +298,8 @@ const ListoProduccionView: React.FC<ListoProduccionViewProps> = ({
                                             <span className="text-sm font-bold text-green-600 dark:text-green-400">{formatearTiempo(tiempo)}</span>
                                         </div>
                                         <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                                            <div 
-                                                className="bg-green-500 h-2 rounded-full transition-all" 
+                                            <div
+                                                className="bg-green-500 h-2 rounded-full transition-all"
                                                 style={{ width: `${metricas.tiempoTotal ? (tiempo / metricas.tiempoTotal) * 100 : 0}%` }}
                                             />
                                         </div>
@@ -361,7 +367,7 @@ const ListoProduccionView: React.FC<ListoProduccionViewProps> = ({
                                                     <span className="font-semibold text-gray-900 dark:text-white">{formatearTiempo(tiempo)}</span>
                                                 </div>
                                                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                                                    <div 
+                                                    <div
                                                         className="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full transition-all duration-500 flex items-center justify-end px-2"
                                                         style={{ width: `${porcentaje}%` }}
                                                     >
