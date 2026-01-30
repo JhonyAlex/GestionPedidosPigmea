@@ -488,6 +488,46 @@ class MigrationManager {
                 CREATE INDEX IF NOT EXISTS idx_action_history_timestamp ON action_history(timestamp);
             `
         });
+
+        // Migración 018: Arreglar tablas de historial (Drop & Recreate)
+        this.migrations.push({
+            id: '018-fix-history-tables',
+            name: 'Recrear tablas de historial de clientes y vendedores',
+            sql: `
+                DROP TABLE IF EXISTS limpio.clientes_history;
+                DROP TABLE IF EXISTS limpio.vendedores_history;
+
+                -- Historial de Clientes
+                CREATE TABLE limpio.clientes_history (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    cliente_id UUID REFERENCES limpio.clientes(id) ON DELETE CASCADE,
+                    changed_by VARCHAR(255),
+                    user_role VARCHAR(50),
+                    action VARCHAR(50),
+                    field_name VARCHAR(255),
+                    old_value TEXT,
+                    new_value TEXT,
+                    details TEXT,
+                    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE INDEX idx_clientes_history_cliente_id_v2 ON limpio.clientes_history(cliente_id);
+
+                -- Historial de Vendedores
+                CREATE TABLE limpio.vendedores_history (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    vendedor_id UUID REFERENCES limpio.vendedores(id) ON DELETE CASCADE,
+                    changed_by VARCHAR(255),
+                    user_role VARCHAR(50),
+                    action VARCHAR(50),
+                    field_name VARCHAR(255),
+                    old_value TEXT,
+                    new_value TEXT,
+                    details TEXT,
+                    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE INDEX idx_vendedores_history_vendedor_id_v2 ON limpio.vendedores_history(vendedor_id);
+            `
+        });
     }
 
     /**

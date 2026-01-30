@@ -1740,18 +1740,27 @@ class PostgreSQLClient {
             const result = await client.query(query, values);
             const row = result.rows[0];
 
-            // Registrar historial
-            await this.logVendedorHistory(
-                client,
-                row.id,
-                _changedBy || 'Sistema',
-                _userRole || 'SYSTEM',
-                'created',
-                null,
-                null,
-                null,
-                `Vendedor creado: ${row.nombre}`
-            );
+            // Registrar historial de forma segura (ignorar errores de historial para no abortar creación)
+            try {
+                // SAVEPOINT para evitar que un error en el log aborte toda la transacción
+                await client.query('SAVEPOINT log_history');
+                await this.logVendedorHistory(
+                    client,
+                    row.id,
+                    _changedBy || 'Sistema',
+                    _userRole || 'SYSTEM',
+                    'created',
+                    null,
+                    null,
+                    null,
+                    `Vendedor creado: ${row.nombre}`
+                );
+                await client.query('RELEASE SAVEPOINT log_history');
+            } catch (historyError) {
+                // Si falla el log, hacemos rollback al savepoint pero continuamos con el commit principal
+                await client.query('ROLLBACK TO SAVEPOINT log_history');
+                console.error('⚠️ Error al registrar historial de vendedor (ignorado):', historyError.message);
+            }
 
             await client.query('COMMIT');
 
@@ -1806,7 +1815,7 @@ class PostgreSQLClient {
 
             values.push(id);
             const query = `
-                UPDATE vendedores
+                UPDATE limpio.vendedores
                 SET ${setParts.join(', ')}, updated_at = CURRENT_TIMESTAMP
                 WHERE id = $${valueIndex}
                 RETURNING *;
