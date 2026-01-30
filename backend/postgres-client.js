@@ -2441,8 +2441,6 @@ class PostgreSQLClient {
                     id,
                     data,
                     etapa_actual,
-                    fecha_pedido,
-                    fecha_entrega,
                     created_at,
                     updated_at
                 FROM limpio.pedidos
@@ -2459,8 +2457,8 @@ class PostgreSQLClient {
                     id: row.id,
                     ...pedidoData,
                     etapaActual: row.etapa_actual,
-                    fechaCreacion: pedidoData.fechaCreacion || row.fecha_pedido || row.created_at,
-                    fechaEntrega: pedidoData.fechaEntrega || row.fecha_entrega || null,
+                    fechaCreacion: pedidoData.fechaCreacion || row.created_at,
+                    fechaEntrega: pedidoData.fechaEntrega || row.data?.fechaEntrega || null,
                     fechaActualizacion: row.updated_at,
                 };
             });
