@@ -3746,7 +3746,7 @@ class PostgreSQLClient {
                     pendiente_gestion AS "pendienteGestion",
                     created_at AS "createdAt",
                     updated_at AS "updatedAt"
-                FROM materiales
+                FROM limpio.materiales
                 ORDER BY created_at DESC
             `;
 
@@ -3781,7 +3781,7 @@ class PostgreSQLClient {
                     pendiente_gestion AS "pendienteGestion",
                     created_at AS "createdAt",
                     updated_at AS "updatedAt"
-                FROM materiales
+                FROM limpio.materiales
                 WHERE id = $1
             `;
 
@@ -3813,7 +3813,7 @@ class PostgreSQLClient {
         const client = await this.pool.connect();
         try {
             const query = `
-                INSERT INTO materiales (
+                INSERT INTO limpio.materiales (
                     numero, 
                     descripcion, 
                     pendiente_recibir,
@@ -3870,7 +3870,7 @@ class PostgreSQLClient {
             }
 
             const query = `
-                UPDATE materiales
+                UPDATE limpio.materiales
                 SET 
                     numero = COALESCE($1, numero),
                     descripcion = COALESCE($2, descripcion),
@@ -3930,14 +3930,14 @@ class PostgreSQLClient {
             await client.query('BEGIN');
 
             // Obtener pedidoId ANTES de eliminar (para sincronización de caché)
-            const materialQuery = await client.query('SELECT pedido_id FROM materiales WHERE id = $1', [id]);
+            const materialQuery = await client.query('SELECT pedido_id FROM limpio.pedidos_materiales WHERE material_id = $1', [id]);
             const pedidoId = materialQuery.rows[0]?.pedido_id || null;
 
             // Primero eliminar relaciones con pedidos
-            await client.query('DELETE FROM pedidos_materiales WHERE material_id = $1', [id]);
+            await client.query('DELETE FROM limpio.pedidos_materiales WHERE material_id = $1', [id]);
 
             // Luego eliminar el material
-            const result = await client.query('DELETE FROM materiales WHERE id = $1 RETURNING numero', [id]);
+            const result = await client.query('DELETE FROM limpio.materiales WHERE id = $1 RETURNING numero', [id]);
 
             if (result.rowCount === 0) {
                 throw new Error(`Material con ID ${id} no encontrado`);
