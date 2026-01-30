@@ -515,18 +515,15 @@ export const usePedidosManager = (
         }
 
         // Actualización optimista primero
-        if (hasChanges) {
-            setPedidos(prev => prev.map(p => p.id === modifiedPedido.id ? modifiedPedido : p));
-        }
+        // Eliminamos la actualización optimista para confiar en el WebSocket
+        // y evitar conflictos de estado.
 
-        // Luego actualización en almacenamiento (en background)
         try {
             await store.update(modifiedPedido);
+            // El estado se actualizará vía WebSocket (evento 'pedido-updated')
             return { modifiedPedido, hasChanges };
         } catch (error) {
             console.error('Error al actualizar el pedido:', error);
-            // Revertir en caso de error
-            setPedidos(prev => prev.map(p => p.id === modifiedPedido.id ? originalPedidoCopy : p));
             return undefined;
         }
     };
@@ -561,18 +558,24 @@ export const usePedidosManager = (
             anonimo: pedidoData.anonimo || false,
         };
 
-        // ✅ Marcar este ID como "en proceso de creación" ANTES de añadirlo localmente
+        // ✅ Marcar este ID como "en proceso de creación" ANTES de llamar al backend
         creatingPedidoIds.add(newId);
 
-        const createdPedido = await store.create(newPedido);
-        setPedidos(prev => [createdPedido, ...prev]);
+        try {
+            const createdPedido = await store.create(newPedido);
+            // No actualizamos estado local manualmente, esperamos al WebSocket.
 
-        // ✅ Remover del Set después de un pequeño delay para dar tiempo a que llegue el evento WebSocket
-        setTimeout(() => {
+            // ✅ Remover del Set despues de un delay para permitir que el WS procese el evento
+            setTimeout(() => {
+                creatingPedidoIds.delete(newId);
+            }, 2000);
+
+            return createdPedido;
+        } catch (error) {
+            console.error("Error creating pedido:", error);
             creatingPedidoIds.delete(newId);
-        }, 2000); // 2 segundos debería ser suficiente
-
-        return createdPedido;
+            throw error;
+        }
     };
 
     const handleConfirmSendToPrint = async (pedidoToUpdate: Pedido, impresionEtapa: Etapa, postImpresionSequence: Etapa[]) => {
@@ -613,7 +616,7 @@ export const usePedidosManager = (
         const updatedPedidoData = { ...pedido, etapaActual: newEtapa, historial: [...pedido.historial, historialEntry] };
 
         const updatedPedido = await store.update(updatedPedidoData);
-        setPedidos(prev => prev.map(p => p.id === pedido.id ? updatedPedido : p));
+        // No actualizamos estado local, esperamos al WebSocket
         return { updatedPedido, actionText };
     };
 
@@ -626,17 +629,12 @@ export const usePedidosManager = (
         const pedidoToDelete = pedidos.find(p => p.id === pedidoId);
         if (!pedidoToDelete) return;
 
-        // Optimistic deletion
-        setPedidos(prev => prev.filter(p => p.id !== pedidoId));
-
         try {
             await store.delete(pedidoId);
-            // Pedido eliminado permanentemente.
+            // Pedido eliminado permanentemente. Esperamos evento WebSocket 'pedido-deleted'
             return pedidoToDelete;
         } catch (error) {
             console.error('Error al eliminar el pedido:', error);
-            // Revert on error
-            setPedidos(prev => [...prev, pedidoToDelete].sort((a, b) => b.orden - a.orden));
             return undefined;
         }
     };
@@ -684,18 +682,23 @@ export const usePedidosManager = (
             clicheInfoAdicional: undefined, // ✅ Limpiar información adicional de cliché
         };
 
-        // ✅ Marcar este ID como "en proceso de creación" ANTES de añadirlo localmente
+        // ✅ Marcar este ID como "en proceso de creación"
         creatingPedidoIds.add(newId);
 
-        const createdPedido = await store.create(newPedido);
-        setPedidos(prev => [createdPedido, ...prev]);
+        try {
+            const createdPedido = await store.create(newPedido);
+            // No actualizamos estado local, esperamos WebSocket
 
-        // ✅ Remover del Set después de un pequeño delay para dar tiempo a que llegue el evento WebSocket
-        setTimeout(() => {
+            setTimeout(() => {
+                creatingPedidoIds.delete(newId);
+            }, 2000);
+
+            return createdPedido;
+        } catch (error) {
+            console.error("Error duplicating pedido:", error);
             creatingPedidoIds.delete(newId);
-        }, 2000); // 2 segundos debería ser suficiente
-
-        return createdPedido;
+            throw error;
+        }
     };
 
     const handleExportData = async (pedidosToExport: Pedido[]) => {

@@ -45,7 +45,7 @@ let initializationPromise: Promise<void> | null = null;
 const stateListeners: Set<() => void> = new Set();
 
 const notifyListeners = () => {
-    stateListeners.forEach(listener => listener());
+  stateListeners.forEach(listener => listener());
 };
 
 // --- Custom Hook ---
@@ -58,28 +58,28 @@ export const useClientesManager = () => {
 
   const fetchClientes = useCallback(async () => {
     console.log('🔍 fetchClientes llamado. globalLoading:', globalLoading, 'isInitialized:', isInitialized);
-    
+
     // Solo evitar fetch si ya hay una petición en curso
     if (globalLoading && isInitialized && globalClientes.length > 0) {
       console.log('⏭️ Fetch omitido - clientes ya cargados');
       return;
     }
-    
+
     console.log('🚀 Iniciando fetch de clientes...');
     globalLoading = true;
     setIsLoading(true);
     notifyListeners();
     setError(null);
     globalError = null;
-    
+
     try {
       const clientesData = await clienteService.obtenerClientesSimple();
       console.log('✅ Clientes recibidos:', clientesData.length);
-      
+
       if (clientesData.length === 0) {
         console.warn('⚠️ No se encontraron clientes activos.');
       }
-      
+
       globalClientes = clientesData;
       globalTotal = clientesData.length;
       setClientes(globalClientes);
@@ -103,9 +103,9 @@ export const useClientesManager = () => {
       setError(globalError);
       setTotalClientes(globalTotal);
     };
-    
+
     stateListeners.add(updateState);
-    
+
     if (!isInitialized) {
       isInitialized = true;
       if (!initializationPromise) {
@@ -116,7 +116,7 @@ export const useClientesManager = () => {
     } else {
       updateState();
     }
-    
+
     return () => {
       stateListeners.delete(updateState);
     };
@@ -128,7 +128,7 @@ export const useClientesManager = () => {
     // Suscribirse a eventos de clientes
     const unsubscribeCreated = webSocketService.subscribeToClienteCreated((data: { cliente: Cliente; timestamp: string }) => {
       console.log('🔄 Sincronizando nuevo cliente:', data.cliente.nombre);
-      
+
       setClientes(current => {
         // Verificar si el cliente ya existe para evitar duplicados
         const exists = current.some(c => c.id === data.cliente.id);
@@ -142,18 +142,18 @@ export const useClientesManager = () => {
 
     const unsubscribeUpdated = webSocketService.subscribeToClienteUpdated((data: { cliente: Cliente; timestamp: string }) => {
       console.log('🔄 Sincronizando cliente actualizado:', data.cliente.nombre);
-      
-      setClientes(current => 
+
+      setClientes(current =>
         current.map(c => c.id === data.cliente.id ? data.cliente : c)
       );
     });
 
     const unsubscribeDeleted = webSocketService.subscribeToClienteDeleted((data: { clienteId: string; cliente?: Cliente; timestamp: string }) => {
       console.log('🔄 Sincronizando cliente eliminado:', data.clienteId);
-      
+
       if (data.cliente) {
         // Si es soft delete (archivado), actualizar el estado
-        setClientes(current => 
+        setClientes(current =>
           current.map(c => c.id === data.clienteId ? data.cliente! : c)
         );
       } else {
@@ -174,7 +174,12 @@ export const useClientesManager = () => {
   const addCliente = async (clienteData: ClienteCreateRequest) => {
     try {
       const nuevoCliente = await clienteService.crearCliente(clienteData);
-      setClientes(prev => [nuevoCliente, ...prev]);
+      // Actualizamos el estado local inmediatamente para feedback rápido
+      setClientes(prev => {
+        // Evitar duplicados si el WS llega antes o al mismo tiempo
+        if (prev.some(c => c.id === nuevoCliente.id)) return prev;
+        return [nuevoCliente, ...prev];
+      });
       setTotalClientes(prev => prev + 1);
       return nuevoCliente;
     } catch (err) {
@@ -186,6 +191,7 @@ export const useClientesManager = () => {
   const updateCliente = async (id: string, clienteData: ClienteUpdateRequest) => {
     try {
       const clienteActualizado = await clienteService.actualizarCliente(id, clienteData);
+      // Actualizamos estado local inmediatamente
       setClientes(prev => prev.map(c => c.id === id ? clienteActualizado : c));
       return clienteActualizado;
     } catch (err) {
