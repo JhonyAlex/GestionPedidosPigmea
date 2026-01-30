@@ -937,7 +937,7 @@ class PostgreSQLClient {
     async logClienteHistory(client, clienteId, changedBy, userRole, action, fieldName = null, oldValue = null, newValue = null, details = null) {
         try {
             const query = `
-                INSERT INTO clientes_history (cliente_id, changed_by, user_role, action, field_name, old_value, new_value, details)
+                INSERT INTO limpio.clientes_history (cliente_id, changed_by, user_role, action, field_name, old_value, new_value, details)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             `;
             await client.query(query, [clienteId, changedBy, userRole, action, fieldName, oldValue, newValue, details]);
@@ -962,7 +962,7 @@ class PostgreSQLClient {
     async logVendedorHistory(client, vendedorId, changedBy, userRole, action, fieldName = null, oldValue = null, newValue = null, details = null) {
         try {
             const query = `
-                INSERT INTO vendedores_history (vendedor_id, changed_by, user_role, action, field_name, old_value, new_value, details)
+                INSERT INTO limpio.vendedores_history (vendedor_id, changed_by, user_role, action, field_name, old_value, new_value, details)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             `;
             await client.query(query, [vendedorId, changedBy, userRole, action, fieldName, oldValue, newValue, details]);
@@ -1734,7 +1734,7 @@ class PostgreSQLClient {
         try {
             const { nombre, email, telefono, activo } = vendedorData;
             const query = `
-                INSERT INTO vendedores (nombre, email, telefono, activo)
+                INSERT INTO limpio.vendedores (nombre, email, telefono, activo)
                 VALUES ($1, $2, $3, $4)
                 RETURNING *;
             `;

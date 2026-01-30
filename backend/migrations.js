@@ -425,6 +425,43 @@ class MigrationManager {
                 CREATE INDEX IF NOT EXISTS idx_action_history_user_id ON action_history(user_id);
             `
         });
+
+        // Migración 016: Tablas de historial (clientes y vendedores)
+        this.migrations.push({
+            id: '016-tablas-historial',
+            name: 'Crear tablas de historial para clientes y vendedores',
+            sql: `
+                -- Historial de Clientes
+                CREATE TABLE IF NOT EXISTS limpio.clientes_history (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    cliente_id UUID REFERENCES limpio.clientes(id) ON DELETE CASCADE,
+                    changed_by VARCHAR(255),
+                    user_role VARCHAR(50),
+                    action VARCHAR(50),
+                    field_name VARCHAR(255),
+                    old_value TEXT,
+                    new_value TEXT,
+                    details TEXT,
+                    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE INDEX IF NOT EXISTS idx_clientes_history_cliente_id ON limpio.clientes_history(cliente_id);
+
+                -- Historial de Vendedores
+                CREATE TABLE IF NOT EXISTS limpio.vendedores_history (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    vendedor_id UUID REFERENCES limpio.vendedores(id) ON DELETE CASCADE,
+                    changed_by VARCHAR(255),
+                    user_role VARCHAR(50),
+                    action VARCHAR(50),
+                    field_name VARCHAR(255),
+                    old_value TEXT,
+                    new_value TEXT,
+                    details TEXT,
+                    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE INDEX IF NOT EXISTS idx_vendedores_history_vendedor_id ON limpio.vendedores_history(vendedor_id);
+            `
+        });
     }
 
     /**
