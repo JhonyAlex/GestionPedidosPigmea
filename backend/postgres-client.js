@@ -3980,8 +3980,8 @@ class PostgreSQLClient {
                     m.pendiente_gestion AS "pendienteGestion",
                     m.created_at AS "createdAt",
                     m.updated_at AS "updatedAt"
-                FROM materiales m
-                INNER JOIN pedidos_materiales pm ON m.id = pm.material_id
+                FROM limpio.materiales m
+                INNER JOIN limpio.pedidos_materiales pm ON m.id = pm.material_id
                 WHERE pm.pedido_id = $1
                 ORDER BY m.created_at ASC
             `;

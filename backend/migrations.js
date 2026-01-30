@@ -379,6 +379,35 @@ class MigrationManager {
                 END $$;
             `
         });
+
+        // Migración 014: Tablas de materiales
+        this.migrations.push({
+            id: '014-tablas-materiales',
+            name: 'Crear tablas de materiales y relaciones',
+            sql: `
+                -- Crear tabla de materiales si no existe
+                CREATE TABLE IF NOT EXISTS limpio.materiales (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    numero VARCHAR(255),
+                    descripcion TEXT,
+                    pendiente_recibir BOOLEAN DEFAULT false,
+                    pendiente_gestion BOOLEAN DEFAULT false,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+
+                -- Crear tabla de relación pedidos_materiales
+                CREATE TABLE IF NOT EXISTS limpio.pedidos_materiales (
+                    pedido_id VARCHAR(255) REFERENCES limpio.pedidos(id) ON DELETE CASCADE,
+                    material_id UUID REFERENCES limpio.materiales(id) ON DELETE CASCADE,
+                    PRIMARY KEY (pedido_id, material_id)
+                );
+
+                -- Crear índices
+                CREATE INDEX IF NOT EXISTS idx_pedidos_materiales_pedido ON limpio.pedidos_materiales(pedido_id);
+                CREATE INDEX IF NOT EXISTS idx_pedidos_materiales_material ON limpio.pedidos_materiales(material_id);
+            `
+        });
     }
 
     /**
