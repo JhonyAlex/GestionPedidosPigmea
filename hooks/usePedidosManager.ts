@@ -682,7 +682,6 @@ export const usePedidosManager = (
             clicheDisponible: false, // ✅ Resetear disponibilidad de cliché
             materialDisponible: false, // ✅ Resetear disponibilidad de material
             clicheInfoAdicional: undefined, // ✅ Limpiar información adicional de cliché
-            numeroPedidoCliente: '', // ✅ Limpiar número de pedido para forzar ingreso de uno nuevo
         };
 
         // ✅ Marcar este ID como "en proceso de creación"

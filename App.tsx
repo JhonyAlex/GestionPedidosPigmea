@@ -561,8 +561,8 @@ const AppContent: React.FC = () => {
                     numeroCliente: newPedido.numeroPedidoCliente
                 });
 
-                // Abrir el modal del pedido duplicado
-                setSelectedPedido(newPedido);
+                // Abrir el modal del pedido duplicado y forzar edición del número
+                setSelectedPedido({ ...newPedido, numeroPedidoCliente: '' });
             }
         } catch (error) {
             console.error('Error al duplicar pedido:', error);
