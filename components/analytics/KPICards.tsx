@@ -1,6 +1,6 @@
 import React from 'react';
 import { AnalyticsSummary } from '../../hooks/useAnalyticsData';
-import { formatMetros } from '../../utils/date';
+import { formatMetros, formatDecimalHoursToHHMM } from '../../utils/date';
 import InfoTooltip from '../InfoTooltip';
 
 interface KPICardsProps {
@@ -75,7 +75,7 @@ export const KPICards: React.FC<KPICardsProps> = ({ summary, loading }) => {
         },
         {
             title: 'Horas Totales',
-            value: Number(summary.tiempo_total_horas || 0).toFixed(1),
+            value: formatDecimalHoursToHHMM(Number(summary.tiempo_total_horas || 0)),
             subtitle: 'horas de producción',
             tooltip: 'Suma total de horas de producción. Se usa el campo "tiempoProduccionDecimal" o se convierte "tiempoProduccionPlanificado" a horas decimales.',
             icon: (
@@ -87,7 +87,7 @@ export const KPICards: React.FC<KPICardsProps> = ({ summary, loading }) => {
         },
         {
             title: 'Tiempo Promedio',
-            value: Number(summary.tiempo_promedio_horas || 0).toFixed(2),
+            value: formatDecimalHoursToHHMM(Number(summary.tiempo_promedio_horas || 0)),
             subtitle: 'horas por pedido',
             tooltip: 'Promedio de horas de producción por pedido. Calculado como: Horas Totales ÷ Total de Pedidos.',
             icon: (

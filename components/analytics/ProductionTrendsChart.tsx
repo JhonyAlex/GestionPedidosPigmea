@@ -1,7 +1,7 @@
 import React from 'react';
 import { TimeSeriesPoint } from '../../hooks/useAnalyticsData';
 import LineChart from '../LineChart';
-import { formatMetros } from '../../utils/date';
+import { formatMetros, formatDecimalHoursToHHMM } from '../../utils/date';
 import InfoTooltip from '../InfoTooltip';
 
 interface ProductionTrendsChartProps {
@@ -159,7 +159,7 @@ export const ProductionTrendsChart: React.FC<ProductionTrendsChartProps> = ({
                     <p className="text-lg font-bold text-gray-900 dark:text-white">
                         {selectedMetric === 'metros' && formatMetros(chartValues.reduce((sum, v) => sum + v, 0))}
                         {selectedMetric === 'pedidos' && chartValues.reduce((sum, v) => sum + v, 0)}
-                        {selectedMetric === 'tiempo' && chartValues.reduce((sum, v) => sum + v, 0).toFixed(1) + ' h'}
+                        {selectedMetric === 'tiempo' && formatDecimalHoursToHHMM(chartValues.reduce((sum, v) => sum + v, 0))}
                     </p>
                 </div>
                 <div className="text-center">
@@ -174,7 +174,7 @@ export const ProductionTrendsChart: React.FC<ProductionTrendsChartProps> = ({
                     <p className="text-lg font-bold text-gray-900 dark:text-white">
                         {selectedMetric === 'metros' && formatMetros(chartValues.reduce((sum, v) => sum + v, 0) / chartValues.length)}
                         {selectedMetric === 'pedidos' && (chartValues.reduce((sum, v) => sum + v, 0) / chartValues.length).toFixed(1)}
-                        {selectedMetric === 'tiempo' && (chartValues.reduce((sum, v) => sum + v, 0) / chartValues.length).toFixed(1) + ' h'}
+                        {selectedMetric === 'tiempo' && formatDecimalHoursToHHMM(chartValues.reduce((sum, v) => sum + v, 0) / chartValues.length)}
                     </p>
                 </div>
                 <div className="text-center">

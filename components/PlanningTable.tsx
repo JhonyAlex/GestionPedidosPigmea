@@ -1,5 +1,4 @@
-import React from 'react';
-import { formatDateDDMMYYYY } from '../utils/date';
+import { formatDateDDMMYYYY, formatDecimalHoursToHHMM } from '../utils/date';
 import InfoTooltip from './InfoTooltip';
 
 export interface WeeklyData {
@@ -92,7 +91,7 @@ export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys 
                             >
                                 <div className="flex items-center justify-center gap-1.5">
                                     {MACHINE_COLUMN_HEADERS[key] || key}
-                                    <InfoTooltip 
+                                    <InfoTooltip
                                         content={MACHINE_TOOLTIPS[key] || 'Horas programadas para esta categoría'}
                                         position="bottom"
                                         size="sm"
@@ -103,7 +102,7 @@ export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys 
                         <th scope="col" className="px-3 py-3.5 text-center text-sm font-bold text-gray-900 bg-white border-l-2 border-gray-300">
                             <div className="flex items-center justify-center gap-1.5">
                                 LIBRES
-                                <InfoTooltip 
+                                <InfoTooltip
                                     content="Capacidad disponible calculada con la fórmula: 180 horas - WH1 - WH3 - DNT. Las categorías GIAVE y VARIABLES NO restan capacidad."
                                     position="bottom"
                                     size="sm"
@@ -123,12 +122,12 @@ export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys 
                             </td>
                             {sortedKeys.map(key => (
                                 <td key={key} className="whitespace-nowrap px-3 py-4 text-sm text-center text-gray-900 border-r border-gray-200 font-mono">
-                                    {row.machines[key]?.toFixed(2) || '0.00'}
+                                    {formatDecimalHoursToHHMM(row.machines[key])}
                                 </td>
                             ))}
                             <td className={`whitespace-nowrap px-3 py-4 text-sm text-center font-bold border-l-2 border-gray-300 font-mono ${row.freeCapacity < 0 ? 'text-red-600 bg-red-100' : 'text-green-600'
                                 }`}>
-                                {row.freeCapacity.toFixed(2)}
+                                {formatDecimalHoursToHHMM(row.freeCapacity)}
                             </td>
                         </tr>
                     ))}
@@ -140,11 +139,11 @@ export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys 
                         </td>
                         {sortedKeys.map(key => (
                             <td key={key} className="px-3 py-4 text-sm text-center text-gray-900 border-r border-gray-200 font-mono">
-                                {totals[key]?.toFixed(2) || '0.00'}
+                                {formatDecimalHoursToHHMM(totals[key])}
                             </td>
                         ))}
                         <td className={`px-3 py-4 text-sm text-center border-l-2 border-gray-300 font-mono ${totalFree < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                            {totalFree.toFixed(2)}
+                            {formatDecimalHoursToHHMM(totalFree)}
                         </td>
                     </tr>
                 </tfoot>

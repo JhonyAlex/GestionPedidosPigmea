@@ -70,11 +70,11 @@ export const getDateRange = (filter: DateFilterOption): { start: Date, end: Date
 export const formatDistanceToNow = (date: Date, options?: { addSuffix?: boolean }): string => {
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-    
+
     if (diffInSeconds < 0) {
         return 'en el futuro';
     }
-    
+
     const intervals = [
         { label: 'año', seconds: 31536000 },
         { label: 'mes', seconds: 2592000 },
@@ -82,7 +82,7 @@ export const formatDistanceToNow = (date: Date, options?: { addSuffix?: boolean 
         { label: 'hora', seconds: 3600 },
         { label: 'minuto', seconds: 60 },
     ];
-    
+
     for (const interval of intervals) {
         const count = Math.floor(diffInSeconds / interval.seconds);
         if (count >= 1) {
@@ -91,7 +91,7 @@ export const formatDistanceToNow = (date: Date, options?: { addSuffix?: boolean 
             return options?.addSuffix ? `hace ${timeString}` : timeString;
         }
     }
-    
+
     return options?.addSuffix ? 'hace unos segundos' : 'unos segundos';
 };
 
@@ -104,17 +104,17 @@ export const formatDateDDMMYYYY = (date: Date | string | number): string => {
     if (!date) {
         return 'N/A';
     }
-    
+
     const d = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
-    
+
     if (!d || isNaN(d.getTime())) {
         return 'N/A';
     }
-    
+
     const day = d.getDate().toString().padStart(2, '0');
     const month = (d.getMonth() + 1).toString().padStart(2, '0');
     const year = d.getFullYear();
-    
+
     return `${day}/${month}/${year}`;
 };
 
@@ -125,17 +125,17 @@ export const formatDateDDMMYYYY = (date: Date | string | number): string => {
  */
 export const formatDateTimeDDMMYYYY = (date: Date | string | number): string => {
     const d = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
-    
+
     if (isNaN(d.getTime())) {
         return 'N/A';
     }
-    
+
     const day = d.getDate().toString().padStart(2, '0');
     const month = (d.getMonth() + 1).toString().padStart(2, '0');
     const year = d.getFullYear();
     const hours = d.getHours().toString().padStart(2, '0');
     const minutes = d.getMinutes().toString().padStart(2, '0');
-    
+
     return `${day}/${month}/${year} ${hours}:${minutes}`;
 };
 
@@ -147,26 +147,60 @@ export const formatMetros = (metros: number | string | undefined): string => {
     if (metros === undefined || metros === null || metros === '') {
         return '0';
     }
-    
+
     const metrosNum = typeof metros === 'number' ? metros : Number(metros);
-    
+
     if (isNaN(metrosNum)) {
         return '0';
     }
-    
+
     // Redondear a entero (sin decimales)
     const metrosEntero = Math.round(metrosNum);
-    
+
     // Formatear con separador de miles usando punto (estilo español)
     // Implementación manual para garantizar consistencia
     const metrosStr = metrosEntero.toString();
     const partes: string[] = [];
-    
+
     // Dividir en grupos de 3 dígitos desde el final
     for (let i = metrosStr.length; i > 0; i -= 3) {
         const start = Math.max(0, i - 3);
         partes.unshift(metrosStr.slice(start, i));
     }
-    
+
     return partes.join('.');
+};
+
+/**
+ * Convierte horas decimales a formato "HH:mm"
+ * Ejemplo: 1.5 -> "01:30", 0.1 -> "00:06", -2.5 -> "-02:30" (para capacidad negativa)
+ */
+export const formatDecimalHoursToHHMM = (decimalHours: number | undefined | null): string => {
+    if (decimalHours === undefined || decimalHours === null || isNaN(decimalHours)) {
+        return '00:00';
+    }
+
+    const isNegative = decimalHours < 0;
+    const absoluteHours = Math.abs(decimalHours);
+
+    // Calcular horas enteras
+    const hours = Math.floor(absoluteHours);
+
+    // Calcular minutos restando la parte entera y multiplicando por 60
+    // Usamos Math.round para evitar problemas de precisión flotante (ej: 0.99999...)
+    const minutes = Math.round((absoluteHours - hours) * 60);
+
+    // Si los minutos se redondean a 60, aumentar una hora y poner minutos a 0
+    let finalHours = hours;
+    let finalMinutes = minutes;
+
+    if (finalMinutes === 60) {
+        finalHours += 1;
+        finalMinutes = 0;
+    }
+
+    const hoursStr = finalHours.toString().padStart(2, '0');
+    const minutesStr = finalMinutes.toString().padStart(2, '0');
+
+    return `${isNegative ? '-' : ''}${hoursStr}:${minutesStr}`;
 };

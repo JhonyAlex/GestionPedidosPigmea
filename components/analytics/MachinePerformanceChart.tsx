@@ -1,7 +1,7 @@
 import React from 'react';
 import { MachineMetric } from '../../hooks/useAnalyticsData';
 import BarChart from '../BarChart';
-import { formatMetros } from '../../utils/date';
+import { formatMetros, formatDecimalHoursToHHMM } from '../../utils/date';
 import InfoTooltip from '../InfoTooltip';
 
 interface MachinePerformanceChartProps {
@@ -221,7 +221,7 @@ export const MachinePerformanceChart: React.FC<MachinePerformanceChartProps> = (
                                             {formatMetros(machine.metros_totales)} m
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-700 dark:text-gray-300">
-                                            {Number(machine.tiempo_total_horas).toFixed(1)} h
+                                            {formatDecimalHoursToHHMM(Number(machine.tiempo_total_horas))}
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-700 dark:text-gray-300">
                                             {percentage}%
@@ -240,7 +240,7 @@ export const MachinePerformanceChart: React.FC<MachinePerformanceChartProps> = (
                                 {formatMetros(totals.metros)} m
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
-                                {Number(totals.tiempo || 0).toFixed(1)} h
+                                {formatDecimalHoursToHHMM(Number(totals.tiempo || 0))}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
                                 100%

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { VendorMetric, ClientMetric, StageMetric } from '../../hooks/useAnalyticsData';
-import { formatMetros } from '../../utils/date';
+import { formatMetros, formatDecimalHoursToHHMM } from '../../utils/date';
 import InfoTooltip from '../InfoTooltip';
 
 interface RankingsTableProps {
@@ -217,7 +217,7 @@ export const RankingsTable: React.FC<RankingsTableProps> = ({
                                         {formatMetros(item.metros_totales)} m
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-700 dark:text-gray-300">
-                                        {Number(item.tiempo_total_horas).toFixed(1)} h
+                                        {formatDecimalHoursToHHMM(Number(item.tiempo_total_horas))}
                                     </td>
                                 </tr>
                             );

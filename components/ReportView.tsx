@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Pedido, Etapa, Prioridad } from '../types';
-import { DateFilterOption, getDateRange, formatMetros } from '../utils/date';
+import { DateFilterOption, getDateRange, formatMetros, formatDecimalHoursToHHMM } from '../utils/date';
 import { getWeekNumber, getWeekDateRange } from '../utils/weekUtils';
 import DateFilterCombined from './DateFilterCombined';
 import { MAQUINAS_IMPRESION, PREPARACION_SUB_ETAPAS_IDS, ETAPAS } from '../constants';
@@ -871,16 +871,16 @@ const ReportView: React.FC<ReportViewProps> = ({
 
         const tableRows = processedData.weeklyData.map(row => {
             const machineValues = processedData.machineKeys.map(key =>
-                (row.machines[key] || 0).toFixed(1)
+                formatDecimalHoursToHHMM(row.machines[key])
             );
 
             return [
                 row.label,
                 row.dateRange,
                 ...machineValues,
-                row.totalLoad.toFixed(1),
-                row.totalCapacity.toFixed(0),
-                row.freeCapacity.toFixed(1)
+                formatDecimalHoursToHHMM(row.totalLoad),
+                formatDecimalHoursToHHMM(row.totalCapacity),
+                formatDecimalHoursToHHMM(row.freeCapacity)
             ];
         });
 
@@ -907,8 +907,8 @@ const ReportView: React.FC<ReportViewProps> = ({
                     <button
                         onClick={() => setActiveTab('planning')}
                         className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-md font-medium text-sm transition-all ${activeTab === 'planning'
-                                ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md'
-                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                             }`}
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -919,8 +919,8 @@ const ReportView: React.FC<ReportViewProps> = ({
                     <button
                         onClick={() => setActiveTab('analytics')}
                         className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-md font-medium text-sm transition-all ${activeTab === 'analytics'
-                                ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md'
-                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                             }`}
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1281,7 +1281,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                                 onClick={() => handleColumnSort('tiempo')}
                                             >
                                                 <div className="flex items-center justify-end">
-                                                    Tiempo (h)
+                                                    Tiempo (hh:mm)
                                                     {renderSortIndicator('tiempo')}
                                                 </div>
                                             </th>
@@ -1337,7 +1337,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                                             {formatMetros(pedido.metros)} m
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono text-gray-900 dark:text-white">
-                                                            {hours.toFixed(2)}
+                                                            {formatDecimalHoursToHHMM(hours)}
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                             <span className="text-indigo-600 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">
