@@ -4838,7 +4838,7 @@ app.get('/api/analytics/summary', async (req, res) => {
                 COALESCE(AVG((data->>'tiempoProduccionDecimal')::NUMERIC), 0) as tiempo_promedio_horas,
                 COUNT(CASE WHEN data->>'prioridad' = 'Urgente' THEN 1 END) as pedidos_urgentes,
                 COUNT(CASE WHEN (data->>'nuevaFechaEntrega')::timestamp < NOW() AND etapa_actual != 'COMPLETADO' AND etapa_actual != 'ARCHIVADO' THEN 1 END) as pedidos_atrasados
-            FROM pedidos
+            FROM limpio.pedidos
             ${whereClause}
         `;
 
@@ -4846,10 +4846,9 @@ app.get('/api/analytics/summary', async (req, res) => {
         const machineMetricsQuery = `
             SELECT 
                 data->>'maquinaImpresion' as maquina_impresion,
-                COUNT(*) as total_pedidos,
                 COALESCE(SUM((data->>'metros')::NUMERIC), 0) as metros_totales,
                 COALESCE(SUM((data->>'tiempoProduccionDecimal')::NUMERIC), 0) as tiempo_total_horas
-            FROM pedidos
+            FROM limpio.pedidos
             ${whereClause}
             GROUP BY data->>'maquinaImpresion'
             ORDER BY metros_totales DESC
@@ -4862,7 +4861,7 @@ app.get('/api/analytics/summary', async (req, res) => {
                 COUNT(*) as total_pedidos,
                 COALESCE(SUM((data->>'metros')::NUMERIC), 0) as metros_totales,
                 COALESCE(SUM((data->>'tiempoProduccionDecimal')::NUMERIC), 0) as tiempo_total_horas
-            FROM pedidos
+            FROM limpio.pedidos
             ${whereClause}
             GROUP BY etapa_actual
             ORDER BY metros_totales DESC
@@ -4875,7 +4874,7 @@ app.get('/api/analytics/summary', async (req, res) => {
                 COUNT(*) as total_pedidos,
                 COALESCE(SUM((data->>'metros')::NUMERIC), 0) as metros_totales,
                 COALESCE(SUM((data->>'tiempoProduccionDecimal')::NUMERIC), 0) as tiempo_total_horas
-            FROM pedidos
+            FROM limpio.pedidos
             ${whereClause}
             GROUP BY data->>'vendedorNombre'
             ORDER BY metros_totales DESC
@@ -4889,7 +4888,7 @@ app.get('/api/analytics/summary', async (req, res) => {
                 COUNT(*) as total_pedidos,
                 COALESCE(SUM((data->>'metros')::NUMERIC), 0) as metros_totales,
                 COALESCE(SUM((data->>'tiempoProduccionDecimal')::NUMERIC), 0) as tiempo_total_horas
-            FROM pedidos
+            FROM limpio.pedidos
             ${whereClause}
             GROUP BY data->>'cliente'
             ORDER BY metros_totales DESC
@@ -4903,7 +4902,7 @@ app.get('/api/analytics/summary', async (req, res) => {
                 COUNT(*) as total_pedidos,
                 COALESCE(SUM((data->>'metros')::NUMERIC), 0) as metros_totales,
                 COALESCE(SUM((data->>'tiempoProduccionDecimal')::NUMERIC), 0) as tiempo_total_horas
-            FROM pedidos
+            FROM limpio.pedidos
             ${whereClause}
             GROUP BY DATE_TRUNC('day', (data->>'${dateField}')::timestamp)
             ORDER BY fecha ASC
