@@ -187,6 +187,103 @@ const GLOBAL_FIELD_OPTIONS = {
   subEtapaActual: Object.values(PREPARACION_SUB_ETAPAS_IDS)
 };
 
+// Componente SearchableSelect con buscador
+interface SearchableSelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string; required?: boolean }[];
+}
+
+const SearchableSelect: React.FC<SearchableSelectProps> = ({ value, onChange, options }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dropdownRef] = useState(React.createRef<HTMLDivElement>());
+
+  const filteredOptions = useMemo(() => {
+    if (!searchTerm.trim()) return options;
+    const search = searchTerm.toLowerCase();
+    return options.filter(opt => 
+      opt.label.toLowerCase().includes(search) || 
+      opt.value.toLowerCase().includes(search)
+    );
+  }, [searchTerm, options]);
+
+  const selectedOption = options.find(opt => opt.value === value);
+
+  // Cerrar dropdown al hacer click fuera
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setSearchTerm('');
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen, dropdownRef]);
+
+  return (
+    <div ref={dropdownRef} className="relative w-full">
+      {/* Botón principal que muestra la opción seleccionada */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 text-left flex items-center justify-between hover:border-blue-400"
+      >
+        <span className="truncate">{selectedOption?.label || '-- Ignorar columna --'}</span>
+        <span className="ml-1 text-gray-500">▼</span>
+      </button>
+
+      {/* Dropdown con buscador */}
+      {isOpen && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded shadow-lg z-50 max-h-64 overflow-hidden flex flex-col">
+          {/* Input de búsqueda */}
+          <div className="p-2 border-b border-gray-200 dark:border-gray-600 sticky top-0 bg-white dark:bg-gray-700">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="🔍 Buscar campo..."
+              className="w-full text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+              autoFocus
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+
+          {/* Lista de opciones filtradas */}
+          <div className="overflow-y-auto max-h-48">
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(opt.value);
+                    setIsOpen(false);
+                    setSearchTerm('');
+                  }}
+                  className={`w-full text-left px-3 py-2 text-xs hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 transition-colors ${
+                    opt.value === value ? 'bg-blue-100 dark:bg-blue-900 dark:bg-opacity-30 font-semibold' : ''
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))
+            ) : (
+              <div className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 italic">
+                No se encontraron campos
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImportModalV2Props) {
   // Estados principales
   const [currentPhase, setCurrentPhase] = useState<'input' | 'mapping' | 'importing'>('input');
@@ -1301,17 +1398,11 @@ function MappingPhaseV2({
                       <div className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate" title={header}>
                         📄 {header}
                       </div>
-                      <select
+                      <SearchableSelect
                         value={columnMappings[index]?.dbField || 'ignore'}
-                        onChange={(e) => handleMappingChange(index, e.target.value as any)}
-                        className="w-full text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
-                      >
-                        {AVAILABLE_FIELDS.map(field => (
-                          <option key={field.value} value={field.value}>
-                            {field.label}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(value) => handleMappingChange(index, value as any)}
+                        options={AVAILABLE_FIELDS}
+                      />
                     </div>
                   </th>
                 ))}

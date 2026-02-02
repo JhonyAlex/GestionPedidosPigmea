@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS limpio.pdf_import_configs (
     -- Metadatos
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    created_by UUID REFERENCES limpio.admin_users(id) ON DELETE SET NULL,
+    created_by UUID,
     is_active BOOLEAN DEFAULT true,
     -- Estadísticas de uso
     usage_count INTEGER DEFAULT 0,
