@@ -1998,8 +1998,37 @@ function ImportingPhaseV2({
                 <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px]">Min/Color</th>
                 <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px]">Min Adap.</th>
                 
-                {/* Números de compra */}
-                <th className="px-3 py-2 text-left uppercase font-medium min-w-[130px]">Nºs Compra</th>
+                {/* 🛒 Material de Suministro - MATERIAL 1 */}
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px] bg-blue-50 dark:bg-blue-900 dark:bg-opacity-10">🧾 N° Compra 1</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px] bg-blue-50 dark:bg-blue-900 dark:bg-opacity-10">📏 Micras 1</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px] bg-blue-50 dark:bg-blue-900 dark:bg-opacity-10">⚖️ Densidad 1</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px] bg-blue-50 dark:bg-blue-900 dark:bg-opacity-10">✅ Necesario 1</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[80px] bg-blue-50 dark:bg-blue-900 dark:bg-opacity-10">📦 Recibido 1</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[80px] bg-blue-50 dark:bg-blue-900 dark:bg-opacity-10">📋 Gestionado 1</th>
+                
+                {/* 🛒 Material de Suministro - MATERIAL 2 */}
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px] bg-green-50 dark:bg-green-900 dark:bg-opacity-10">🧾 N° Compra 2</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px] bg-green-50 dark:bg-green-900 dark:bg-opacity-10">📏 Micras 2</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px] bg-green-50 dark:bg-green-900 dark:bg-opacity-10">⚖️ Densidad 2</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px] bg-green-50 dark:bg-green-900 dark:bg-opacity-10">✅ Necesario 2</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[80px] bg-green-50 dark:bg-green-900 dark:bg-opacity-10">📦 Recibido 2</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[80px] bg-green-50 dark:bg-green-900 dark:bg-opacity-10">📋 Gestionado 2</th>
+                
+                {/* 🛒 Material de Suministro - MATERIAL 3 */}
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px] bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-10">🧾 N° Compra 3</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px] bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-10">📏 Micras 3</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px] bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-10">⚖️ Densidad 3</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px] bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-10">✅ Necesario 3</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[80px] bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-10">📦 Recibido 3</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[80px] bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-10">📋 Gestionado 3</th>
+                
+                {/* 🛒 Material de Suministro - MATERIAL 4 */}
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px] bg-purple-50 dark:bg-purple-900 dark:bg-opacity-10">🧾 N° Compra 4</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px] bg-purple-50 dark:bg-purple-900 dark:bg-opacity-10">📏 Micras 4</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px] bg-purple-50 dark:bg-purple-900 dark:bg-opacity-10">⚖️ Densidad 4</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px] bg-purple-50 dark:bg-purple-900 dark:bg-opacity-10">✅ Necesario 4</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[80px] bg-purple-50 dark:bg-purple-900 dark:bg-opacity-10">📦 Recibido 4</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[80px] bg-purple-50 dark:bg-purple-900 dark:bg-opacity-10">📋 Gestionado 4</th>
                 
                 {/* Observaciones */}
                 <th className="px-3 py-2 text-left uppercase font-medium min-w-[180px]">Observaciones</th>
@@ -2257,42 +2286,37 @@ function ImportingPhaseV2({
                     <EditableCell field="minColor" type="number" maxWidth="90px" />
                     <EditableCell field="minAdap" type="number" maxWidth="90px" />
 
-                    {/* ============ NÚMEROS DE COMPRA ============ */}
-                    <td 
-                      className="px-3 py-2"
-                      onClick={() => !isExcluded && setEditingCell({ row: index, field: 'numerosCompra' })}
-                    >
-                      {editingCell?.row === index && editingCell.field === 'numerosCompra' ? (
-                        <input
-                          type="text"
-                          value={Array.isArray(row.mappedData.numerosCompra) ? row.mappedData.numerosCompra.join(', ') : ''}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            const array = value.split(',').map(s => s.trim()).filter(s => s);
-                            onCellEdit(index, 'numerosCompra', array);
-                          }}
-                          onBlur={() => setEditingCell(null)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === 'Escape') {
-                              setEditingCell(null);
-                            }
-                          }}
-                          placeholder="Separar con comas"
-                          autoFocus
-                          className="w-full border border-blue-500 rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        />
-                      ) : (
-                        <div 
-                          className="truncate cursor-text hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 px-1 py-0.5 rounded"
-                          style={{ maxWidth: '130px' }}
-                          title={Array.isArray(row.mappedData.numerosCompra) ? row.mappedData.numerosCompra.join(', ') : ''}
-                        >
-                          {Array.isArray(row.mappedData.numerosCompra) && row.mappedData.numerosCompra.length > 0
-                            ? row.mappedData.numerosCompra.join(', ')
-                            : '-'}
-                        </div>
-                      )}
-                    </td>
+                    {/* ============ 🛒 MATERIAL 1 ============ */}
+                    <EditableCell field="numeroCompra1" maxWidth="110px" />
+                    <EditableCell field="micras1" type="number" maxWidth="90px" />
+                    <EditableCell field="densidad1" type="number" maxWidth="90px" />
+                    <EditableCell field="necesario1" type="number" maxWidth="90px" />
+                    <CheckboxCell field="recibido1" />
+                    <CheckboxCell field="gestionado1" />
+                    
+                    {/* ============ 🛒 MATERIAL 2 ============ */}
+                    <EditableCell field="numeroCompra2" maxWidth="110px" />
+                    <EditableCell field="micras2" type="number" maxWidth="90px" />
+                    <EditableCell field="densidad2" type="number" maxWidth="90px" />
+                    <EditableCell field="necesario2" type="number" maxWidth="90px" />
+                    <CheckboxCell field="recibido2" />
+                    <CheckboxCell field="gestionado2" />
+                    
+                    {/* ============ 🛒 MATERIAL 3 ============ */}
+                    <EditableCell field="numeroCompra3" maxWidth="110px" />
+                    <EditableCell field="micras3" type="number" maxWidth="90px" />
+                    <EditableCell field="densidad3" type="number" maxWidth="90px" />
+                    <EditableCell field="necesario3" type="number" maxWidth="90px" />
+                    <CheckboxCell field="recibido3" />
+                    <CheckboxCell field="gestionado3" />
+                    
+                    {/* ============ 🛒 MATERIAL 4 ============ */}
+                    <EditableCell field="numeroCompra4" maxWidth="110px" />
+                    <EditableCell field="micras4" type="number" maxWidth="90px" />
+                    <EditableCell field="densidad4" type="number" maxWidth="90px" />
+                    <EditableCell field="necesario4" type="number" maxWidth="90px" />
+                    <CheckboxCell field="recibido4" />
+                    <CheckboxCell field="gestionado4" />
 
                     {/* ============ OBSERVACIONES ============ */}
                     <EditableCell field="observaciones" maxWidth="180px" />
