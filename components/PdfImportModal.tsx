@@ -179,6 +179,10 @@ const PdfImportModal: React.FC<PdfImportModalProps> = ({ onClose, onImportComple
   const [fieldMappings, setFieldMappings] = useState<Record<string, string>>({});
   const [extractedFields, setExtractedFields] = useState<Record<string, string>>({});
   
+  // ✨ NUEVOS ESTADOS para el sistema visual de selección
+  const [selectedText, setSelectedText] = useState('');
+  const [activeField, setActiveField] = useState<string | null>(null);
+  
   // Preview Data
   const [previewData, setPreviewData] = useState<Partial<Pedido> | null>(null);
   const [validation, setValidation] = useState<{ isValid: boolean; errors: string[]; warnings: string[] }>({
@@ -315,7 +319,76 @@ const PdfImportModal: React.FC<PdfImportModalProps> = ({ onClose, onImportComple
   };
   
   // ========================================================================
-  // EXTRACTION & MAPPING
+  // ✨ NUEVO SISTEMA VISUAL DE SELECCIÓN
+  // ========================================================================
+  
+  const handleTextSelection = () => {
+    const selection = window.getSelection();
+    if (selection && selection.toString().trim()) {
+      setSelectedText(selection.toString().trim());
+    }
+  };
+  
+  const assignTextToField = (fieldName: string, systemField: string) => {
+    if (!selectedText) {
+      alert('Por favor, selecciona texto del PDF primero');
+      return;
+    }
+    
+    // Guardar el texto extraído para este campo
+    setExtractedFields(prev => ({
+      ...prev,
+      [fieldName]: selectedText
+    }));
+    
+    // Actualizar el mapeo
+    setFieldMappings(prev => ({
+      ...prev,
+      [fieldName]: systemField
+    }));
+    
+    // Limpiar selección
+    setSelectedText('');
+    setActiveField(null);
+    
+    // Actualizar preview automáticamente si hay datos suficientes
+    const updatedFields = {
+      ...extractedFields,
+      [fieldName]: selectedText
+    };
+    
+    // Crear objeto de datos del pedido
+    const pedidoData: Partial<Pedido> = {};
+    Object.entries(updatedFields).forEach(([key, value]) => {
+      if (value && value.trim()) {
+        (pedidoData as any)[key] = value.trim();
+      }
+    });
+    
+    setPreviewData(pedidoData);
+    
+    // Validar
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    
+    if (!pedidoData.numeroPedidoCliente) errors.push('Falta el número de pedido');
+    if (!pedidoData.cliente) errors.push('Falta el cliente');
+    if (!pedidoData.fechaEntrega) errors.push('Falta la fecha de entrega');
+    if (!pedidoData.metros) errors.push('Faltan los metros');
+    
+    if (Object.keys(updatedFields).length < 4) {
+      warnings.push('Hay pocos campos asignados. Considera agregar más información.');
+    }
+    
+    setValidation({
+      isValid: errors.length === 0,
+      errors,
+      warnings
+    });
+  };
+  
+  // ========================================================================
+  // EXTRACTION & MAPPING (ANTIGUO - MANTENER PARA COMPATIBILIDAD)
   // ========================================================================
   
   const applyRulesAndExtract = async (
@@ -427,20 +500,30 @@ const PdfImportModal: React.FC<PdfImportModalProps> = ({ onClose, onImportComple
   
   const handleSaveConfig = async () => {
     if (!newConfigName.trim()) {
-      setError('El nombre de la configuración es requerido');
+      setError('El nombre de la plantilla es requerido');
+      return;
+    }
+    
+    // Validar que haya al menos algunos campos mapeados
+    if (Object.keys(extractedFields).length === 0) {
+      setError('Debes asignar al menos un campo antes de guardar la plantilla');
       return;
     }
     
     setIsLoading(true);
     try {
+      // Guardar solo los mappings (qué campo del PDF va a qué campo del sistema)
+      // No guardamos reglas técnicas porque ahora el usuario selecciona manualmente
       const response = await fetch('/api/pdf/configs', {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
           name: newConfigName.trim(),
           description: newConfigDescription.trim(),
-          extractionRules,
-          fieldMappings
+          extractionRules: {}, // Vacío porque ya no usamos reglas automáticas
+          fieldMappings: fieldMappings, // Mantener los mapeos para referencia
+          // Nuevo: guardar los campos que el usuario ya mapeó para pre-llenarlos
+          savedFields: extractedFields
         })
       });
       
@@ -452,8 +535,9 @@ const PdfImportModal: React.FC<PdfImportModalProps> = ({ onClose, onImportComple
         setShowSaveConfigModal(false);
         setNewConfigName('');
         setNewConfigDescription('');
+        alert('✅ Plantilla guardada correctamente');
       } else {
-        throw new Error('Error al guardar la configuración');
+        throw new Error('Error al guardar la plantilla');
       }
     } catch (err: any) {
       setError(err.message);
@@ -632,257 +716,275 @@ const PdfImportModal: React.FC<PdfImportModalProps> = ({ onClose, onImportComple
           <span>Procesando PDF...</span>
         </div>
       )}
+      
+      {/* Instrucciones mejoradas */}
+      <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+        <h3 className="font-semibold text-blue-900 mb-2">💡 Cómo funciona el nuevo sistema:</h3>
+        <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+          <li>Sube un PDF de un pedido</li>
+          <li>Selecciona el texto que quieras asignar (como seleccionar texto para copiar)</li>
+          <li>Haz clic en el botón "Asignar" del campo correspondiente</li>
+          <li>Revisa la vista previa y confirma la importación</li>
+        </ol>
+        <p className="text-xs text-blue-700 mt-2 italic">
+          ✨ ¡Mucho más fácil! Ya no necesitas saber de expresiones regulares ni reglas técnicas.
+        </p>
+      </div>
     </div>
   );
   
   const renderMappingPhase = () => (
     <div className="flex flex-col h-full">
       {/* Header info */}
-      <div className="px-6 py-3 bg-gray-50 border-b">
+      <div className="px-6 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
         <div className="flex items-center justify-between">
           <div>
             <span className="text-sm text-gray-600">Archivo: </span>
             <span className="font-medium">{extractedData?.filename}</span>
-            <span className="text-sm text-gray-500 ml-2">({extractedData?.numPages} páginas, {extractedData?.lines.length} líneas)</span>
+            <span className="text-sm text-gray-500 ml-2">({extractedData?.numPages} páginas)</span>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-3">
+            {selectedText && (
+              <div className="px-3 py-1.5 bg-yellow-100 border border-yellow-300 rounded-lg text-sm">
+                <span className="text-yellow-800 font-medium">✓ Texto seleccionado: </span>
+                <span className="text-yellow-900">{selectedText.substring(0, 30)}{selectedText.length > 30 ? '...' : ''}</span>
+              </div>
+            )}
             <button
               onClick={() => setShowSaveConfigModal(true)}
               className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
             >
               <SaveIcon className="w-4 h-4" />
-              Guardar Config
+              Guardar Plantilla
             </button>
           </div>
+        </div>
+        
+        {/* Instrucciones */}
+        <div className="mt-2 p-3 bg-blue-100 border border-blue-300 rounded-lg">
+          <p className="text-sm text-blue-900">
+            <strong>📌 Cómo usar:</strong> Selecciona el texto del PDF y luego haz clic en el botón "Asignar" del campo donde quieres que vaya ese dato.
+          </p>
         </div>
       </div>
       
       {/* Main content - split view */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left panel - PDF text */}
-        <div className="w-1/2 border-r flex flex-col">
-          <div className="px-4 py-2 bg-gray-100 border-b">
-            <h3 className="font-medium text-gray-700">Texto del PDF</h3>
+        <div className="w-1/2 border-r flex flex-col bg-gray-50">
+          <div className="px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-200 border-b">
+            <h3 className="font-semibold text-gray-800">📄 Contenido del PDF</h3>
+            <p className="text-xs text-gray-600 mt-1">Selecciona el texto que quieras asignar a un campo</p>
           </div>
-          <div className="flex-1 overflow-auto p-4">
-            <pre className="text-xs font-mono whitespace-pre-wrap text-gray-700 leading-relaxed">
-              {extractedData?.lines.map((line, i) => (
-                <div key={i} className="hover:bg-yellow-100 px-1">
-                  <span className="text-gray-400 select-none mr-2">{String(i + 1).padStart(3, ' ')}:</span>
-                  {line}
-                </div>
-              ))}
-            </pre>
+          <div 
+            className="flex-1 overflow-auto p-4"
+            onMouseUp={handleTextSelection}
+          >
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <pre className="text-sm whitespace-pre-wrap text-gray-800 leading-relaxed font-sans select-text">
+                {extractedData?.text}
+              </pre>
+            </div>
           </div>
         </div>
         
-        {/* Right panel - Field mapping */}
-        <div className="w-1/2 flex flex-col">
-          <div className="px-4 py-2 bg-gray-100 border-b flex items-center justify-between">
-            <h3 className="font-medium text-gray-700">Reglas de Extracción</h3>
-            <button
-              onClick={() => handleAddRule(`campo_${Object.keys(extractionRules).length + 1}`)}
-              className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              <PlusIcon className="w-3 h-3" />
-              Añadir Campo
-            </button>
+        {/* Right panel - Field mapping (NUEVO DISEÑO SIMPLE) */}
+        <div className="w-1/2 flex flex-col bg-white">
+          <div className="px-4 py-2 bg-gradient-to-r from-indigo-100 to-purple-100 border-b">
+            <h3 className="font-semibold text-gray-800">🎯 Campos del Pedido</h3>
+            <p className="text-xs text-gray-600 mt-1">Haz clic en "Asignar" después de seleccionar texto</p>
           </div>
           
-          <div className="flex-1 overflow-auto p-4 space-y-4">
-            {Object.entries(extractionRules).map(([fieldName, rule]) => (
-              <div key={fieldName} className="border rounded-lg p-3 bg-white shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <input
-                    type="text"
-                    value={fieldName}
-                    onChange={(e) => {
-                      const newName = e.target.value;
-                      const newRules = { ...extractionRules };
-                      const newMappings = { ...fieldMappings };
-                      delete newRules[fieldName];
-                      delete newMappings[fieldName];
-                      newRules[newName] = rule;
-                      newMappings[newName] = fieldMappings[fieldName] || 'ignore';
-                      setExtractionRules(newRules);
-                      setFieldMappings(newMappings);
-                    }}
-                    className="font-medium text-sm border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none"
-                    placeholder="Nombre del campo"
-                  />
-                  <button
-                    onClick={() => handleRemoveRule(fieldName)}
-                    className="p-1 text-red-500 hover:bg-red-50 rounded"
-                  >
-                    <TrashIcon className="w-4 h-4" />
-                  </button>
+          <div className="flex-1 overflow-auto p-4 space-y-2">
+            {/* CAMPOS OBLIGATORIOS */}
+            <div className="mb-4">
+              <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Campos Obligatorios</h4>
+              
+              {SYSTEM_FIELDS.filter(f => f.required).map(field => (
+                <div key={field.value} className="mb-2 p-3 bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-300 rounded-lg hover:shadow-md transition-all">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <label className="text-sm font-medium text-gray-800">{field.label}</label>
+                      {extractedFields[field.value] && (
+                        <div className="mt-1 px-2 py-1 bg-white border border-green-300 rounded text-xs">
+                          <span className="text-green-700 font-semibold">✓ </span>
+                          <span className="text-gray-800">{extractedFields[field.value]}</span>
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (!selectedText) {
+                          alert('⚠️ Primero selecciona el texto del PDF que quieres asignar a este campo');
+                          return;
+                        }
+                        assignTextToField(field.value, field.value);
+                      }}
+                      className={`ml-3 px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                        selectedText 
+                          ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg' 
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
+                      {extractedFields[field.value] ? '✓ Reasignar' : '← Asignar'}
+                    </button>
+                  </div>
                 </div>
-                
-                {/* Rule type selector */}
-                <div className="grid grid-cols-2 gap-2 text-xs mb-2">
-                  <select
-                    value={rule.type}
-                    onChange={(e) => handleUpdateRule(fieldName, { ...rule, type: e.target.value as ExtractionRule['type'] })}
-                    className="rounded border border-gray-300 px-2 py-1"
-                  >
-                    <option value="line_contains">Línea contiene...</option>
-                    <option value="regex">Expresión Regular</option>
-                    <option value="delimiter">Entre delimitadores</option>
-                    <option value="position">Por posición</option>
-                  </select>
-                  
-                  <select
-                    value={fieldMappings[fieldName] || 'ignore'}
-                    onChange={(e) => handleUpdateMapping(fieldName, e.target.value)}
-                    className="rounded border border-gray-300 px-2 py-1"
-                  >
-                    {SYSTEM_FIELDS.map(f => (
-                      <option key={f.value} value={f.value}>{f.label}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                {/* Rule-specific inputs */}
-                {rule.type === 'line_contains' && (
-                  <div className="space-y-1 text-xs">
-                    <input
-                      type="text"
-                      value={rule.contains || ''}
-                      onChange={(e) => handleUpdateRule(fieldName, { ...rule, contains: e.target.value })}
-                      placeholder="Texto que contiene la línea (ej: 'Pedido:')"
-                      className="w-full rounded border border-gray-300 px-2 py-1"
-                    />
-                    <div className="flex gap-2">
-                      <input
-                        type="number"
-                        value={rule.offset || 0}
-                        onChange={(e) => handleUpdateRule(fieldName, { ...rule, offset: parseInt(e.target.value) || 0 })}
-                        placeholder="Offset"
-                        className="w-20 rounded border border-gray-300 px-2 py-1"
-                      />
-                      <span className="text-gray-500 self-center">líneas después</span>
+              ))}
+            </div>
+            
+            {/* CAMPOS OPCIONALES (COLAPSABLES) */}
+            <details className="mb-4">
+              <summary className="cursor-pointer text-xs font-semibold text-gray-500 uppercase mb-2 hover:text-gray-700 select-none">
+                + Campos Opcionales (click para expandir)
+              </summary>
+              
+              <div className="mt-2 space-y-2">
+                {SYSTEM_FIELDS.filter(f => !f.required && f.value !== 'ignore').map(field => (
+                  <div key={field.value} className="p-3 bg-gray-50 border border-gray-200 rounded-lg hover:shadow transition-all">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <label className="text-sm font-medium text-gray-700">{field.label}</label>
+                        {extractedFields[field.value] && (
+                          <div className="mt-1 px-2 py-1 bg-white border border-green-300 rounded text-xs">
+                            <span className="text-green-700 font-semibold">✓ </span>
+                            <span className="text-gray-800">{extractedFields[field.value]}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {extractedFields[field.value] && (
+                          <button
+                            onClick={() => {
+                              const newFields = { ...extractedFields };
+                              delete newFields[field.value];
+                              setExtractedFields(newFields);
+                            }}
+                            className="p-1.5 text-red-500 hover:bg-red-50 rounded"
+                            title="Borrar"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            if (!selectedText) {
+                              alert('⚠️ Primero selecciona el texto del PDF que quieres asignar a este campo');
+                              return;
+                            }
+                            assignTextToField(field.value, field.value);
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                            selectedText 
+                              ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
+                              : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                          }`}
+                        >
+                          {extractedFields[field.value] ? '↻' : '←'}
+                        </button>
+                      </div>
                     </div>
                   </div>
-                )}
-                
-                {rule.type === 'regex' && (
-                  <input
-                    type="text"
-                    value={rule.pattern || ''}
-                    onChange={(e) => handleUpdateRule(fieldName, { ...rule, pattern: e.target.value })}
-                    placeholder="Patrón regex (ej: 'Pedido:\s*(\d+)')"
-                    className="w-full rounded border border-gray-300 px-2 py-1 text-xs font-mono"
-                  />
-                )}
-                
-                {rule.type === 'delimiter' && (
-                  <div className="space-y-1 text-xs">
-                    <input
-                      type="text"
-                      value={rule.startMarker || ''}
-                      onChange={(e) => handleUpdateRule(fieldName, { ...rule, startMarker: e.target.value })}
-                      placeholder="Texto inicial (ej: 'Cliente:')"
-                      className="w-full rounded border border-gray-300 px-2 py-1"
-                    />
-                    <input
-                      type="text"
-                      value={rule.endMarker || ''}
-                      onChange={(e) => handleUpdateRule(fieldName, { ...rule, endMarker: e.target.value })}
-                      placeholder="Texto final (opcional, ej: 'Fecha:')"
-                      className="w-full rounded border border-gray-300 px-2 py-1"
-                    />
-                  </div>
-                )}
-                
-                {rule.type === 'position' && (
-                  <div className="flex gap-2 text-xs">
-                    <input
-                      type="number"
-                      value={rule.lineIndex || 0}
-                      onChange={(e) => handleUpdateRule(fieldName, { ...rule, lineIndex: parseInt(e.target.value) || 0 })}
-                      placeholder="Línea"
-                      className="w-16 rounded border border-gray-300 px-2 py-1"
-                    />
-                    <input
-                      type="number"
-                      value={rule.startChar || 0}
-                      onChange={(e) => handleUpdateRule(fieldName, { ...rule, startChar: parseInt(e.target.value) || 0 })}
-                      placeholder="Desde"
-                      className="w-16 rounded border border-gray-300 px-2 py-1"
-                    />
-                    <input
-                      type="number"
-                      value={rule.endChar || ''}
-                      onChange={(e) => handleUpdateRule(fieldName, { ...rule, endChar: parseInt(e.target.value) || undefined })}
-                      placeholder="Hasta"
-                      className="w-16 rounded border border-gray-300 px-2 py-1"
-                    />
-                  </div>
-                )}
-                
-                {/* Extracted value preview */}
-                {extractedFields[fieldName] && (
-                  <div className="mt-2 px-2 py-1 bg-green-50 border border-green-200 rounded text-xs">
-                    <span className="text-green-700">Valor: </span>
-                    <span className="font-medium text-green-800">{extractedFields[fieldName]}</span>
-                  </div>
-                )}
+                ))}
               </div>
-            ))}
-            
-            {Object.keys(extractionRules).length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                <p>No hay reglas de extracción configuradas.</p>
-                <p className="text-sm mt-1">Haz clic en "Añadir Campo" para comenzar.</p>
-              </div>
-            )}
+            </details>
           </div>
           
-          {/* Test extraction button */}
-          <div className="px-4 py-3 border-t bg-gray-50">
+          {/* Test extraction button - AHORA GENERA VISTA PREVIA AUTOMÁTICA */}
+          <div className="px-4 py-3 border-t bg-gradient-to-r from-green-50 to-emerald-50">
             <button
-              onClick={handleTestExtraction}
-              disabled={isLoading || Object.keys(extractionRules).length === 0}
-              className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 flex items-center justify-center gap-2"
+              onClick={async () => {
+                setIsLoading(true);
+                try {
+                  // Crear objeto de datos del pedido basado en los campos extraídos
+                  const pedidoData: Partial<Pedido> = {};
+                  
+                  // Mapear cada campo extraído al campo del sistema
+                  Object.entries(extractedFields).forEach(([fieldKey, value]) => {
+                    if (value && value.trim()) {
+                      (pedidoData as any)[fieldKey] = value.trim();
+                    }
+                  });
+                  
+                  setPreviewData(pedidoData);
+                  
+                  // Validar los datos
+                  const errors: string[] = [];
+                  const warnings: string[] = [];
+                  
+                  if (!pedidoData.numeroPedidoCliente) errors.push('Falta el número de pedido');
+                  if (!pedidoData.cliente) errors.push('Falta el cliente');
+                  if (!pedidoData.fechaEntrega) errors.push('Falta la fecha de entrega');
+                  if (!pedidoData.metros) errors.push('Faltan los metros');
+                  
+                  if (Object.keys(extractedFields).length < 4) {
+                    warnings.push('Hay pocos campos asignados. Considera agregar más información.');
+                  }
+                  
+                  setValidation({
+                    isValid: errors.length === 0,
+                    errors,
+                    warnings
+                  });
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+              disabled={isLoading || Object.keys(extractedFields).length === 0}
+              className="w-full py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-400 flex items-center justify-center gap-2 font-semibold shadow-lg transition-all"
             >
-              {isLoading ? <LoadingSpinner className="w-4 h-4" /> : <CheckIcon className="w-4 h-4" />}
-              Probar Extracción
+              {isLoading ? <LoadingSpinner className="w-5 h-5" /> : <CheckIcon className="w-5 h-5" />}
+              {Object.keys(extractedFields).length > 0 ? 'Ver Vista Previa' : 'Asigna campos primero'}
             </button>
           </div>
         </div>
       </div>
       
-      {/* Preview section */}
+      {/* Preview section - MEJORADO */}
       {previewData && (
-        <div className="border-t bg-gray-50 p-4">
-          <h4 className="font-medium text-gray-700 mb-3">Vista Previa del Pedido</h4>
+        <div className="border-t bg-gradient-to-r from-purple-50 to-pink-50 p-4">
+          <h4 className="font-semibold text-gray-800 mb-3 text-lg">📋 Vista Previa del Pedido</h4>
           
           {/* Validation messages */}
           {validation.errors.length > 0 && (
-            <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="font-medium text-red-700 text-sm">Errores:</p>
-              <ul className="list-disc list-inside text-sm text-red-600">
+            <div className="mb-3 p-3 bg-red-50 border-l-4 border-red-500 rounded-lg shadow-sm">
+              <p className="font-semibold text-red-700 text-sm flex items-center gap-2">
+                <span className="text-xl">⚠️</span> Errores que debes corregir:
+              </p>
+              <ul className="list-disc list-inside text-sm text-red-600 mt-2 space-y-1">
                 {validation.errors.map((err, i) => <li key={i}>{err}</li>)}
               </ul>
             </div>
           )}
           {validation.warnings.length > 0 && (
-            <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="font-medium text-yellow-700 text-sm">Advertencias:</p>
-              <ul className="list-disc list-inside text-sm text-yellow-600">
+            <div className="mb-3 p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded-lg shadow-sm">
+              <p className="font-semibold text-yellow-700 text-sm flex items-center gap-2">
+                <span className="text-xl">💡</span> Sugerencias:
+              </p>
+              <ul className="list-disc list-inside text-sm text-yellow-600 mt-2 space-y-1">
                 {validation.warnings.map((warn, i) => <li key={i}>{warn}</li>)}
               </ul>
             </div>
           )}
           
-          {/* Preview table */}
-          <div className="grid grid-cols-4 gap-3 text-sm">
-            {Object.entries(previewData).map(([key, value]) => (
-              <div key={key} className="bg-white p-2 rounded border">
-                <span className="text-gray-500 text-xs">{key}:</span>
-                <p className="font-medium truncate">{String(value)}</p>
-              </div>
-            ))}
+          {validation.isValid && (
+            <div className="mb-3 p-3 bg-green-50 border-l-4 border-green-500 rounded-lg shadow-sm">
+              <p className="font-semibold text-green-700 text-sm flex items-center gap-2">
+                <span className="text-xl">✅</span> ¡Datos válidos! Puedes importar este pedido.
+              </p>
+            </div>
+          )}
+          
+          {/* Preview table - MEJORADA */}
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+            {Object.entries(previewData)
+              .filter(([key, value]) => value !== null && value !== undefined && value !== '')
+              .map(([key, value]) => (
+                <div key={key} className="bg-white p-3 rounded-lg border-2 border-gray-200 hover:border-indigo-300 transition-all shadow-sm">
+                  <span className="text-gray-500 text-xs font-medium uppercase block mb-1">{key}:</span>
+                  <p className="font-semibold text-gray-900 truncate">{String(value)}</p>
+                </div>
+              ))}
           </div>
         </div>
       )}
@@ -1003,27 +1105,42 @@ const PdfImportModal: React.FC<PdfImportModalProps> = ({ onClose, onImportComple
       {showSaveConfigModal && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">Guardar Configuración</h3>
+            <h3 className="text-lg font-semibold mb-2">💾 Guardar Plantilla de Mapeo</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Guarda los campos que has mapeado para reutilizarlos en futuros PDFs similares.
+            </p>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de la plantilla *</label>
                 <input
                   type="text"
                   value={newConfigName}
                   onChange={(e) => setNewConfigName(e.target.value)}
-                  placeholder="Ej: Formato Cliente X"
+                  placeholder="Ej: Pedidos Cliente ABC"
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción (opcional)</label>
                 <textarea
                   value={newConfigDescription}
                   onChange={(e) => setNewConfigDescription(e.target.value)}
-                  placeholder="Descripción opcional..."
+                  placeholder="Para qué tipo de PDFs es esta plantilla..."
                   rows={2}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500"
                 />
+              </div>
+              
+              {/* Mostrar resumen de campos mapeados */}
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm font-medium text-blue-900 mb-2">Campos a guardar:</p>
+                <ul className="text-xs text-blue-800 space-y-1">
+                  {Object.keys(extractedFields).map(field => (
+                    <li key={field} className="flex items-center gap-1">
+                      <span className="text-blue-600">✓</span> {field}
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">
@@ -1036,9 +1153,9 @@ const PdfImportModal: React.FC<PdfImportModalProps> = ({ onClose, onImportComple
               <button
                 onClick={handleSaveConfig}
                 disabled={isLoading || !newConfigName.trim()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 flex items-center gap-2"
               >
-                {isLoading ? <LoadingSpinner className="w-4 h-4" /> : 'Guardar'}
+                {isLoading ? <LoadingSpinner className="w-4 h-4" /> : <><SaveIcon className="w-4 h-4" /> Guardar Plantilla</>}
               </button>
             </div>
           </div>
