@@ -22,7 +22,7 @@ import {
 import { useClientesManager } from '../hooks/useClientesManager';
 import { useVendedoresManager } from '../hooks/useVendedoresManager';
 import { Icons } from './Icons';
-import { MAQUINAS_IMPRESION } from '../constants';
+import { MAQUINAS_IMPRESION, PREPARACION_SUB_ETAPAS_IDS } from '../constants';
 import {
   saveMappingConfig,
   getAllMappingConfigs,
@@ -177,7 +177,8 @@ const GLOBAL_FIELD_OPTIONS = {
   prioridad: Object.values(Prioridad),
   tipoImpresion: Object.values(TipoImpresion),
   etapaActual: Object.values(Etapa),
-  estadoCliché: Object.values(EstadoCliché)
+  estadoCliché: Object.values(EstadoCliché),
+  subEtapaActual: Object.values(PREPARACION_SUB_ETAPAS_IDS)
 };
 
 export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImportModalV2Props) {
@@ -190,6 +191,7 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
   const [columnMappings, setColumnMappings] = useState<ColumnMapping[]>([]);
   const [globalFields, setGlobalFields] = useState<Partial<Pedido>>({
     etapaActual: Etapa.PREPARACION,
+    subEtapaActual: PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA,
     prioridad: Prioridad.NORMAL,
     tipoImpresion: TipoImpresion.SUPERFICIE
   });
@@ -504,6 +506,11 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
       if (materialConsumoTemp.length > 0) {
         mappedData.materialConsumoCantidad = Math.min(materialConsumoTemp.length, 4) as 1 | 2 | 3 | 4;
         mappedData.materialConsumo = materialConsumoTemp;
+      }
+
+      // Asegurar que si la etapa es PREPARACION, tenga una subetapa asignada
+      if (mappedData.etapaActual === Etapa.PREPARACION && !mappedData.subEtapaActual) {
+        mappedData.subEtapaActual = PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA;
       }
 
       // Validar datos
@@ -1818,6 +1825,7 @@ function ImportingPhaseV2({
                 
                 {/* Workflow */}
                 <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">Etapa</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[140px]" title="Solo para PREPARACIÓN">Subetapa Prep.</th>
                 <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px]">Prioridad</th>
                 <th className="px-3 py-2 text-left uppercase font-medium min-w-[130px]">Tipo Impresión</th>
                 
@@ -2058,6 +2066,23 @@ function ImportingPhaseV2({
 
                     {/* ============ WORKFLOW ============ */}
                     <SelectCell field="etapaActual" options={GLOBAL_FIELD_OPTIONS.etapaActual} maxWidth="110px" />
+                    <td className="px-3 py-2">
+                      {row.mappedData.etapaActual === Etapa.PREPARACION ? (
+                        <select
+                          value={row.mappedData.subEtapaActual || PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA}
+                          onChange={(e) => onCellEdit(index, 'subEtapaActual', e.target.value)}
+                          disabled={isExcluded}
+                          className="w-full border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 text-xs bg-white dark:bg-gray-700"
+                        >
+                          <option value={PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA}>Sin Gestión</option>
+                          <option value={PREPARACION_SUB_ETAPAS_IDS.MATERIAL_NO_DISPONIBLE}>Material No Disp.</option>
+                          <option value={PREPARACION_SUB_ETAPAS_IDS.CLICHE_NO_DISPONIBLE}>Cliché No Disp.</option>
+                          <option value={PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION}>Listo Producción</option>
+                        </select>
+                      ) : (
+                        <span className="text-gray-400 text-xs">N/A</span>
+                      )}
+                    </td>
                     <SelectCell field="prioridad" options={GLOBAL_FIELD_OPTIONS.prioridad} maxWidth="90px" />
                     <SelectCell field="tipoImpresion" options={GLOBAL_FIELD_OPTIONS.tipoImpresion} maxWidth="130px" />
 
@@ -2281,7 +2306,17 @@ function ImportingPhaseV2({
                 <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">📍 Etapa Inicial:</label>
                 <select
                   value={globalFields.etapaActual || Etapa.PREPARACION}
-                  onChange={(e) => setGlobalFields({ ...globalFields, etapaActual: e.target.value as Etapa })}
+                  onChange={(e) => {
+                    const newEtapa = e.target.value as Etapa;
+                    setGlobalFields({ 
+                      ...globalFields, 
+                      etapaActual: newEtapa,
+                      // Si cambia a PREPARACION, asignar subetapa por defecto
+                      subEtapaActual: newEtapa === Etapa.PREPARACION 
+                        ? PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA 
+                        : undefined
+                    });
+                  }}
                   className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 >
                   {GLOBAL_FIELD_OPTIONS.etapaActual.map(etapa => (
@@ -2289,6 +2324,28 @@ function ImportingPhaseV2({
                   ))}
                 </select>
               </div>
+
+              {/* Subetapa (solo si etapa es PREPARACION) */}
+              {globalFields.etapaActual === Etapa.PREPARACION && (
+                <div className="bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-10 p-2 rounded-lg border border-yellow-200 dark:border-yellow-700">
+                  <label className="block text-xs font-medium mb-1 text-yellow-800 dark:text-yellow-200">
+                    🎯 Subetapa de Preparación:
+                  </label>
+                  <select
+                    value={globalFields.subEtapaActual || PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA}
+                    onChange={(e) => setGlobalFields({ ...globalFields, subEtapaActual: e.target.value })}
+                    className="w-full border border-yellow-300 dark:border-yellow-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  >
+                    <option value={PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA}>Sin Gestión Iniciada</option>
+                    <option value={PREPARACION_SUB_ETAPAS_IDS.MATERIAL_NO_DISPONIBLE}>Material No Disponible</option>
+                    <option value={PREPARACION_SUB_ETAPAS_IDS.CLICHE_NO_DISPONIBLE}>Cliché No Disponible</option>
+                    <option value={PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION}>Listo para Producción</option>
+                  </select>
+                  <p className="text-[10px] text-yellow-700 dark:text-yellow-300 mt-1">
+                    ⚠️ Obligatorio para pedidos en Preparación
+                  </p>
+                </div>
+              )}
 
               {/* Prioridad */}
               <div>
