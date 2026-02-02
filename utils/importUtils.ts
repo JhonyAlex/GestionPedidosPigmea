@@ -111,16 +111,31 @@ export function parseSpanishNumber(numberStr: string | number): number | null {
       cleaned = cleaned.replace(',', '.');
     }
   }
-  // Si solo tiene puntos, verificar si son separadores de miles o decimales
+  // Si solo tiene puntos (SIN comas), en formato español son separadores de miles
   else if (cleaned.includes('.')) {
+    // En español, si no hay coma, el punto es separador de miles
+    // Ejemplos: "20.000" -> 20000, "1.500.000" -> 1500000
+    // SOLO si la parte después del último punto tiene exactamente 3 dígitos (patrón de miles)
     const parts = cleaned.split('.');
-    // Si hay más de 2 partes o la última parte tiene más de 3 dígitos, son separadores de miles
-    if (parts.length > 2 || (parts.length === 2 && parts[1].length > 3)) {
-      // Son separadores de miles: "10.000" -> "10000"
+    
+    // Verificar si todos los grupos (excepto el primero) tienen exactamente 3 dígitos
+    let isMilesSeparator = true;
+    if (parts.length > 1) {
+      // El primer grupo puede tener 1-3 dígitos, los demás deben tener exactamente 3
+      for (let i = 1; i < parts.length; i++) {
+        if (parts[i].length !== 3) {
+          isMilesSeparator = false;
+          break;
+        }
+      }
+    }
+    
+    if (isMilesSeparator) {
+      // Son separadores de miles: "20.000" -> "20000"
       cleaned = cleaned.replace(/\./g, '');
     }
-    // Si solo hay 2 partes y la segunda tiene 1-3 dígitos, es decimal
-    // Se mantiene como está
+    // Si no cumple el patrón de miles, podría ser decimal (poco común en español)
+    // En ese caso, se mantiene como está (el parseFloat lo interpretará como decimal)
   }
   
   const result = parseFloat(cleaned);

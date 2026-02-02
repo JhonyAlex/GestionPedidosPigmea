@@ -263,6 +263,14 @@ async function processBulkImport({ rows, globalFields = {}, options = {}, dbClie
                 // Combinar datos mapeados con campos globales (prioridad a datos específicos)
                 const pedidoData = { ...globalFields, ...row.mappedData };
                 
+                // 🐛 DEBUG: Log para verificar fechaEntrega
+                if (pedidoData.fechaEntrega) {
+                    console.log(`📅 DEBUG - Pedido "${pedidoData.numeroPedidoCliente}": fechaEntrega = "${pedidoData.fechaEntrega}"`);
+                }
+                if (pedidoData.metros) {
+                    console.log(`📏 DEBUG - Pedido "${pedidoData.numeroPedidoCliente}": metros = ${pedidoData.metros}`);
+                }
+                
                 // Validar número de pedido único ANTES de procesamiento pesado
                 if (pedidoData.numeroPedidoCliente) {
                     const normalizedNumber = pedidoData.numeroPedidoCliente.toLowerCase().trim();

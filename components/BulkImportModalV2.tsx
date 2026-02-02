@@ -443,14 +443,19 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
             const parsedDate = parseSpanishDate(cellValue);
             if (parsedDate) {
               processedValue = parsedDate.toISOString().split('T')[0]; // YYYY-MM-DD
+              console.log(`📅 Fecha parseada: "${cellValue}" → "${processedValue}"`);
             } else {
               processedValue = null;
+              console.warn(`⚠️ No se pudo parsear fecha: "${cellValue}"`);
             }
             break;
             
           case 'number':
             const parsedNumber = parseSpanishNumber(cellValue);
             processedValue = parsedNumber !== null ? parsedNumber : cellValue;
+            if (mapping.dbField === 'metros') {
+              console.log(`📏 Metros parseados: "${cellValue}" → ${processedValue}`);
+            }
             break;
             
           default:
