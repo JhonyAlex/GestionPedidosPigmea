@@ -22,6 +22,7 @@ import {
 import { useClientesManager } from '../hooks/useClientesManager';
 import { useVendedoresManager } from '../hooks/useVendedoresManager';
 import { Icons } from './Icons';
+import { MAQUINAS_IMPRESION } from '../constants';
 
 // Función para obtener headers de autenticación
 const getAuthHeaders = (): Record<string, string> => {
@@ -144,6 +145,7 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
   const [currentPhase, setCurrentPhase] = useState<'input' | 'mapping' | 'importing'>('input');
   const [pastedText, setPastedText] = useState('');
   const [rawData, setRawData] = useState<string[][]>([]);
+  const [hasHeaders, setHasHeaders] = useState(true); // ✅ NUEVO: Checkbox para indicar si hay encabezados
   const [selectedHeaderRow, setSelectedHeaderRow] = useState<number>(0);
   const [columnMappings, setColumnMappings] = useState<ColumnMapping[]>([]);
   const [globalFields, setGlobalFields] = useState<Partial<Pedido>>({
@@ -151,6 +153,7 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
     prioridad: Prioridad.NORMAL,
     tipoImpresion: TipoImpresion.SUPERFICIE
   });
+  const [selectedRowsForGlobalFields, setSelectedRowsForGlobalFields] = useState<Set<number>>(new Set()); // ✅ NUEVO: Filas seleccionadas para aplicar valores globales
   
   // Estados de importación
   const [importRows, setImportRows] = useState<ImportRow[]>([]);
@@ -190,10 +193,24 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
   }, [pastedText]);
 
   // Configurar mapeos iniciales cuando se selecciona la fila de encabezados
-  const setupInitialMappings = useCallback((headerRowIndex: number) => {
-    if (!rawData.length || headerRowIndex >= rawData.length) return;
+  const setupInitialMappings = useCallback((headerRowIndex: number, withHeaders: boolean) => {
+    if (!rawData.length) return;
 
-    const headers = rawData[headerRowIndex] || [];
+    let headers: string[];
+    
+    if (!withHeaders) {
+      // ✅ SIN ENCABEZADOS: Generar nombres de columnas genéricas (Columna A, B, C...)
+      const firstRow = rawData[0] || [];
+      headers = firstRow.map((_, index) => {
+        const letter = String.fromCharCode(65 + index); // A, B, C, D...
+        return `Columna ${letter}`;
+      });
+    } else {
+      // CON ENCABEZADOS: Usar la fila seleccionada
+      if (headerRowIndex >= rawData.length) return;
+      headers = rawData[headerRowIndex] || [];
+    }
+    
     const initialMappings: ColumnMapping[] = headers.map((header, index) => {
       const normalizedHeader = header.toLowerCase().trim();
       
@@ -234,19 +251,24 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
     setColumnMappings(initialMappings);
   }, [rawData]);
 
-  // Actualizar mapeos cuando cambia la fila de encabezado seleccionada
+  // Actualizar mapeos cuando cambia la fila de encabezado seleccionada o el checkbox de encabezados
   React.useEffect(() => {
     if (currentPhase === 'mapping' && rawData.length > 0) {
-      setupInitialMappings(selectedHeaderRow);
+      setupInitialMappings(hasHeaders ? selectedHeaderRow : 0, hasHeaders);
     }
-  }, [currentPhase, rawData, selectedHeaderRow, setupInitialMappings]);
+  }, [currentPhase, rawData, selectedHeaderRow, hasHeaders, setupInitialMappings]);
 
   // Procesar datos para importación (Paso 2 -> 3)
   const processImportData = useCallback(() => {
     if (!rawData.length) return;
 
-    const dataRows = rawData.slice(selectedHeaderRow + 1);
-    const headers = rawData[selectedHeaderRow] || [];
+    // ✅ Si NO tiene encabezados, todos los datos son filas a importar (desde la fila 0)
+    // ✅ Si tiene encabezados, saltar la fila de encabezados
+    const dataStartRow = hasHeaders ? selectedHeaderRow + 1 : 0;
+    const dataRows = rawData.slice(dataStartRow);
+    
+    // ✅ Headers pueden ser los reales o los genéricos (Columna A, B, C...)
+    const headers = columnMappings.map(m => m.excelColumn);
     
     const processedRows: ImportRow[] = dataRows.map((row, index) => {
       const originalData: Record<string, string> = {};
@@ -328,7 +350,7 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
     
     setImportRows(processedRows);
     setCurrentPhase('importing');
-  }, [rawData, selectedHeaderRow, columnMappings, globalFields, clientes, vendedores]);
+  }, [rawData, hasHeaders, selectedHeaderRow, columnMappings, globalFields, clientes, vendedores]);
 
   // Ejecutar importación
   const executeImport = useCallback(async () => {
@@ -492,18 +514,23 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
               rawData={rawData}
               selectedHeaderRow={selectedHeaderRow}
               setSelectedHeaderRow={setSelectedHeaderRow}
+              hasHeaders={hasHeaders}
+              setHasHeaders={setHasHeaders}
             />
           )}
 
           {currentPhase === 'mapping' && (
             <MappingPhaseV2
               rawData={rawData}
+              hasHeaders={hasHeaders}
               selectedHeaderRow={selectedHeaderRow}
               setSelectedHeaderRow={setSelectedHeaderRow}
               columnMappings={columnMappings}
               setColumnMappings={setColumnMappings}
               globalFields={globalFields}
               setGlobalFields={setGlobalFields}
+              clientes={clientes}
+              vendedores={vendedores}
               onNext={processImportData}
               onBack={() => setCurrentPhase('input')}
             />
@@ -537,9 +564,11 @@ interface InputPhaseV2Props {
   rawData: string[][];
   selectedHeaderRow: number;
   setSelectedHeaderRow: (row: number) => void;
+  hasHeaders: boolean;
+  setHasHeaders: (has: boolean) => void;
 }
 
-function InputPhaseV2({ pastedText, setPastedText, onNext, rawData, selectedHeaderRow, setSelectedHeaderRow }: InputPhaseV2Props) {
+function InputPhaseV2({ pastedText, setPastedText, onNext, rawData, selectedHeaderRow, setSelectedHeaderRow, hasHeaders, setHasHeaders }: InputPhaseV2Props) {
   const [showPreview, setShowPreview] = useState(false);
 
   // Analizar los datos cuando el usuario pega
@@ -570,7 +599,22 @@ function InputPhaseV2({ pastedText, setPastedText, onNext, rawData, selectedHead
             <li>• Incluya la fila de encabezados (ej: Cliente, Fecha, Metros...)</li>
             <li>• Formatos aceptados: fechas como "02/abr", "30/may", números como "10.000" o "0,914"</li>
             <li>• Si tiene múltiples filas de encabezados, seleccione cuál usar en la vista previa</li>
+            <li>• Si NO tiene encabezados, marque el checkbox abajo y mapee por Columna A, B, C...</li>
           </ul>
+        </div>
+
+        {/* ✅ NUEVO: Checkbox para indicar si NO hay encabezados */}
+        <div className="mb-4 flex items-center gap-3 p-3 bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
+          <input
+            type="checkbox"
+            id="noHeaders"
+            checked={!hasHeaders}
+            onChange={(e) => setHasHeaders(!e.target.checked)}
+            className="w-4 h-4 text-yellow-600"
+          />
+          <label htmlFor="noHeaders" className="text-sm font-medium text-yellow-800 dark:text-yellow-200 cursor-pointer">
+            ⚠️ Los datos NO tienen encabezados (mapear por Columna A, B, C...)
+          </label>
         </div>
       </div>
 
@@ -585,7 +629,7 @@ function InputPhaseV2({ pastedText, setPastedText, onNext, rawData, selectedHead
           className="flex-1 w-full p-4 border border-gray-300 dark:border-gray-600 rounded-lg font-mono text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 min-h-[200px]"
         />
         
-        {showPreview && previewLines.length > 0 && (
+        {showPreview && previewLines.length > 0 && hasHeaders && (
           <div className="mt-4 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
             <h4 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">
               👀 Vista Previa ({previewLines.length} primeras filas de {previewLines.length} detectadas)
@@ -627,12 +671,26 @@ function InputPhaseV2({ pastedText, setPastedText, onNext, rawData, selectedHead
             </div>
           </div>
         )}
+
+        {showPreview && previewLines.length > 0 && !hasHeaders && (
+          <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
+            <h4 className="text-sm font-semibold mb-2 text-yellow-800 dark:text-yellow-200">
+              📊 Modo Sin Encabezados Activado
+            </h4>
+            <p className="text-xs text-yellow-700 dark:text-yellow-300 mb-3">
+              Todas las filas se importarán como datos. Podrá mapear cada columna manualmente como "Columna A", "Columna B", etc.
+            </p>
+            <div className="text-xs text-yellow-600 dark:text-yellow-400 font-mono">
+              {previewLines.length} filas de datos detectadas • {previewLines[0]?.length || 0} columnas
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="mt-6 flex justify-end">
         <button
           onClick={onNext}
-          disabled={!pastedText.trim() || previewLines.length < 2}
+          disabled={!pastedText.trim() || (hasHeaders && previewLines.length < 2)}
           className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-8 py-3 rounded-lg transition-colors font-medium shadow-lg"
         >
           Continuar al Mapeo <ArrowRightIcon className="w-5 h-5 inline ml-2" />
@@ -645,24 +703,30 @@ function InputPhaseV2({ pastedText, setPastedText, onNext, rawData, selectedHead
 // ======================== FASE 2: MAPEO MEJORADO CON PANEL LATERAL ========================
 interface MappingPhaseV2Props {
   rawData: string[][];
+  hasHeaders: boolean;
   selectedHeaderRow: number;
   setSelectedHeaderRow: (row: number) => void;
   columnMappings: ColumnMapping[];
   setColumnMappings: (mappings: ColumnMapping[]) => void;
   globalFields: Partial<Pedido>;
   setGlobalFields: (fields: Partial<Pedido>) => void;
+  clientes: any[];
+  vendedores: any[];
   onNext: () => void;
   onBack: () => void;
 }
 
 function MappingPhaseV2({
   rawData,
+  hasHeaders,
   selectedHeaderRow,
   setSelectedHeaderRow,
   columnMappings,
   setColumnMappings,
   globalFields,
   setGlobalFields,
+  clientes,
+  vendedores,
   onNext,
   onBack
 }: MappingPhaseV2Props) {
@@ -680,17 +744,18 @@ function MappingPhaseV2({
     setColumnMappings(newMappings);
   };
 
-  const headers = rawData[selectedHeaderRow] || [];
-  const previewRows = rawData.slice(selectedHeaderRow + 1, selectedHeaderRow + 4); // Mostrar 3 filas
+  const headers = columnMappings.map(m => m.excelColumn);
+  const dataStartRow = hasHeaders ? selectedHeaderRow + 1 : 0;
+  const previewRows = rawData.slice(dataStartRow, dataStartRow + 3); // Mostrar 3 filas
 
   return (
     <div className="h-full flex">
-      {/* Área principal: Grid de Datos (70%) */}
+      {/* Área principal: Grid de Datos (65%) */}
       <div className="flex-1 flex flex-col p-6 overflow-hidden">
         <div className="mb-4">
           <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-100">🔗 Mapear Columnas del Excel</h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Seleccione qué campo de base de datos corresponde a cada columna del Excel. Los campos con * son obligatorios.
+            Seleccione qué campo de base de datos corresponde a cada columna. Los campos con * son obligatorios.
           </p>
         </div>
 
@@ -738,26 +803,27 @@ function MappingPhaseV2({
         </div>
 
         <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-          📊 Vista previa de {previewRows.length} filas • Total: {rawData.length - selectedHeaderRow - 1} pedidos
+          📊 Vista previa de {previewRows.length} filas • Total: {rawData.length - dataStartRow} pedidos
         </div>
       </div>
 
-      {/* Panel lateral: Valores Globales (30%) */}
-      <div className="w-[380px] bg-gradient-to-b from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-750 border-l border-gray-300 dark:border-gray-600 p-6 overflow-y-auto flex flex-col">
-        <div className="mb-4">
-          <h4 className="font-semibold text-lg mb-2 text-gray-800 dark:text-gray-100">⚙️ Datos para Toda la Importación</h4>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Estos valores se aplicarán a <strong>todos</strong> los pedidos importados (a menos que el Excel especifique otro valor):
+      {/* Panel lateral: Valores Globales COMPLETO (35%) */}
+      <div className="w-[450px] bg-gradient-to-b from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-750 border-l border-gray-300 dark:border-gray-600 p-5 overflow-y-auto flex flex-col">
+        <div className="mb-4 sticky top-0 bg-gradient-to-b from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-750 pb-3 z-10">
+          <h4 className="font-semibold text-lg mb-2 text-gray-800 dark:text-gray-100">⚙️ Valores Globales</h4>
+          <p className="text-xs text-gray-600 dark:text-gray-400">
+            Estos valores se aplican a <strong>todos</strong> los pedidos. Si una columna del Excel tiene datos, ese valor tiene prioridad.
           </p>
         </div>
         
-        <div className="space-y-5 flex-1">
+        <div className="space-y-4 flex-1">
+          {/* Etapa y Prioridad */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">📍 Etapa Inicial:</label>
+            <label className="block text-xs font-medium mb-1.5 text-gray-700 dark:text-gray-300">📍 Etapa Inicial:</label>
             <select
               value={globalFields.etapaActual || Etapa.PREPARACION}
               onChange={(e) => setGlobalFields({ ...globalFields, etapaActual: e.target.value as Etapa })}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
             >
               {GLOBAL_FIELD_OPTIONS.etapaActual.map(etapa => (
                 <option key={etapa} value={etapa}>{etapa}</option>
@@ -766,11 +832,11 @@ function MappingPhaseV2({
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">⚡ Prioridad:</label>
+            <label className="block text-xs font-medium mb-1.5 text-gray-700 dark:text-gray-300">⚡ Prioridad:</label>
             <select
               value={globalFields.prioridad || Prioridad.NORMAL}
               onChange={(e) => setGlobalFields({ ...globalFields, prioridad: e.target.value as Prioridad })}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
             >
               {GLOBAL_FIELD_OPTIONS.prioridad.map(prioridad => (
                 <option key={prioridad} value={prioridad}>{prioridad}</option>
@@ -779,11 +845,11 @@ function MappingPhaseV2({
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">🖨️ Tipo de Impresión:</label>
+            <label className="block text-xs font-medium mb-1.5 text-gray-700 dark:text-gray-300">🖨️ Tipo de Impresión:</label>
             <select
               value={globalFields.tipoImpresion || TipoImpresion.SUPERFICIE}
               onChange={(e) => setGlobalFields({ ...globalFields, tipoImpresion: e.target.value as TipoImpresion })}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
             >
               {GLOBAL_FIELD_OPTIONS.tipoImpresion.map(tipo => (
                 <option key={tipo} value={tipo}>{tipo}</option>
@@ -791,63 +857,281 @@ function MappingPhaseV2({
             </select>
           </div>
 
+          {/* ✅ Máquina con SELECT */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">🏭 Máquina de Impresión:</label>
-            <input
-              type="text"
+            <label className="block text-xs font-medium mb-1.5 text-gray-700 dark:text-gray-300">🏭 Máquina de Impresión:</label>
+            <select
               value={globalFields.maquinaImpresion || ''}
               onChange={(e) => setGlobalFields({ ...globalFields, maquinaImpresion: e.target.value })}
-              placeholder="Ej: WM1, GIAVE, WM3..."
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">-- Seleccionar --</option>
+              {MAQUINAS_IMPRESION.map(maq => (
+                <option key={maq.id} value={maq.id}>{maq.nombre}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Estado Cliché */}
+          <div>
+            <label className="block text-xs font-medium mb-1.5 text-gray-700 dark:text-gray-300">🎨 Estado Cliché:</label>
+            <select
+              value={globalFields.estadoCliché || ''}
+              onChange={(e) => setGlobalFields({ ...globalFields, estadoCliché: e.target.value as EstadoCliché })}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">-- Seleccionar --</option>
+              {GLOBAL_FIELD_OPTIONS.estadoCliché.map(estado => (
+                <option key={estado} value={estado}>{estado}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Cliente con SELECT */}
+          <div>
+            <label className="block text-xs font-medium mb-1.5 text-gray-700 dark:text-gray-300">👤 Cliente (opcional):</label>
+            <select
+              value={globalFields.clienteId || ''}
+              onChange={(e) => {
+                const cliente = clientes.find(c => c.id === e.target.value);
+                setGlobalFields({ 
+                  ...globalFields, 
+                  clienteId: e.target.value,
+                  cliente: cliente?.nombre || ''
+                });
+              }}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">-- Seleccionar --</option>
+              {clientes.map(cliente => (
+                <option key={cliente.id} value={cliente.id}>{cliente.nombre}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Vendedor con SELECT */}
+          <div>
+            <label className="block text-xs font-medium mb-1.5 text-gray-700 dark:text-gray-300">💼 Vendedor (opcional):</label>
+            <select
+              value={globalFields.vendedorId || ''}
+              onChange={(e) => {
+                const vendedor = vendedores.find(v => v.id === e.target.value);
+                setGlobalFields({ 
+                  ...globalFields, 
+                  vendedorId: e.target.value,
+                  vendedorNombre: vendedor?.nombre || ''
+                });
+              }}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">-- Seleccionar --</option>
+              {vendedores.map(vendedor => (
+                <option key={vendedor.id} value={vendedor.id}>{vendedor.nombre}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Producto */}
+          <div>
+            <label className="block text-xs font-medium mb-1.5 text-gray-700 dark:text-gray-300">📦 Producto:</label>
+            <input
+              type="text"
+              value={globalFields.producto || ''}
+              onChange={(e) => setGlobalFields({ ...globalFields, producto: e.target.value })}
+              placeholder="Nombre del producto..."
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
+          {/* Material/Desarrollo */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">📝 Observaciones Generales:</label>
-            <textarea
-              value={globalFields.observaciones || ''}
-              onChange={(e) => setGlobalFields({ ...globalFields, observaciones: e.target.value })}
-              placeholder="Observaciones que se aplicarán a todos los pedidos..."
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 min-h-[80px]"
-              rows={3}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">🔬 Material/Desarrollo:</label>
+            <label className="block text-xs font-medium mb-1.5 text-gray-700 dark:text-gray-300">🔬 Material/Desarrollo:</label>
             <input
               type="text"
               value={globalFields.desarrollo || ''}
               onChange={(e) => setGlobalFields({ ...globalFields, desarrollo: e.target.value })}
               placeholder="Ej: PE, PP, PET..."
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
+          {/* Capa */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">📄 Capa:</label>
+            <label className="block text-xs font-medium mb-1.5 text-gray-700 dark:text-gray-300">📄 Capa:</label>
             <input
               type="text"
               value={globalFields.capa || ''}
               onChange={(e) => setGlobalFields({ ...globalFields, capa: e.target.value })}
               placeholder="Información de capa..."
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
             />
+          </div>
+
+          {/* Observaciones */}
+          <div>
+            <label className="block text-xs font-medium mb-1.5 text-gray-700 dark:text-gray-300">📝 Observaciones:</label>
+            <textarea
+              value={globalFields.observaciones || ''}
+              onChange={(e) => setGlobalFields({ ...globalFields, observaciones: e.target.value })}
+              placeholder="Observaciones generales..."
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 min-h-[60px]"
+              rows={2}
+            />
+          </div>
+
+          {/* Observaciones Rápidas */}
+          <div>
+            <label className="block text-xs font-medium mb-1.5 text-gray-700 dark:text-gray-300">⚡ Observaciones Rápidas:</label>
+            <input
+              type="text"
+              value={globalFields.observacionesRapidas || ''}
+              onChange={(e) => setGlobalFields({ ...globalFields, observacionesRapidas: e.target.value })}
+              placeholder="Tags separados por |"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Bobinas */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-medium mb-1.5 text-gray-700 dark:text-gray-300">🔵 Bobina Madre:</label>
+              <input
+                type="number"
+                value={globalFields.bobinaMadre || ''}
+                onChange={(e) => setGlobalFields({ ...globalFields, bobinaMadre: Number(e.target.value) })}
+                placeholder="mm"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1.5 text-gray-700 dark:text-gray-300">🟢 Bobina Final:</label>
+              <input
+                type="number"
+                value={globalFields.bobinaFinal || ''}
+                onChange={(e) => setGlobalFields({ ...globalFields, bobinaFinal: Number(e.target.value) })}
+                placeholder="mm"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Velocidad y Tiempo */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-medium mb-1.5 text-gray-700 dark:text-gray-300">⚡ Velocidad (m/min):</label>
+              <input
+                type="number"
+                value={globalFields.velocidadPosible || ''}
+                onChange={(e) => setGlobalFields({ ...globalFields, velocidadPosible: Number(e.target.value) })}
+                placeholder="m/min"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1.5 text-gray-700 dark:text-gray-300">⏱️ Tiempo (decimal):</label>
+              <input
+                type="number"
+                step="0.1"
+                value={globalFields.tiempoProduccionDecimal || ''}
+                onChange={(e) => setGlobalFields({ ...globalFields, tiempoProduccionDecimal: Number(e.target.value) })}
+                placeholder="Ej: 1.5"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Colores */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-medium mb-1.5 text-gray-700 dark:text-gray-300">🎨 Nº Colores:</label>
+              <input
+                type="number"
+                value={globalFields.colores || ''}
+                onChange={(e) => setGlobalFields({ ...globalFields, colores: Number(e.target.value) })}
+                placeholder="1-8"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1.5 text-gray-700 dark:text-gray-300">⏰ Min/Color:</label>
+              <input
+                type="number"
+                value={globalFields.minColor || ''}
+                onChange={(e) => setGlobalFields({ ...globalFields, minColor: Number(e.target.value) })}
+                placeholder="minutos"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Camisa */}
+          <div>
+            <label className="block text-xs font-medium mb-1.5 text-gray-700 dark:text-gray-300">🎯 Camisa:</label>
+            <input
+              type="text"
+              value={globalFields.camisa || ''}
+              onChange={(e) => setGlobalFields({ ...globalFields, camisa: e.target.value })}
+              placeholder="Información de camisa..."
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Checkboxes */}
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={globalFields.antivaho || false}
+                onChange={(e) => setGlobalFields({ ...globalFields, antivaho: e.target.checked })}
+                className="w-4 h-4 text-blue-600"
+              />
+              <span className="text-xs text-gray-700 dark:text-gray-300">💨 Antivaho</span>
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={globalFields.microperforado || false}
+                onChange={(e) => setGlobalFields({ ...globalFields, microperforado: e.target.checked })}
+                className="w-4 h-4 text-blue-600"
+              />
+              <span className="text-xs text-gray-700 dark:text-gray-300">🔘 Microperforado</span>
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={globalFields.macroperforado || false}
+                onChange={(e) => setGlobalFields({ ...globalFields, macroperforado: e.target.checked })}
+                className="w-4 h-4 text-blue-600"
+              />
+              <span className="text-xs text-gray-700 dark:text-gray-300">⚫ Macroperforado</span>
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={globalFields.anonimo || false}
+                onChange={(e) => setGlobalFields({ ...globalFields, anonimo: e.target.checked })}
+                className="w-4 h-4 text-blue-600"
+              />
+              <span className="text-xs text-gray-700 dark:text-gray-300">👻 Anónimo</span>
+            </label>
           </div>
         </div>
 
-        <div className="mt-6 pt-4 border-t border-gray-300 dark:border-gray-600 flex gap-3">
+        <div className="mt-5 pt-4 border-t border-gray-300 dark:border-gray-600 flex gap-2">
           <button
             onClick={onBack}
-            className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2.5 rounded-lg transition-colors text-sm font-medium shadow"
+            className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-lg transition-colors text-xs font-medium shadow"
           >
-            <ArrowLeftIcon className="w-4 h-4 inline mr-1" /> Volver
+            <ArrowLeftIcon className="w-3.5 h-3.5 inline mr-1" /> Volver
           </button>
           <button
             onClick={onNext}
-            className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2.5 rounded-lg transition-all text-sm font-medium shadow-lg"
+            className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-3 py-2 rounded-lg transition-all text-xs font-medium shadow-lg"
           >
-            Revisar <ArrowRightIcon className="w-4 h-4 inline ml-1" />
+            Revisar <ArrowRightIcon className="w-3.5 h-3.5 inline ml-1" />
           </button>
         </div>
       </div>
