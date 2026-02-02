@@ -204,6 +204,19 @@ const PdfImportModal: React.FC<PdfImportModalProps> = ({ onClose, onImportComple
   const { vendedores } = useVendedoresManager();
   
   // ========================================================================
+  // BLOQUEAR SCROLL DEL BODY
+  // ========================================================================
+  
+  useEffect(() => {
+    // Bloquear scroll del body cuando el modal está abierto
+    document.body.style.overflow = 'hidden';
+    return () => {
+      // Restaurar scroll al cerrar
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+  
+  // ========================================================================
   // LOAD SAVED CONFIGS
   // ========================================================================
   
@@ -634,7 +647,7 @@ const PdfImportModal: React.FC<PdfImportModalProps> = ({ onClose, onImportComple
   // ========================================================================
   
   const renderUploadPhase = () => (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 overflow-y-auto">
       {/* Config selector */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -992,7 +1005,7 @@ const PdfImportModal: React.FC<PdfImportModalProps> = ({ onClose, onImportComple
   );
   
   const renderPreviewPhase = () => (
-    <div className="p-6 text-center">
+    <div className="p-6 text-center overflow-y-auto">
       {importResult ? (
         <div className="space-y-4">
           <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center">
@@ -1029,8 +1042,8 @@ const PdfImportModal: React.FC<PdfImportModalProps> = ({ onClose, onImportComple
   // ========================================================================
   
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl my-4 flex flex-col max-h-[calc(100vh-2rem)]">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <div className="flex items-center gap-3">
@@ -1070,7 +1083,7 @@ const PdfImportModal: React.FC<PdfImportModalProps> = ({ onClose, onImportComple
         )}
         
         {/* Content */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
           {phase === 'upload' && renderUploadPhase()}
           {phase === 'mapping' && renderMappingPhase()}
           {phase === 'preview' && renderPreviewPhase()}
