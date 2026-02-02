@@ -155,6 +155,7 @@ const AVAILABLE_FIELDS = [
   { value: 'densidad1', label: '⚖️ Densidad Material 1' },
   { value: 'necesario1', label: '✅ Necesario Material 1' },
   { value: 'recibido1', label: '📦 Recibido Material 1' },
+  { value: 'gestionado1', label: '🎯 Gestionado Material 1' },
   
   // Material 2
   { value: 'numeroCompra2', label: '🧾 N° Compra Material 2' },
@@ -162,6 +163,7 @@ const AVAILABLE_FIELDS = [
   { value: 'densidad2', label: '⚖️ Densidad Material 2' },
   { value: 'necesario2', label: '✅ Necesario Material 2' },
   { value: 'recibido2', label: '📦 Recibido Material 2' },
+  { value: 'gestionado2', label: '🎯 Gestionado Material 2' },
   
   // Material 3
   { value: 'numeroCompra3', label: '🧾 N° Compra Material 3' },
@@ -169,6 +171,7 @@ const AVAILABLE_FIELDS = [
   { value: 'densidad3', label: '⚖️ Densidad Material 3' },
   { value: 'necesario3', label: '✅ Necesario Material 3' },
   { value: 'recibido3', label: '📦 Recibido Material 3' },
+  { value: 'gestionado3', label: '🎯 Gestionado Material 3' },
   
   // Material 4
   { value: 'numeroCompra4', label: '🧾 N° Compra Material 4' },
@@ -176,6 +179,7 @@ const AVAILABLE_FIELDS = [
   { value: 'densidad4', label: '⚖️ Densidad Material 4' },
   { value: 'necesario4', label: '✅ Necesario Material 4' },
   { value: 'recibido4', label: '📦 Recibido Material 4' },
+  { value: 'gestionado4', label: '🎯 Gestionado Material 4' },
 ];
 
 // Valores por defecto para campos globales
@@ -589,6 +593,7 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
 
       // 🔄 CONSOLIDAR DATOS DE MULTI-MATERIALES
       // Convertir campos individuales (numeroCompra1, micras1, etc.) en arrays estructurados
+      // ✅ IMPORTANTE: NO eliminar los campos individuales, la tabla de revisión los necesita
       const numerosCompraTemp: string[] = [];
       const materialConsumoTemp: Array<{
         necesario?: number | null;
@@ -604,15 +609,17 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
         const densidadKey = `densidad${i}` as any;
         const necesarioKey = `necesario${i}` as any;
         const recibidoKey = `recibido${i}` as any;
+        const gestionadoKey = `gestionado${i}` as any;
         
         const numeroCompra = (mappedData as any)[numeroCompraKey];
         const micras = (mappedData as any)[micrasKey];
         const densidad = (mappedData as any)[densidadKey];
         const necesario = (mappedData as any)[necesarioKey];
         const recibido = (mappedData as any)[recibidoKey];
+        const gestionado = (mappedData as any)[gestionadoKey];
         
         // Si hay al menos un dato, agregar este material
-        if (numeroCompra || micras || densidad || necesario !== undefined || recibido !== undefined) {
+        if (numeroCompra || micras || densidad || necesario !== undefined || recibido !== undefined || gestionado !== undefined) {
           if (numeroCompra) {
             numerosCompraTemp.push(String(numeroCompra).trim());
           }
@@ -620,17 +627,13 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
           materialConsumoTemp.push({
             necesario: necesario !== undefined ? Number(necesario) : null,
             recibido: recibido !== undefined ? Boolean(recibido) : null,
-            gestionado: null,
+            gestionado: gestionado !== undefined ? Boolean(gestionado) : null,
             micras: micras !== undefined && micras !== null ? Number(micras) : null,
             densidad: densidad !== undefined && densidad !== null ? Number(densidad) : null,
           });
           
-          // Limpiar campos temporales
-          delete (mappedData as any)[numeroCompraKey];
-          delete (mappedData as any)[micrasKey];
-          delete (mappedData as any)[densidadKey];
-          delete (mappedData as any)[necesarioKey];
-          delete (mappedData as any)[recibidoKey];
+          // ✅ MANTENER campos temporales para visualización en tabla de revisión
+          // NO eliminarlos aquí - se consolidarán al momento de importar
         }
       }
       
