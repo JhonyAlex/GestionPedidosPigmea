@@ -401,10 +401,21 @@ export function validateImportRow(row: Record<string, any>): string[] {
   if (!row.fechaEntrega) {
     errors.push('Fecha de entrega es obligatoria');
   } else {
-    // Validar que sea una fecha válida
-    const dateValidation = parseSpanishDate(row.fechaEntrega.toString());
-    if (!dateValidation) {
-      errors.push('Fecha de entrega debe tener un formato válido (ej: 30/may, 15/12/2026)');
+    // Validar que sea una fecha válida (aceptar formato ISO o español)
+    const dateStr = row.fechaEntrega.toString();
+    
+    // Si es formato ISO (YYYY-MM-DD), validar directamente
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) {
+        errors.push('Fecha de entrega debe tener un formato válido');
+      }
+    } else {
+      // Si no es ISO, intentar parsear como formato español
+      const dateValidation = parseSpanishDate(dateStr);
+      if (!dateValidation) {
+        errors.push('Fecha de entrega debe tener un formato válido (ej: 30/may, 15/12/2026, o YYYY-MM-DD)');
+      }
     }
   }
   

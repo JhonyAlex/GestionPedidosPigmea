@@ -635,12 +635,17 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
   const handleCellEdit = useCallback((rowIndex: number, field: string, value: any) => {
     setImportRows(prev => prev.map((row, index) => {
       if (index === rowIndex) {
+        // Actualizar el campo editado
         const updatedMappedData = { ...row.mappedData, [field]: value };
+        
+        // Revalidar con los datos actualizados
         const validationErrors = validateImportRow(updatedMappedData).map(error => ({
           field: 'general',
           message: error,
           severity: 'error' as const
         }));
+        
+        console.log(`✏️ Campo editado: ${field} = ${value}, Errores: ${validationErrors.length}`);
         
         return {
           ...row,
@@ -1827,7 +1832,11 @@ function ImportingPhaseV2({
                 
                 {/* Información de cliché */}
                 <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">Estado Cliché</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[150px]">Info Cliché</th>
                 <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px]">Camisa</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">Material Disp.</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">Cliché Disp.</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">Horas Confirm.</th>
                 
                 {/* Medidas y tiempos */}
                 <th className="px-3 py-2 text-left uppercase font-medium min-w-[100px]">Velocidad (m/min)</th>
@@ -1850,9 +1859,12 @@ function ImportingPhaseV2({
                 
                 {/* Checkboxes */}
                 <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px]">Antivaho</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">Antivaho Real.</th>
                 <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">Microperf.</th>
                 <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">Macroperf.</th>
                 <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px]">Anónimo</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[130px]">Post-Impresión Anon.</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">⚠️ Aten. Obs.</th>
                 
                 {/* Acciones */}
                 <th className="px-2 py-2 text-center w-16 sticky right-0 bg-gray-200 dark:bg-gray-700 z-20">Copiar</th>
@@ -1904,27 +1916,6 @@ function ImportingPhaseV2({
                   );
                 };
 
-                // Helper para celdas de solo lectura (seleccionables)
-                const ReadOnlyCell = ({ field, maxWidth = '100px', fromGlobal = false }: { field: string; maxWidth?: string; fromGlobal?: boolean }) => {
-                  const value = fromGlobal 
-                    ? (row.mappedData[field as keyof typeof row.mappedData] || globalFields[field as keyof typeof globalFields])
-                    : row.mappedData[field as keyof typeof row.mappedData];
-                  
-                  // Convertir valor a string seguro
-                  const displayValue = value != null && typeof value !== 'object' ? String(value) : '';
-                  
-                  return (
-                    <td 
-                      className="px-3 py-2 cursor-pointer"
-                      onClick={() => !isExcluded && toggleRowSelection(index)}
-                    >
-                      <div className="truncate" style={{ maxWidth }} title={displayValue}>
-                        {displayValue || '-'}
-                      </div>
-                    </td>
-                  );
-                };
-
                 // Helper para checkboxes
                 const CheckboxCell = ({ field }: { field: string }) => {
                   const value = row.mappedData[field as keyof typeof row.mappedData];
@@ -1944,6 +1935,54 @@ function ImportingPhaseV2({
                         disabled={isExcluded}
                         className="w-4 h-4 pointer-events-none"
                       />
+                    </td>
+                  );
+                };
+
+                // Helper para selects (campos con opciones limitadas)
+                const SelectCell = ({ field, options, maxWidth = '110px' }: { field: string; options: readonly string[] | readonly { id: string; nombre: string }[]; maxWidth?: string }) => {
+                  const value = row.mappedData[field as keyof typeof row.mappedData];
+                  const isEditing = editingCell?.row === index && editingCell.field === field;
+                  const displayValue = value != null ? String(value) : '';
+                  
+                  // Detectar si las opciones son objetos o strings
+                  const isObjectOptions = options.length > 0 && typeof options[0] === 'object';
+                  
+                  return (
+                    <td 
+                      className="px-3 py-2"
+                      onClick={() => !isExcluded && setEditingCell({ row: index, field })}
+                    >
+                      {isEditing ? (
+                        <select
+                          value={displayValue}
+                          onChange={(e) => {
+                            onCellEdit(index, field, e.target.value);
+                            setEditingCell(null);
+                          }}
+                          onBlur={() => setEditingCell(null)}
+                          autoFocus
+                          className="w-full border border-blue-500 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-700"
+                        >
+                          <option value="">-- Seleccionar --</option>
+                          {isObjectOptions 
+                            ? (options as readonly { id: string; nombre: string }[]).map(opt => (
+                                <option key={opt.id} value={opt.id}>{opt.nombre}</option>
+                              ))
+                            : (options as readonly string[]).map(opt => (
+                                <option key={opt} value={opt}>{opt}</option>
+                              ))
+                          }
+                        </select>
+                      ) : (
+                        <div 
+                          className="truncate cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 px-1 py-0.5 rounded"
+                          style={{ maxWidth }}
+                          title={displayValue}
+                        >
+                          {displayValue || '-'}
+                        </div>
+                      )}
                     </td>
                   );
                 };
@@ -2015,15 +2054,15 @@ function ImportingPhaseV2({
                     <EditableCell field="producto" maxWidth="110px" />
                     <EditableCell field="desarrollo" maxWidth="100px" />
                     <EditableCell field="capa" maxWidth="90px" />
-                    <ReadOnlyCell field="maquinaImpresion" maxWidth="110px" fromGlobal={true} />
+                    <SelectCell field="maquinaImpresion" options={MAQUINAS_IMPRESION} maxWidth="110px" />
 
                     {/* ============ WORKFLOW ============ */}
-                    <ReadOnlyCell field="etapaActual" maxWidth="110px" fromGlobal={true} />
-                    <ReadOnlyCell field="prioridad" maxWidth="90px" fromGlobal={true} />
-                    <ReadOnlyCell field="tipoImpresion" maxWidth="130px" fromGlobal={true} />
+                    <SelectCell field="etapaActual" options={GLOBAL_FIELD_OPTIONS.etapaActual} maxWidth="110px" />
+                    <SelectCell field="prioridad" options={GLOBAL_FIELD_OPTIONS.prioridad} maxWidth="90px" />
+                    <SelectCell field="tipoImpresion" options={GLOBAL_FIELD_OPTIONS.tipoImpresion} maxWidth="130px" />
 
                     {/* ============ PERSONAS ============ */}
-                    <ReadOnlyCell field="vendedorNombre" maxWidth="110px" />
+                    <EditableCell field="vendedorNombre" maxWidth="110px" />
 
                     {/* ============ FECHAS ADICIONALES ============ */}
                     <EditableCell field="fechaCreacion" type="date" maxWidth="110px" />
@@ -2032,8 +2071,12 @@ function ImportingPhaseV2({
                     <EditableCell field="recepcionCliche" type="date" maxWidth="110px" />
 
                     {/* ============ CLICHÉ ============ */}
-                    <ReadOnlyCell field="estadoCliché" maxWidth="110px" fromGlobal={true} />
+                    <SelectCell field="estadoCliché" options={GLOBAL_FIELD_OPTIONS.estadoCliché} maxWidth="110px" />
+                    <EditableCell field="clicheInfoAdicional" maxWidth="150px" />
                     <EditableCell field="camisa" maxWidth="90px" />
+                    <CheckboxCell field="materialDisponible" />
+                    <CheckboxCell field="clicheDisponible" />
+                    <CheckboxCell field="horasConfirmadas" />
 
                     {/* ============ MEDIDAS Y TIEMPOS ============ */}
                     <EditableCell field="velocidadPosible" type="number" maxWidth="100px" />
@@ -2090,9 +2133,12 @@ function ImportingPhaseV2({
 
                     {/* ============ CHECKBOXES ============ */}
                     <CheckboxCell field="antivaho" />
+                    <CheckboxCell field="antivahoRealizado" />
                     <CheckboxCell field="microperforado" />
                     <CheckboxCell field="macroperforado" />
                     <CheckboxCell field="anonimo" />
+                    <EditableCell field="anonimoPostImpresion" maxWidth="130px" />
+                    <CheckboxCell field="atencionObservaciones" />
 
                     {/* ============ COPIAR ============ */}
                     <td className="px-2 py-2 text-center sticky right-0 bg-inherit z-10">
@@ -2359,6 +2405,132 @@ function ImportingPhaseV2({
             </div>
           </div>
 
+          {/* ====== SECCIÓN: FECHAS ====== */}
+          <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
+            <h5 className="text-xs font-bold mb-2 text-gray-700 dark:text-gray-300 uppercase">📅 Fechas</h5>
+            
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">🕐 F. Creación:</label>
+                  <input
+                    type="date"
+                    value={globalFields.fechaCreacion?.split('T')[0] || ''}
+                    onChange={(e) => setGlobalFields({ ...globalFields, fechaCreacion: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">📆 Nueva F. Entrega:</label>
+                  <input
+                    type="date"
+                    value={globalFields.nuevaFechaEntrega || ''}
+                    onChange={(e) => setGlobalFields({ ...globalFields, nuevaFechaEntrega: e.target.value })}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">🛒 F. Compra Cliché:</label>
+                  <input
+                    type="date"
+                    value={globalFields.compraCliche || ''}
+                    onChange={(e) => setGlobalFields({ ...globalFields, compraCliche: e.target.value })}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">📥 F. Recep. Cliché:</label>
+                  <input
+                    type="date"
+                    value={globalFields.recepcionCliche || ''}
+                    onChange={(e) => setGlobalFields({ ...globalFields, recepcionCliche: e.target.value })}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ====== SECCIÓN: CLICHÉ Y PREPARACIÓN ====== */}
+          <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
+            <h5 className="text-xs font-bold mb-2 text-gray-700 dark:text-gray-300 uppercase">🎨 Cliché y Preparación</h5>
+            
+            <div className="space-y-2">
+              {/* Estado Cliché */}
+              <div>
+                <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">Estado Cliché:</label>
+                <select
+                  value={globalFields.estadoCliché || ''}
+                  onChange={(e) => setGlobalFields({ ...globalFields, estadoCliché: e.target.value as EstadoCliché })}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="">-- Seleccionar --</option>
+                  {GLOBAL_FIELD_OPTIONS.estadoCliché.map(estado => (
+                    <option key={estado} value={estado}>{estado}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Info Adicional Cliché */}
+              <div>
+                <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">ℹ️ Info Adicional:</label>
+                <input
+                  type="text"
+                  value={globalFields.clicheInfoAdicional || ''}
+                  onChange={(e) => setGlobalFields({ ...globalFields, clicheInfoAdicional: e.target.value })}
+                  placeholder="Info adicional del cliché..."
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
+              </div>
+
+              {/* Camisa */}
+              <div>
+                <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">🎯 Camisa:</label>
+                <input
+                  type="text"
+                  value={globalFields.camisa || ''}
+                  onChange={(e) => setGlobalFields({ ...globalFields, camisa: e.target.value })}
+                  placeholder="Información de camisa..."
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
+              </div>
+
+              {/* Checkboxes de preparación */}
+              <div className="space-y-1.5 pt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={globalFields.materialDisponible || false}
+                    onChange={(e) => setGlobalFields({ ...globalFields, materialDisponible: e.target.checked })}
+                    className="w-3.5 h-3.5 text-blue-600"
+                  />
+                  <span className="text-xs text-gray-700 dark:text-gray-300">📦 Material Disponible</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={globalFields.clicheDisponible || false}
+                    onChange={(e) => setGlobalFields({ ...globalFields, clicheDisponible: e.target.checked })}
+                    className="w-3.5 h-3.5 text-blue-600"
+                  />
+                  <span className="text-xs text-gray-700 dark:text-gray-300">🎨 Cliché Disponible</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={globalFields.horasConfirmadas || false}
+                    onChange={(e) => setGlobalFields({ ...globalFields, horasConfirmadas: e.target.checked })}
+                    className="w-3.5 h-3.5 text-blue-600"
+                  />
+                  <span className="text-xs text-gray-700 dark:text-gray-300">⏰ Horas Confirmadas</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
           {/* Observaciones */}
           <div>
             <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">📝 Observaciones:</label>
@@ -2457,7 +2629,7 @@ function ImportingPhaseV2({
             </div>
           </div>
 
-          {/* Checkboxes */}
+          {/* Checkboxes - Post-impresión y Especiales */}
           <div className="space-y-1.5 pt-2">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -2467,6 +2639,15 @@ function ImportingPhaseV2({
                 className="w-3.5 h-3.5 text-blue-600"
               />
               <span className="text-xs text-gray-700 dark:text-gray-300">💨 Antivaho</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={globalFields.antivahoRealizado || false}
+                onChange={(e) => setGlobalFields({ ...globalFields, antivahoRealizado: e.target.checked })}
+                className="w-3.5 h-3.5 text-blue-600"
+              />
+              <span className="text-xs text-gray-700 dark:text-gray-300">✅ Antivaho Realizado</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -2486,6 +2667,36 @@ function ImportingPhaseV2({
               />
               <span className="text-xs text-gray-700 dark:text-gray-300">⚫ Macroperforado</span>
             </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={globalFields.anonimo || false}
+                onChange={(e) => setGlobalFields({ ...globalFields, anonimo: e.target.checked })}
+                className="w-3.5 h-3.5 text-blue-600"
+              />
+              <span className="text-xs text-gray-700 dark:text-gray-300">👤 Anónimo</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={globalFields.atencionObservaciones || false}
+                onChange={(e) => setGlobalFields({ ...globalFields, atencionObservaciones: e.target.checked })}
+                className="w-3.5 h-3.5 text-blue-600"
+              />
+              <span className="text-xs text-gray-700 dark:text-gray-300">⚠️ Atención Observaciones</span>
+            </label>
+          </div>
+
+          {/* Campo de Post-Impresión para Anónimos */}
+          <div className="mt-2">
+            <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">📋 Post-Impresión Anónimo:</label>
+            <input
+              type="text"
+              value={globalFields.anonimoPostImpresion || ''}
+              onChange={(e) => setGlobalFields({ ...globalFields, anonimoPostImpresion: e.target.value })}
+              placeholder="Tipo de post-impresión para anónimos..."
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            />
           </div>
         </div>
 
