@@ -66,25 +66,58 @@ const getAuthHeaders = (): Record<string, string> => {
   return { 'Content-Type': 'application/json' };
 };
 
-// Campos del sistema disponibles para mapeo
+// Campos del sistema disponibles para mapeo (basados en el tipo Pedido real)
 const SYSTEM_FIELDS = [
   { value: 'ignore', label: '-- Ignorar --' },
-  { value: 'numeroPedidoCliente', label: '🔢 Número de Pedido *', required: true },
+  
+  // ========== CAMPOS OBLIGATORIOS ==========
+  { value: 'numeroPedidoCliente', label: '🔢 Número de Pedido Cliente *', required: true },
   { value: 'cliente', label: '👤 Cliente *', required: true },
   { value: 'fechaEntrega', label: '📅 Fecha de Entrega *', required: true },
   { value: 'metros', label: '📏 Metros *', required: true },
-  { value: 'ancho', label: '↔️ Ancho' },
-  { value: 'nombreProducto', label: '📦 Nombre Producto' },
-  { value: 'observaciones', label: '📝 Observaciones' },
-  { value: 'vendedor', label: '💼 Vendedor' },
+  
+  // ========== INFORMACIÓN BÁSICA ==========
+  { value: 'maquinaImpresion', label: '🖨️ Máquina de Impresión' },
   { value: 'prioridad', label: '⚡ Prioridad' },
-  { value: 'tipoImpresion', label: '🖨️ Tipo Impresión' },
-  { value: 'numeroColores', label: '🎨 Número Colores' },
-  { value: 'tratado', label: '✅ Tratado' },
-  { value: 'solapa', label: '📐 Solapa' },
-  { value: 'fuelle', label: '📦 Fuelle' },
-  { value: 'confeccion', label: '🧵 Confección' },
-  { value: 'perforado', label: '🔘 Perforado' },
+  { value: 'tipoImpresion', label: '🎨 Tipo de Impresión' },
+  { value: 'desarrollo', label: '📐 Desarrollo' },
+  { value: 'capa', label: '📑 Capa' },
+  { value: 'producto', label: '📦 Producto' },
+  { value: 'observaciones', label: '📝 Observaciones' },
+  { value: 'observacionesMaterial', label: '📝 Observaciones Material' },
+  { value: 'observacionesRapidas', label: '⚡ Observaciones Rápidas' },
+  
+  // ========== VENDEDOR ==========
+  { value: 'vendedorNombre', label: '💼 Vendedor' },
+  
+  // ========== FECHAS ==========
+  { value: 'nuevaFechaEntrega', label: '📅 Nueva Fecha Entrega' },
+  { value: 'compraCliche', label: '📅 Compra Cliché' },
+  { value: 'recepcionCliche', label: '📅 Recepción Cliché' },
+  
+  // ========== MATERIAL Y PREPARACIÓN ==========
+  { value: 'estadoCliché', label: '🔧 Estado Cliché' },
+  { value: 'clicheInfoAdicional', label: 'ℹ️ Info Adicional Cliché' },
+  { value: 'camisa', label: '👔 Camisa' },
+  
+  // ========== CARACTERÍSTICAS ESPECIALES ==========
+  { value: 'antivaho', label: '💧 Antivaho' },
+  { value: 'antivahoRealizado', label: '✅ Antivaho Realizado' },
+  { value: 'anonimoPostImpresion', label: '🎭 Anónimo Post-Impresión' },
+  { value: 'microperforado', label: '🔘 Microperforado' },
+  { value: 'macroperforado', label: '⚫ Macroperforado' },
+  { value: 'anonimo', label: '🎭 Anónimo' },
+  
+  // ========== BOBINAS ==========
+  { value: 'bobinaMadre', label: '⭕ Bobina Madre (mm)' },
+  { value: 'bobinaFinal', label: '⚪ Bobina Final (mm)' },
+  
+  // ========== PRODUCCIÓN ==========
+  { value: 'velocidadPosible', label: '⚡ Velocidad Posible (m/min)' },
+  { value: 'tiempoProduccionDecimal', label: '⏱️ Tiempo Producción (decimal)' },
+  { value: 'colores', label: '🎨 Número de Colores' },
+  { value: 'minAdap', label: '⏰ Minutos Adaptación' },
+  { value: 'minColor', label: '⏰ Minutos por Color' },
 ];
 
 // ============================================================================
