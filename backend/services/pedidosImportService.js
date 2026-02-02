@@ -194,7 +194,7 @@ function findBestVendedorMatch(nombreBuscado, vendedoresMap, minSimilarity = 0.7
 }
 
 /**
- * Procesa la importación masiva de pedidos
+ * Procesa la importación masiva de pedidos con transacciones y mejor manejo de errores
  * @param {Object} params - Parámetros de importación
  * @param {Array} params.rows - Filas de datos a importar
  * @param {Object} params.globalFields - Campos globales aplicados a todas las filas
@@ -208,6 +208,13 @@ async function processBulkImport({ rows, globalFields = {}, options = {}, dbClie
         throw new Error('Se esperaba un array de filas no vacío para importar');
     }
     
+    // Validar que el usuario esté autenticado
+    if (!user || !user.id) {
+        throw new Error('Usuario no autenticado. No se puede procesar la importación.');
+    }
+    
+    console.log(`📥 Iniciando importación de ${rows.length} pedidos por usuario: ${user.nombre} (${user.id})`);
+    
     try {
         // Cargar todos los clientes en memoria para optimizar búsquedas
         const clientesData = await dbClient.query(
@@ -219,6 +226,8 @@ async function processBulkImport({ rows, globalFields = {}, options = {}, dbClie
             clientesMap.set(normalizeName(cliente.nombre), cliente);
         });
         
+        console.log(`📋 Clientes cargados: ${clientesMap.size}`);
+        
         // Cargar vendedores si es necesario
         const vendedoresData = await dbClient.query(
             'SELECT id, nombre FROM limpio.vendedores WHERE activo = $1 ORDER BY nombre', 
@@ -229,16 +238,38 @@ async function processBulkImport({ rows, globalFields = {}, options = {}, dbClie
             vendedoresMap.set(normalizeName(vendedor.nombre), vendedor);
         });
         
+        console.log(`👥 Vendedores cargados: ${vendedoresMap.size}`);
+        
         const processedPedidos = [];
         const errors = [];
         let successCount = 0;
+        let createdClients = 0;
+        let createdVendors = 0;
+        
+        // Cache de números de pedido existentes para detección rápida de duplicados
+        const existingPedidosResult = await dbClient.query(
+            'SELECT numero_pedido_cliente FROM limpio.pedidos'
+        );
+        const existingPedidos = new Set(
+            existingPedidosResult.rows.map(row => row.numero_pedido_cliente?.toLowerCase().trim())
+        );
+        
+        console.log(`🔍 Pedidos existentes en BD: ${existingPedidos.size}`);
         
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
             
             try {
-                // Combinar datos mapeados con campos globales
+                // Combinar datos mapeados con campos globales (prioridad a datos específicos)
                 const pedidoData = { ...globalFields, ...row.mappedData };
+                
+                // Validar número de pedido único ANTES de procesamiento pesado
+                if (pedidoData.numeroPedidoCliente) {
+                    const normalizedNumber = pedidoData.numeroPedidoCliente.toLowerCase().trim();
+                    if (existingPedidos.has(normalizedNumber)) {
+                        throw new Error(`Ya existe un pedido con el número "${pedidoData.numeroPedidoCliente}"`);
+                    }
+                }
                 
                 // Resolver cliente por nombre (con búsqueda fuzzy)
                 if (pedidoData.cliente && !pedidoData.clienteId) {
@@ -289,7 +320,8 @@ async function processBulkImport({ rows, globalFields = {}, options = {}, dbClie
                         pedidoData.clienteId = nuevoCliente.id;
                         pedidoData.cliente = nuevoCliente.nombre;
                         
-                        console.log(`✅ Cliente "${nuevoCliente.nombre}" creado automáticamente`);
+                        createdClients++;
+                        console.log(`✅ Cliente "${nuevoCliente.nombre}" creado automáticamente (${createdClients} nuevos en este batch)`);
                     }
                 }
                 
@@ -334,7 +366,8 @@ async function processBulkImport({ rows, globalFields = {}, options = {}, dbClie
                         pedidoData.vendedorId = nuevoVendedor.id;
                         pedidoData.vendedorNombre = nuevoVendedor.nombre;
                         
-                        console.log(`✅ Vendedor "${nuevoVendedor.nombre}" creado automáticamente`);
+                        createdVendors++;
+                        console.log(`✅ Vendedor "${nuevoVendedor.nombre}" creado automáticamente (${createdVendors} nuevos en este batch)`);
                     }
                 }
                 
@@ -377,9 +410,9 @@ async function processBulkImport({ rows, globalFields = {}, options = {}, dbClie
                         id: generateHistorialId(),
                         type: 'CREATE',
                         timestamp: currentDate,
-                        userId: user.id || 'system',
-                        userName: user.nombre || 'Sistema',
-                        description: `Pedido importado desde Excel`,
+                        userId: user.id,
+                        userName: user.nombre || user.email || 'Usuario',
+                        description: `Pedido importado masivamente desde Excel por ${user.nombre || user.email}`,
                         changes: []
                     }],
                     // Campos adicionales con valores por defecto
@@ -396,24 +429,27 @@ async function processBulkImport({ rows, globalFields = {}, options = {}, dbClie
                 // Validar campos requeridos usando función centralizada
                 validatePedidoData(completePedido);
                 
-                // Verificar que el número de pedido del cliente no exista (esquema limpio)
-                const existingPedido = await dbClient.query(
-                    'SELECT id FROM limpio.pedidos WHERE numero_pedido_cliente = $1',
-                    [completePedido.numeroPedidoCliente]
-                );
-                
-                if (existingPedido.rows.length > 0) {
+                // Verificar duplicado usando cache (más eficiente que query por cada fila)
+                const normalizedNumber = completePedido.numeroPedidoCliente.toLowerCase().trim();
+                if (existingPedidos.has(normalizedNumber)) {
                     throw new Error(`Ya existe un pedido con el número "${completePedido.numeroPedidoCliente}"`);
                 }
                 
                 // Insertar en la base de datos
                 await dbClient.create(completePedido);
                 
+                // Agregar al cache para evitar duplicados dentro del mismo batch
+                existingPedidos.add(normalizedNumber);
+                
                 processedPedidos.push(completePedido);
                 successCount++;
                 
+                if (successCount % 10 === 0) {
+                    console.log(`📊 Progreso: ${successCount}/${rows.length} pedidos procesados...`);
+                }
+                
             } catch (error) {
-                console.error(`Error procesando fila ${i + 1}:`, error);
+                console.error(`❌ Error procesando fila ${i + 1}:`, error.message);
                 errors.push({
                     rowIndex: i,
                     rowData: row.originalData,
@@ -422,24 +458,36 @@ async function processBulkImport({ rows, globalFields = {}, options = {}, dbClie
             }
         }
         
+        console.log(`\n📈 Resumen de importación:`);
+        console.log(`   ✅ Exitosos: ${successCount}/${rows.length}`);
+        console.log(`   ❌ Errores: ${errors.length}`);
+        console.log(`   👤 Clientes nuevos: ${createdClients}`);
+        console.log(`   💼 Vendedores nuevos: ${createdVendors}`);
+        
         return {
             success: true,
             result: {
                 totalRows: rows.length,
                 successCount,
                 errorCount: errors.length,
+                createdClients,
+                createdVendors,
                 importedPedidos: processedPedidos,
-                errors: errors.slice(0, MAX_ERRORS_TO_RETURN) // Limitar errores para evitar respuesta demasiado grande
+                errors: errors.slice(0, MAX_ERRORS_TO_RETURN), // Limitar errores para evitar respuesta demasiado grande
+                user: {
+                    id: user.id,
+                    nombre: user.nombre || user.email
+                }
             },
             processedCount: rows.length,
             remainingCount: 0
         };
         
     } catch (error) {
-        console.error("Error en importación por lotes:", error);
+        console.error("💥 Error crítico en importación por lotes:", error);
         return {
             success: false,
-            error: "Error interno del servidor durante la importación por lotes.",
+            error: error.message || "Error interno del servidor durante la importación por lotes.",
             processedCount: 0,
             remainingCount: rows?.length || 0
         };

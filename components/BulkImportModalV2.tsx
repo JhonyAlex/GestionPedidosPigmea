@@ -157,6 +157,7 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
   
   // Estados de importación
   const [importRows, setImportRows] = useState<ImportRow[]>([]);
+  const [excludedRows, setExcludedRows] = useState<Set<number>>(new Set()); // ✅ Filas excluidas de importación
   const [importProgress, setImportProgress] = useState(0);
   const [isImporting, setIsImporting] = useState(false);
   const [importResults, setImportResults] = useState<any>(null);
@@ -267,6 +268,14 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
     const dataStartRow = hasHeaders ? selectedHeaderRow + 1 : 0;
     const dataRows = rawData.slice(dataStartRow);
     
+    // Validar que haya datos para importar
+    if (dataRows.length === 0) {
+      alert('No hay datos para importar. Verifique que haya filas después de los encabezados.');
+      return;
+    }
+    
+    console.log(`📊 Procesando ${dataRows.length} filas de datos...`);
+    
     // ✅ Headers pueden ser los reales o los genéricos (Columna A, B, C...)
     const headers = columnMappings.map(m => m.excelColumn);
     
@@ -356,17 +365,42 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
   const executeImport = useCallback(async () => {
     if (isImporting) return;
     
+    // Validación previa
+    const validRows = importRows.filter((row, index) => 
+      row.validationErrors.length === 0 && !excludedRows.has(index)
+    );
+    
+    if (validRows.length === 0) {
+      alert('No hay pedidos válidos para importar. Verifique los errores y vuelva a intentar.');
+      return;
+    }
+    
+    // Confirmar importación
+    const confirmMsg = `¿Está seguro de importar ${validRows.length} pedido${validRows.length === 1 ? '' : 's'}?\n\n` +
+      `✅ Válidos: ${validRows.length}\n` +
+      `${excludedRows.size > 0 ? `🚫 Excluidos: ${excludedRows.size}\n` : ''}` +
+      `${importRows.length - validRows.length - excludedRows.size > 0 ? `❌ Con errores: ${importRows.length - validRows.length - excludedRows.size}` : ''}`;
+    
+    if (!confirm(confirmMsg)) {
+      return;
+    }
+    
+    console.log(`🚀 Iniciando importación de ${validRows.length} pedidos...`);
     setIsImporting(true);
     setImportProgress(0);
     
     try {
-      const validRows = importRows.filter(row => row.validationErrors.length === 0);
-      const batchSize = 50;
+      const batchSize = 50; // Procesar en lotes de 50 para no saturar
       let processedCount = 0;
       const results = [];
+      const startTime = Date.now();
       
       for (let i = 0; i < validRows.length; i += batchSize) {
         const batch = validRows.slice(i, i + batchSize);
+        const batchNumber = Math.floor(i / batchSize) + 1;
+        const totalBatches = Math.ceil(validRows.length / batchSize);
+        
+        console.log(`📦 Procesando lote ${batchNumber}/${totalBatches} (${batch.length} pedidos)...`);
         
         const batchRequest: ImportBatchRequest = {
           rows: batch,
@@ -382,27 +416,55 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
           body: JSON.stringify(batchRequest)
         });
         
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`❌ Error en lote ${batchNumber}:`, errorText);
+          throw new Error(`Error en lote ${batchNumber}: ${errorText}`);
+        }
+        
         const result = await response.json();
         results.push(result);
         
         processedCount += batch.length;
-        setImportProgress((processedCount / validRows.length) * 100);
+        const progress = (processedCount / validRows.length) * 100;
+        setImportProgress(progress);
         
-        if (!response.ok) {
-          throw new Error(result.error || 'Error en el servidor');
+        console.log(`✅ Lote ${batchNumber}/${totalBatches} completado. Progreso: ${progress.toFixed(1)}%`);
+        
+        // Pequeña pausa entre lotes para no saturar el servidor
+        if (i + batchSize < validRows.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
       
-      setImportResults(results);
+      const endTime = Date.now();
+      const duration = ((endTime - startTime) / 1000).toFixed(1);
+      
+      // Consolidar resultados
+      const totalImported = results.reduce((sum, r) => sum + (r.result?.successCount || 0), 0);
+      const totalErrors = results.reduce((sum, r) => sum + (r.result?.errorCount || 0), 0);
+      
+      console.log(`✅ Importación completada en ${duration}s`);
+      console.log(`   📊 Importados: ${totalImported}`);
+      console.log(`   ❌ Errores: ${totalErrors}`);
+      
+      setImportResults({
+        ...results[0],
+        totalImported,
+        totalErrors,
+        duration
+      });
       onImportComplete?.(results);
       
     } catch (error) {
-      console.error('Error durante la importación:', error);
-      alert(`Error durante la importación: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      console.error('❌ Error durante la importación:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Error desconocido';
+      alert(`Error durante la importación:\n\n${errorMsg}\n\nRevise la consola para más detalles.`);
     } finally {
       setIsImporting(false);
+      setImportProgress(0);
     }
-  }, [importRows, globalFields, isImporting, onImportComplete]);
+  }, [importRows, excludedRows, globalFields, isImporting, onImportComplete]);
 
   // Editar valor de celda individual
   const handleCellEdit = useCallback((rowIndex: number, field: string, value: any) => {
@@ -545,9 +607,14 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
               onImport={executeImport}
               onBack={() => setCurrentPhase('mapping')}
               isImporting={isImporting}
+              importProgress={importProgress}
               importResults={importResults}
               globalFields={globalFields}
               setGlobalFields={setGlobalFields}
+              clientes={clientes}
+              vendedores={vendedores}
+              excludedRows={excludedRows}
+              setExcludedRows={setExcludedRows}
             />
           )}
         </div>
@@ -1148,9 +1215,14 @@ interface ImportingPhaseV2Props {
   onImport: () => void;
   onBack: () => void;
   isImporting: boolean;
+  importProgress: number;
   importResults: any;
   globalFields: Partial<Pedido>;
   setGlobalFields: (fields: Partial<Pedido>) => void;
+  clientes: any[];
+  vendedores: any[];
+  excludedRows: Set<number>;
+  setExcludedRows: (rows: Set<number>) => void;
 }
 
 function ImportingPhaseV2({
@@ -1161,9 +1233,14 @@ function ImportingPhaseV2({
   onImport,
   onBack,
   isImporting,
+  importProgress,
   importResults,
   globalFields,
-  setGlobalFields
+  setGlobalFields,
+  clientes,
+  vendedores,
+  excludedRows,
+  setExcludedRows
 }: ImportingPhaseV2Props) {
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [editingCell, setEditingCell] = useState<{ row: number; field: string } | null>(null);
@@ -1178,6 +1255,16 @@ function ImportingPhaseV2({
     setSelectedRows(newSelection);
   };
 
+  const toggleRowExclusion = (rowIndex: number) => {
+    const newExclusion = new Set(excludedRows);
+    if (newExclusion.has(rowIndex)) {
+      newExclusion.delete(rowIndex);
+    } else {
+      newExclusion.add(rowIndex);
+    }
+    setExcludedRows(newExclusion);
+  };
+
   const handleCopyFromRow = (sourceRow: number) => {
     if (selectedRows.size === 0) {
       alert('Seleccione al menos una fila destino para copiar.');
@@ -1187,15 +1274,75 @@ function ImportingPhaseV2({
     setSelectedRows(new Set());
   };
 
+  // ✅ Aplicar valores globales solo a filas seleccionadas
+  const applyGlobalToSelected = () => {
+    if (selectedRows.size === 0) {
+      alert('Seleccione al menos una fila para aplicar los valores globales.');
+      return;
+    }
+
+    selectedRows.forEach(rowIndex => {
+      // Aplicar todos los campos globales que tengan valor
+      Object.entries(globalFields).forEach(([field, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          onCellEdit(rowIndex, field, value);
+        }
+      });
+    });
+
+    setSelectedRows(new Set());
+    alert(`Valores globales aplicados a ${selectedRows.size} filas.`);
+  };
+
+  const activeRows = importRows.filter((_, index) => !excludedRows.has(index));
+  const activeValidCount = activeRows.filter(row => row.validationErrors.length === 0).length;
+
   if (importResults) {
+    const stats = importResults.result || importResults;
+    const totalImported = importResults.totalImported || stats.successCount || 0;
+    const duration = importResults.duration || 0;
+    
     return (
       <div className="p-6 h-full flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-900">
-        <div className="text-center max-w-lg bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl">
+        <div className="text-center max-w-2xl bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl">
           <div className="text-7xl mb-4 animate-bounce">✅</div>
           <h3 className="text-3xl font-bold text-green-600 dark:text-green-400 mb-3">¡Importación Completada!</h3>
-          <p className="text-gray-600 dark:text-gray-300 mb-6 text-lg">
-            Se procesaron <strong className="text-green-600 dark:text-green-400">{validationStats.valid}</strong> pedidos correctamente.
-          </p>
+          
+          {/* Estadísticas detalladas */}
+          <div className="grid grid-cols-2 gap-4 my-6 text-left">
+            <div className="bg-green-50 dark:bg-green-900 dark:bg-opacity-20 p-4 rounded-lg">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Pedidos Importados</div>
+              <div className="text-3xl font-bold text-green-600 dark:text-green-400">{totalImported}</div>
+            </div>
+            
+            {stats.errorCount > 0 && (
+              <div className="bg-red-50 dark:bg-red-900 dark:bg-opacity-20 p-4 rounded-lg">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Con Errores</div>
+                <div className="text-3xl font-bold text-red-600 dark:text-red-400">{stats.errorCount}</div>
+              </div>
+            )}
+            
+            {stats.createdClients > 0 && (
+              <div className="bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20 p-4 rounded-lg">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Clientes Nuevos</div>
+                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stats.createdClients}</div>
+              </div>
+            )}
+            
+            {stats.createdVendors > 0 && (
+              <div className="bg-purple-50 dark:bg-purple-900 dark:bg-opacity-20 p-4 rounded-lg">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Vendedores Nuevos</div>
+                <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{stats.createdVendors}</div>
+              </div>
+            )}
+          </div>
+          
+          {duration > 0 && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Tiempo de procesamiento: {duration}s
+            </p>
+          )}
+          
           <button
             onClick={() => window.location.reload()}
             className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-8 py-3 rounded-lg transition-all font-medium shadow-lg"
@@ -1209,17 +1356,22 @@ function ImportingPhaseV2({
 
   return (
     <div className="h-full flex">
-      {/* Tabla principal de revisión (70%) */}
+      {/* Tabla principal de revisión (65%) - EXPANDIDA */}
       <div className="flex-1 flex flex-col p-6 overflow-hidden">
         <div className="mb-4">
           <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-100">✅ Revisar Datos Antes de Importar</h3>
           <div className="flex items-center gap-6 text-sm">
             <span className="text-green-600 dark:text-green-400 font-medium">
-              ✅ {validationStats.valid} filas válidas
+              ✅ {activeValidCount} filas válidas (de {activeRows.length} activas)
             </span>
             {validationStats.errors > 0 && (
               <span className="text-red-600 dark:text-red-400 font-medium">
                 ❌ {validationStats.errors} con errores
+              </span>
+            )}
+            {excludedRows.size > 0 && (
+              <span className="text-orange-600 dark:text-orange-400 font-medium">
+                🚫 {excludedRows.size} excluidas
               </span>
             )}
             {selectedRows.size > 0 && (
@@ -1229,21 +1381,22 @@ function ImportingPhaseV2({
             )}
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            💡 Haz doble clic en cualquier celda para editarla. Selecciona filas para copiar valores masivamente.
+            💡 Doble clic para editar • Checkbox rojo para excluir • Selecciona y aplica valores globales
           </p>
         </div>
 
-        {/* Tabla scrolleable */}
+        {/* Tabla scrolleable EXPANDIDA */}
         <div className="flex-1 overflow-auto border border-gray-300 dark:border-gray-600 rounded-lg shadow-inner bg-white dark:bg-gray-800">
-          <table className="min-w-full">
+          <table className="min-w-full text-xs">
             <thead className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 sticky top-0 z-10 shadow">
               <tr>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300">
+                <th className="px-2 py-2 text-center w-8">
                   <input
                     type="checkbox"
+                    title="Seleccionar todas"
                     onChange={(e) => {
                       if (e.target.checked) {
-                        setSelectedRows(new Set(importRows.map((_, i) => i)));
+                        setSelectedRows(new Set(importRows.map((_, i) => i).filter(i => !excludedRows.has(i))));
                       } else {
                         setSelectedRows(new Set());
                       }
@@ -1251,146 +1404,205 @@ function ImportingPhaseV2({
                     className="w-4 h-4"
                   />
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase">Estado</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase">N° Pedido *</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase">Cliente *</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase">Fecha *</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase">Metros *</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase">Producto</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase">Observaciones</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase">Acciones</th>
+                <th className="px-2 py-2 text-center w-8" title="Incluir/Excluir pedido">🚫</th>
+                <th className="px-2 py-2 text-center w-8">✓</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[100px]">N° Pedido*</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[120px]">Cliente*</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[100px]">Fecha*</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[80px]">Metros*</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[100px]">Producto</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[100px]">Etapa</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px]">Prioridad</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[100px]">Tipo Impresión</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[100px]">Máquina</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[100px]">Vendedor</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px]">Desarrollo</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[150px]">Observaciones</th>
+                <th className="px-2 py-2 text-center w-16">Copiar</th>
               </tr>
             </thead>
             <tbody>
-              {importRows.map((row, index) => (
-                <tr 
-                  key={index} 
-                  className={`
-                    border-t border-gray-100 dark:border-gray-700 
-                    ${row.validationErrors.length > 0 ? 'bg-red-50 dark:bg-red-900 dark:bg-opacity-10' : ''}
-                    ${selectedRows.has(index) ? 'bg-blue-100 dark:bg-blue-900 dark:bg-opacity-20' : ''}
-                    hover:bg-gray-50 dark:hover:bg-gray-700 dark:hover:bg-opacity-50
-                  `}
-                >
-                  <td className="px-3 py-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedRows.has(index)}
-                      onChange={() => toggleRowSelection(index)}
-                      className="w-4 h-4"
-                    />
-                  </td>
-                  <td className="px-4 py-2 text-center">
-                    {row.validationErrors.length === 0 ? (
-                      <span className="text-green-600 dark:text-green-400 text-xl">✅</span>
-                    ) : (
-                      <span className="text-red-600 dark:text-red-400 text-xl" title={row.validationErrors.map(e => e.message).join(', ')}>❌</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2" onDoubleClick={() => setEditingCell({ row: index, field: 'numeroPedidoCliente' })}>
-                    {editingCell?.row === index && editingCell.field === 'numeroPedidoCliente' ? (
+              {importRows.map((row, index) => {
+                const isExcluded = excludedRows.has(index);
+                const isSelected = selectedRows.has(index);
+                const hasErrors = row.validationErrors.length > 0;
+
+                return (
+                  <tr 
+                    key={index} 
+                    className={`
+                      border-t border-gray-100 dark:border-gray-700
+                      ${isExcluded ? 'opacity-40 bg-gray-200 dark:bg-gray-700' : ''}
+                      ${hasErrors && !isExcluded ? 'bg-red-50 dark:bg-red-900 dark:bg-opacity-10' : ''}
+                      ${isSelected && !isExcluded ? 'bg-blue-100 dark:bg-blue-900 dark:bg-opacity-20' : ''}
+                      ${!isExcluded ? 'hover:bg-gray-50 dark:hover:bg-gray-700 dark:hover:bg-opacity-50' : ''}
+                    `}
+                  >
+                    {/* Checkbox selección */}
+                    <td className="px-2 py-2 text-center">
                       <input
-                        type="text"
-                        value={row.mappedData.numeroPedidoCliente || ''}
-                        onChange={(e) => onCellEdit(index, 'numeroPedidoCliente', e.target.value)}
-                        onBlur={() => setEditingCell(null)}
-                        autoFocus
-                        className="w-full border border-blue-500 rounded px-2 py-1 text-sm"
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleRowSelection(index)}
+                        disabled={isExcluded}
+                        className="w-4 h-4"
                       />
-                    ) : (
-                      <div className="text-sm text-gray-700 dark:text-gray-300">{row.mappedData.numeroPedidoCliente || '-'}</div>
-                    )}
-                  </td>
-                  <td className="px-4 py-2" onDoubleClick={() => setEditingCell({ row: index, field: 'cliente' })}>
-                    {editingCell?.row === index && editingCell.field === 'cliente' ? (
+                    </td>
+
+                    {/* Checkbox excluir */}
+                    <td className="px-2 py-2 text-center">
                       <input
-                        type="text"
-                        value={row.mappedData.cliente || ''}
-                        onChange={(e) => onCellEdit(index, 'cliente', e.target.value)}
-                        onBlur={() => setEditingCell(null)}
-                        autoFocus
-                        className="w-full border border-blue-500 rounded px-2 py-1 text-sm"
+                        type="checkbox"
+                        checked={isExcluded}
+                        onChange={() => toggleRowExclusion(index)}
+                        title={isExcluded ? "Click para incluir" : "Click para excluir de importación"}
+                        className="w-4 h-4 text-red-600"
                       />
-                    ) : (
-                      <div className="text-sm text-gray-700 dark:text-gray-300">{row.mappedData.cliente || '-'}</div>
-                    )}
-                  </td>
-                  <td className="px-4 py-2" onDoubleClick={() => setEditingCell({ row: index, field: 'fechaEntrega' })}>
-                    {editingCell?.row === index && editingCell.field === 'fechaEntrega' ? (
-                      <input
-                        type="date"
-                        value={row.mappedData.fechaEntrega || ''}
-                        onChange={(e) => onCellEdit(index, 'fechaEntrega', e.target.value)}
-                        onBlur={() => setEditingCell(null)}
-                        autoFocus
-                        className="w-full border border-blue-500 rounded px-2 py-1 text-sm"
-                      />
-                    ) : (
-                      <div className="text-sm text-gray-700 dark:text-gray-300">{row.mappedData.fechaEntrega || '-'}</div>
-                    )}
-                  </td>
-                  <td className="px-4 py-2" onDoubleClick={() => setEditingCell({ row: index, field: 'metros' })}>
-                    {editingCell?.row === index && editingCell.field === 'metros' ? (
-                      <input
-                        type="number"
-                        value={row.mappedData.metros || ''}
-                        onChange={(e) => onCellEdit(index, 'metros', Number(e.target.value))}
-                        onBlur={() => setEditingCell(null)}
-                        autoFocus
-                        className="w-full border border-blue-500 rounded px-2 py-1 text-sm"
-                      />
-                    ) : (
-                      <div className="text-sm text-gray-700 dark:text-gray-300">{row.mappedData.metros || '-'}</div>
-                    )}
-                  </td>
-                  <td className="px-4 py-2" onDoubleClick={() => setEditingCell({ row: index, field: 'producto' })}>
-                    {editingCell?.row === index && editingCell.field === 'producto' ? (
-                      <input
-                        type="text"
-                        value={row.mappedData.producto || ''}
-                        onChange={(e) => onCellEdit(index, 'producto', e.target.value)}
-                        onBlur={() => setEditingCell(null)}
-                        autoFocus
-                        className="w-full border border-blue-500 rounded px-2 py-1 text-sm"
-                      />
-                    ) : (
-                      <div className="text-sm text-gray-700 dark:text-gray-300 truncate max-w-[150px]" title={row.mappedData.producto || ''}>
-                        {row.mappedData.producto || '-'}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-2" onDoubleClick={() => setEditingCell({ row: index, field: 'observaciones' })}>
-                    {editingCell?.row === index && editingCell.field === 'observaciones' ? (
-                      <input
-                        type="text"
-                        value={row.mappedData.observaciones || ''}
-                        onChange={(e) => onCellEdit(index, 'observaciones', e.target.value)}
-                        onBlur={() => setEditingCell(null)}
-                        autoFocus
-                        className="w-full border border-blue-500 rounded px-2 py-1 text-sm"
-                      />
-                    ) : (
-                      <div className="text-sm text-gray-700 dark:text-gray-300 truncate max-w-[200px]" title={row.mappedData.observaciones || ''}>
-                        {row.mappedData.observaciones || '-'}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-2">
-                    <button
-                      onClick={() => handleCopyFromRow(index)}
-                      disabled={selectedRows.size === 0}
-                      title="Copiar datos de esta fila a las seleccionadas"
-                      className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 disabled:text-gray-400 disabled:cursor-not-allowed"
-                    >
-                      <CopyIcon className="w-5 h-5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+
+                    {/* Estado validación */}
+                    <td className="px-2 py-2 text-center">
+                      {hasErrors ? (
+                        <span className="text-red-600 dark:text-red-400 text-lg" title={row.validationErrors.map(e => e.message).join(', ')}>❌</span>
+                      ) : (
+                        <span className="text-green-600 dark:text-green-400 text-lg">✅</span>
+                      )}
+                    </td>
+
+                    {/* N° Pedido */}
+                    <td className="px-3 py-2" onDoubleClick={() => !isExcluded && setEditingCell({ row: index, field: 'numeroPedidoCliente' })}>
+                      {editingCell?.row === index && editingCell.field === 'numeroPedidoCliente' ? (
+                        <input
+                          type="text"
+                          value={row.mappedData.numeroPedidoCliente || ''}
+                          onChange={(e) => onCellEdit(index, 'numeroPedidoCliente', e.target.value)}
+                          onBlur={() => setEditingCell(null)}
+                          autoFocus
+                          className="w-full border border-blue-500 rounded px-1 py-0.5"
+                        />
+                      ) : (
+                        <div className="truncate max-w-[100px]" title={row.mappedData.numeroPedidoCliente || ''}>{row.mappedData.numeroPedidoCliente || '-'}</div>
+                      )}
+                    </td>
+
+                    {/* Cliente */}
+                    <td className="px-3 py-2" onDoubleClick={() => !isExcluded && setEditingCell({ row: index, field: 'cliente' })}>
+                      {editingCell?.row === index && editingCell.field === 'cliente' ? (
+                        <input
+                          type="text"
+                          value={row.mappedData.cliente || ''}
+                          onChange={(e) => onCellEdit(index, 'cliente', e.target.value)}
+                          onBlur={() => setEditingCell(null)}
+                          autoFocus
+                          className="w-full border border-blue-500 rounded px-1 py-0.5"
+                        />
+                      ) : (
+                        <div className="truncate max-w-[120px]" title={row.mappedData.cliente || ''}>{row.mappedData.cliente || '-'}</div>
+                      )}
+                    </td>
+
+                    {/* Fecha Entrega */}
+                    <td className="px-3 py-2" onDoubleClick={() => !isExcluded && setEditingCell({ row: index, field: 'fechaEntrega' })}>
+                      {editingCell?.row === index && editingCell.field === 'fechaEntrega' ? (
+                        <input
+                          type="date"
+                          value={row.mappedData.fechaEntrega || ''}
+                          onChange={(e) => onCellEdit(index, 'fechaEntrega', e.target.value)}
+                          onBlur={() => setEditingCell(null)}
+                          autoFocus
+                          className="w-full border border-blue-500 rounded px-1 py-0.5"
+                        />
+                      ) : (
+                        <div>{row.mappedData.fechaEntrega || '-'}</div>
+                      )}
+                    </td>
+
+                    {/* Metros */}
+                    <td className="px-3 py-2" onDoubleClick={() => !isExcluded && setEditingCell({ row: index, field: 'metros' })}>
+                      {editingCell?.row === index && editingCell.field === 'metros' ? (
+                        <input
+                          type="number"
+                          value={row.mappedData.metros || ''}
+                          onChange={(e) => onCellEdit(index, 'metros', Number(e.target.value))}
+                          onBlur={() => setEditingCell(null)}
+                          autoFocus
+                          className="w-full border border-blue-500 rounded px-1 py-0.5"
+                        />
+                      ) : (
+                        <div>{row.mappedData.metros || '-'}</div>
+                      )}
+                    </td>
+
+                    {/* Producto */}
+                    <td className="px-3 py-2" onDoubleClick={() => !isExcluded && setEditingCell({ row: index, field: 'producto' })}>
+                      {editingCell?.row === index && editingCell.field === 'producto' ? (
+                        <input
+                          type="text"
+                          value={row.mappedData.producto || ''}
+                          onChange={(e) => onCellEdit(index, 'producto', e.target.value)}
+                          onBlur={() => setEditingCell(null)}
+                          autoFocus
+                          className="w-full border border-blue-500 rounded px-1 py-0.5"
+                        />
+                      ) : (
+                        <div className="truncate max-w-[100px]" title={row.mappedData.producto || ''}>{row.mappedData.producto || '-'}</div>
+                      )}
+                    </td>
+
+                    {/* Etapa */}
+                    <td className="px-3 py-2">
+                      <div className="truncate max-w-[100px]">{row.mappedData.etapaActual || globalFields.etapaActual || '-'}</div>
+                    </td>
+
+                    {/* Prioridad */}
+                    <td className="px-3 py-2">
+                      <div>{row.mappedData.prioridad || globalFields.prioridad || '-'}</div>
+                    </td>
+
+                    {/* Tipo Impresión */}
+                    <td className="px-3 py-2">
+                      <div className="truncate max-w-[100px]">{row.mappedData.tipoImpresion || globalFields.tipoImpresion || '-'}</div>
+                    </td>
+
+                    {/* Máquina */}
+                    <td className="px-3 py-2">
+                      <div className="truncate max-w-[100px]" title={row.mappedData.maquinaImpresion || ''}>{row.mappedData.maquinaImpresion || globalFields.maquinaImpresion || '-'}</div>
+                    </td>
+
+                    {/* Vendedor */}
+                    <td className="px-3 py-2">
+                      <div className="truncate max-w-[100px]" title={row.mappedData.vendedorNombre || ''}>{row.mappedData.vendedorNombre || '-'}</div>
+                    </td>
+
+                    {/* Desarrollo */}
+                    <td className="px-3 py-2">
+                      <div className="truncate max-w-[90px]" title={row.mappedData.desarrollo || ''}>{row.mappedData.desarrollo || globalFields.desarrollo || '-'}</div>
+                    </td>
+
+                    {/* Observaciones */}
+                    <td className="px-3 py-2">
+                      <div className="truncate max-w-[150px]" title={row.mappedData.observaciones || ''}>{row.mappedData.observaciones || '-'}</div>
+                    </td>
+
+                    {/* Copiar */}
+                    <td className="px-2 py-2 text-center">
+                      <button
+                        onClick={() => handleCopyFromRow(index)}
+                        disabled={selectedRows.size === 0 || isExcluded}
+                        title="Copiar datos de esta fila a las seleccionadas"
+                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      >
+                        <CopyIcon className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
 
+        {/* Botones inferiores */}
         <div className="mt-4 flex justify-between items-center">
           <button
             onClick={onBack}
@@ -1402,17 +1614,22 @@ function ImportingPhaseV2({
 
           <button
             onClick={onImport}
-            disabled={isImporting || validationStats.valid === 0}
-            className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white px-8 py-3 rounded-lg transition-all font-medium shadow-lg"
+            disabled={isImporting || activeValidCount === 0}
+            className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white px-8 py-3 rounded-lg transition-all font-medium shadow-lg relative overflow-hidden"
           >
             {isImporting ? (
               <>
-                <LoadingSpinnerIcon className="w-5 h-5 inline mr-2" />
-                Importando...
+                <LoadingSpinnerIcon className="w-5 h-5 inline mr-2 animate-spin" />
+                Importando... ({Math.round((importProgress || 0))}%)
+                {/* Barra de progreso */}
+                <div 
+                  className="absolute bottom-0 left-0 h-1 bg-green-300 transition-all duration-300"
+                  style={{ width: `${importProgress || 0}%` }}
+                />
               </>
             ) : (
               <>
-                Importar {validationStats.valid} Pedidos
+                Importar {activeValidCount} Pedidos
                 <UploadIcon className="w-5 h-5 inline ml-2" />
               </>
             )}
@@ -1420,20 +1637,34 @@ function ImportingPhaseV2({
         </div>
       </div>
 
-      {/* Panel lateral para ajustes finales (30%) */}
-      <div className="w-[350px] bg-gradient-to-b from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-750 border-l border-gray-300 dark:border-gray-600 p-6 overflow-y-auto">
-        <h4 className="font-semibold text-lg mb-3 text-gray-800 dark:text-gray-100">⚙️ Ajustes Finales</h4>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Modifica los valores globales si es necesario antes de importar:
-        </p>
-
-        <div className="space-y-4">
+      {/* Panel lateral COMPLETO: Ajustes Finales (35%) */}
+      <div className="w-[450px] bg-gradient-to-b from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-750 border-l border-gray-300 dark:border-gray-600 p-5 overflow-y-auto flex flex-col">
+        <div className="mb-4 sticky top-0 bg-gradient-to-b from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-750 pb-3 z-10">
+          <h4 className="font-semibold text-lg mb-2 text-gray-800 dark:text-gray-100">⚙️ Ajustes Finales</h4>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+            Modifica valores globales y aplícalos a pedidos seleccionados:
+          </p>
+          
+          {/* Botón aplicar a seleccionados */}
+          <button
+            onClick={applyGlobalToSelected}
+            disabled={selectedRows.size === 0}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-3 py-2 rounded-lg text-xs font-medium shadow mb-3 transition-colors"
+          >
+            {selectedRows.size > 0 
+              ? `Aplicar a ${selectedRows.size} Filas Seleccionadas` 
+              : 'Selecciona filas para aplicar'}
+          </button>
+        </div>
+        
+        <div className="space-y-3 flex-1">
+          {/* Etapa */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">📍 Etapa Inicial:</label>
+            <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">📍 Etapa Inicial:</label>
             <select
               value={globalFields.etapaActual || Etapa.PREPARACION}
               onChange={(e) => setGlobalFields({ ...globalFields, etapaActual: e.target.value as Etapa })}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               {GLOBAL_FIELD_OPTIONS.etapaActual.map(etapa => (
                 <option key={etapa} value={etapa}>{etapa}</option>
@@ -1441,12 +1672,13 @@ function ImportingPhaseV2({
             </select>
           </div>
 
+          {/* Prioridad */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">⚡ Prioridad:</label>
+            <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">⚡ Prioridad:</label>
             <select
               value={globalFields.prioridad || Prioridad.NORMAL}
               onChange={(e) => setGlobalFields({ ...globalFields, prioridad: e.target.value as Prioridad })}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               {GLOBAL_FIELD_OPTIONS.prioridad.map(prioridad => (
                 <option key={prioridad} value={prioridad}>{prioridad}</option>
@@ -1454,27 +1686,222 @@ function ImportingPhaseV2({
             </select>
           </div>
 
+          {/* Tipo Impresión */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">🖨️ Tipo de Impresión:</label>
+            <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">🖨️ Tipo de Impresión:</label>
             <select
               value={globalFields.tipoImpresion || TipoImpresion.SUPERFICIE}
               onChange={(e) => setGlobalFields({ ...globalFields, tipoImpresion: e.target.value as TipoImpresion })}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               {GLOBAL_FIELD_OPTIONS.tipoImpresion.map(tipo => (
                 <option key={tipo} value={tipo}>{tipo}</option>
               ))}
             </select>
           </div>
+
+          {/* Máquina */}
+          <div>
+            <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">🏭 Máquina:</label>
+            <select
+              value={globalFields.maquinaImpresion || ''}
+              onChange={(e) => setGlobalFields({ ...globalFields, maquinaImpresion: e.target.value })}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            >
+              <option value="">-- Seleccionar --</option>
+              {MAQUINAS_IMPRESION.map(maq => (
+                <option key={maq.id} value={maq.id}>{maq.nombre}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Cliente */}
+          <div>
+            <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">👤 Cliente:</label>
+            <select
+              value={globalFields.clienteId || ''}
+              onChange={(e) => {
+                const cliente = clientes.find(c => c.id === e.target.value);
+                setGlobalFields({ 
+                  ...globalFields, 
+                  clienteId: e.target.value,
+                  cliente: cliente?.nombre || ''
+                });
+              }}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            >
+              <option value="">-- Seleccionar --</option>
+              {clientes.map(cliente => (
+                <option key={cliente.id} value={cliente.id}>{cliente.nombre}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Vendedor */}
+          <div>
+            <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">💼 Vendedor:</label>
+            <select
+              value={globalFields.vendedorId || ''}
+              onChange={(e) => {
+                const vendedor = vendedores.find(v => v.id === e.target.value);
+                setGlobalFields({ 
+                  ...globalFields, 
+                  vendedorId: e.target.value,
+                  vendedorNombre: vendedor?.nombre || ''
+                });
+              }}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            >
+              <option value="">-- Seleccionar --</option>
+              {vendedores.map(vendedor => (
+                <option key={vendedor.id} value={vendedor.id}>{vendedor.nombre}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Estado Cliché */}
+          <div>
+            <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">🎨 Estado Cliché:</label>
+            <select
+              value={globalFields.estadoCliché || ''}
+              onChange={(e) => setGlobalFields({ ...globalFields, estadoCliché: e.target.value as EstadoCliché })}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            >
+              <option value="">-- Seleccionar --</option>
+              {GLOBAL_FIELD_OPTIONS.estadoCliché.map(estado => (
+                <option key={estado} value={estado}>{estado}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Producto */}
+          <div>
+            <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">📦 Producto:</label>
+            <input
+              type="text"
+              value={globalFields.producto || ''}
+              onChange={(e) => setGlobalFields({ ...globalFields, producto: e.target.value })}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            />
+          </div>
+
+          {/* Desarrollo */}
+          <div>
+            <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">🔬 Desarrollo:</label>
+            <input
+              type="text"
+              value={globalFields.desarrollo || ''}
+              onChange={(e) => setGlobalFields({ ...globalFields, desarrollo: e.target.value })}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            />
+          </div>
+
+          {/* Capa */}
+          <div>
+            <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">📄 Capa:</label>
+            <input
+              type="text"
+              value={globalFields.capa || ''}
+              onChange={(e) => setGlobalFields({ ...globalFields, capa: e.target.value })}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            />
+          </div>
+
+          {/* Observaciones */}
+          <div>
+            <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">📝 Observaciones:</label>
+            <textarea
+              value={globalFields.observaciones || ''}
+              onChange={(e) => setGlobalFields({ ...globalFields, observaciones: e.target.value })}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 min-h-[50px]"
+              rows={2}
+            />
+          </div>
+
+          {/* Bobinas */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">🔵 B.Madre:</label>
+              <input
+                type="number"
+                value={globalFields.bobinaMadre || ''}
+                onChange={(e) => setGlobalFields({ ...globalFields, bobinaMadre: Number(e.target.value) })}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">🟢 B.Final:</label>
+              <input
+                type="number"
+                value={globalFields.bobinaFinal || ''}
+                onChange={(e) => setGlobalFields({ ...globalFields, bobinaFinal: Number(e.target.value) })}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+          </div>
+
+          {/* Colores */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">🎨 Colores:</label>
+              <input
+                type="number"
+                value={globalFields.colores || ''}
+                onChange={(e) => setGlobalFields({ ...globalFields, colores: Number(e.target.value) })}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">⏰ Min/Color:</label>
+              <input
+                type="number"
+                value={globalFields.minColor || ''}
+                onChange={(e) => setGlobalFields({ ...globalFields, minColor: Number(e.target.value) })}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+          </div>
+
+          {/* Checkboxes */}
+          <div className="space-y-1.5 pt-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={globalFields.antivaho || false}
+                onChange={(e) => setGlobalFields({ ...globalFields, antivaho: e.target.checked })}
+                className="w-3.5 h-3.5 text-blue-600"
+              />
+              <span className="text-xs text-gray-700 dark:text-gray-300">💨 Antivaho</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={globalFields.microperforado || false}
+                onChange={(e) => setGlobalFields({ ...globalFields, microperforado: e.target.checked })}
+                className="w-3.5 h-3.5 text-blue-600"
+              />
+              <span className="text-xs text-gray-700 dark:text-gray-300">🔘 Microperforado</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={globalFields.macroperforado || false}
+                onChange={(e) => setGlobalFields({ ...globalFields, macroperforado: e.target.checked })}
+                className="w-3.5 h-3.5 text-blue-600"
+              />
+              <span className="text-xs text-gray-700 dark:text-gray-300">⚫ Macroperforado</span>
+            </label>
+          </div>
         </div>
 
-        <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
-          <h5 className="font-medium text-yellow-800 dark:text-yellow-200 mb-2">⚠️ Recordatorio</h5>
-          <ul className="text-xs text-yellow-700 dark:text-yellow-300 space-y-1">
-            <li>• Verifica que todos los datos sean correctos</li>
-            <li>• Los pedidos con errores no se importarán</li>
-            <li>• Puedes editar cualquier celda con doble clic</li>
-            <li>• Usa el botón de copiar para replicar datos</li>
+        {/* Recordatorio */}
+        <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
+          <h5 className="font-medium text-yellow-800 dark:text-yellow-200 mb-1 text-xs">⚠️ Recordatorio</h5>
+          <ul className="text-[10px] text-yellow-700 dark:text-yellow-300 space-y-0.5">
+            <li>• Doble clic en celdas para editar</li>
+            <li>• Selecciona filas y aplica valores globales</li>
+            <li>• Marca checkbox rojo para excluir pedidos</li>
+            <li>• Solo se importarán pedidos sin errores</li>
           </ul>
         </div>
       </div>
