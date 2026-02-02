@@ -1912,7 +1912,7 @@ class PostgreSQLClient {
                     const updateLegacyColumnQuery = `
                         UPDATE limpio.pedidos
                         SET vendedor = $1
-                        WHERE (vendedor_id IS NULL OR vendedor_id = '')
+                        WHERE vendedor_id IS NULL
                           AND vendedor IS NOT NULL
                           AND upper(trim(vendedor)) = upper(trim($2::text))
                     `;
@@ -1925,6 +1925,8 @@ class PostgreSQLClient {
                         // Ignorar si la columna no existe
                         if (err.code !== '42703') {
                             console.warn('⚠️ Error actualizando columna legacy vendedor:', err.message);
+                            console.warn('⚠️ Código de error:', err.code);
+                            // NO propagar el error para evitar romper la transacción
                         }
                     }
                 }
