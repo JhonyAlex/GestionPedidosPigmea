@@ -99,6 +99,30 @@ class PostgreSQLClient {
         return this.isHealthy;
     }
 
+    // === MÉTODO WRAPPER PARA QUERIES DIRECTAS ===
+    /**
+     * Ejecuta una query SQL usando el pool de conexiones
+     * @param {string} text - Query SQL
+     * @param {Array} params - Parámetros para la query
+     * @returns {Promise<object>} - Resultado de la query
+     */
+    async query(text, params) {
+        if (!this.isInitialized) {
+            throw new Error('PostgreSQL no está inicializado. Llame a initialize() primero.');
+        }
+
+        const client = await this.pool.connect();
+        try {
+            const result = await client.query(text, params);
+            return result;
+        } catch (error) {
+            console.error('❌ Error en query:', error.message);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
     // === MÉTODOS PARA ADMIN USERS ===
 
     async getAdminUserByUsername(username) {
