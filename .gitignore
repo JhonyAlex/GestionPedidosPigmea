@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Database backups
+backup_pigmea_real.sql
+*.sql
+!database/**/*.sql

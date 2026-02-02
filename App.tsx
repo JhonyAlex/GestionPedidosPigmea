@@ -1262,8 +1262,8 @@ const AppContent: React.FC = () => {
                             console.log('Importación completada:', results);
                             setShowBulkImportModal(false);
                             // Recargar pedidos para mostrar los nuevos
-                            loadPedidos();
-                            showToast('¡Importación completada exitosamente!', 'success');
+                            reloadPedidos();
+                            addToast('¡Importación completada exitosamente!', 'success');
                         }}
                     />
                 )}
