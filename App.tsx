@@ -36,6 +36,7 @@ import BulkMachineUpdateModal from './components/BulkMachineUpdateModal';
 import BulkStageUpdateModal from './components/BulkStageUpdateModal';
 import ImportDataModal from './components/ImportDataModal';
 import BulkImportModalV2 from './components/BulkImportModalV2';
+import PdfImportModal from './components/PdfImportModal';
 import { ToastContainer } from './components/Toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { MaterialesProvider } from './contexts/MaterialesContext';
@@ -83,6 +84,7 @@ const AppContent: React.FC = () => {
     const [showUserManagement, setShowUserManagement] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
     const [showBulkImportModal, setShowBulkImportModal] = useState(false);
+    const [showPdfImportModal, setShowPdfImportModal] = useState(false);
 
     // Estados para operaciones masivas
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -1106,6 +1108,7 @@ const AppContent: React.FC = () => {
                     onCustomDateChange={handleCustomDateChange}
                     onAddPedido={() => setIsAddModalOpen(true)}
                     onBulkImport={() => setShowBulkImportModal(true)}
+                    onPdfImport={() => setShowPdfImportModal(true)}
                     onExportPDF={handleExportPDF}
                     onExportData={doExportData}
                     onImportData={doImportData}
@@ -1264,6 +1267,18 @@ const AppContent: React.FC = () => {
                             // Recargar pedidos para mostrar los nuevos
                             reloadPedidos();
                             addToast('¡Importación completada exitosamente!', 'success');
+                        }}
+                    />
+                )}
+
+                {showPdfImportModal && (
+                    <PdfImportModal
+                        onClose={() => setShowPdfImportModal(false)}
+                        onImportComplete={(results) => {
+                            console.log('Importación PDF completada:', results);
+                            setShowPdfImportModal(false);
+                            reloadPedidos();
+                            addToast('¡Pedido importado desde PDF exitosamente!', 'success');
                         }}
                     />
                 )}

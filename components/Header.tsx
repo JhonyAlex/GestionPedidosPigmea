@@ -54,6 +54,7 @@ interface HeaderProps {
     onCustomDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onAddPedido: () => void;
     onBulkImport: () => void; // Nueva prop para importación masiva
+    onPdfImport: () => void; // Nueva prop para importación desde PDF
     onExportPDF: () => void;
     onExportData: () => void;
     onImportData: () => void;
@@ -128,6 +129,7 @@ const Header: React.FC<HeaderProps> = ({
     onCustomDateChange,
     onAddPedido,
     onBulkImport,
+    onPdfImport,
     onExportPDF,
     onExportData,
     onImportData,
@@ -370,16 +372,40 @@ const Header: React.FC<HeaderProps> = ({
                             </button>
                         )}
 
-                        {/* Botón Importación Masiva */}
+                        {/* Botón Importación Masiva - Dropdown */}
                         {canCreatePedidos() && (
-                            <button
-                                onClick={onBulkImport}
-                                className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-md font-semibold hover:bg-green-700 transition-colors"
-                                title="Importar pedidos desde Excel"
-                            >
-                                <UploadIcon />
-                                <span className="hidden md:inline">Importar</span>
-                            </button>
+                            <div className="relative group">
+                                <button
+                                    className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-md font-semibold hover:bg-green-700 transition-colors"
+                                    title="Importar pedidos"
+                                >
+                                    <UploadIcon />
+                                    <span className="hidden md:inline">Importar</span>
+                                    <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+                                <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                    <button
+                                        onClick={onBulkImport}
+                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                    >
+                                        <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        Desde Excel
+                                    </button>
+                                    <button
+                                        onClick={onPdfImport}
+                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                    >
+                                        <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                        </svg>
+                                        Desde PDF
+                                    </button>
+                                </div>
+                            </div>
                         )}
 
                         {/* Exportar PDF destacado en vista de Lista */}

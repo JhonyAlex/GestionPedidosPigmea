@@ -17,6 +17,7 @@ const { requirePermission, requireAnyPermission, setDbClient: setPermissionsDbCl
 const { authenticateUser, requireAuth, extractUserFromRequest, setDbClient: setAuthDbClient } = require('./middleware/auth');
 const { setDbClient: setDbHealthClient, ensureDatabaseHealth } = require('./middleware/db-health');
 const { createImportBatchEndpoint } = require('./services/pedidosImportService');
+const { createPdfRouter } = require('./routes/pdfRoutes');
 
 // Mapeo de roles entre frontend y base de datos
 const ROLE_MAPPING = {
@@ -2741,6 +2742,9 @@ app.get('/api/pedidos/numeros-existentes', async (req, res) => {
 
 // POST /api/pedidos/import-batch - Bulk import from Excel with client resolution
 app.post('/api/pedidos/import-batch', requirePermission('pedidos.create'), createImportBatchEndpoint(requirePermission, dbClient, broadcastToClients));
+
+// === RUTAS DE IMPORTACIÓN PDF (Router modular) ===
+app.use('/api/pdf', createPdfRouter(dbClient, io, requireAuth, requirePermission));
 
 // DELETE /api/pedidos/all - Clear the entire collection
 app.delete('/api/pedidos/all', async (req, res) => {
