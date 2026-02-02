@@ -619,6 +619,61 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
     console.log(`🔍 Detectados ${duplicates.size} pedidos duplicados`);
   }, [importRows, existingPedidoNumbers]);
 
+  // Transformar campos individuales de material al formato de array
+  const transformMaterialFields = (data: any) => {
+    const transformed = { ...data };
+    
+    // Convertir numeroCompra1-4, micras1-4, densidad1-4, necesario1-4, recibido1-4, gestionado1-4 a materialConsumo array
+    const materialConsumo: any[] = [];
+    const numerosCompra: string[] = [];
+    
+    for (let i = 1; i <= 4; i++) {
+      const numeroCompra = transformed[`numeroCompra${i}`];
+      const micras = transformed[`micras${i}`];
+      const densidad = transformed[`densidad${i}`];
+      const necesario = transformed[`necesario${i}`];
+      const recibido = transformed[`recibido${i}`];
+      const gestionado = transformed[`gestionado${i}`];
+      
+      // Si hay algún dato para este material, agregarlo
+      if (numeroCompra || micras || densidad || necesario || recibido || gestionado) {
+        // Agregar número de compra al array
+        if (numeroCompra) {
+          numerosCompra.push(numeroCompra);
+        }
+        
+        // Agregar material al array materialConsumo
+        materialConsumo.push({
+          micras: micras ? Number(micras) : null,
+          densidad: densidad ? Number(densidad) : null,
+          necesario: necesario ? Number(necesario) : null,
+          recibido: Boolean(recibido),
+          gestionado: Boolean(gestionado)
+        });
+      }
+      
+      // Limpiar campos individuales del objeto
+      delete transformed[`numeroCompra${i}`];
+      delete transformed[`micras${i}`];
+      delete transformed[`densidad${i}`];
+      delete transformed[`necesario${i}`];
+      delete transformed[`recibido${i}`];
+      delete transformed[`gestionado${i}`];
+    }
+    
+    // Asignar arrays transformados
+    if (numerosCompra.length > 0) {
+      transformed.numerosCompra = numerosCompra;
+    }
+    
+    if (materialConsumo.length > 0) {
+      transformed.materialConsumo = materialConsumo;
+      transformed.materialConsumoCantidad = materialConsumo.length;
+    }
+    
+    return transformed;
+  };
+
   // Ejecutar importación
   const executeImport = useCallback(async () => {
     if (isImporting) return;
@@ -660,8 +715,14 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
         
         console.log(`📦 Procesando lote ${batchNumber}/${totalBatches} (${batch.length} pedidos)...`);
         
+        // Transformar datos antes de enviar
+        const transformedBatch = batch.map(row => ({
+          ...row,
+          mappedData: transformMaterialFields(row.mappedData)
+        }));
+        
         const batchRequest: ImportBatchRequest = {
-          rows: batch,
+          rows: transformedBatch,
           globalFields
         };
         
