@@ -1776,12 +1776,13 @@ function ImportingPhaseV2({
           </p>
         </div>
 
-        {/* Tabla scrolleable EXPANDIDA */}
+        {/* Tabla scrolleable EXPANDIDA - TODOS LOS CAMPOS */}
         <div className="flex-1 overflow-auto border border-gray-300 dark:border-gray-600 rounded-lg shadow-inner bg-white dark:bg-gray-800">
           <table className="min-w-full text-xs">
             <thead className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 sticky top-0 z-10 shadow">
               <tr>
-                <th className="px-2 py-2 text-center w-8">
+                {/* Controles */}
+                <th className="px-2 py-2 text-center w-8 sticky left-0 bg-gray-200 dark:bg-gray-700 z-20">
                   <input
                     type="checkbox"
                     title="Seleccionar todas"
@@ -1795,21 +1796,66 @@ function ImportingPhaseV2({
                     className="w-4 h-4"
                   />
                 </th>
-                <th className="px-2 py-2 text-center w-8" title="Incluir/Excluir pedido">🚫</th>
-                <th className="px-2 py-2 text-center w-8">✓</th>
-                <th className="px-3 py-2 text-left uppercase font-medium min-w-[100px]">N° Pedido*</th>
-                <th className="px-3 py-2 text-left uppercase font-medium min-w-[120px]">Cliente*</th>
-                <th className="px-3 py-2 text-left uppercase font-medium min-w-[100px]">Fecha*</th>
-                <th className="px-3 py-2 text-left uppercase font-medium min-w-[80px]">Metros*</th>
-                <th className="px-3 py-2 text-left uppercase font-medium min-w-[100px]">Producto</th>
-                <th className="px-3 py-2 text-left uppercase font-medium min-w-[100px]">Etapa</th>
+                <th className="px-2 py-2 text-center w-8 sticky left-8 bg-gray-200 dark:bg-gray-700 z-20" title="Incluir/Excluir pedido">🚫</th>
+                <th className="px-2 py-2 text-center w-8 sticky left-16 bg-gray-200 dark:bg-gray-700 z-20">✓</th>
+                
+                {/* Campos OBLIGATORIOS */}
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px] bg-red-50 dark:bg-red-900 dark:bg-opacity-20" title="OBLIGATORIO">N° Pedido*</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[130px] bg-red-50 dark:bg-red-900 dark:bg-opacity-20" title="OBLIGATORIO">Cliente*</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px] bg-red-50 dark:bg-red-900 dark:bg-opacity-20" title="OBLIGATORIO">F. Entrega*</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px] bg-red-50 dark:bg-red-900 dark:bg-opacity-20" title="OBLIGATORIO">Metros*</th>
+                
+                {/* Campos importantes de producción */}
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">Producto</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[100px]">Desarrollo</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px]">Capa</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">Máquina</th>
+                
+                {/* Workflow */}
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">Etapa</th>
                 <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px]">Prioridad</th>
-                <th className="px-3 py-2 text-left uppercase font-medium min-w-[100px]">Tipo Impresión</th>
-                <th className="px-3 py-2 text-left uppercase font-medium min-w-[100px]">Máquina</th>
-                <th className="px-3 py-2 text-left uppercase font-medium min-w-[100px]">Vendedor</th>
-                <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px]">Desarrollo</th>
-                <th className="px-3 py-2 text-left uppercase font-medium min-w-[150px]">Observaciones</th>
-                <th className="px-2 py-2 text-center w-16">Copiar</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[130px]">Tipo Impresión</th>
+                
+                {/* Personas */}
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">Vendedor</th>
+                
+                {/* Fechas adicionales */}
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">F. Creación</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">Nueva F. Entrega</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">F. Compra Cliché</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">F. Recep. Cliché</th>
+                
+                {/* Información de cliché */}
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">Estado Cliché</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px]">Camisa</th>
+                
+                {/* Medidas y tiempos */}
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[100px]">Velocidad (m/min)</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">Tiempo Prod. (h)</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[100px]">Bobina Madre</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[100px]">Bobina Final</th>
+                
+                {/* Colores */}
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[80px]">N° Colores</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px]">Min/Color</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px]">Min Adap.</th>
+                
+                {/* Números de compra */}
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[130px]">Nºs Compra</th>
+                
+                {/* Observaciones */}
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[180px]">Observaciones</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[150px]">Obs. Rápidas</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[150px]">Obs. Material</th>
+                
+                {/* Checkboxes */}
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px]">Antivaho</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">Microperf.</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">Macroperf.</th>
+                <th className="px-3 py-2 text-left uppercase font-medium min-w-[90px]">Anónimo</th>
+                
+                {/* Acciones */}
+                <th className="px-2 py-2 text-center w-16 sticky right-0 bg-gray-200 dark:bg-gray-700 z-20">Copiar</th>
               </tr>
             </thead>
             <tbody>
@@ -1817,6 +1863,90 @@ function ImportingPhaseV2({
                 const isExcluded = excludedRows.has(index);
                 const isSelected = selectedRows.has(index);
                 const hasErrors = row.validationErrors.length > 0;
+
+                // Helper para crear celdas editables
+                const EditableCell = ({ field, type = 'text', maxWidth = '100px' }: { field: string; type?: 'text' | 'number' | 'date' | 'select'; maxWidth?: string }) => {
+                  const value = row.mappedData[field as keyof typeof row.mappedData];
+                  const isEditing = editingCell?.row === index && editingCell.field === field;
+                  
+                  // Convertir valor a string seguro
+                  const displayValue = value != null && typeof value !== 'object' ? String(value) : '';
+                  
+                  return (
+                    <td 
+                      className="px-3 py-2"
+                      onClick={() => !isExcluded && setEditingCell({ row: index, field })}
+                    >
+                      {isEditing ? (
+                        <input
+                          type={type}
+                          value={displayValue}
+                          onChange={(e) => onCellEdit(index, field, type === 'number' ? Number(e.target.value) : e.target.value)}
+                          onBlur={() => setEditingCell(null)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === 'Escape') {
+                              setEditingCell(null);
+                            }
+                          }}
+                          autoFocus
+                          className="w-full border border-blue-500 rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        />
+                      ) : (
+                        <div 
+                          className={`truncate cursor-text hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 px-1 py-0.5 rounded`}
+                          style={{ maxWidth }}
+                          title={displayValue}
+                        >
+                          {displayValue || '-'}
+                        </div>
+                      )}
+                    </td>
+                  );
+                };
+
+                // Helper para celdas de solo lectura (seleccionables)
+                const ReadOnlyCell = ({ field, maxWidth = '100px', fromGlobal = false }: { field: string; maxWidth?: string; fromGlobal?: boolean }) => {
+                  const value = fromGlobal 
+                    ? (row.mappedData[field as keyof typeof row.mappedData] || globalFields[field as keyof typeof globalFields])
+                    : row.mappedData[field as keyof typeof row.mappedData];
+                  
+                  // Convertir valor a string seguro
+                  const displayValue = value != null && typeof value !== 'object' ? String(value) : '';
+                  
+                  return (
+                    <td 
+                      className="px-3 py-2 cursor-pointer"
+                      onClick={() => !isExcluded && toggleRowSelection(index)}
+                    >
+                      <div className="truncate" style={{ maxWidth }} title={displayValue}>
+                        {displayValue || '-'}
+                      </div>
+                    </td>
+                  );
+                };
+
+                // Helper para checkboxes
+                const CheckboxCell = ({ field }: { field: string }) => {
+                  const value = row.mappedData[field as keyof typeof row.mappedData];
+                  
+                  return (
+                    <td 
+                      className="px-3 py-2 text-center cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCellEdit(index, field, !value);
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={Boolean(value)}
+                        onChange={() => onCellEdit(index, field, !value)}
+                        disabled={isExcluded}
+                        className="w-4 h-4 pointer-events-none"
+                      />
+                    </td>
+                  );
+                };
 
                 return (
                   <tr 
@@ -1831,7 +1961,7 @@ function ImportingPhaseV2({
                   >
                     {/* Checkbox selección */}
                     <td 
-                      className="px-2 py-2 text-center cursor-pointer"
+                      className="px-2 py-2 text-center cursor-pointer sticky left-0 bg-inherit z-10"
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleRowSelection(index);
@@ -1848,7 +1978,7 @@ function ImportingPhaseV2({
 
                     {/* Checkbox excluir */}
                     <td 
-                      className="px-2 py-2 text-center cursor-pointer"
+                      className="px-2 py-2 text-center cursor-pointer sticky left-8 bg-inherit z-10"
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleRowExclusion(index);
@@ -1865,7 +1995,7 @@ function ImportingPhaseV2({
 
                     {/* Estado validación */}
                     <td 
-                      className="px-2 py-2 text-center cursor-pointer"
+                      className="px-2 py-2 text-center cursor-pointer sticky left-16 bg-inherit z-10"
                       onClick={() => !isExcluded && toggleRowSelection(index)}
                     >
                       {hasErrors ? (
@@ -1875,230 +2005,97 @@ function ImportingPhaseV2({
                       )}
                     </td>
 
-                    {/* N° Pedido - EDITABLE CON CLIC SIMPLE */}
+                    {/* ============ CAMPOS OBLIGATORIOS ============ */}
+                    <EditableCell field="numeroPedidoCliente" maxWidth="110px" />
+                    <EditableCell field="cliente" maxWidth="130px" />
+                    <EditableCell field="fechaEntrega" type="date" maxWidth="110px" />
+                    <EditableCell field="metros" type="number" maxWidth="90px" />
+
+                    {/* ============ PRODUCCIÓN ============ */}
+                    <EditableCell field="producto" maxWidth="110px" />
+                    <EditableCell field="desarrollo" maxWidth="100px" />
+                    <EditableCell field="capa" maxWidth="90px" />
+                    <ReadOnlyCell field="maquinaImpresion" maxWidth="110px" fromGlobal={true} />
+
+                    {/* ============ WORKFLOW ============ */}
+                    <ReadOnlyCell field="etapaActual" maxWidth="110px" fromGlobal={true} />
+                    <ReadOnlyCell field="prioridad" maxWidth="90px" fromGlobal={true} />
+                    <ReadOnlyCell field="tipoImpresion" maxWidth="130px" fromGlobal={true} />
+
+                    {/* ============ PERSONAS ============ */}
+                    <ReadOnlyCell field="vendedorNombre" maxWidth="110px" />
+
+                    {/* ============ FECHAS ADICIONALES ============ */}
+                    <EditableCell field="fechaCreacion" type="date" maxWidth="110px" />
+                    <EditableCell field="nuevaFechaEntrega" type="date" maxWidth="110px" />
+                    <EditableCell field="compraCliche" type="date" maxWidth="110px" />
+                    <EditableCell field="recepcionCliche" type="date" maxWidth="110px" />
+
+                    {/* ============ CLICHÉ ============ */}
+                    <ReadOnlyCell field="estadoCliché" maxWidth="110px" fromGlobal={true} />
+                    <EditableCell field="camisa" maxWidth="90px" />
+
+                    {/* ============ MEDIDAS Y TIEMPOS ============ */}
+                    <EditableCell field="velocidadPosible" type="number" maxWidth="100px" />
+                    <EditableCell field="tiempoProduccionDecimal" type="number" maxWidth="110px" />
+                    <EditableCell field="bobinaMadre" type="number" maxWidth="100px" />
+                    <EditableCell field="bobinaFinal" type="number" maxWidth="100px" />
+
+                    {/* ============ COLORES ============ */}
+                    <EditableCell field="colores" type="number" maxWidth="80px" />
+                    <EditableCell field="minColor" type="number" maxWidth="90px" />
+                    <EditableCell field="minAdap" type="number" maxWidth="90px" />
+
+                    {/* ============ NÚMEROS DE COMPRA ============ */}
                     <td 
                       className="px-3 py-2"
-                      onClick={() => !isExcluded && setEditingCell({ row: index, field: 'numeroPedidoCliente' })}
+                      onClick={() => !isExcluded && setEditingCell({ row: index, field: 'numerosCompra' })}
                     >
-                      {editingCell?.row === index && editingCell.field === 'numeroPedidoCliente' ? (
+                      {editingCell?.row === index && editingCell.field === 'numerosCompra' ? (
                         <input
                           type="text"
-                          value={row.mappedData.numeroPedidoCliente || ''}
-                          onChange={(e) => onCellEdit(index, 'numeroPedidoCliente', e.target.value)}
+                          value={Array.isArray(row.mappedData.numerosCompra) ? row.mappedData.numerosCompra.join(', ') : ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            const array = value.split(',').map(s => s.trim()).filter(s => s);
+                            onCellEdit(index, 'numerosCompra', array);
+                          }}
                           onBlur={() => setEditingCell(null)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === 'Escape') {
                               setEditingCell(null);
                             }
                           }}
+                          placeholder="Separar con comas"
                           autoFocus
                           className="w-full border border-blue-500 rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
                         />
                       ) : (
-                        <div className="truncate max-w-[100px] cursor-text hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 px-1 py-0.5 rounded" title={row.mappedData.numeroPedidoCliente || ''}>
-                          {row.mappedData.numeroPedidoCliente || '-'}
+                        <div 
+                          className="truncate cursor-text hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 px-1 py-0.5 rounded"
+                          style={{ maxWidth: '130px' }}
+                          title={Array.isArray(row.mappedData.numerosCompra) ? row.mappedData.numerosCompra.join(', ') : ''}
+                        >
+                          {Array.isArray(row.mappedData.numerosCompra) && row.mappedData.numerosCompra.length > 0
+                            ? row.mappedData.numerosCompra.join(', ')
+                            : '-'}
                         </div>
                       )}
                     </td>
 
-                    {/* Cliente - EDITABLE CON CLIC SIMPLE */}
-                    <td 
-                      className="px-3 py-2"
-                      onClick={() => !isExcluded && setEditingCell({ row: index, field: 'cliente' })}
-                    >
-                      {editingCell?.row === index && editingCell.field === 'cliente' ? (
-                        <input
-                          type="text"
-                          value={row.mappedData.cliente || ''}
-                          onChange={(e) => onCellEdit(index, 'cliente', e.target.value)}
-                          onBlur={() => setEditingCell(null)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === 'Escape') {
-                              setEditingCell(null);
-                            }
-                          }}
-                          autoFocus
-                          className="w-full border border-blue-500 rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        />
-                      ) : (
-                        <div className="truncate max-w-[120px] cursor-text hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 px-1 py-0.5 rounded" title={row.mappedData.cliente || ''}>
-                          {row.mappedData.cliente || '-'}
-                        </div>
-                      )}
-                    </td>
+                    {/* ============ OBSERVACIONES ============ */}
+                    <EditableCell field="observaciones" maxWidth="180px" />
+                    <EditableCell field="observacionesRapidas" maxWidth="150px" />
+                    <EditableCell field="observacionesMaterial" maxWidth="150px" />
 
-                    {/* Fecha Entrega - EDITABLE CON CLIC SIMPLE */}
-                    <td 
-                      className="px-3 py-2"
-                      onClick={() => !isExcluded && setEditingCell({ row: index, field: 'fechaEntrega' })}
-                    >
-                      {editingCell?.row === index && editingCell.field === 'fechaEntrega' ? (
-                        <input
-                          type="date"
-                          value={row.mappedData.fechaEntrega || ''}
-                          onChange={(e) => onCellEdit(index, 'fechaEntrega', e.target.value)}
-                          onBlur={() => setEditingCell(null)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === 'Escape') {
-                              setEditingCell(null);
-                            }
-                          }}
-                          autoFocus
-                          className="w-full border border-blue-500 rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        />
-                      ) : (
-                        <div className="cursor-text hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 px-1 py-0.5 rounded">
-                          {row.mappedData.fechaEntrega || '-'}
-                        </div>
-                      )}
-                    </td>
+                    {/* ============ CHECKBOXES ============ */}
+                    <CheckboxCell field="antivaho" />
+                    <CheckboxCell field="microperforado" />
+                    <CheckboxCell field="macroperforado" />
+                    <CheckboxCell field="anonimo" />
 
-                    {/* Metros - EDITABLE CON CLIC SIMPLE */}
-                    <td 
-                      className="px-3 py-2"
-                      onClick={() => !isExcluded && setEditingCell({ row: index, field: 'metros' })}
-                    >
-                      {editingCell?.row === index && editingCell.field === 'metros' ? (
-                        <input
-                          type="number"
-                          value={row.mappedData.metros || ''}
-                          onChange={(e) => onCellEdit(index, 'metros', Number(e.target.value))}
-                          onBlur={() => setEditingCell(null)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === 'Escape') {
-                              setEditingCell(null);
-                            }
-                          }}
-                          autoFocus
-                          className="w-full border border-blue-500 rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        />
-                      ) : (
-                        <div className="cursor-text hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 px-1 py-0.5 rounded">
-                          {row.mappedData.metros || '-'}
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Producto - EDITABLE CON CLIC SIMPLE */}
-                    <td 
-                      className="px-3 py-2"
-                      onClick={() => !isExcluded && setEditingCell({ row: index, field: 'producto' })}
-                    >
-                      {editingCell?.row === index && editingCell.field === 'producto' ? (
-                        <input
-                          type="text"
-                          value={row.mappedData.producto || ''}
-                          onChange={(e) => onCellEdit(index, 'producto', e.target.value)}
-                          onBlur={() => setEditingCell(null)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === 'Escape') {
-                              setEditingCell(null);
-                            }
-                          }}
-                          autoFocus
-                          className="w-full border border-blue-500 rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        />
-                      ) : (
-                        <div className="truncate max-w-[100px] cursor-text hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 px-1 py-0.5 rounded" title={row.mappedData.producto || ''}>
-                          {row.mappedData.producto || '-'}
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Etapa - SOLO LECTURA, CLICK PARA SELECCIONAR FILA */}
-                    <td 
-                      className="px-3 py-2 cursor-pointer"
-                      onClick={() => !isExcluded && toggleRowSelection(index)}
-                    >
-                      <div className="truncate max-w-[100px]">{row.mappedData.etapaActual || globalFields.etapaActual || '-'}</div>
-                    </td>
-
-                    {/* Prioridad - SOLO LECTURA, CLICK PARA SELECCIONAR FILA */}
-                    <td 
-                      className="px-3 py-2 cursor-pointer"
-                      onClick={() => !isExcluded && toggleRowSelection(index)}
-                    >
-                      <div>{row.mappedData.prioridad || globalFields.prioridad || '-'}</div>
-                    </td>
-
-                    {/* Tipo Impresión - SOLO LECTURA, CLICK PARA SELECCIONAR FILA */}
-                    <td 
-                      className="px-3 py-2 cursor-pointer"
-                      onClick={() => !isExcluded && toggleRowSelection(index)}
-                    >
-                      <div className="truncate max-w-[100px]">{row.mappedData.tipoImpresion || globalFields.tipoImpresion || '-'}</div>
-                    </td>
-
-                    {/* Máquina - SOLO LECTURA, CLICK PARA SELECCIONAR FILA */}
-                    <td 
-                      className="px-3 py-2 cursor-pointer"
-                      onClick={() => !isExcluded && toggleRowSelection(index)}
-                    >
-                      <div className="truncate max-w-[100px]" title={row.mappedData.maquinaImpresion || ''}>{row.mappedData.maquinaImpresion || globalFields.maquinaImpresion || '-'}</div>
-                    </td>
-
-                    {/* Vendedor - SOLO LECTURA, CLICK PARA SELECCIONAR FILA */}
-                    <td 
-                      className="px-3 py-2 cursor-pointer"
-                      onClick={() => !isExcluded && toggleRowSelection(index)}
-                    >
-                      <div className="truncate max-w-[100px]" title={row.mappedData.vendedorNombre || ''}>{row.mappedData.vendedorNombre || '-'}</div>
-                    </td>
-
-                    {/* Desarrollo - EDITABLE CON CLIC SIMPLE */}
-                    <td 
-                      className="px-3 py-2"
-                      onClick={() => !isExcluded && setEditingCell({ row: index, field: 'desarrollo' })}
-                    >
-                      {editingCell?.row === index && editingCell.field === 'desarrollo' ? (
-                        <input
-                          type="text"
-                          value={row.mappedData.desarrollo || ''}
-                          onChange={(e) => onCellEdit(index, 'desarrollo', e.target.value)}
-                          onBlur={() => setEditingCell(null)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === 'Escape') {
-                              setEditingCell(null);
-                            }
-                          }}
-                          autoFocus
-                          className="w-full border border-blue-500 rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        />
-                      ) : (
-                        <div className="truncate max-w-[90px] cursor-text hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 px-1 py-0.5 rounded" title={row.mappedData.desarrollo || ''}>
-                          {row.mappedData.desarrollo || globalFields.desarrollo || '-'}
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Observaciones - EDITABLE CON CLIC SIMPLE */}
-                    <td 
-                      className="px-3 py-2"
-                      onClick={() => !isExcluded && setEditingCell({ row: index, field: 'observaciones' })}
-                    >
-                      {editingCell?.row === index && editingCell.field === 'observaciones' ? (
-                        <input
-                          type="text"
-                          value={row.mappedData.observaciones || ''}
-                          onChange={(e) => onCellEdit(index, 'observaciones', e.target.value)}
-                          onBlur={() => setEditingCell(null)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === 'Escape') {
-                              setEditingCell(null);
-                            }
-                          }}
-                          autoFocus
-                          className="w-full border border-blue-500 rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        />
-                      ) : (
-                        <div className="truncate max-w-[150px] cursor-text hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 px-1 py-0.5 rounded" title={row.mappedData.observaciones || ''}>
-                          {row.mappedData.observaciones || '-'}
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Copiar */}
-                    <td className="px-2 py-2 text-center">
+                    {/* ============ COPIAR ============ */}
+                    <td className="px-2 py-2 text-center sticky right-0 bg-inherit z-10">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -2158,7 +2155,7 @@ function ImportingPhaseV2({
         <div className="mb-4 sticky top-0 bg-gradient-to-b from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-750 pb-3 z-10">
           <h4 className="font-semibold text-lg mb-2 text-gray-800 dark:text-gray-100">⚙️ Ajustes Finales</h4>
           <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-            Modifica valores globales y aplícalos a pedidos seleccionados:
+            Configura valores globales y aplícalos a las filas seleccionadas. Los campos obligatorios están marcados con *.
           </p>
           
           {/* Botón aplicar a seleccionados */}
@@ -2168,159 +2165,198 @@ function ImportingPhaseV2({
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-3 py-2 rounded-lg text-xs font-medium shadow mb-3 transition-colors"
           >
             {selectedRows.size > 0 
-              ? `Aplicar a ${selectedRows.size} Filas Seleccionadas` 
+              ? `✨ Aplicar a ${selectedRows.size} Filas Seleccionadas` 
               : 'Selecciona filas para aplicar'}
           </button>
+          
+          <div className="bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-20 border border-yellow-200 dark:border-yellow-700 rounded p-2 text-xs text-yellow-800 dark:text-yellow-200">
+            💡 <strong>Tip:</strong> Completa aquí los campos que faltan y aplícalos masivamente a las filas seleccionadas.
+          </div>
         </div>
         
         <div className="space-y-3 flex-1">
-          {/* Etapa */}
-          <div>
-            <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">📍 Etapa Inicial:</label>
-            <select
-              value={globalFields.etapaActual || Etapa.PREPARACION}
-              onChange={(e) => setGlobalFields({ ...globalFields, etapaActual: e.target.value as Etapa })}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            >
-              {GLOBAL_FIELD_OPTIONS.etapaActual.map(etapa => (
-                <option key={etapa} value={etapa}>{etapa}</option>
-              ))}
-            </select>
+          {/* ====== SECCIÓN: CAMPOS OBLIGATORIOS ====== */}
+          <div className="bg-red-50 dark:bg-red-900 dark:bg-opacity-10 border border-red-200 dark:border-red-800 rounded-lg p-3">
+            <h5 className="text-xs font-bold mb-2 text-red-700 dark:text-red-300 uppercase">⚠️ Campos Obligatorios</h5>
+            
+            {/* Cliente */}
+            <div className="mb-2">
+              <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">👤 Cliente *:</label>
+              <select
+                value={globalFields.clienteId || ''}
+                onChange={(e) => {
+                  const cliente = clientes.find(c => c.id === e.target.value);
+                  setGlobalFields({ 
+                    ...globalFields, 
+                    clienteId: e.target.value,
+                    cliente: cliente?.nombre || ''
+                  });
+                }}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              >
+                <option value="">-- Seleccionar --</option>
+                {clientes.map(cliente => (
+                  <option key={cliente.id} value={cliente.id}>{cliente.nombre}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Fecha Entrega */}
+            <div className="mb-2">
+              <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">📅 Fecha Entrega *:</label>
+              <input
+                type="date"
+                value={globalFields.fechaEntrega || ''}
+                onChange={(e) => setGlobalFields({ ...globalFields, fechaEntrega: e.target.value })}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+
+            {/* Metros */}
+            <div>
+              <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">📏 Metros *:</label>
+              <input
+                type="number"
+                value={globalFields.metros || ''}
+                onChange={(e) => setGlobalFields({ ...globalFields, metros: Number(e.target.value) })}
+                placeholder="Metros a producir"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
           </div>
 
-          {/* Prioridad */}
-          <div>
-            <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">⚡ Prioridad:</label>
-            <select
-              value={globalFields.prioridad || Prioridad.NORMAL}
-              onChange={(e) => setGlobalFields({ ...globalFields, prioridad: e.target.value as Prioridad })}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            >
-              {GLOBAL_FIELD_OPTIONS.prioridad.map(prioridad => (
-                <option key={prioridad} value={prioridad}>{prioridad}</option>
-              ))}
-            </select>
+          {/* ====== SECCIÓN: WORKFLOW ====== */}
+          <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
+            <h5 className="text-xs font-bold mb-2 text-gray-700 dark:text-gray-300 uppercase">🔄 Workflow</h5>
+            
+            <div className="space-y-2">
+              {/* Etapa */}
+              <div>
+                <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">📍 Etapa Inicial:</label>
+                <select
+                  value={globalFields.etapaActual || Etapa.PREPARACION}
+                  onChange={(e) => setGlobalFields({ ...globalFields, etapaActual: e.target.value as Etapa })}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  {GLOBAL_FIELD_OPTIONS.etapaActual.map(etapa => (
+                    <option key={etapa} value={etapa}>{etapa}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Prioridad */}
+              <div>
+                <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">⚡ Prioridad:</label>
+                <select
+                  value={globalFields.prioridad || Prioridad.NORMAL}
+                  onChange={(e) => setGlobalFields({ ...globalFields, prioridad: e.target.value as Prioridad })}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  {GLOBAL_FIELD_OPTIONS.prioridad.map(prioridad => (
+                    <option key={prioridad} value={prioridad}>{prioridad}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Tipo Impresión */}
+              <div>
+                <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">🖨️ Tipo de Impresión:</label>
+                <select
+                  value={globalFields.tipoImpresion || TipoImpresion.SUPERFICIE}
+                  onChange={(e) => setGlobalFields({ ...globalFields, tipoImpresion: e.target.value as TipoImpresion })}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  {GLOBAL_FIELD_OPTIONS.tipoImpresion.map(tipo => (
+                    <option key={tipo} value={tipo}>{tipo}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
 
-          {/* Tipo Impresión */}
-          <div>
-            <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">🖨️ Tipo de Impresión:</label>
-            <select
-              value={globalFields.tipoImpresion || TipoImpresion.SUPERFICIE}
-              onChange={(e) => setGlobalFields({ ...globalFields, tipoImpresion: e.target.value as TipoImpresion })}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            >
-              {GLOBAL_FIELD_OPTIONS.tipoImpresion.map(tipo => (
-                <option key={tipo} value={tipo}>{tipo}</option>
-              ))}
-            </select>
+          {/* ====== SECCIÓN: PRODUCCIÓN ====== */}
+          <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
+            <h5 className="text-xs font-bold mb-2 text-gray-700 dark:text-gray-300 uppercase">🏭 Producción</h5>
+            
+            <div className="space-y-2">
+              {/* Máquina */}
+              <div>
+                <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">🏭 Máquina:</label>
+                <select
+                  value={globalFields.maquinaImpresion || ''}
+                  onChange={(e) => setGlobalFields({ ...globalFields, maquinaImpresion: e.target.value })}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="">-- Seleccionar --</option>
+                  {MAQUINAS_IMPRESION.map(maq => (
+                    <option key={maq.id} value={maq.id}>{maq.nombre}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Producto */}
+              <div>
+                <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">📦 Producto:</label>
+                <input
+                  type="text"
+                  value={globalFields.producto || ''}
+                  onChange={(e) => setGlobalFields({ ...globalFields, producto: e.target.value })}
+                  placeholder="Nombre del producto..."
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
+              </div>
+
+              {/* Material/Desarrollo */}
+              <div>
+                <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">🔬 Material/Desarrollo:</label>
+                <input
+                  type="text"
+                  value={globalFields.desarrollo || ''}
+                  onChange={(e) => setGlobalFields({ ...globalFields, desarrollo: e.target.value })}
+                  placeholder="Ej: PE, PP, PET..."
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
+              </div>
+
+              {/* Capa */}
+              <div>
+                <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">📄 Capa:</label>
+                <input
+                  type="text"
+                  value={globalFields.capa || ''}
+                  onChange={(e) => setGlobalFields({ ...globalFields, capa: e.target.value })}
+                  placeholder="Información de capa..."
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Máquina */}
-          <div>
-            <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">🏭 Máquina:</label>
-            <select
-              value={globalFields.maquinaImpresion || ''}
-              onChange={(e) => setGlobalFields({ ...globalFields, maquinaImpresion: e.target.value })}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            >
-              <option value="">-- Seleccionar --</option>
-              {MAQUINAS_IMPRESION.map(maq => (
-                <option key={maq.id} value={maq.id}>{maq.nombre}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Cliente */}
-          <div>
-            <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">👤 Cliente:</label>
-            <select
-              value={globalFields.clienteId || ''}
-              onChange={(e) => {
-                const cliente = clientes.find(c => c.id === e.target.value);
-                setGlobalFields({ 
-                  ...globalFields, 
-                  clienteId: e.target.value,
-                  cliente: cliente?.nombre || ''
-                });
-              }}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            >
-              <option value="">-- Seleccionar --</option>
-              {clientes.map(cliente => (
-                <option key={cliente.id} value={cliente.id}>{cliente.nombre}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Vendedor */}
-          <div>
-            <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">💼 Vendedor:</label>
-            <select
-              value={globalFields.vendedorId || ''}
-              onChange={(e) => {
-                const vendedor = vendedores.find(v => v.id === e.target.value);
-                setGlobalFields({ 
-                  ...globalFields, 
-                  vendedorId: e.target.value,
-                  vendedorNombre: vendedor?.nombre || ''
-                });
-              }}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            >
-              <option value="">-- Seleccionar --</option>
-              {vendedores.map(vendedor => (
-                <option key={vendedor.id} value={vendedor.id}>{vendedor.nombre}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Estado Cliché */}
-          <div>
-            <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">🎨 Estado Cliché:</label>
-            <select
-              value={globalFields.estadoCliché || ''}
-              onChange={(e) => setGlobalFields({ ...globalFields, estadoCliché: e.target.value as EstadoCliché })}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            >
-              <option value="">-- Seleccionar --</option>
-              {GLOBAL_FIELD_OPTIONS.estadoCliché.map(estado => (
-                <option key={estado} value={estado}>{estado}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Producto */}
-          <div>
-            <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">📦 Producto:</label>
-            <input
-              type="text"
-              value={globalFields.producto || ''}
-              onChange={(e) => setGlobalFields({ ...globalFields, producto: e.target.value })}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            />
-          </div>
-
-          {/* Desarrollo */}
-          <div>
-            <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">🔬 Desarrollo:</label>
-            <input
-              type="text"
-              value={globalFields.desarrollo || ''}
-              onChange={(e) => setGlobalFields({ ...globalFields, desarrollo: e.target.value })}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            />
-          </div>
-
-          {/* Capa */}
-          <div>
-            <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">📄 Capa:</label>
-            <input
-              type="text"
-              value={globalFields.capa || ''}
-              onChange={(e) => setGlobalFields({ ...globalFields, capa: e.target.value })}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            />
+          {/* ====== SECCIÓN: PERSONAS ====== */}
+          <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
+            <h5 className="text-xs font-bold mb-2 text-gray-700 dark:text-gray-300 uppercase">👥 Personas</h5>
+            
+            {/* Vendedor */}
+            <div>
+              <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">💼 Vendedor:</label>
+              <select
+                value={globalFields.vendedorId || ''}
+                onChange={(e) => {
+                  const vendedor = vendedores.find(v => v.id === e.target.value);
+                  setGlobalFields({ 
+                    ...globalFields, 
+                    vendedorId: e.target.value,
+                    vendedorNombre: vendedor?.nombre || ''
+                  });
+                }}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              >
+                <option value="">-- Seleccionar --</option>
+                {vendedores.map(vendedor => (
+                  <option key={vendedor.id} value={vendedor.id}>{vendedor.nombre}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Observaciones */}
