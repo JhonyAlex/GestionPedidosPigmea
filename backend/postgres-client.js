@@ -1802,6 +1802,8 @@ class PostgreSQLClient {
         if (!this.isInitialized) throw new Error('Database not initialized');
         const client = await this.pool.connect();
         try {
+            console.log('🔧 updateVendedor called with:', { id, vendedorData });
+            
             // Comenzar transacción
             await client.query('BEGIN');
 
@@ -1810,6 +1812,8 @@ class PostgreSQLClient {
             if (vendedorData.nombre !== undefined) {
                 const prevRes = await client.query('SELECT nombre FROM limpio.vendedores WHERE id = $1', [id]);
                 previousName = prevRes.rowCount > 0 ? prevRes.rows[0].nombre : null;
+                console.log('📝 Nombre anterior en BD:', previousName);
+                console.log('📝 Nombre nuevo a guardar:', vendedorData.nombre);
             }
 
             const setParts = [];
@@ -1825,6 +1829,7 @@ class PostgreSQLClient {
             }
 
             if (setParts.length === 0) {
+                console.log('⚠️ No hay campos para actualizar, haciendo ROLLBACK');
                 await client.query('ROLLBACK');
                 return this.getVendedorById(id);
             }
@@ -1837,7 +1842,12 @@ class PostgreSQLClient {
                 RETURNING *;
             `;
 
+            console.log('🔍 Ejecutando UPDATE con query:', query);
+            console.log('🔍 Valores:', values);
+            
             const result = await client.query(query, values);
+            console.log('✅ UPDATE ejecutado, filas afectadas:', result.rowCount);
+            console.log('✅ Vendedor devuelto por BD:', result.rows[0]);
             const row = result.rows[0];
 
             // 🔥 Si se cambió el nombre, actualizar también en los pedidos
@@ -1921,10 +1931,17 @@ class PostgreSQLClient {
             }
 
             // Confirmar la transacción
+            console.log('💾 Haciendo COMMIT de la transacción...');
             await client.query('COMMIT');
+            console.log('✅ COMMIT exitoso');
+
+            // Verificar que se guardó correctamente
+            const verifyQuery = 'SELECT nombre FROM limpio.vendedores WHERE id = $1';
+            const verifyResult = await client.query(verifyQuery, [id]);
+            console.log('🔍 Verificación post-COMMIT - Nombre en BD:', verifyResult.rows[0]?.nombre);
 
             // Transformar snake_case a camelCase
-            return {
+            const vendedorFinal = {
                 id: row.id,
                 nombre: row.nombre,
                 email: row.email,
@@ -1933,9 +1950,13 @@ class PostgreSQLClient {
                 createdAt: row.created_at,
                 updatedAt: row.updated_at
             };
+            
+            console.log('📤 Devolviendo vendedor:', vendedorFinal);
+            return vendedorFinal;
         } catch (error) {
+            console.error('❌ Error en updateVendedor, haciendo ROLLBACK:', error);
             await client.query('ROLLBACK');
-            console.error('❌ Error en updateVendedor:', error);
+            console.error('❌ Error completo:', error);
             throw error;
         } finally {
             client.release();

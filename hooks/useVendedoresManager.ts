@@ -47,10 +47,30 @@ const setupGlobalWebSocketListeners = () => {
     });
 
     webSocketService.subscribeToVendedorUpdated((data: { vendedor: Vendedor; message: string; timestamp: string }) => {
-        console.log('🔄 WS: Vendedor actualizado:', data.vendedor.nombre);
-        updateGlobalState(current =>
-            current.map(v => v.id === data.vendedor.id ? data.vendedor : v)
-        );
+        console.log('🔄 WS: Vendedor actualizado:', data.vendedor.nombre, 'Timestamp:', data.vendedor.updatedAt);
+        
+        // 🔥 FIX: Solo actualizar si el dato del WebSocket es más reciente que el que tenemos
+        updateGlobalState(current => {
+            const existingVendedor = current.find(v => v.id === data.vendedor.id);
+            
+            if (existingVendedor) {
+                const existingTime = new Date(existingVendedor.updatedAt || 0).getTime();
+                const newTime = new Date(data.vendedor.updatedAt || 0).getTime();
+                
+                if (newTime < existingTime) {
+                    console.warn('⚠️ Ignorando actualización WebSocket antigua:', {
+                        nombre: data.vendedor.nombre,
+                        existingTime: new Date(existingTime).toISOString(),
+                        newTime: new Date(newTime).toISOString()
+                    });
+                    return current; // No actualizar si el dato es más antiguo
+                }
+                
+                console.log('✅ Aplicando actualización WebSocket:', data.vendedor.nombre);
+            }
+            
+            return current.map(v => v.id === data.vendedor.id ? data.vendedor : v);
+        });
     });
 
     webSocketService.subscribeToVendedorDeleted((data: { vendedorId: string; vendedor?: Vendedor; message: string; timestamp: string }) => {
@@ -173,6 +193,8 @@ export function useVendedoresManager() {
         try {
             setError(null);
 
+            console.log('🔧 Actualizando vendedor:', id, vendedorData);
+
             const response = await fetch(`${API_URL}/vendedores/${id}`, {
                 method: 'PUT',
                 headers: {
@@ -189,11 +211,29 @@ export function useVendedoresManager() {
             }
 
             const vendedorActualizado = await response.json();
+            console.log('✅ Vendedor actualizado desde servidor:', vendedorActualizado);
 
-            // Actualizar estado global
-            updateGlobalState(current =>
-                current.map(v => v.id === id ? vendedorActualizado : v)
-            );
+            // 🔥 FIX: Actualizar estado global INMEDIATAMENTE y de forma forzada
+            updateGlobalState(current => {
+                const updated = current.map(v => v.id === id ? vendedorActualizado : v);
+                console.log('📝 Estado global actualizado. Nombre del vendedor:', vendedorActualizado.nombre);
+                return updated;
+            });
+
+            // 🔥 FIX: Después de 500ms, verificar que el vendedor se actualizó correctamente
+            // Esto ayuda a sobrescribir cualquier evento WebSocket que llegue con datos viejos
+            setTimeout(() => {
+                console.log('🔍 Verificando actualización del vendedor...');
+                updateGlobalState(current => {
+                    const vendedor = current.find(v => v.id === id);
+                    if (vendedor && vendedor.nombre !== vendedorActualizado.nombre) {
+                        console.warn('⚠️ Detectado cambio revertido, forzando actualización:', vendedorActualizado.nombre);
+                        return current.map(v => v.id === id ? vendedorActualizado : v);
+                    }
+                    console.log('✅ Vendedor mantiene el nombre correcto:', vendedor?.nombre);
+                    return current;
+                });
+            }, 500);
 
             return vendedorActualizado;
         } catch (err) {
