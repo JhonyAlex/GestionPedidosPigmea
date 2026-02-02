@@ -35,7 +35,7 @@ import BulkDateUpdateModal from './components/BulkDateUpdateModal';
 import BulkMachineUpdateModal from './components/BulkMachineUpdateModal';
 import BulkStageUpdateModal from './components/BulkStageUpdateModal';
 import ImportDataModal from './components/ImportDataModal';
-import BulkImportModal from './components/BulkImportModal';
+import BulkImportModalV2 from './components/BulkImportModalV2';
 import { ToastContainer } from './components/Toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { MaterialesProvider } from './contexts/MaterialesContext';
@@ -1256,7 +1256,7 @@ const AppContent: React.FC = () => {
                 />
 
                 {showBulkImportModal && (
-                    <BulkImportModal
+                    <BulkImportModalV2
                         onClose={() => setShowBulkImportModal(false)}
                         onImportComplete={(results) => {
                             console.log('Importación completada:', results);
