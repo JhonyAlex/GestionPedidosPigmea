@@ -360,7 +360,7 @@ export interface ImportValidationError {
 
 export interface ColumnMapping {
     excelColumn: string;     // Nombre/índice de la columna en Excel
-    dbField: keyof Pedido | 'ignore'; // Campo de la BD o 'ignore'
+    dbField: keyof Pedido | 'ignore' | string; // Campo de la BD, 'ignore', o campos personalizados como 'numeroCompra1'
     transform?: 'date' | 'number' | 'text' | 'boolean'; // Transformación a aplicar
     required?: boolean;      // Si este campo es obligatorio
 }

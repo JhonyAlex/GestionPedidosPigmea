@@ -23,6 +23,16 @@ import { useClientesManager } from '../hooks/useClientesManager';
 import { useVendedoresManager } from '../hooks/useVendedoresManager';
 import { Icons } from './Icons';
 import { MAQUINAS_IMPRESION } from '../constants';
+import {
+  saveMappingConfig,
+  getAllMappingConfigs,
+  getMappingConfig,
+  deleteMappingConfig,
+  updateConfigUsage,
+  findCompatibleConfig,
+  applyConfigToHeaders,
+  MappingConfig
+} from '../utils/mappingConfigStorage';
 
 // Función para obtener headers de autenticación
 const getAuthHeaders = (): Record<string, string> => {
@@ -106,9 +116,11 @@ const AVAILABLE_FIELDS = [
   { value: 'vendedorNombre', label: '💼 Vendedor' },
   
   // Fechas y plazos
+  { value: 'fechaCreacion', label: '🕐 Fecha Creación' },
   { value: 'nuevaFechaEntrega', label: '📆 Nueva Fecha Entrega' },
   { value: 'compraCliche', label: '🛒 Fecha Compra Cliché' },
   { value: 'recepcionCliche', label: '📥 Fecha Recepción Cliché' },
+  { value: 'fechaFinalizacion', label: '🏁 Fecha Finalización' },
   
   // Números y medidas
   { value: 'numerosCompra', label: '🧾 Números de Compra (separados por coma)' },
@@ -130,6 +142,34 @@ const AVAILABLE_FIELDS = [
   
   // Campos de consumo de material
   { value: 'materialConsumoCantidad', label: '🔢 Cantidad Consumo Material (1-4)' },
+  
+  // Material 1
+  { value: 'numeroCompra1', label: '🧾 N° Compra Material 1' },
+  { value: 'micras1', label: '📏 Micras Material 1' },
+  { value: 'densidad1', label: '⚖️ Densidad Material 1' },
+  { value: 'necesario1', label: '✅ Necesario Material 1' },
+  { value: 'recibido1', label: '📦 Recibido Material 1' },
+  
+  // Material 2
+  { value: 'numeroCompra2', label: '🧾 N° Compra Material 2' },
+  { value: 'micras2', label: '📏 Micras Material 2' },
+  { value: 'densidad2', label: '⚖️ Densidad Material 2' },
+  { value: 'necesario2', label: '✅ Necesario Material 2' },
+  { value: 'recibido2', label: '📦 Recibido Material 2' },
+  
+  // Material 3
+  { value: 'numeroCompra3', label: '🧾 N° Compra Material 3' },
+  { value: 'micras3', label: '📏 Micras Material 3' },
+  { value: 'densidad3', label: '⚖️ Densidad Material 3' },
+  { value: 'necesario3', label: '✅ Necesario Material 3' },
+  { value: 'recibido3', label: '📦 Recibido Material 3' },
+  
+  // Material 4
+  { value: 'numeroCompra4', label: '🧾 N° Compra Material 4' },
+  { value: 'micras4', label: '📏 Micras Material 4' },
+  { value: 'densidad4', label: '⚖️ Densidad Material 4' },
+  { value: 'necesario4', label: '✅ Necesario Material 4' },
+  { value: 'recibido4', label: '📦 Recibido Material 4' },
 ];
 
 // Valores por defecto para campos globales
@@ -212,11 +252,50 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
       headers = rawData[headerRowIndex] || [];
     }
     
+    // 🔍 DETECCIÓN AUTOMÁTICA DE MULTI-MATERIALES
+    // Buscar patrones repetidos de columnas de materiales
+    const materialPatterns = {
+      numeroCompra: /n[°o].*compra|compra/i,
+      micras: /micra/i,
+      densidad: /densidad/i,
+      necesario: /necesario/i,
+      recibido: /recibido/i
+    };
+    
+    // Detectar cuántos sets de materiales hay
+    const materialCounts = {
+      numeroCompra: 0,
+      micras: 0,
+      densidad: 0,
+      necesario: 0,
+      recibido: 0
+    };
+    
+    headers.forEach(header => {
+      const normalizedHeader = header.toLowerCase().trim();
+      Object.entries(materialPatterns).forEach(([key, pattern]) => {
+        if (pattern.test(normalizedHeader)) {
+          materialCounts[key as keyof typeof materialCounts]++;
+        }
+      });
+    });
+    
+    // Determinar el número de materiales detectados (máximo común)
+    const detectedMaterialCount = Math.max(...Object.values(materialCounts));
+    let currentMaterialIndex = 1;
+    const materialFieldsUsed = {
+      numeroCompra: 0,
+      micras: 0,
+      densidad: 0,
+      necesario: 0,
+      recibido: 0
+    };
+    
     const initialMappings: ColumnMapping[] = headers.map((header, index) => {
       const normalizedHeader = header.toLowerCase().trim();
       
       // Mapeo automático inteligente
-      let dbField: keyof Pedido | 'ignore' = 'ignore';
+      let dbField: keyof Pedido | 'ignore' | string = 'ignore';
       
       if (normalizedHeader.includes('pedido') || normalizedHeader.includes('nº') || normalizedHeader.includes('n°')) {
         dbField = 'numeroPedidoCliente';
@@ -224,6 +303,14 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
         dbField = 'cliente';
       } else if (normalizedHeader.includes('fecha') && normalizedHeader.includes('entrega')) {
         dbField = 'fechaEntrega';
+      } else if (normalizedHeader.includes('fecha') && normalizedHeader.includes('creacion')) {
+        dbField = 'fechaCreacion';
+      } else if (normalizedHeader.includes('fecha') && normalizedHeader.includes('compra') && normalizedHeader.includes('cliche')) {
+        dbField = 'compraCliche';
+      } else if (normalizedHeader.includes('fecha') && normalizedHeader.includes('recepcion') && normalizedHeader.includes('cliche')) {
+        dbField = 'recepcionCliche';
+      } else if (normalizedHeader.includes('fecha') && normalizedHeader.includes('finalizacion')) {
+        dbField = 'fechaFinalizacion';
       } else if (normalizedHeader.includes('metro') || normalizedHeader === 'c' || normalizedHeader === 'm') {
         dbField = 'metros';
       } else if (normalizedHeader.includes('producto')) {
@@ -239,17 +326,39 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
       } else if (normalizedHeader.includes('máquina') || normalizedHeader.includes('maquina')) {
         dbField = 'maquinaImpresion';
       }
+      // 🔍 DETECCIÓN DE CAMPOS DE MATERIALES
+      else if (materialPatterns.numeroCompra.test(normalizedHeader) && detectedMaterialCount > 0) {
+        materialFieldsUsed.numeroCompra++;
+        dbField = `numeroCompra${materialFieldsUsed.numeroCompra}`;
+      } else if (materialPatterns.micras.test(normalizedHeader) && detectedMaterialCount > 0) {
+        materialFieldsUsed.micras++;
+        dbField = `micras${materialFieldsUsed.micras}`;
+      } else if (materialPatterns.densidad.test(normalizedHeader) && detectedMaterialCount > 0) {
+        materialFieldsUsed.densidad++;
+        dbField = `densidad${materialFieldsUsed.densidad}`;
+      } else if (materialPatterns.necesario.test(normalizedHeader) && detectedMaterialCount > 0) {
+        materialFieldsUsed.necesario++;
+        dbField = `necesario${materialFieldsUsed.necesario}`;
+      } else if (materialPatterns.recibido.test(normalizedHeader) && detectedMaterialCount > 0) {
+        materialFieldsUsed.recibido++;
+        dbField = `recibido${materialFieldsUsed.recibido}`;
+      }
       
       return {
         excelColumn: header,
         dbField,
-        transform: ['fechaEntrega', 'nuevaFechaEntrega', 'compraCliche', 'recepcionCliche'].includes(dbField as string) ? 'date' : 
-                   ['metros', 'velocidadPosible', 'tiempoProduccionDecimal', 'bobinaMadre', 'bobinaFinal', 'minAdap', 'colores', 'minColor'].includes(dbField as string) ? 'number' : 
+        transform: ['fechaEntrega', 'nuevaFechaEntrega', 'compraCliche', 'recepcionCliche', 'fechaCreacion', 'fechaFinalizacion'].includes(dbField as string) ? 'date' : 
+                   ['metros', 'velocidadPosible', 'tiempoProduccionDecimal', 'bobinaMadre', 'bobinaFinal', 'minAdap', 'colores', 'minColor', 'micras1', 'micras2', 'micras3', 'micras4', 'densidad1', 'densidad2', 'densidad3', 'densidad4', 'necesario1', 'necesario2', 'necesario3', 'necesario4'].includes(dbField as string) ? 'number' : 
                    'text'
       };
     });
     
     setColumnMappings(initialMappings);
+    
+    // 🔔 Notificar al usuario si se detectaron materiales
+    if (detectedMaterialCount > 0) {
+      console.log(`✅ Se detectaron ${detectedMaterialCount} materiales automáticamente`);
+    }
   }, [rawData]);
 
   // Actualizar mapeos cuando cambia la fila de encabezado seleccionada o el checkbox de encabezados
@@ -339,6 +448,62 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
           mappedData.clienteId = cliente.id;
           mappedData.cliente = cliente.nombre; // Normalizar nombre
         }
+      }
+
+      // 🔄 CONSOLIDAR DATOS DE MULTI-MATERIALES
+      // Convertir campos individuales (numeroCompra1, micras1, etc.) en arrays estructurados
+      const numerosCompraTemp: string[] = [];
+      const materialConsumoTemp: Array<{
+        necesario?: number | null;
+        recibido?: boolean | null;
+        gestionado?: boolean | null;
+        micras?: number | null;
+        densidad?: number | null;
+      }> = [];
+      
+      for (let i = 1; i <= 4; i++) {
+        const numeroCompraKey = `numeroCompra${i}` as any;
+        const micrasKey = `micras${i}` as any;
+        const densidadKey = `densidad${i}` as any;
+        const necesarioKey = `necesario${i}` as any;
+        const recibidoKey = `recibido${i}` as any;
+        
+        const numeroCompra = (mappedData as any)[numeroCompraKey];
+        const micras = (mappedData as any)[micrasKey];
+        const densidad = (mappedData as any)[densidadKey];
+        const necesario = (mappedData as any)[necesarioKey];
+        const recibido = (mappedData as any)[recibidoKey];
+        
+        // Si hay al menos un dato, agregar este material
+        if (numeroCompra || micras || densidad || necesario !== undefined || recibido !== undefined) {
+          if (numeroCompra) {
+            numerosCompraTemp.push(String(numeroCompra).trim());
+          }
+          
+          materialConsumoTemp.push({
+            necesario: necesario !== undefined ? Number(necesario) : null,
+            recibido: recibido !== undefined ? Boolean(recibido) : null,
+            gestionado: null,
+            micras: micras !== undefined && micras !== null ? Number(micras) : null,
+            densidad: densidad !== undefined && densidad !== null ? Number(densidad) : null,
+          });
+          
+          // Limpiar campos temporales
+          delete (mappedData as any)[numeroCompraKey];
+          delete (mappedData as any)[micrasKey];
+          delete (mappedData as any)[densidadKey];
+          delete (mappedData as any)[necesarioKey];
+          delete (mappedData as any)[recibidoKey];
+        }
+      }
+      
+      // Asignar arrays consolidados
+      if (numerosCompraTemp.length > 0) {
+        mappedData.numerosCompra = numerosCompraTemp;
+      }
+      if (materialConsumoTemp.length > 0) {
+        mappedData.materialConsumoCantidad = Math.min(materialConsumoTemp.length, 4) as 1 | 2 | 3 | 4;
+        mappedData.materialConsumo = materialConsumoTemp;
       }
 
       // Validar datos
@@ -797,6 +962,81 @@ function MappingPhaseV2({
   onNext,
   onBack
 }: MappingPhaseV2Props) {
+  const [savedConfigs, setSavedConfigs] = useState<MappingConfig[]>([]);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showLoadDialog, setShowLoadDialog] = useState(false);
+  const [configName, setConfigName] = useState('');
+  const [configDescription, setConfigDescription] = useState('');
+
+  // Cargar configuraciones guardadas al montar
+  React.useEffect(() => {
+    loadSavedConfigs();
+  }, []);
+
+  const loadSavedConfigs = async () => {
+    try {
+      const configs = await getAllMappingConfigs();
+      setSavedConfigs(configs);
+      console.log(`📂 ${configs.length} configuraciones cargadas`);
+    } catch (error) {
+      console.error('Error cargando configuraciones:', error);
+    }
+  };
+
+  const handleSaveConfig = async () => {
+    if (!configName.trim()) {
+      alert('Por favor ingrese un nombre para la configuración');
+      return;
+    }
+
+    try {
+      const headers = columnMappings.map(m => m.excelColumn);
+      await saveMappingConfig({
+        name: configName.trim(),
+        description: configDescription.trim() || undefined,
+        headers,
+        mappings: columnMappings
+      });
+
+      alert(`✅ Configuración "${configName}" guardada exitosamente`);
+      setConfigName('');
+      setConfigDescription('');
+      setShowSaveDialog(false);
+      await loadSavedConfigs();
+    } catch (error) {
+      console.error('Error guardando configuración:', error);
+      alert('Error al guardar la configuración');
+    }
+  };
+
+  const handleLoadConfig = async (config: MappingConfig) => {
+    try {
+      const headers = columnMappings.map(m => m.excelColumn);
+      const newMappings = applyConfigToHeaders(config, headers);
+      setColumnMappings(newMappings);
+      await updateConfigUsage(config.id);
+      setShowLoadDialog(false);
+      alert(`✅ Configuración "${config.name}" aplicada`);
+      await loadSavedConfigs();
+    } catch (error) {
+      console.error('Error aplicando configuración:', error);
+      alert('Error al aplicar la configuración');
+    }
+  };
+
+  const handleDeleteConfig = async (config: MappingConfig) => {
+    if (!confirm(`¿Eliminar la configuración "${config.name}"?`)) return;
+
+    try {
+      await deleteMappingConfig(config.id);
+      alert(`🗑️ Configuración eliminada`);
+      await loadSavedConfigs();
+    } catch (error) {
+      console.error('Error eliminando configuración:', error);
+      alert('Error al eliminar la configuración');
+    }
+  };
+
   const handleMappingChange = (columnIndex: number, newDbField: keyof Pedido | 'ignore') => {
     const newMappings: ColumnMapping[] = [...columnMappings];
     if (newMappings[columnIndex]) {
@@ -816,12 +1056,33 @@ function MappingPhaseV2({
   const previewRows = rawData.slice(dataStartRow, dataStartRow + 3); // Mostrar 3 filas
 
   return (
+    <>
     <div className="h-full flex">
       {/* Área principal: Grid de Datos (65%) */}
       <div className="flex-1 flex flex-col p-6 overflow-hidden">
         <div className="mb-4">
-          <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-100">🔗 Mapear Columnas del Excel</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">🔗 Mapear Columnas del Excel</h3>
+            
+            {/* Botones de Guardar/Cargar configuración */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowLoadDialog(true)}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow"
+                title="Cargar configuración guardada"
+              >
+                📂 Cargar ({savedConfigs.length})
+              </button>
+              <button
+                onClick={() => setShowSaveDialog(true)}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow"
+                title="Guardar configuración actual"
+              >
+                💾 Guardar Mapeo
+              </button>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             Seleccione qué campo de base de datos corresponde a cada columna. Los campos con * son obligatorios.
           </p>
         </div>
@@ -1203,6 +1464,136 @@ function MappingPhaseV2({
         </div>
       </div>
     </div>
+    
+    {/* Modal: Guardar Configuración */}
+    {showSaveDialog && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowSaveDialog(false)}>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+          <h3 className="text-xl font-bold mb-4 text-gray-800 dark:text-gray-100">💾 Guardar Configuración de Mapeo</h3>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                Nombre de la configuración: *
+              </label>
+              <input
+                type="text"
+                value={configName}
+                onChange={(e) => setConfigName(e.target.value)}
+                placeholder="Ej: Pedidos Cliente ABC, Importación Mensual..."
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+                autoFocus
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                Descripción (opcional):
+              </label>
+              <textarea
+                value={configDescription}
+                onChange={(e) => setConfigDescription(e.target.value)}
+                placeholder="Describe cuándo usar esta configuración..."
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 min-h-[60px]"
+                rows={2}
+              />
+            </div>
+            
+            <div className="text-xs text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20 p-3 rounded">
+              <strong>💡 Tip:</strong> Se guardarán {columnMappings.length} columnas mapeadas. Podrás reutilizar esta configuración en futuras importaciones.
+            </div>
+          </div>
+          
+          <div className="flex gap-3 mt-6">
+            <button
+              onClick={() => setShowSaveDialog(false)}
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSaveConfig}
+              disabled={!configName.trim()}
+              className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg transition-colors font-medium"
+            >
+              💾 Guardar
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    
+    {/* Modal: Cargar Configuración */}
+    {showLoadDialog && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowLoadDialog(false)}>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+          <h3 className="text-xl font-bold mb-4 text-gray-800 dark:text-gray-100">📂 Cargar Configuración Guardada</h3>
+          
+          {savedConfigs.length === 0 ? (
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+              <div className="text-5xl mb-4">📭</div>
+              <p>No hay configuraciones guardadas aún.</p>
+              <p className="text-sm mt-2">Guarda tu primer mapeo para reutilizarlo después.</p>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto space-y-3 mb-4">
+              {savedConfigs.map((config) => (
+                <div
+                  key={config.id}
+                  className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-800 dark:text-gray-100 mb-1">
+                        {config.name}
+                      </h4>
+                      {config.description && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                          {config.description}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap gap-3 text-xs text-gray-500 dark:text-gray-400">
+                        <span>📊 {config.headers.length} columnas</span>
+                        <span>🔗 {config.mappings.filter(m => m.dbField !== 'ignore').length} mapeadas</span>
+                        {config.useCount > 0 && <span>✨ Usada {config.useCount} {config.useCount === 1 ? 'vez' : 'veces'}</span>}
+                        <span>📅 {new Date(config.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2 ml-4">
+                      <button
+                        onClick={() => handleLoadConfig(config)}
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
+                        title="Aplicar esta configuración"
+                      >
+                        ✅ Aplicar
+                      </button>
+                      <button
+                        onClick={() => handleDeleteConfig(config)}
+                        className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm rounded transition-colors"
+                        title="Eliminar configuración"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          <div className="flex justify-end">
+            <button
+              onClick={() => setShowLoadDialog(false)}
+              className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
@@ -1381,7 +1772,7 @@ function ImportingPhaseV2({
             )}
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            💡 Doble clic para editar • Checkbox rojo para excluir • Selecciona y aplica valores globales
+            💡 Clic en celda para editar • Clic en borde de fila para seleccionar • Checkbox rojo para excluir
           </p>
         </div>
 
@@ -1439,29 +1830,44 @@ function ImportingPhaseV2({
                     `}
                   >
                     {/* Checkbox selección */}
-                    <td className="px-2 py-2 text-center">
+                    <td 
+                      className="px-2 py-2 text-center cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleRowSelection(index);
+                      }}
+                    >
                       <input
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleRowSelection(index)}
                         disabled={isExcluded}
-                        className="w-4 h-4"
+                        className="w-4 h-4 pointer-events-none"
                       />
                     </td>
 
                     {/* Checkbox excluir */}
-                    <td className="px-2 py-2 text-center">
+                    <td 
+                      className="px-2 py-2 text-center cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleRowExclusion(index);
+                      }}
+                    >
                       <input
                         type="checkbox"
                         checked={isExcluded}
                         onChange={() => toggleRowExclusion(index)}
                         title={isExcluded ? "Click para incluir" : "Click para excluir de importación"}
-                        className="w-4 h-4 text-red-600"
+                        className="w-4 h-4 text-red-600 pointer-events-none"
                       />
                     </td>
 
                     {/* Estado validación */}
-                    <td className="px-2 py-2 text-center">
+                    <td 
+                      className="px-2 py-2 text-center cursor-pointer"
+                      onClick={() => !isExcluded && toggleRowSelection(index)}
+                    >
                       {hasErrors ? (
                         <span className="text-red-600 dark:text-red-400 text-lg" title={row.validationErrors.map(e => e.message).join(', ')}>❌</span>
                       ) : (
@@ -1469,125 +1875,235 @@ function ImportingPhaseV2({
                       )}
                     </td>
 
-                    {/* N° Pedido */}
-                    <td className="px-3 py-2" onDoubleClick={() => !isExcluded && setEditingCell({ row: index, field: 'numeroPedidoCliente' })}>
+                    {/* N° Pedido - EDITABLE CON CLIC SIMPLE */}
+                    <td 
+                      className="px-3 py-2"
+                      onClick={() => !isExcluded && setEditingCell({ row: index, field: 'numeroPedidoCliente' })}
+                    >
                       {editingCell?.row === index && editingCell.field === 'numeroPedidoCliente' ? (
                         <input
                           type="text"
                           value={row.mappedData.numeroPedidoCliente || ''}
                           onChange={(e) => onCellEdit(index, 'numeroPedidoCliente', e.target.value)}
                           onBlur={() => setEditingCell(null)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === 'Escape') {
+                              setEditingCell(null);
+                            }
+                          }}
                           autoFocus
-                          className="w-full border border-blue-500 rounded px-1 py-0.5"
+                          className="w-full border border-blue-500 rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
                         />
                       ) : (
-                        <div className="truncate max-w-[100px]" title={row.mappedData.numeroPedidoCliente || ''}>{row.mappedData.numeroPedidoCliente || '-'}</div>
+                        <div className="truncate max-w-[100px] cursor-text hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 px-1 py-0.5 rounded" title={row.mappedData.numeroPedidoCliente || ''}>
+                          {row.mappedData.numeroPedidoCliente || '-'}
+                        </div>
                       )}
                     </td>
 
-                    {/* Cliente */}
-                    <td className="px-3 py-2" onDoubleClick={() => !isExcluded && setEditingCell({ row: index, field: 'cliente' })}>
+                    {/* Cliente - EDITABLE CON CLIC SIMPLE */}
+                    <td 
+                      className="px-3 py-2"
+                      onClick={() => !isExcluded && setEditingCell({ row: index, field: 'cliente' })}
+                    >
                       {editingCell?.row === index && editingCell.field === 'cliente' ? (
                         <input
                           type="text"
                           value={row.mappedData.cliente || ''}
                           onChange={(e) => onCellEdit(index, 'cliente', e.target.value)}
                           onBlur={() => setEditingCell(null)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === 'Escape') {
+                              setEditingCell(null);
+                            }
+                          }}
                           autoFocus
-                          className="w-full border border-blue-500 rounded px-1 py-0.5"
+                          className="w-full border border-blue-500 rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
                         />
                       ) : (
-                        <div className="truncate max-w-[120px]" title={row.mappedData.cliente || ''}>{row.mappedData.cliente || '-'}</div>
+                        <div className="truncate max-w-[120px] cursor-text hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 px-1 py-0.5 rounded" title={row.mappedData.cliente || ''}>
+                          {row.mappedData.cliente || '-'}
+                        </div>
                       )}
                     </td>
 
-                    {/* Fecha Entrega */}
-                    <td className="px-3 py-2" onDoubleClick={() => !isExcluded && setEditingCell({ row: index, field: 'fechaEntrega' })}>
+                    {/* Fecha Entrega - EDITABLE CON CLIC SIMPLE */}
+                    <td 
+                      className="px-3 py-2"
+                      onClick={() => !isExcluded && setEditingCell({ row: index, field: 'fechaEntrega' })}
+                    >
                       {editingCell?.row === index && editingCell.field === 'fechaEntrega' ? (
                         <input
                           type="date"
                           value={row.mappedData.fechaEntrega || ''}
                           onChange={(e) => onCellEdit(index, 'fechaEntrega', e.target.value)}
                           onBlur={() => setEditingCell(null)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === 'Escape') {
+                              setEditingCell(null);
+                            }
+                          }}
                           autoFocus
-                          className="w-full border border-blue-500 rounded px-1 py-0.5"
+                          className="w-full border border-blue-500 rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
                         />
                       ) : (
-                        <div>{row.mappedData.fechaEntrega || '-'}</div>
+                        <div className="cursor-text hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 px-1 py-0.5 rounded">
+                          {row.mappedData.fechaEntrega || '-'}
+                        </div>
                       )}
                     </td>
 
-                    {/* Metros */}
-                    <td className="px-3 py-2" onDoubleClick={() => !isExcluded && setEditingCell({ row: index, field: 'metros' })}>
+                    {/* Metros - EDITABLE CON CLIC SIMPLE */}
+                    <td 
+                      className="px-3 py-2"
+                      onClick={() => !isExcluded && setEditingCell({ row: index, field: 'metros' })}
+                    >
                       {editingCell?.row === index && editingCell.field === 'metros' ? (
                         <input
                           type="number"
                           value={row.mappedData.metros || ''}
                           onChange={(e) => onCellEdit(index, 'metros', Number(e.target.value))}
                           onBlur={() => setEditingCell(null)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === 'Escape') {
+                              setEditingCell(null);
+                            }
+                          }}
                           autoFocus
-                          className="w-full border border-blue-500 rounded px-1 py-0.5"
+                          className="w-full border border-blue-500 rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
                         />
                       ) : (
-                        <div>{row.mappedData.metros || '-'}</div>
+                        <div className="cursor-text hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 px-1 py-0.5 rounded">
+                          {row.mappedData.metros || '-'}
+                        </div>
                       )}
                     </td>
 
-                    {/* Producto */}
-                    <td className="px-3 py-2" onDoubleClick={() => !isExcluded && setEditingCell({ row: index, field: 'producto' })}>
+                    {/* Producto - EDITABLE CON CLIC SIMPLE */}
+                    <td 
+                      className="px-3 py-2"
+                      onClick={() => !isExcluded && setEditingCell({ row: index, field: 'producto' })}
+                    >
                       {editingCell?.row === index && editingCell.field === 'producto' ? (
                         <input
                           type="text"
                           value={row.mappedData.producto || ''}
                           onChange={(e) => onCellEdit(index, 'producto', e.target.value)}
                           onBlur={() => setEditingCell(null)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === 'Escape') {
+                              setEditingCell(null);
+                            }
+                          }}
                           autoFocus
-                          className="w-full border border-blue-500 rounded px-1 py-0.5"
+                          className="w-full border border-blue-500 rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
                         />
                       ) : (
-                        <div className="truncate max-w-[100px]" title={row.mappedData.producto || ''}>{row.mappedData.producto || '-'}</div>
+                        <div className="truncate max-w-[100px] cursor-text hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 px-1 py-0.5 rounded" title={row.mappedData.producto || ''}>
+                          {row.mappedData.producto || '-'}
+                        </div>
                       )}
                     </td>
 
-                    {/* Etapa */}
-                    <td className="px-3 py-2">
+                    {/* Etapa - SOLO LECTURA, CLICK PARA SELECCIONAR FILA */}
+                    <td 
+                      className="px-3 py-2 cursor-pointer"
+                      onClick={() => !isExcluded && toggleRowSelection(index)}
+                    >
                       <div className="truncate max-w-[100px]">{row.mappedData.etapaActual || globalFields.etapaActual || '-'}</div>
                     </td>
 
-                    {/* Prioridad */}
-                    <td className="px-3 py-2">
+                    {/* Prioridad - SOLO LECTURA, CLICK PARA SELECCIONAR FILA */}
+                    <td 
+                      className="px-3 py-2 cursor-pointer"
+                      onClick={() => !isExcluded && toggleRowSelection(index)}
+                    >
                       <div>{row.mappedData.prioridad || globalFields.prioridad || '-'}</div>
                     </td>
 
-                    {/* Tipo Impresión */}
-                    <td className="px-3 py-2">
+                    {/* Tipo Impresión - SOLO LECTURA, CLICK PARA SELECCIONAR FILA */}
+                    <td 
+                      className="px-3 py-2 cursor-pointer"
+                      onClick={() => !isExcluded && toggleRowSelection(index)}
+                    >
                       <div className="truncate max-w-[100px]">{row.mappedData.tipoImpresion || globalFields.tipoImpresion || '-'}</div>
                     </td>
 
-                    {/* Máquina */}
-                    <td className="px-3 py-2">
+                    {/* Máquina - SOLO LECTURA, CLICK PARA SELECCIONAR FILA */}
+                    <td 
+                      className="px-3 py-2 cursor-pointer"
+                      onClick={() => !isExcluded && toggleRowSelection(index)}
+                    >
                       <div className="truncate max-w-[100px]" title={row.mappedData.maquinaImpresion || ''}>{row.mappedData.maquinaImpresion || globalFields.maquinaImpresion || '-'}</div>
                     </td>
 
-                    {/* Vendedor */}
-                    <td className="px-3 py-2">
+                    {/* Vendedor - SOLO LECTURA, CLICK PARA SELECCIONAR FILA */}
+                    <td 
+                      className="px-3 py-2 cursor-pointer"
+                      onClick={() => !isExcluded && toggleRowSelection(index)}
+                    >
                       <div className="truncate max-w-[100px]" title={row.mappedData.vendedorNombre || ''}>{row.mappedData.vendedorNombre || '-'}</div>
                     </td>
 
-                    {/* Desarrollo */}
-                    <td className="px-3 py-2">
-                      <div className="truncate max-w-[90px]" title={row.mappedData.desarrollo || ''}>{row.mappedData.desarrollo || globalFields.desarrollo || '-'}</div>
+                    {/* Desarrollo - EDITABLE CON CLIC SIMPLE */}
+                    <td 
+                      className="px-3 py-2"
+                      onClick={() => !isExcluded && setEditingCell({ row: index, field: 'desarrollo' })}
+                    >
+                      {editingCell?.row === index && editingCell.field === 'desarrollo' ? (
+                        <input
+                          type="text"
+                          value={row.mappedData.desarrollo || ''}
+                          onChange={(e) => onCellEdit(index, 'desarrollo', e.target.value)}
+                          onBlur={() => setEditingCell(null)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === 'Escape') {
+                              setEditingCell(null);
+                            }
+                          }}
+                          autoFocus
+                          className="w-full border border-blue-500 rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        />
+                      ) : (
+                        <div className="truncate max-w-[90px] cursor-text hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 px-1 py-0.5 rounded" title={row.mappedData.desarrollo || ''}>
+                          {row.mappedData.desarrollo || globalFields.desarrollo || '-'}
+                        </div>
+                      )}
                     </td>
 
-                    {/* Observaciones */}
-                    <td className="px-3 py-2">
-                      <div className="truncate max-w-[150px]" title={row.mappedData.observaciones || ''}>{row.mappedData.observaciones || '-'}</div>
+                    {/* Observaciones - EDITABLE CON CLIC SIMPLE */}
+                    <td 
+                      className="px-3 py-2"
+                      onClick={() => !isExcluded && setEditingCell({ row: index, field: 'observaciones' })}
+                    >
+                      {editingCell?.row === index && editingCell.field === 'observaciones' ? (
+                        <input
+                          type="text"
+                          value={row.mappedData.observaciones || ''}
+                          onChange={(e) => onCellEdit(index, 'observaciones', e.target.value)}
+                          onBlur={() => setEditingCell(null)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === 'Escape') {
+                              setEditingCell(null);
+                            }
+                          }}
+                          autoFocus
+                          className="w-full border border-blue-500 rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        />
+                      ) : (
+                        <div className="truncate max-w-[150px] cursor-text hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 px-1 py-0.5 rounded" title={row.mappedData.observaciones || ''}>
+                          {row.mappedData.observaciones || '-'}
+                        </div>
+                      )}
                     </td>
 
                     {/* Copiar */}
                     <td className="px-2 py-2 text-center">
                       <button
-                        onClick={() => handleCopyFromRow(index)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopyFromRow(index);
+                        }}
                         disabled={selectedRows.size === 0 || isExcluded}
                         title="Copiar datos de esta fila a las seleccionadas"
                         className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 disabled:text-gray-400 disabled:cursor-not-allowed"
@@ -1816,6 +2332,49 @@ function ImportingPhaseV2({
               className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 min-h-[50px]"
               rows={2}
             />
+          </div>
+
+          {/* Fechas */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">🕐 F. Creación:</label>
+              <input
+                type="date"
+                value={globalFields.fechaCreacion?.split('T')[0] || ''}
+                onChange={(e) => setGlobalFields({ ...globalFields, fechaCreacion: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">📅 F. Entrega:</label>
+              <input
+                type="date"
+                value={globalFields.fechaEntrega || ''}
+                onChange={(e) => setGlobalFields({ ...globalFields, fechaEntrega: e.target.value })}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">🛒 F. Compra Cliché:</label>
+              <input
+                type="date"
+                value={globalFields.compraCliche || ''}
+                onChange={(e) => setGlobalFields({ ...globalFields, compraCliche: e.target.value })}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">📥 F. Recep. Cliché:</label>
+              <input
+                type="date"
+                value={globalFields.recepcionCliche || ''}
+                onChange={(e) => setGlobalFields({ ...globalFields, recepcionCliche: e.target.value })}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
           </div>
 
           {/* Bobinas */}
