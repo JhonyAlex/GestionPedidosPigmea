@@ -37,8 +37,13 @@ export default defineConfig(({ mode }) => {
       server: {
         proxy: {
           '/api': {
-            target: 'http://localhost:8080',
+            target: env.VITE_WS_URL || 'http://localhost:3001',
             changeOrigin: true
+          },
+          '/socket.io': {
+            target: env.VITE_WS_URL || 'http://localhost:3001',
+            changeOrigin: true,
+            ws: true
           }
         }
       }
