@@ -2711,6 +2711,34 @@ app.post('/api/pedidos/bulk', async (req, res) => {
     }
 });
 
+// GET /api/pedidos/numeros-existentes - Obtener solo números de pedido para validación de duplicados
+app.get('/api/pedidos/numeros-existentes', async (req, res) => {
+    try {
+        const result = await dbClient.query(
+            'SELECT numero_pedido_cliente FROM limpio.pedidos WHERE numero_pedido_cliente IS NOT NULL'
+        );
+        
+        // Normalizar números (lowercase y trim) para validación case-insensitive
+        const numeros = result.rows.map(row => ({
+            original: row.numero_pedido_cliente,
+            normalized: row.numero_pedido_cliente?.toLowerCase().trim()
+        }));
+        
+        console.log(`📋 Enviando ${numeros.length} números de pedido existentes para validación`);
+        
+        res.status(200).json({
+            count: numeros.length,
+            numeros: numeros
+        });
+    } catch (error) {
+        console.error('❌ Error al obtener números de pedido:', error);
+        res.status(500).json({ 
+            error: 'Error al cargar números de pedido existentes',
+            message: error.message 
+        });
+    }
+});
+
 // POST /api/pedidos/import-batch - Bulk import from Excel with client resolution
 app.post('/api/pedidos/import-batch', requirePermission('pedidos.create'), createImportBatchEndpoint(requirePermission, dbClient, broadcastToClients));
 

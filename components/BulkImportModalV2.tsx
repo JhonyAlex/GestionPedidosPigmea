@@ -200,6 +200,9 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
   // Estados de importación
   const [importRows, setImportRows] = useState<ImportRow[]>([]);
   const [excludedRows, setExcludedRows] = useState<Set<number>>(new Set()); // ✅ Filas excluidas de importación
+  const [existingPedidoNumbers, setExistingPedidoNumbers] = useState<Set<string>>(new Set()); // ✅ Números de pedido existentes en BD
+  const [isLoadingExistingNumbers, setIsLoadingExistingNumbers] = useState(false); // ✅ Estado de carga
+  const [duplicateRows, setDuplicateRows] = useState<Set<number>>(new Set()); // ✅ Filas con números duplicados
   const [importProgress, setImportProgress] = useState(0);
   const [isImporting, setIsImporting] = useState(false);
   const [importResults, setImportResults] = useState<any>(null);
@@ -207,6 +210,30 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
   // Hooks para datos
   const { clientes } = useClientesManager();
   const { vendedores } = useVendedoresManager();
+
+  // Cargar números de pedido existentes para validación de duplicados
+  const loadExistingPedidoNumbers = useCallback(async () => {
+    setIsLoadingExistingNumbers(true);
+    try {
+      const response = await fetch('/api/pedidos/numeros-existentes', {
+        headers: getAuthHeaders()
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar números de pedido existentes');
+      }
+      
+      const data = await response.json();
+      const numbersSet = new Set<string>(data.numeros.map((n: any) => n.normalized));
+      setExistingPedidoNumbers(numbersSet);
+      console.log(`📋 Cargados ${numbersSet.size} números de pedido para validación`);
+    } catch (error) {
+      console.error('❌ Error al cargar números existentes:', error);
+      alert('No se pudieron cargar los pedidos existentes para validar duplicados. Intente nuevamente.');
+    } finally {
+      setIsLoadingExistingNumbers(false);
+    }
+  }, []);
 
   // Procesar datos pegados (Paso 1 -> 2)
   const handleProcessPastedData = useCallback(() => {
@@ -371,7 +398,7 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
   }, [currentPhase, rawData, selectedHeaderRow, hasHeaders, setupInitialMappings]);
 
   // Procesar datos para importación (Paso 2 -> 3)
-  const processImportData = useCallback(() => {
+  const processImportData = useCallback(async () => {
     if (!rawData.length) return;
 
     // ✅ Si NO tiene encabezados, todos los datos son filas a importar (desde la fila 0)
@@ -530,8 +557,61 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
     });
     
     setImportRows(processedRows);
+    
+    // Cargar números existentes y validar duplicados
+    await loadExistingPedidoNumbers();
+    
     setCurrentPhase('importing');
-  }, [rawData, hasHeaders, selectedHeaderRow, columnMappings, globalFields, clientes, vendedores]);
+  }, [rawData, hasHeaders, selectedHeaderRow, columnMappings, globalFields, clientes, vendedores, loadExistingPedidoNumbers]);
+
+  // Detectar duplicados cuando cambien los datos o números existentes
+  React.useEffect(() => {
+    if (importRows.length === 0 || existingPedidoNumbers.size === 0) {
+      setDuplicateRows(new Set());
+      return;
+    }
+
+    const duplicates = new Set<number>();
+    const seenInBatch = new Set<string>();
+
+    importRows.forEach((row, index) => {
+      const numeroPedido = row.mappedData.numeroPedidoCliente;
+      if (!numeroPedido) return;
+
+      const normalized = numeroPedido.toLowerCase().trim();
+
+      // Verificar si existe en BD
+      if (existingPedidoNumbers.has(normalized)) {
+        duplicates.add(index);
+        // Agregar error de validación
+        const existingError = row.validationErrors.find(e => e.message.includes('ya existe'));
+        if (!existingError) {
+          row.validationErrors.push({
+            field: 'numeroPedidoCliente',
+            message: `⚠️ Ya existe un pedido con el número "${numeroPedido}" en la base de datos`,
+            severity: 'error' as const
+          });
+        }
+      }
+      // Verificar si está duplicado dentro del mismo batch
+      else if (seenInBatch.has(normalized)) {
+        duplicates.add(index);
+        const existingError = row.validationErrors.find(e => e.message.includes('duplicado'));
+        if (!existingError) {
+          row.validationErrors.push({
+            field: 'numeroPedidoCliente',
+            message: `⚠️ Número de pedido "${numeroPedido}" duplicado en este Excel`,
+            severity: 'error' as const
+          });
+        }
+      } else {
+        seenInBatch.add(normalized);
+      }
+    });
+
+    setDuplicateRows(duplicates);
+    console.log(`🔍 Detectados ${duplicates.size} pedidos duplicados`);
+  }, [importRows, existingPedidoNumbers]);
 
   // Ejecutar importación
   const executeImport = useCallback(async () => {
@@ -792,6 +872,8 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
               vendedores={vendedores}
               excludedRows={excludedRows}
               setExcludedRows={setExcludedRows}
+              duplicateRows={duplicateRows}
+              isLoadingExistingNumbers={isLoadingExistingNumbers}
             />
           )}
         </div>
@@ -1626,6 +1708,8 @@ interface ImportingPhaseV2Props {
   vendedores: any[];
   excludedRows: Set<number>;
   setExcludedRows: (rows: Set<number>) => void;
+  duplicateRows: Set<number>;
+  isLoadingExistingNumbers: boolean;
 }
 
 function ImportingPhaseV2({
@@ -1643,7 +1727,9 @@ function ImportingPhaseV2({
   clientes,
   vendedores,
   excludedRows,
-  setExcludedRows
+  setExcludedRows,
+  duplicateRows,
+  isLoadingExistingNumbers
 }: ImportingPhaseV2Props) {
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [editingCell, setEditingCell] = useState<{ row: number; field: string } | null>(null);
@@ -1772,6 +1858,11 @@ function ImportingPhaseV2({
                 ❌ {validationStats.errors} con errores
               </span>
             )}
+            {duplicateRows.size > 0 && (
+              <span className="text-orange-600 dark:text-orange-400 font-medium bg-orange-50 dark:bg-orange-900 dark:bg-opacity-20 px-2 py-1 rounded">
+                ⚠️ {duplicateRows.size} duplicado{duplicateRows.size === 1 ? '' : 's'}
+              </span>
+            )}
             {excludedRows.size > 0 && (
               <span className="text-orange-600 dark:text-orange-400 font-medium">
                 🚫 {excludedRows.size} excluidas
@@ -1785,6 +1876,11 @@ function ImportingPhaseV2({
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
             💡 Clic en celda para editar • Clic en borde de fila para seleccionar • Checkbox rojo para excluir
+            {duplicateRows.size > 0 && (
+              <span className="block mt-1 text-orange-600 dark:text-orange-400 font-medium">
+                ⚠️ No se pueden importar pedidos con números duplicados
+              </span>
+            )}
           </p>
         </div>
 
@@ -2001,7 +2097,8 @@ function ImportingPhaseV2({
                     className={`
                       border-t border-gray-100 dark:border-gray-700
                       ${isExcluded ? 'opacity-40 bg-gray-200 dark:bg-gray-700' : ''}
-                      ${hasErrors && !isExcluded ? 'bg-red-50 dark:bg-red-900 dark:bg-opacity-10' : ''}
+                      ${duplicateRows.has(index) && !isExcluded ? 'bg-orange-100 dark:bg-orange-900 dark:bg-opacity-20 border-l-4 border-orange-500' : ''}
+                      ${hasErrors && !isExcluded && !duplicateRows.has(index) ? 'bg-red-50 dark:bg-red-900 dark:bg-opacity-10' : ''}
                       ${isSelected && !isExcluded ? 'bg-blue-100 dark:bg-blue-900 dark:bg-opacity-20' : ''}
                       ${!isExcluded ? 'hover:bg-gray-50 dark:hover:bg-gray-700 dark:hover:bg-opacity-50' : ''}
                     `}
@@ -2190,17 +2287,32 @@ function ImportingPhaseV2({
         <div className="mt-4 flex justify-between items-center">
           <button
             onClick={onBack}
-            disabled={isImporting}
+            disabled={isImporting || isLoadingExistingNumbers}
             className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white px-6 py-2.5 rounded-lg transition-colors font-medium shadow"
           >
             <ArrowLeftIcon className="w-4 h-4 inline mr-1" /> Volver al Mapeo
           </button>
 
-          <button
-            onClick={onImport}
-            disabled={isImporting || activeValidCount === 0}
-            className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white px-8 py-3 rounded-lg transition-all font-medium shadow-lg relative overflow-hidden"
-          >
+          <div className="flex flex-col items-end gap-2">
+            {/* Mensaje de estado */}
+            {isLoadingExistingNumbers && (
+              <div className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                <LoadingSpinnerIcon className="w-4 h-4 animate-spin" />
+                Verificando números de pedido existentes...
+              </div>
+            )}
+            {duplicateRows.size > 0 && !isLoadingExistingNumbers && (
+              <div className="text-xs text-red-600 dark:text-red-400 font-medium bg-red-50 dark:bg-red-900 dark:bg-opacity-20 px-3 py-1.5 rounded border border-red-200 dark:border-red-700">
+                ⚠️ {duplicateRows.size} pedido{duplicateRows.size === 1 ? '' : 's'} duplicado{duplicateRows.size === 1 ? '' : 's'} detectado{duplicateRows.size === 1 ? '' : 's'}. No se puede importar.
+              </div>
+            )}
+
+            <button
+              onClick={onImport}
+              disabled={isImporting || isLoadingExistingNumbers || activeValidCount === 0 || duplicateRows.size > 0}
+              className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white px-8 py-3 rounded-lg transition-all font-medium shadow-lg relative overflow-hidden"
+              title={duplicateRows.size > 0 ? 'No se puede importar con pedidos duplicados' : ''}
+            >
             {isImporting ? (
               <>
                 <LoadingSpinnerIcon className="w-5 h-5 inline mr-2 animate-spin" />
@@ -2218,6 +2330,7 @@ function ImportingPhaseV2({
               </>
             )}
           </button>
+          </div>
         </div>
       </div>
 
