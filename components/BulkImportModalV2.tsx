@@ -88,6 +88,12 @@ const CopyIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   </svg>
 );
 
+const TrashIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+  </svg>
+);
+
 interface BulkImportModalV2Props {
   onClose: () => void;
   onImportComplete?: (result: any) => void;
@@ -770,6 +776,42 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
     }));
   }, [importRows]);
 
+  // Eliminar una fila completamente del array de importación
+  const handleDeleteRow = useCallback((rowIndex: number) => {
+    setImportRows(prev => {
+      const newRows = prev.filter((_, index) => index !== rowIndex);
+      console.log(`🗑️ Fila ${rowIndex} eliminada. Filas restantes: ${newRows.length}`);
+      return newRows;
+    });
+
+    // Actualizar excludedRows ajustando índices
+    setExcludedRows(prev => {
+      const newExcluded = new Set<number>();
+      prev.forEach(idx => {
+        if (idx < rowIndex) {
+          newExcluded.add(idx); // Mantener índices anteriores
+        } else if (idx > rowIndex) {
+          newExcluded.add(idx - 1); // Ajustar índices posteriores
+        }
+        // Si idx === rowIndex, no se agrega (se elimina)
+      });
+      return newExcluded;
+    });
+
+    // Actualizar duplicateRows ajustando índices
+    setDuplicateRows(prev => {
+      const newDuplicates = new Set<number>();
+      prev.forEach(idx => {
+        if (idx < rowIndex) {
+          newDuplicates.add(idx);
+        } else if (idx > rowIndex) {
+          newDuplicates.add(idx - 1);
+        }
+      });
+      return newDuplicates;
+    });
+  }, []);
+
   // Estadísticas de validación
   const validationStats = useMemo(() => {
     const total = importRows.length;
@@ -861,6 +903,7 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
               validationStats={validationStats}
               onCellEdit={handleCellEdit}
               onCopyToSelected={handleCopyToSelected}
+              onDeleteRow={handleDeleteRow}
               onImport={executeImport}
               onBack={() => setCurrentPhase('mapping')}
               isImporting={isImporting}
@@ -1697,6 +1740,7 @@ interface ImportingPhaseV2Props {
   validationStats: { total: number; valid: number; errors: number };
   onCellEdit: (rowIndex: number, field: string, value: any) => void;
   onCopyToSelected: (sourceIndex: number, targetIndices: number[]) => void;
+  onDeleteRow: (rowIndex: number) => void;
   onImport: () => void;
   onBack: () => void;
   isImporting: boolean;
@@ -1717,6 +1761,7 @@ function ImportingPhaseV2({
   validationStats,
   onCellEdit,
   onCopyToSelected,
+  onDeleteRow,
   onImport,
   onBack,
   isImporting,
@@ -1971,7 +2016,8 @@ function ImportingPhaseV2({
                 <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">⚠️ Aten. Obs.</th>
                 
                 {/* Acciones */}
-                <th className="px-2 py-2 text-center w-16 sticky right-0 bg-gray-200 dark:bg-gray-700 z-20">Copiar</th>
+                <th className="px-2 py-2 text-center w-16 sticky right-16 bg-gray-200 dark:bg-gray-700 z-20">Copiar</th>
+                <th className="px-2 py-2 text-center w-16 sticky right-0 bg-gray-200 dark:bg-gray-700 z-20">Eliminar</th>
               </tr>
             </thead>
             <tbody>
@@ -2263,7 +2309,7 @@ function ImportingPhaseV2({
                     <CheckboxCell field="atencionObservaciones" />
 
                     {/* ============ COPIAR ============ */}
-                    <td className="px-2 py-2 text-center sticky right-0 bg-inherit z-10">
+                    <td className="px-2 py-2 text-center sticky right-16 bg-inherit z-10">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -2274,6 +2320,22 @@ function ImportingPhaseV2({
                         className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 disabled:text-gray-400 disabled:cursor-not-allowed"
                       >
                         <CopyIcon className="w-4 h-4" />
+                      </button>
+                    </td>
+
+                    {/* ============ ELIMINAR ============ */}
+                    <td className="px-2 py-2 text-center sticky right-0 bg-inherit z-10">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm(`¿Eliminar el pedido "${row.mappedData.numeroPedidoCliente || 'Sin número'}"?\n\nEsta acción no se puede deshacer.`)) {
+                            onDeleteRow(index);
+                          }
+                        }}
+                        title="Eliminar esta fila permanentemente"
+                        className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900 dark:hover:bg-opacity-20 p-1 rounded"
+                      >
+                        <TrashIcon className="w-4 h-4" />
                       </button>
                     </td>
                   </tr>
