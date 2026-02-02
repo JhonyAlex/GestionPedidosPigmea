@@ -16,6 +16,7 @@ const MigrationManager = require('./migrations');
 const { requirePermission, requireAnyPermission, setDbClient: setPermissionsDbClient } = require('./middleware/permissions');
 const { authenticateUser, requireAuth, extractUserFromRequest, setDbClient: setAuthDbClient } = require('./middleware/auth');
 const { setDbClient: setDbHealthClient, ensureDatabaseHealth } = require('./middleware/db-health');
+const { createImportBatchEndpoint } = require('./services/pedidosImportService');
 
 // Mapeo de roles entre frontend y base de datos
 const ROLE_MAPPING = {
@@ -2709,6 +2710,9 @@ app.post('/api/pedidos/bulk', async (req, res) => {
         res.status(500).json({ message: "Error interno del servidor durante la importación masiva." });
     }
 });
+
+// POST /api/pedidos/import-batch - Bulk import from Excel with client resolution
+app.post('/api/pedidos/import-batch', requirePermission('pedidos.create'), createImportBatchEndpoint(requirePermission, dbClient, broadcastToClients));
 
 // DELETE /api/pedidos/all - Clear the entire collection
 app.delete('/api/pedidos/all', async (req, res) => {

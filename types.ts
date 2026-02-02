@@ -328,3 +328,67 @@ export interface ActionHistoryEntry {
     userName: string; // Nombre del usuario
     description: string; // Descripción legible de la acción
 }
+
+// ============== TIPOS PARA IMPORTACIÓN MASIVA ==============
+
+export interface ImportRow {
+    // Datos originales del Excel/TSV
+    originalData: Record<string, string>;
+    
+    // Datos mapeados a campos de la BD
+    mappedData: Partial<Pedido>;
+    
+    // Errores de validación para esta fila
+    validationErrors: ImportValidationError[];
+    
+    // Índice de la fila en los datos originales
+    rowIndex: number;
+    
+    // Estado de procesamiento
+    status: 'pending' | 'processing' | 'success' | 'error';
+    
+    // Mensaje de resultado
+    message?: string;
+}
+
+export interface ImportValidationError {
+    field: string;           // Campo con error
+    message: string;         // Mensaje de error
+    value?: any;            // Valor que causó el error
+    severity: 'error' | 'warning'; // Severidad
+}
+
+export interface ColumnMapping {
+    excelColumn: string;     // Nombre/índice de la columna en Excel
+    dbField: keyof Pedido | 'ignore'; // Campo de la BD o 'ignore'
+    transform?: 'date' | 'number' | 'text' | 'boolean'; // Transformación a aplicar
+    required?: boolean;      // Si este campo es obligatorio
+}
+
+export interface ImportResult {
+    totalRows: number;
+    successCount: number;
+    errorCount: number;
+    warnings: string[];
+    errors: string[];
+    importedPedidos: Pedido[];
+    failedRows: ImportRow[];
+}
+
+export interface ImportBatchRequest {
+    rows: ImportRow[];
+    globalFields: Partial<Pedido>; // Campos aplicados globalmente
+    options?: {
+        createMissingClients?: boolean;
+        skipValidation?: boolean;
+        dryRun?: boolean;
+    };
+}
+
+export interface ImportBatchResponse {
+    success: boolean;
+    result?: ImportResult;
+    error?: string;
+    processedCount: number;
+    remainingCount: number;
+}

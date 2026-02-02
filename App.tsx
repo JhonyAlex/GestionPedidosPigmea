@@ -35,6 +35,7 @@ import BulkDateUpdateModal from './components/BulkDateUpdateModal';
 import BulkMachineUpdateModal from './components/BulkMachineUpdateModal';
 import BulkStageUpdateModal from './components/BulkStageUpdateModal';
 import ImportDataModal from './components/ImportDataModal';
+import BulkImportModal from './components/BulkImportModal';
 import { ToastContainer } from './components/Toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { MaterialesProvider } from './contexts/MaterialesContext';
@@ -81,6 +82,7 @@ const AppContent: React.FC = () => {
     const [duplicatingMessage, setDuplicatingMessage] = useState('Duplicando pedido...');
     const [showUserManagement, setShowUserManagement] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
+    const [showBulkImportModal, setShowBulkImportModal] = useState(false);
 
     // Estados para operaciones masivas
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -1103,6 +1105,7 @@ const AppContent: React.FC = () => {
                     customDateRange={customDateRange}
                     onCustomDateChange={handleCustomDateChange}
                     onAddPedido={() => setIsAddModalOpen(true)}
+                    onBulkImport={() => setShowBulkImportModal(true)}
                     onExportPDF={handleExportPDF}
                     onExportData={doExportData}
                     onImportData={doImportData}
@@ -1251,6 +1254,19 @@ const AppContent: React.FC = () => {
                     onClose={() => setShowImportModal(false)}
                     onConfirm={handleImportSelectedPedidos}
                 />
+
+                {showBulkImportModal && (
+                    <BulkImportModal
+                        onClose={() => setShowBulkImportModal(false)}
+                        onImportComplete={(results) => {
+                            console.log('Importación completada:', results);
+                            setShowBulkImportModal(false);
+                            // Recargar pedidos para mostrar los nuevos
+                            loadPedidos();
+                            showToast('¡Importación completada exitosamente!', 'success');
+                        }}
+                    />
+                )}
             </div>
         </DragDropContext>
     );

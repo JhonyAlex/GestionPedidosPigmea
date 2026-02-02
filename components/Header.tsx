@@ -53,6 +53,7 @@ interface HeaderProps {
     customDateRange: { start: string; end: string };
     onCustomDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onAddPedido: () => void;
+    onBulkImport: () => void; // Nueva prop para importación masiva
     onExportPDF: () => void;
     onExportData: () => void;
     onImportData: () => void;
@@ -126,6 +127,7 @@ const Header: React.FC<HeaderProps> = ({
     customDateRange,
     onCustomDateChange,
     onAddPedido,
+    onBulkImport,
     onExportPDF,
     onExportData,
     onImportData,
@@ -365,6 +367,18 @@ const Header: React.FC<HeaderProps> = ({
                             >
                                 <PlusIcon />
                                 <span className="hidden md:inline">Añadir</span>
+                            </button>
+                        )}
+
+                        {/* Botón Importación Masiva */}
+                        {canCreatePedidos() && (
+                            <button
+                                onClick={onBulkImport}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-md font-semibold hover:bg-green-700 transition-colors"
+                                title="Importar pedidos desde Excel"
+                            >
+                                <UploadIcon />
+                                <span className="hidden md:inline">Importar</span>
                             </button>
                         )}
 
