@@ -386,26 +386,38 @@ async function processBulkImport({ rows, globalFields = {}, options = {}, dbClie
                     orden: nextSequence,
                     numeroRegistro: `REG-${nextSequence.toString().padStart(6, '0')}`,
                     numeroPedidoCliente: pedidoData.numeroPedidoCliente,
+                    numerosCompra: pedidoData.numerosCompra || [],
                     cliente: pedidoData.cliente,
                     clienteId: pedidoData.clienteId || null,
-                    fechaCreacion: currentDate,
+                    fechaCreacion: pedidoData.fechaCreacion || currentDate,
                     fechaEntrega: pedidoData.fechaEntrega,
+                    nuevaFechaEntrega: pedidoData.nuevaFechaEntrega || null,
                     metros: Number(pedidoData.metros) || 0,
                     maquinaImpresion: pedidoData.maquinaImpresion || '',
                     vendedorId: pedidoData.vendedorId || null,
                     vendedorNombre: pedidoData.vendedorNombre || null,
                     etapaActual: pedidoData.etapaActual || DEFAULT_ETAPA,
+                    subEtapaActual: pedidoData.subEtapaActual || null,
                     prioridad: pedidoData.prioridad || DEFAULT_PRIORIDAD,
                     tipoImpresion: pedidoData.tipoImpresion || DEFAULT_TIPO_IMPRESION,
                     desarrollo: pedidoData.desarrollo || pedidoData.producto || '',
                     capa: pedidoData.capa || '',
+                    producto: pedidoData.producto || null,
+                    velocidadPosible: pedidoData.velocidadPosible || null,
+                    tiempoProduccionDecimal: pedidoData.tiempoProduccionDecimal || null,
                     observaciones: pedidoData.observaciones || '',
+                    observacionesRapidas: pedidoData.observacionesRapidas || null,
+                    observacionesMaterial: pedidoData.observacionesMaterial || null,
                     tiempoProduccionPlanificado: '00:00',
-                    secuenciaTrabajo: [DEFAULT_ETAPA],
+                    secuenciaTrabajo: [pedidoData.etapaActual || DEFAULT_ETAPA],
                     etapasSecuencia: [{
                         etapa: pedidoData.etapaActual || DEFAULT_ETAPA,
                         fecha: currentDate
                     }],
+                    subEtapasSecuencia: pedidoData.subEtapaActual ? [{
+                        subEtapa: pedidoData.subEtapaActual,
+                        fecha: currentDate
+                    }] : [],
                     historial: [{
                         id: generateHistorialId(),
                         type: 'CREATE',
@@ -415,15 +427,32 @@ async function processBulkImport({ rows, globalFields = {}, options = {}, dbClie
                         description: `Pedido importado masivamente desde Excel por ${user.nombre || user.email}`,
                         changes: []
                     }],
-                    // Campos adicionales con valores por defecto
-                    materialDisponible: false,
-                    clicheDisponible: false,
-                    antivaho: false,
-                    antivahoRealizado: false,
-                    microperforado: false,
-                    macroperforado: false,
-                    anonimo: false,
-                    atencionObservaciones: false
+                    // Campos de preparación y cliché
+                    materialDisponible: pedidoData.materialDisponible || false,
+                    clicheDisponible: pedidoData.clicheDisponible || false,
+                    estadoCliché: pedidoData.estadoCliché || null,
+                    clicheInfoAdicional: pedidoData.clicheInfoAdicional || null,
+                    compraCliche: pedidoData.compraCliche || null,
+                    horasConfirmadas: pedidoData.horasConfirmadas || false,
+                    recepcionCliche: pedidoData.recepcionCliche || null,
+                    camisa: pedidoData.camisa || null,
+                    // Campos de post-impresión
+                    antivaho: pedidoData.antivaho || false,
+                    antivahoRealizado: pedidoData.antivahoRealizado || false,
+                    microperforado: pedidoData.microperforado || false,
+                    macroperforado: pedidoData.macroperforado || false,
+                    anonimo: pedidoData.anonimo || false,
+                    anonimoPostImpresion: pedidoData.anonimoPostImpresion || null,
+                    atencionObservaciones: pedidoData.atencionObservaciones || false,
+                    // Campos de material
+                    materialConsumoCantidad: pedidoData.materialConsumoCantidad || null,
+                    materialConsumo: pedidoData.materialConsumo || null,
+                    // Campos de bobinas y producción
+                    bobinaMadre: pedidoData.bobinaMadre || null,
+                    bobinaFinal: pedidoData.bobinaFinal || null,
+                    colores: pedidoData.colores || null,
+                    minColor: pedidoData.minColor || null,
+                    minAdap: pedidoData.minAdap || null
                 };
                 
                 // Validar campos requeridos usando función centralizada
