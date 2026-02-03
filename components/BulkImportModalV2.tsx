@@ -438,7 +438,12 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
       } else if (normalizedHeader.includes('cliente')) {
         dbField = 'cliente';
       } else if (normalizedHeader.includes('fecha') && normalizedHeader.includes('entrega')) {
-        dbField = 'fechaEntrega';
+        // Detectar si es "nueva fecha entrega" o solo "fecha entrega"
+        if (normalizedHeader.includes('nueva')) {
+          dbField = 'nuevaFechaEntrega';
+        } else {
+          dbField = 'fechaEntrega';
+        }
       } else if (normalizedHeader.includes('fecha') && normalizedHeader.includes('creacion')) {
         dbField = 'fechaCreacion';
       } else if (normalizedHeader.includes('fecha') && normalizedHeader.includes('compra') && normalizedHeader.includes('cliche')) {
@@ -557,9 +562,15 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
             
           case 'number':
             const parsedNumber = parseSpanishNumber(cellValue);
-            processedValue = parsedNumber !== null ? parsedNumber : cellValue;
-            if (mapping.dbField === 'metros') {
-              console.log(`📏 Metros parseados: "${cellValue}" → ${processedValue}`);
+            if (parsedNumber !== null) {
+              processedValue = parsedNumber;
+              if (mapping.dbField === 'metros') {
+                console.log(`📏 Metros parseados: "${cellValue}" → ${processedValue}`);
+              }
+            } else {
+              // Si no se puede parsear, dejar null para que la validación lo detecte
+              processedValue = null;
+              console.warn(`⚠️ No se pudo parsear número: "${cellValue}" en campo ${mapping.dbField}`);
             }
             break;
             
@@ -575,7 +586,8 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
             mappedData.vendedorId = vendedor.id;
             mappedData.vendedorNombre = vendedor.nombre;
           } else {
-            mappedData.vendedorNombre = processedValue;
+            // 🔤 Convertir a mayúsculas si no se encuentra en BD
+            mappedData.vendedorNombre = processedValue.toUpperCase();
           }
         } else if (mapping.dbField === 'numerosCompra') {
           // Convertir string separado por comas en array
@@ -592,6 +604,9 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
         if (cliente) {
           mappedData.clienteId = cliente.id;
           mappedData.cliente = cliente.nombre; // Normalizar nombre
+        } else {
+          // 🔤 Convertir a mayúsculas si no se encuentra en BD
+          mappedData.cliente = mappedData.cliente.toUpperCase();
         }
       }
 

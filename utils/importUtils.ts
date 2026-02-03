@@ -88,7 +88,10 @@ export function parseSpanishDate(dateStr: string, defaultYear: number = 2026): D
 
 /**
  * Convierte números en formato español a float de JavaScript
- * Formatos soportados: "10.000" (miles), "0,914" (decimales con coma), "1.500,25"
+ * Formatos soportados: 
+ * - "1,5" o "1.5" (decimales con coma o punto)
+ * - "10.000" (miles), "0,914" (decimales con coma), "1.500,25"
+ * - "20000" (enteros)
  * @param numberStr - String de número en formato español
  * @returns number o null si no se puede parsear
  */
@@ -102,47 +105,33 @@ export function parseSpanishNumber(numberStr: string | number): number | null {
   // Remover espacios
   let cleaned = trimmed.replace(/\s/g, '');
   
-  // Si contiene coma como decimal (formato español)
+  // 🔢 ESTRATEGIA SIMPLIFICADA: Detectar si es formato con coma o punto
+  
+  // Si contiene COMA, es formato español con coma decimal
   if (cleaned.includes(',')) {
     // Si también tiene puntos, son separadores de miles
     if (cleaned.includes('.')) {
       // Ejemplo: "1.500,25" -> "1500.25"
-      const parts = cleaned.split(',');
-      if (parts.length === 2) {
-        const integerPart = parts[0].replace(/\./g, ''); // Remover puntos de miles
-        const decimalPart = parts[1];
-        cleaned = integerPart + '.' + decimalPart;
-      }
+      cleaned = cleaned.replace(/\./g, '').replace(',', '.');
     } else {
-      // Solo coma como decimal: "0,914" -> "0.914"
+      // Solo coma como decimal: "0,914" -> "0.914" o "1,5" -> "1.5"
       cleaned = cleaned.replace(',', '.');
     }
   }
-  // Si solo tiene puntos (SIN comas), en formato español son separadores de miles
+  // Si solo tiene PUNTO(S), depende de la cantidad de dígitos después del último punto
   else if (cleaned.includes('.')) {
-    // En español, si no hay coma, el punto es separador de miles
-    // Ejemplos: "20.000" -> 20000, "1.500.000" -> 1500000
-    // SOLO si la parte después del último punto tiene exactamente 3 dígitos (patrón de miles)
     const parts = cleaned.split('.');
+    const lastPart = parts[parts.length - 1];
     
-    // Verificar si todos los grupos (excepto el primero) tienen exactamente 3 dígitos
-    let isMilesSeparator = true;
-    if (parts.length > 1) {
-      // El primer grupo puede tener 1-3 dígitos, los demás deben tener exactamente 3
-      for (let i = 1; i < parts.length; i++) {
-        if (parts[i].length !== 3) {
-          isMilesSeparator = false;
-          break;
-        }
-      }
-    }
-    
-    if (isMilesSeparator) {
-      // Son separadores de miles: "20.000" -> "20000"
+    // Si la última parte tiene 3 dígitos Y hay más de 1 punto O el número es grande, son separadores de miles
+    // Ejemplos: "20.000" -> 20000, "1.500.000" -> 1500000
+    if (lastPart.length === 3 && (parts.length > 2 || parseInt(cleaned.replace(/\./g, ''), 10) >= 1000)) {
+      // Separadores de miles
       cleaned = cleaned.replace(/\./g, '');
     }
-    // Si no cumple el patrón de miles, podría ser decimal (poco común en español)
-    // En ese caso, se mantiene como está (el parseFloat lo interpretará como decimal)
+    // Si la última parte tiene 1-2 dígitos, es decimal
+    // Ejemplos: "1.5" -> 1.5, "10.75" -> 10.75
+    // Ya está en formato correcto, no hacer nada
   }
   
   const result = parseFloat(cleaned);
