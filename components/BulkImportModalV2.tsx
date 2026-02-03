@@ -1989,6 +1989,16 @@ function ImportingPhaseV2({
   isLoadingExistingNumbers
 }: ImportingPhaseV2Props) {
   const [editingCell, setEditingCell] = useState<{ row: number; field: string } | null>(null);
+  const blurTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Limpiar timeout al desmontar
+  React.useEffect(() => {
+    return () => {
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const toggleRowExclusion = (rowIndex: number) => {
     const newExclusion = new Set(excludedRows);
@@ -2219,16 +2229,36 @@ function ImportingPhaseV2({
                   return (
                     <td 
                       className="px-3 py-2"
-                      onClick={() => !isExcluded && setEditingCell({ row: index, field })}
+                      onMouseDown={(e) => {
+                        if (!isExcluded && !isEditing) {
+                          e.preventDefault();
+                          setEditingCell({ row: index, field });
+                        }
+                      }}
                     >
                       {isEditing ? (
                         <input
                           type={type}
                           value={displayValue}
                           onChange={(e) => onCellEdit(index, field, type === 'number' ? Number(e.target.value) : e.target.value)}
-                          onBlur={() => setEditingCell(null)}
+                          onBlur={() => {
+                            // Limpiar timeout anterior si existe
+                            if (blurTimeoutRef.current) {
+                              clearTimeout(blurTimeoutRef.current);
+                            }
+                            // Delay para permitir clicks en calendario de fechas
+                            blurTimeoutRef.current = setTimeout(() => {
+                              setEditingCell(null);
+                              blurTimeoutRef.current = null;
+                            }, 150);
+                          }}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === 'Escape') {
+                              // Cancelar timeout si se cierra con teclado
+                              if (blurTimeoutRef.current) {
+                                clearTimeout(blurTimeoutRef.current);
+                                blurTimeoutRef.current = null;
+                              }
                               setEditingCell(null);
                             }
                           }}
@@ -2283,16 +2313,46 @@ function ImportingPhaseV2({
                   return (
                     <td 
                       className="px-3 py-2"
-                      onClick={() => !isExcluded && setEditingCell({ row: index, field })}
+                      onMouseDown={(e) => {
+                        if (!isExcluded && !isEditing) {
+                          e.preventDefault();
+                          setEditingCell({ row: index, field });
+                        }
+                      }}
                     >
                       {isEditing ? (
                         <select
                           value={displayValue}
                           onChange={(e) => {
                             onCellEdit(index, field, e.target.value);
-                            setEditingCell(null);
+                            // Limpiar timeout si existe
+                            if (blurTimeoutRef.current) {
+                              clearTimeout(blurTimeoutRef.current);
+                              blurTimeoutRef.current = null;
+                            }
+                            setTimeout(() => setEditingCell(null), 100);
                           }}
-                          onBlur={() => setEditingCell(null)}
+                          onBlur={() => {
+                            // Limpiar timeout anterior si existe
+                            if (blurTimeoutRef.current) {
+                              clearTimeout(blurTimeoutRef.current);
+                            }
+                            // Delay para permitir selección
+                            blurTimeoutRef.current = setTimeout(() => {
+                              setEditingCell(null);
+                              blurTimeoutRef.current = null;
+                            }, 150);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Escape') {
+                              // Cancelar timeout si se cierra con teclado
+                              if (blurTimeoutRef.current) {
+                                clearTimeout(blurTimeoutRef.current);
+                                blurTimeoutRef.current = null;
+                              }
+                              setEditingCell(null);
+                            }
+                          }}
                           autoFocus
                           className="w-full border border-blue-500 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-700"
                         >
