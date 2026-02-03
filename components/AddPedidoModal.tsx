@@ -746,24 +746,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                                 className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 cursor-not-allowed opacity-70"
                                             />
                                         </div>
-                                        <div>
-                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                &nbsp;
-                                            </label>
-                                            <div className="flex items-center h-full">
-                                                <input
-                                                    type="checkbox"
-                                                    id="horasConfirmadas"
-                                                    name="horasConfirmadas"
-                                                    checked={formData.horasConfirmadas || false}
-                                                    onChange={handleChange}
-                                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                />
-                                                <label htmlFor="horasConfirmadas" className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-200">
-                                                    ✅ Horas Confirmadas
-                                                </label>
-                                            </div>
-                                        </div>
+                                        <div></div>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
@@ -1014,6 +997,19 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                         />
                                         <label htmlFor="materialDisponible" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">
                                             Material Disponible
+                                        </label>
+                                    </div>
+                                    <div className="flex items-center pt-2">
+                                        <input
+                                            type="checkbox"
+                                            id="horasConfirmadas"
+                                            name="horasConfirmadas"
+                                            checked={formData.horasConfirmadas || false}
+                                            onChange={handleChange}
+                                            className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        />
+                                        <label htmlFor="horasConfirmadas" className="ml-2 block text-sm font-medium text-gray-600 dark:text-gray-300">
+                                            ✅ Horas Confirmadas
                                         </label>
                                     </div>
                                 </div>
