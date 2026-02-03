@@ -1,6 +1,7 @@
 # ============================================
 # STAGE 1: Build Frontend
 # ============================================
+# Cache bust: 2026-02-03 - Force rebuild for horasConfirmadas field
 FROM node:18-alpine AS frontend-builder
 
 WORKDIR /app
