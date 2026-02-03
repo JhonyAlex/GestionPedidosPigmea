@@ -480,12 +480,16 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
         dbField = `recibido${materialFieldsUsed.recibido}`;
       }
       
+      // 🔄 SINCRONIZADO: Usar constantes compartidas para evitar discrepancias
+      const transform = dbField 
+        ? (['fechaEntrega', 'nuevaFechaEntrega', 'compraCliche', 'recepcionCliche', 'fechaCreacion', 'fechaFinalizacion'].includes(dbField as string) ? 'date' : 
+           ['metros', 'velocidadPosible', 'tiempoProduccionDecimal', 'bobinaMadre', 'bobinaFinal', 'minAdap', 'colores', 'minColor', 'micras1', 'micras2', 'micras3', 'micras4', 'densidad1', 'densidad2', 'densidad3', 'densidad4', 'necesario1', 'necesario2', 'necesario3', 'necesario4'].includes(dbField as string) ? 'number' : 'text')
+        : 'text';
+      
       return {
         excelColumn: header,
         dbField,
-        transform: ['fechaEntrega', 'nuevaFechaEntrega', 'compraCliche', 'recepcionCliche', 'fechaCreacion', 'fechaFinalizacion'].includes(dbField as string) ? 'date' : 
-                   ['metros', 'velocidadPosible', 'tiempoProduccionDecimal', 'bobinaMadre', 'bobinaFinal', 'minAdap', 'colores', 'minColor', 'micras1', 'micras2', 'micras3', 'micras4', 'densidad1', 'densidad2', 'densidad3', 'densidad4', 'necesario1', 'necesario2', 'necesario3', 'necesario4'].includes(dbField as string) ? 'number' : 
-                   'text'
+        transform
       };
     });
     
@@ -728,6 +732,11 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
   const transformMaterialFields = (data: any) => {
     const transformed = { ...data };
     
+    // 🧹 Limpiar fechaCreacion vacía para que backend use fecha actual
+    if (transformed.fechaCreacion === '' || transformed.fechaCreacion === null) {
+      delete transformed.fechaCreacion;
+    }
+    
     // Convertir numeroCompra1-4, micras1-4, densidad1-4, necesario1-4, recibido1-4, gestionado1-4 a materialConsumo array
     const materialConsumo: any[] = [];
     const numerosCompra: string[] = [];
@@ -783,7 +792,46 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
   const executeImport = useCallback(async () => {
     if (isImporting) return;
     
-    // Validación previa
+    // 🔍 VALIDACIÓN EXHAUSTIVA DE CAMPOS ANTES DE IMPORTAR
+    const fieldValidationErrors: string[] = [];
+    importRows.forEach((row, index) => {
+      if (excludedRows.has(index)) return; // Saltar filas excluidas
+      
+      const data = row.mappedData;
+      
+      // Validar campos de fecha
+      const dateFields = ['fechaEntrega', 'nuevaFechaEntrega', 'compraCliche', 'recepcionCliche', 'fechaCreacion', 'fechaFinalizacion'];
+      dateFields.forEach(field => {
+        const value = (data as any)[field];
+        if (value && value !== '' && value !== null) {
+          const date = new Date(value);
+          if (isNaN(date.getTime())) {
+            fieldValidationErrors.push(`Fila ${index + 1}: Campo "${field}" tiene fecha inválida: "${value}"`);
+          }
+        }
+      });
+      
+      // Validar campos numéricos
+      const numberFields = ['metros', 'velocidadPosible', 'tiempoProduccionDecimal', 'bobinaMadre', 'bobinaFinal', 'minAdap', 'colores', 'minColor', 'micras1', 'micras2', 'micras3', 'micras4', 'densidad1', 'densidad2', 'densidad3', 'densidad4', 'necesario1', 'necesario2', 'necesario3', 'necesario4'];
+      numberFields.forEach(field => {
+        const value = (data as any)[field];
+        if (value && value !== '' && value !== null) {
+          const num = Number(value);
+          if (isNaN(num)) {
+            fieldValidationErrors.push(`Fila ${index + 1}: Campo "${field}" debe ser numérico: "${value}"`);
+          }
+        }
+      });
+    });
+    
+    // 🚫 Si hay errores de validación, mostrar y NO continuar
+    if (fieldValidationErrors.length > 0) {
+      const errorMessage = `❌ Se encontraron ${fieldValidationErrors.length} error(es) de validación de campos:\n\n${fieldValidationErrors.slice(0, 10).join('\n')}${fieldValidationErrors.length > 10 ? `\n\n... y ${fieldValidationErrors.length - 10} errores más` : ''}\n\n⚠️ Por favor corrija estos errores antes de continuar.`;
+      alert(errorMessage);
+      return;
+    }
+    
+    // Validación previa de errores generales
     const validRows = importRows.filter((row, index) => 
       row.validationErrors.length === 0 && !excludedRows.has(index)
     );
@@ -1343,12 +1391,16 @@ function MappingPhaseV2({
   const handleMappingChange = (columnIndex: number, newDbField: keyof Pedido | 'ignore') => {
     const newMappings: ColumnMapping[] = [...columnMappings];
     if (newMappings[columnIndex]) {
+      // 🔄 SINCRONIZADO: Usar la MISMA lógica que auto-detección
+      const transform = newDbField !== 'ignore'
+        ? (['fechaEntrega', 'nuevaFechaEntrega', 'compraCliche', 'recepcionCliche', 'fechaCreacion', 'fechaFinalizacion'].includes(newDbField as string) ? 'date' : 
+           ['metros', 'velocidadPosible', 'tiempoProduccionDecimal', 'bobinaMadre', 'bobinaFinal', 'minAdap', 'colores', 'minColor', 'micras1', 'micras2', 'micras3', 'micras4', 'densidad1', 'densidad2', 'densidad3', 'densidad4', 'necesario1', 'necesario2', 'necesario3', 'necesario4'].includes(newDbField as string) ? 'number' : 'text')
+        : 'text';
+      
       newMappings[columnIndex] = {
         ...newMappings[columnIndex],
         dbField: newDbField,
-        transform: ['fechaEntrega', 'nuevaFechaEntrega', 'compraCliche', 'recepcionCliche'].includes(newDbField as string) ? 'date' : 
-                   ['metros', 'velocidadPosible', 'tiempoProduccionDecimal', 'bobinaMadre', 'bobinaFinal', 'minAdap', 'colores', 'minColor'].includes(newDbField as string) ? 'number' : 
-                   'text'
+        transform
       };
     }
     setColumnMappings(newMappings);
@@ -1936,18 +1988,7 @@ function ImportingPhaseV2({
   duplicateRows,
   isLoadingExistingNumbers
 }: ImportingPhaseV2Props) {
-  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [editingCell, setEditingCell] = useState<{ row: number; field: string } | null>(null);
-
-  const toggleRowSelection = (rowIndex: number) => {
-    const newSelection = new Set(selectedRows);
-    if (newSelection.has(rowIndex)) {
-      newSelection.delete(rowIndex);
-    } else {
-      newSelection.add(rowIndex);
-    }
-    setSelectedRows(newSelection);
-  };
 
   const toggleRowExclusion = (rowIndex: number) => {
     const newExclusion = new Set(excludedRows);
@@ -1959,34 +2000,7 @@ function ImportingPhaseV2({
     setExcludedRows(newExclusion);
   };
 
-  const handleCopyFromRow = (sourceRow: number) => {
-    if (selectedRows.size === 0) {
-      alert('Seleccione al menos una fila destino para copiar.');
-      return;
-    }
-    onCopyToSelected(sourceRow, Array.from(selectedRows));
-    setSelectedRows(new Set());
-  };
-
-  // ✅ Aplicar valores globales solo a filas seleccionadas
-  const applyGlobalToSelected = () => {
-    if (selectedRows.size === 0) {
-      alert('Seleccione al menos una fila para aplicar los valores globales.');
-      return;
-    }
-
-    selectedRows.forEach(rowIndex => {
-      // Aplicar todos los campos globales que tengan valor
-      Object.entries(globalFields).forEach(([field, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          onCellEdit(rowIndex, field, value);
-        }
-      });
-    });
-
-    setSelectedRows(new Set());
-    alert(`Valores globales aplicados a ${selectedRows.size} filas.`);
-  };
+  // Funciones de copia y aplicación global removidas (interferían con edición de celdas)
 
   const activeRows = importRows.filter((_, index) => !excludedRows.has(index));
   const activeValidCount = activeRows.filter(row => row.validationErrors.length === 0).length;
@@ -2073,14 +2087,9 @@ function ImportingPhaseV2({
                 🚫 {excludedRows.size} excluidas
               </span>
             )}
-            {selectedRows.size > 0 && (
-              <span className="text-blue-600 dark:text-blue-400 font-medium">
-                📋 {selectedRows.size} seleccionadas
-              </span>
-            )}
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            💡 Clic en celda para editar • Clic en borde de fila para seleccionar • Checkbox rojo para excluir
+            💡 Clic en celda para editar • Checkbox rojo para excluir de importación
             {duplicateRows.size > 0 && (
               <span className="block mt-1 text-orange-600 dark:text-orange-400 font-medium">
                 ⚠️ No se pueden importar pedidos con números duplicados
@@ -2095,22 +2104,8 @@ function ImportingPhaseV2({
             <thead className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 sticky top-0 z-10 shadow">
               <tr>
                 {/* Controles */}
-                <th className="px-2 py-2 text-center w-8 sticky left-0 bg-gray-200 dark:bg-gray-700 z-20">
-                  <input
-                    type="checkbox"
-                    title="Seleccionar todas"
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedRows(new Set(importRows.map((_, i) => i).filter(i => !excludedRows.has(i))));
-                      } else {
-                        setSelectedRows(new Set());
-                      }
-                    }}
-                    className="w-4 h-4"
-                  />
-                </th>
-                <th className="px-2 py-2 text-center w-8 sticky left-8 bg-gray-200 dark:bg-gray-700 z-20" title="Incluir/Excluir pedido">🚫</th>
-                <th className="px-2 py-2 text-center w-8 sticky left-16 bg-gray-200 dark:bg-gray-700 z-20">✓</th>
+                <th className="px-2 py-2 text-center w-8 sticky left-0 bg-gray-200 dark:bg-gray-700 z-20" title="Incluir/Excluir pedido">🚫</th>
+                <th className="px-2 py-2 text-center w-8 sticky left-8 bg-gray-200 dark:bg-gray-700 z-20">✓</th>
                 
                 {/* Campos OBLIGATORIOS */}
                 <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px] bg-red-50 dark:bg-red-900 dark:bg-opacity-20" title="OBLIGATORIO">N° Pedido*</th>
@@ -2205,14 +2200,12 @@ function ImportingPhaseV2({
                 <th className="px-3 py-2 text-left uppercase font-medium min-w-[110px]">⚠️ Aten. Obs.</th>
                 
                 {/* Acciones */}
-                <th className="px-2 py-2 text-center w-16 sticky right-16 bg-gray-200 dark:bg-gray-700 z-20">Copiar</th>
                 <th className="px-2 py-2 text-center w-16 sticky right-0 bg-gray-200 dark:bg-gray-700 z-20">Eliminar</th>
               </tr>
             </thead>
             <tbody>
               {importRows.map((row, index) => {
                 const isExcluded = excludedRows.has(index);
-                const isSelected = selectedRows.has(index);
                 const hasErrors = row.validationErrors.length > 0;
 
                 // Helper para crear celdas editables
@@ -2334,30 +2327,12 @@ function ImportingPhaseV2({
                       ${isExcluded ? 'opacity-40 bg-gray-200 dark:bg-gray-700' : ''}
                       ${duplicateRows.has(index) && !isExcluded ? 'bg-orange-100 dark:bg-orange-900 dark:bg-opacity-20 border-l-4 border-orange-500' : ''}
                       ${hasErrors && !isExcluded && !duplicateRows.has(index) ? 'bg-red-50 dark:bg-red-900 dark:bg-opacity-10' : ''}
-                      ${isSelected && !isExcluded ? 'bg-blue-100 dark:bg-blue-900 dark:bg-opacity-20' : ''}
                       ${!isExcluded ? 'hover:bg-gray-50 dark:hover:bg-gray-700 dark:hover:bg-opacity-50' : ''}
                     `}
                   >
-                    {/* Checkbox selección */}
-                    <td 
-                      className="px-2 py-2 text-center cursor-pointer sticky left-0 bg-inherit z-10"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleRowSelection(index);
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleRowSelection(index)}
-                        disabled={isExcluded}
-                        className="w-4 h-4 pointer-events-none"
-                      />
-                    </td>
-
                     {/* Checkbox excluir */}
                     <td 
-                      className="px-2 py-2 text-center cursor-pointer sticky left-8 bg-inherit z-10"
+                      className="px-2 py-2 text-center cursor-pointer sticky left-0 bg-inherit z-10"
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleRowExclusion(index);
@@ -2374,8 +2349,7 @@ function ImportingPhaseV2({
 
                     {/* Estado validación */}
                     <td 
-                      className="px-2 py-2 text-center cursor-pointer sticky left-16 bg-inherit z-10"
-                      onClick={() => !isExcluded && toggleRowSelection(index)}
+                      className="px-2 py-2 text-center sticky left-8 bg-inherit z-10"
                     >
                       {hasErrors ? (
                         <span className="text-red-600 dark:text-red-400 text-lg" title={row.validationErrors.map(e => e.message).join(', ')}>❌</span>
@@ -2492,19 +2466,9 @@ function ImportingPhaseV2({
                     <EditableCell field="anonimoPostImpresion" maxWidth="130px" />
                     <CheckboxCell field="atencionObservaciones" />
 
-                    {/* ============ COPIAR ============ */}
+                    {/* ============ COPIAR (REMOVIDO) ============ */}
                     <td className="px-2 py-2 text-center sticky right-16 bg-inherit z-10">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCopyFromRow(index);
-                        }}
-                        disabled={selectedRows.size === 0 || isExcluded}
-                        title="Copiar datos de esta fila a las seleccionadas"
-                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 disabled:text-gray-400 disabled:cursor-not-allowed"
-                      >
-                        <CopyIcon className="w-4 h-4" />
-                      </button>
+                      {/* Botón de copiar removido - interfería con edición */}
                     </td>
 
                     {/* ============ ELIMINAR ============ */}
@@ -2585,22 +2549,11 @@ function ImportingPhaseV2({
         <div className="mb-4 sticky top-0 bg-gradient-to-b from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-750 pb-3 z-10">
           <h4 className="font-semibold text-lg mb-2 text-gray-800 dark:text-gray-100">⚙️ Ajustes Finales</h4>
           <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-            Configura valores globales y aplícalos a las filas seleccionadas. Los campos obligatorios están marcados con *.
+            Configura valores globales para todos los pedidos. Los campos obligatorios están marcados con *.
           </p>
           
-          {/* Botón aplicar a seleccionados */}
-          <button
-            onClick={applyGlobalToSelected}
-            disabled={selectedRows.size === 0}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-3 py-2 rounded-lg text-xs font-medium shadow mb-3 transition-colors"
-          >
-            {selectedRows.size > 0 
-              ? `✨ Aplicar a ${selectedRows.size} Filas Seleccionadas` 
-              : 'Selecciona filas para aplicar'}
-          </button>
-          
           <div className="bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-20 border border-yellow-200 dark:border-yellow-700 rounded p-2 text-xs text-yellow-800 dark:text-yellow-200">
-            💡 <strong>Tip:</strong> Completa aquí los campos que faltan y aplícalos masivamente a las filas seleccionadas.
+            💡 <strong>Tip:</strong> Completa aquí los campos que faltan. Edita celdas individuales haciendo clic en ellas.
           </div>
         </div>
         

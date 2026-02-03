@@ -381,10 +381,19 @@ const PdfImportModal: React.FC<PdfImportModalProps> = ({ onClose, onImportComple
       return;
     }
     
+    // Limpiar el valor según el tipo de campo
+    let cleanedValue = selectedText;
+    
+    // Para el campo metros: eliminar punto como separador de miles
+    // Ejemplo: "1.000" → "1000"
+    if (fieldName === 'metros') {
+      cleanedValue = selectedText.replace(/\./g, '');
+    }
+    
     // Guardar el texto extraído para este campo
     setExtractedFields(prev => ({
       ...prev,
-      [fieldName]: selectedText
+      [fieldName]: cleanedValue
     }));
     
     // Actualizar el mapeo
@@ -400,7 +409,7 @@ const PdfImportModal: React.FC<PdfImportModalProps> = ({ onClose, onImportComple
     // Actualizar preview automáticamente si hay datos suficientes
     const updatedFields = {
       ...extractedFields,
-      [fieldName]: selectedText
+      [fieldName]: cleanedValue
     };
     
     // Crear objeto de datos del pedido
