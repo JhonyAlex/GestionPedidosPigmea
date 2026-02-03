@@ -21,12 +21,17 @@ const SPANISH_MONTHS = {
 
 /**
  * Convierte fechas en formato español a ISO Date
- * Formatos soportados: "02/abr", "30/may", "15/ene/2025", "02/abril/2025", "2/5/2026", "02-may-2026"
+ * Formatos soportados: 
+ * - "02/abr", "30/may" (día/mes, año por defecto 2026)
+ * - "2-2", "15-3" (día-mes, año por defecto 2026)
+ * - "15/ene/2025", "02/abril/2025" (día/mes/año completo)
+ * - "2/5/2026", "02-may-2026" (varios formatos con año)
+ * 
  * @param dateStr - String de fecha en formato español
- * @param defaultYear - Año por defecto si no se especifica (por defecto año actual)
+ * @param defaultYear - Año por defecto si no se especifica (por defecto 2026)
  * @returns Date object o null si no se puede parsear
  */
-export function parseSpanishDate(dateStr: string, defaultYear?: number): Date | null {
+export function parseSpanishDate(dateStr: string, defaultYear: number = 2026): Date | null {
   if (!dateStr || typeof dateStr !== 'string') return null;
   
   const trimmed = dateStr.trim().toLowerCase().replace(/\s+/g, ' ');
@@ -38,7 +43,7 @@ export function parseSpanishDate(dateStr: string, defaultYear?: number): Date | 
   
   const day = parseInt(parts[0], 10);
   const monthStr = parts[1].toLowerCase();
-  let year = parts.length >= 3 ? parseInt(parts[2], 10) : (defaultYear || new Date().getFullYear());
+  let year = parts.length >= 3 ? parseInt(parts[2], 10) : defaultYear;
   
   // Validar día
   if (isNaN(day) || day < 1 || day > 31) return null;
@@ -58,11 +63,13 @@ export function parseSpanishDate(dateStr: string, defaultYear?: number): Date | 
   
   // Manejar años de 2 dígitos
   if (year < 100) {
+    // Si el año es 26, 27, etc., asumir 2026, 2027
+    // Si el año es 99, 00, etc., podría ser 1999, 2000 (pero priorizamos 20xx)
     const currentYear = new Date().getFullYear();
     const currentCentury = Math.floor(currentYear / 100) * 100;
     year = currentCentury + year;
     
-    // Si el año es muy futuro, probablemente pertenece al siglo pasado
+    // Si el año es muy futuro (más de 10 años), probablemente pertenece al siglo pasado
     if (year > currentYear + 10) {
       year -= 100;
     }
