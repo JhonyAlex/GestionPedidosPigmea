@@ -74,7 +74,15 @@ const AppContent: React.FC = () => {
     const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [clientePreseleccionado, setClientePreseleccionado] = useState<{ id: string; nombre: string } | null>(null); // ✅ Estado para cliente preseleccionado
-    const [view, setView] = useState<ViewType>('preparacion');
+    
+    // 💾 Persistir vista actual en localStorage para que al recargar vuelva donde estaba
+    const [view, setView] = useState<ViewType>(() => {
+        if (typeof window !== 'undefined' && localStorage.lastView) {
+            return localStorage.lastView as ViewType;
+        }
+        return 'preparacion';
+    });
+    
     const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
     const [pedidoToSend, setPedidoToSend] = useState<Pedido | null>(null);
     const [pedidoToReorder, setPedidoToReorder] = useState<Pedido | null>(null);
@@ -248,6 +256,11 @@ const AppContent: React.FC = () => {
     useEffect(() => {
         clearSelection();
     }, [view, clearSelection]);
+
+    // 💾 Guardar vista actual en localStorage cada vez que cambie
+    useEffect(() => {
+        localStorage.setItem('lastView', view);
+    }, [view]);
 
     useEffect(() => {
         const root = window.document.documentElement;
