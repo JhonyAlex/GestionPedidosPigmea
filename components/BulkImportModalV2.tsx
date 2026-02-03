@@ -1805,7 +1805,15 @@ function MappingPhaseV2({
             <ArrowLeftIcon className="w-3.5 h-3.5 inline mr-1" /> Volver
           </button>
           <button
-            onClick={onNext}
+            onClick={() => {
+              onNext();
+              // 🧹 Limpiar campos globales después de aplicar para evitar errores en futuros cambios
+              setGlobalFields({
+                etapaActual: Etapa.PREPARACION,
+                prioridad: Prioridad.NORMAL,
+                tipoImpresion: TipoImpresion.SUPERFICIE
+              });
+            }}
             className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-3 py-2 rounded-lg transition-all text-xs font-medium shadow-lg"
           >
             Revisar <ArrowRightIcon className="w-3.5 h-3.5 inline ml-1" />
@@ -2392,7 +2400,7 @@ function ImportingPhaseV2({
                   >
                     {/* Checkbox excluir */}
                     <td 
-                      className="px-2 py-2 text-center cursor-pointer sticky left-0 bg-inherit z-10"
+                      className="px-2 py-2 text-center cursor-pointer sticky left-0 bg-white dark:bg-gray-800 z-10"
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleRowExclusion(index);
@@ -2409,7 +2417,7 @@ function ImportingPhaseV2({
 
                     {/* Estado validación */}
                     <td 
-                      className="px-2 py-2 text-center sticky left-8 bg-inherit z-10"
+                      className="px-2 py-2 text-center sticky left-8 bg-white dark:bg-gray-800 z-10"
                     >
                       {hasErrors ? (
                         <span className="text-red-600 dark:text-red-400 text-lg" title={row.validationErrors.map(e => e.message).join(', ')}>❌</span>
@@ -2527,12 +2535,12 @@ function ImportingPhaseV2({
                     <CheckboxCell field="atencionObservaciones" />
 
                     {/* ============ COPIAR (REMOVIDO) ============ */}
-                    <td className="px-2 py-2 text-center sticky right-16 bg-inherit z-10">
+                    <td className="px-2 py-2 text-center sticky right-16 bg-white dark:bg-gray-800 z-10">
                       {/* Botón de copiar removido - interfería con edición */}
                     </td>
 
                     {/* ============ ELIMINAR ============ */}
-                    <td className="px-2 py-2 text-center sticky right-0 bg-inherit z-10">
+                    <td className="px-2 py-2 text-center sticky right-0 bg-white dark:bg-gray-800 z-10">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -2578,7 +2586,17 @@ function ImportingPhaseV2({
             )}
 
             <button
-              onClick={onImport}
+              onClick={() => {
+                onImport();
+                // 🧹 Limpiar campos globales después de iniciar importación
+                setTimeout(() => {
+                  setGlobalFields({
+                    etapaActual: Etapa.PREPARACION,
+                    prioridad: Prioridad.NORMAL,
+                    tipoImpresion: TipoImpresion.SUPERFICIE
+                  });
+                }, 1000);
+              }}
               disabled={isImporting || isLoadingExistingNumbers || activeValidCount === 0 || duplicateRows.size > 0}
               className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white px-8 py-3 rounded-lg transition-all font-medium shadow-lg relative overflow-hidden"
               title={duplicateRows.size > 0 ? 'No se puede importar con pedidos duplicados' : ''}
