@@ -670,7 +670,7 @@ export const usePedidosManager = (
             subEtapaActual: PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA, // ✅ Resetear sub-etapa a "Sin Gestión Iniciada"
             etapasSecuencia: [{ etapa: initialStage, fecha: now.toISOString() }],
             historial: [generarEntradaHistorial(currentUserRole, 'Creación', `Pedido duplicado desde ${pedidoToDuplicate.numeroPedidoCliente} (ID: ${pedidoToDuplicate.id}).`)],
-            maquinaImpresion: '', // Reset machine
+            maquinaImpresion: pedidoClonado.maquinaImpresion, // ✅ Mantener máquina de impresión (campo obligatorio)
             fechaFinalizacion: undefined,
             tiempoTotalProduccion: undefined,
             antivahoRealizado: false, // Reset antivaho status
