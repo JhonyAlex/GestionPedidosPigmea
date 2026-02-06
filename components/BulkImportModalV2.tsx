@@ -552,7 +552,11 @@ export default function BulkImportModalV2({ onClose, onImportComplete }: BulkImp
           case 'date':
             const parsedDate = parseSpanishDate(cellValue);
             if (parsedDate) {
-              processedValue = parsedDate.toISOString().split('T')[0]; // YYYY-MM-DD
+              // ✅ Extraer fecha sin conversión UTC para evitar desfases de zona horaria
+              const year = parsedDate.getFullYear();
+              const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+              const day = String(parsedDate.getDate()).padStart(2, '0');
+              processedValue = `${year}-${month}-${day}`; // YYYY-MM-DD
               console.log(`📅 Fecha parseada: "${cellValue}" → "${processedValue}"`);
             } else {
               processedValue = null;
