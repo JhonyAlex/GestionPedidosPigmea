@@ -273,6 +273,9 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
         if (!formData.fechaEntrega) {
             errors.push('❌ Debe especificar la fecha de entrega');
         }
+        if (!formData.maquinaImpresion || !formData.maquinaImpresion.trim()) {
+            errors.push('❌ Debe seleccionar una Máquina de Impresión');
+        }
 
         const metrosValue = Number(formData.metros);
         if (!formData.metros || isNaN(metrosValue) || metrosValue <= 0) {
@@ -597,14 +600,17 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                         </div>
 
                                         <div>
-                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Maquina de Impresion</label>
+                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                Máquina de Impresión <span className="text-red-500">*</span>
+                                            </label>
                                             <select
                                                 name="maquinaImpresion"
                                                 value={formData.maquinaImpresion}
                                                 onChange={handleChange}
                                                 className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
+                                                required
                                             >
-                                                <option value="">Sin asignar</option>
+                                                <option value="">Seleccione una máquina...</option>
                                                 {KANBAN_FUNNELS.IMPRESION.stages.map(stage => {
                                                     const stageInfo = ETAPAS[stage];
                                                     const label = stageInfo?.title || stage;

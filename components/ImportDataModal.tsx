@@ -19,6 +19,23 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ isOpen, onClose, onCo
     const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
     const [isLoading, setIsLoading] = useState(false);
 
+    // Función helper para extraer fecha sin problemas de zona horaria
+    const extractFechaFromPedido = (pedido: Pedido): string => {
+        if (!pedido.fechaCreacion) return 'Sin fecha';
+        
+        // Si la fecha ya está en formato YYYY-MM-DD, usarla directamente
+        if (typeof pedido.fechaCreacion === 'string' && /^\d{4}-\d{2}-\d{2}/.test(pedido.fechaCreacion)) {
+            return pedido.fechaCreacion.split('T')[0];
+        }
+        
+        // Si no, crear Date y extraer componentes locales sin conversión UTC
+        const date = new Date(pedido.fechaCreacion);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -38,7 +55,7 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ isOpen, onClose, onCo
                 // Agrupar por fecha de creación
                 const groups: { [key: string]: Pedido[] } = {};
                 importedPedidos.forEach(pedido => {
-                    const fecha = pedido.fechaCreacion ? new Date(pedido.fechaCreacion).toISOString().split('T')[0] : 'Sin fecha';
+                    const fecha = extractFechaFromPedido(pedido);
                     if (!groups[fecha]) {
                         groups[fecha] = [];
                     }
@@ -92,7 +109,7 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ isOpen, onClose, onCo
 
     const getSelectedPedidos = (): Pedido[] => {
         return allPedidos.filter(pedido => {
-            const fecha = pedido.fechaCreacion ? new Date(pedido.fechaCreacion).toISOString().split('T')[0] : 'Sin fecha';
+            const fecha = extractFechaFromPedido(pedido);
             return selectedDates.has(fecha);
         });
     };

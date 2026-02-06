@@ -2831,6 +2831,11 @@ app.post('/api/pedidos', requirePermission('pedidos.create'), async (req, res) =
             return res.status(400).json({ message: 'El campo Cliente es obligatorio.' });
         }
 
+        // ✅ VALIDACIÓN: Campo Máquina de Impresión obligatorio
+        if (!newPedido.maquinaImpresion || !newPedido.maquinaImpresion.trim()) {
+            return res.status(400).json({ message: 'El campo Máquina de Impresión es obligatorio.' });
+        }
+
         await dbClient.create(newPedido);
 
         // 🔥 EVENTO WEBSOCKET: Nuevo pedido creado
@@ -2907,6 +2912,11 @@ app.put('/api/pedidos/:id', requirePermission('pedidos.edit'), async (req, res) 
 
         if (!updatedPedido || updatedPedido.id !== pedidoId) {
             return res.status(400).json({ message: 'El ID del pedido no coincide.' });
+        }
+
+        // ✅ VALIDACIÓN: Campo Máquina de Impresión obligatorio
+        if (!updatedPedido.maquinaImpresion || !updatedPedido.maquinaImpresion.trim()) {
+            return res.status(400).json({ message: 'El campo Máquina de Impresión es obligatorio.' });
         }
 
         // Obtener el pedido anterior para comparar cambios

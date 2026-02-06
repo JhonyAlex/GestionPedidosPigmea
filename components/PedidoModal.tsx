@@ -942,6 +942,10 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
             alert(numeroPedidoError);
             return;
         }
+        if (!formData.maquinaImpresion || !formData.maquinaImpresion.trim()) {
+            alert('❌ Debe seleccionar una Máquina de Impresión.');
+            return;
+        }
         const metrosValue = Number(formData.metros);
         if (isNaN(metrosValue) || metrosValue <= 0) {
             alert('Metros debe ser un número mayor a 0.');
@@ -1409,12 +1413,15 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                     </div>
 
                                                     <div>
-                                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Máquina de Impresión</label>
+                                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                            Máquina de Impresión <span className="text-red-500">*</span>
+                                                        </label>
                                                         <select
                                                             value={printingStageValue}
                                                             onChange={handlePrintingStageChange}
                                                             className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
                                                             disabled={isReadOnly || (!isCurrentlyInPrinting && formData.etapaActual !== Etapa.PREPARACION)}
+                                                            required
                                                         >
                                                             <option value="" disabled>Seleccione una máquina</option>
                                                             {printingStages.map(stageId => (
