@@ -653,6 +653,10 @@ export const usePedidosManager = (
         const initialStage = Etapa.PREPARACION;
         const maxOrder = Math.max(...pedidos.map(p => p.orden), 0);
 
+        // ✅ Guardar el numeroPedidoCliente ORIGINAL para el historial ANTES de cualquier modificación
+        const numeroPedidoOriginal = pedidoToDuplicate.numeroPedidoCliente || '(sin número)';
+        const idOriginal = pedidoToDuplicate.id;
+
         // ✅ FIX CRÍTICO: Hacer una copia profunda (deep copy) para evitar referencias compartidas
         // El operador spread solo hace copia superficial, lo que causa que arrays como
         // materialConsumo, etapasSecuencia, historial, etc. se compartan entre pedidos duplicados
@@ -665,11 +669,13 @@ export const usePedidosManager = (
             orden: maxOrder + 1,
             numeroRegistro: numeroRegistro,
             fechaCreacion: now.toISOString(),
-            numeroPedidoCliente: '', // ✅ Resetear número de pedido del cliente para que ingresen uno nuevo
+            // ✅ FIX: Generar un numeroPedidoCliente temporal que indica que es un duplicado
+            // El usuario DEBE cambiarlo, pero al menos no queda vacío en la BD
+            numeroPedidoCliente: `COPIA-${numeroPedidoOriginal}`,
             etapaActual: initialStage,
             subEtapaActual: PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA, // ✅ Resetear sub-etapa a "Sin Gestión Iniciada"
             etapasSecuencia: [{ etapa: initialStage, fecha: now.toISOString() }],
-            historial: [generarEntradaHistorial(currentUserRole, 'Creación', `Pedido duplicado desde ${pedidoToDuplicate.numeroPedidoCliente} (ID: ${pedidoToDuplicate.id}).`)],
+            historial: [generarEntradaHistorial(currentUserRole, 'Creación', `Pedido duplicado desde ${numeroPedidoOriginal} (ID: ${idOriginal}).`)],
             maquinaImpresion: pedidoClonado.maquinaImpresion, // ✅ Mantener máquina de impresión (campo obligatorio)
             fechaFinalizacion: undefined,
             tiempoTotalProduccion: undefined,

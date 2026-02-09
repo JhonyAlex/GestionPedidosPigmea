@@ -413,6 +413,20 @@ const AppContent: React.FC = () => {
         setSelectedPedido(null);
     };
 
+    // ✅ FIX: Auto-save separado que NO cierra el modal
+    // Usado por SeccionDatosTecnicosDeMaterial cuando materialDisponible cambia automáticamente
+    const handleAutoSavePedido = async (updatedPedido: Pedido) => {
+        const result = await handleSavePedidoLogic(updatedPedido);
+        if (result?.hasChanges) {
+            logAction(`Pedido ${result.modifiedPedido.numeroPedidoCliente} auto-guardado.`, result.modifiedPedido.id);
+            emitActivity('pedido-edited', {
+                pedidoId: result.modifiedPedido.id,
+                numeroCliente: result.modifiedPedido.numeroPedidoCliente
+            });
+        }
+        // ✅ NO cerrar el modal - el usuario sigue editando
+    };
+
     const handleAddPedido = async (data: { pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'subEtapasSecuencia' | 'etapaActual' | 'subEtapaActual' | 'secuenciaTrabajo' | 'orden' | 'historial'>; secuenciaTrabajo: Etapa[]; }) => {
         const newPedido = await handleAddPedidoLogic(data);
         if (newPedido) {
@@ -579,8 +593,10 @@ const AppContent: React.FC = () => {
                     numeroCliente: newPedido.numeroPedidoCliente
                 });
 
-                // Abrir el modal del pedido duplicado y forzar edición del número
-                setSelectedPedido({ ...newPedido, numeroPedidoCliente: '' });
+                // ✅ FIX: Abrir el modal del pedido duplicado SIN vaciar el numeroPedidoCliente
+                // El pedido ya fue creado en BD con numeroPedidoCliente vacío para que sea único
+                // Mostramos el pedido tal como fue creado para evitar confusión
+                setSelectedPedido(newPedido);
                 setSearchTerm(''); // ✅ Limpiar búsqueda para asegurar visibilidad
             }
         } catch (error) {
@@ -1134,6 +1150,7 @@ const AppContent: React.FC = () => {
                         pedido={selectedPedido}
                         onClose={() => setSelectedPedido(null)}
                         onSave={handleSavePedido}
+                        onAutoSave={handleAutoSavePedido}
                         onArchiveToggle={handleArchiveToggle}
                         onDuplicate={handleDuplicatePedido}
                         onDelete={handleDeletePedido}
@@ -1177,8 +1194,8 @@ const AppContent: React.FC = () => {
                             </h3>
                             <p className="text-gray-600 dark:text-gray-300">
                                 {duplicatingMessage === 'Duplicando pedido...'
-                                    ? 'Por favor espere mientras se procesa la duplicación'
-                                    : 'Se está preparando para mostrar el nuevo pedido'
+                                    ? 'Creando una copia del pedido. El pedido original NO se modificará.'
+                                    : 'Se está preparando para mostrar el nuevo pedido duplicado.'
                                 }
                             </p>
                         </div>

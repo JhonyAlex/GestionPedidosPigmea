@@ -84,6 +84,7 @@ interface PedidoModalProps {
     pedido: Pedido;
     onClose: () => void;
     onSave: (pedido: Pedido) => void;
+    onAutoSave?: (pedido: Pedido) => void; // ✅ Auto-save que NO cierra el modal
     onArchiveToggle: (pedido: Pedido) => void;
     onDuplicate: (pedido: Pedido) => void;
     onDelete: (pedidoId: string) => void;
@@ -95,7 +96,7 @@ interface PedidoModalProps {
     isConnected?: boolean;
 }
 
-const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onArchiveToggle, onAdvanceStage, onSendToPrint, onDuplicate, onDelete, onSetReadyForProduction, onUpdateEtapa, isConnected = false }) => {
+const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAutoSave, onArchiveToggle, onAdvanceStage, onSendToPrint, onDuplicate, onDelete, onSetReadyForProduction, onUpdateEtapa, isConnected = false }) => {
     const [formData, setFormData] = useState<Pedido>(JSON.parse(JSON.stringify(pedido)));
     const [tiempoProduccionDecimalInput, setTiempoProduccionDecimalInput] = useState<string>(() => formatDecimalForInput(pedido.tiempoProduccionDecimal));
     const [velocidadPosibleInput, setVelocidadPosibleInput] = useState<string>(() => formData.velocidadPosible?.toString() || '');
@@ -192,6 +193,13 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
 
         const rawValue = formData.numeroPedidoCliente || '';
         const value = rawValue.trim();
+
+        // ✅ FIX: Mostrar advertencia si el número empieza con "COPIA-" (pedido duplicado sin número asignado)
+        if (value.startsWith('COPIA-')) {
+            setNumeroPedidoError('⚠️ Este pedido es una copia. Debe asignar un Nº de Pedido del Cliente válido antes de guardar.');
+            setIsCheckingNumeroPedido(false);
+            return;
+        }
 
         if (value.length < 3 || value === (pedido.numeroPedidoCliente || '').trim()) {
             numeroPedidoValidationId.current += 1;
@@ -545,8 +553,10 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
             materialDisponible: pedidoActualizado.materialDisponible,
             materialConsumo: pedidoActualizado.materialConsumo
         });
-        onSave(pedidoActualizado);
-    }, [formData, pedido.metros, onSave]);
+        // ✅ FIX: Usar onAutoSave (no cierra el modal) en vez de onSave (cierra el modal)
+        const autoSaveFn = onAutoSave || onSave;
+        autoSaveFn(pedidoActualizado);
+    }, [formData, pedido.metros, onSave, onAutoSave]);
 
     // Manejar el cierre del modal con confirmación si hay cambios
     const handleClose = useCallback(() => {
@@ -610,6 +620,18 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
         const metrosValue = Number(formData.metros);
         if (isNaN(metrosValue) || metrosValue <= 0) {
             alert('Metros debe ser un número mayor a 0.');
+            return;
+        }
+
+        // ✅ FIX: Validar que numeroPedidoCliente no esté vacío
+        if (!formData.numeroPedidoCliente || !formData.numeroPedidoCliente.trim()) {
+            alert('❌ El Nº de Pedido del Cliente es obligatorio. Por favor, ingrese un número de pedido.');
+            return;
+        }
+
+        // ✅ FIX: Bloquear guardado con prefijo "COPIA-"
+        if (formData.numeroPedidoCliente.trim().startsWith('COPIA-')) {
+            alert('❌ Este pedido es una copia y necesita un Nº de Pedido del Cliente real.\n\nPor favor, reemplace "COPIA-..." con el número de pedido correcto.');
             return;
         }
 
@@ -953,6 +975,16 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
             alert(numeroPedidoError);
             return;
         }
+        // ✅ FIX: Validar que numeroPedidoCliente no esté vacío
+        if (!formData.numeroPedidoCliente || !formData.numeroPedidoCliente.trim()) {
+            alert('❌ El Nº de Pedido del Cliente es obligatorio. Por favor, ingrese un número de pedido.');
+            return;
+        }
+        // ✅ FIX: Bloquear guardado con prefijo "COPIA-" (pedido duplicado sin número real)
+        if (formData.numeroPedidoCliente.trim().startsWith('COPIA-')) {
+            alert('❌ Este pedido es una copia y necesita un Nº de Pedido del Cliente real.\n\nPor favor, reemplace "COPIA-..." con el número de pedido correcto.');
+            return;
+        }
         if (!formData.maquinaImpresion || !formData.maquinaImpresion.trim()) {
             alert('❌ Debe seleccionar una Máquina de Impresión.');
             return;
@@ -994,8 +1026,26 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     }
 
     const handleDuplicateClick = () => {
-        if (window.confirm(`¿Está seguro de que desea duplicar el pedido ${pedido.numeroPedidoCliente}?`)) {
-            onDuplicate(pedido);
+        // ✅ FIX: Validar que el pedido tenga numeroPedidoCliente antes de duplicar
+        const numeroPedido = formData.numeroPedidoCliente || pedido.numeroPedidoCliente;
+        if (!numeroPedido || !numeroPedido.trim()) {
+            alert('❌ No se puede duplicar un pedido sin Nº de Pedido del Cliente. Por favor, primero guarde el pedido con un número válido.');
+            return;
+        }
+
+        if (window.confirm(`¿Está seguro de que desea duplicar el pedido ${numeroPedido}?\n\nSe creará una copia del pedido. El pedido original NO se modificará.`)) {
+            // ✅ FIX: Si hay cambios sin guardar, guardar primero antes de duplicar
+            if (hasUnsavedChanges) {
+                const metrosValue = Number(formData.metros);
+                if (!isNaN(metrosValue) && metrosValue > 0) {
+                    const pedidoActualizado = { ...formData, metros: metrosValue } as Pedido;
+                    onSave(pedidoActualizado);
+                }
+            }
+            // ✅ FIX: Usar formData (datos actuales visibles) en vez de pedido (prop original)
+            // para que la duplicación refleje exactamente lo que el usuario ve en pantalla
+            const pedidoParaDuplicar = { ...formData } as Pedido;
+            onDuplicate(pedidoParaDuplicar);
             closeModalAndUnlock();
         }
     };
@@ -1162,7 +1212,17 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                 {/* Header */}
                 <div className="flex justify-between items-center p-8 pb-4 bg-gradient-to-r from-slate-50 to-gray-100 dark:from-gray-800 dark:to-gray-750 rounded-t-lg border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
                     <div className="flex items-center gap-4">
-                        <h2 className="text-3xl font-bold">Pedido: {pedido.numeroPedidoCliente}</h2>
+                        <h2 className="text-3xl font-bold">Pedido: {pedido.numeroPedidoCliente || '(Sin número)'}</h2>
+
+                        {/* ✅ Indicador visual de pedido duplicado */}
+                        {(pedido.numeroPedidoCliente || '').startsWith('COPIA-') && (
+                            <div className="flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 animate-pulse">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+                                </svg>
+                                📋 COPIA — Asigne un Nº de Pedido
+                            </div>
+                        )}
 
                         {/* Indicador de bloqueo */}
                         {isLocked && (
