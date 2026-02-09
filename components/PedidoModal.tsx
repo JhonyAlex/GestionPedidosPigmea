@@ -874,7 +874,18 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
             }));
         } else if (type === 'checkbox') {
             const { checked } = e.target as HTMLInputElement;
-            setFormData(prev => ({ ...prev, [name]: checked }));
+            // Si se marca/desmarca el checkbox "anonimo", sincronizar con maquinaImpresion
+            if (name === 'anonimo') {
+                setFormData(prev => ({
+                    ...prev,
+                    anonimo: checked,
+                    // Si se activa el checkbox, seleccionar máquina "Anónimo"
+                    // Si se desactiva y la máquina actual es "Anónimo", limpiar la selección
+                    maquinaImpresion: checked ? 'Anónimo' : (prev.maquinaImpresion === 'Anónimo' ? '' : prev.maquinaImpresion)
+                }));
+            } else {
+                setFormData(prev => ({ ...prev, [name]: checked }));
+            }
         } else {
             const valueToSet = type === 'number' ? parseInt(value, 10) || 0 : value;
             setFormData(prev => ({ ...prev, [name]: valueToSet }));
@@ -1066,6 +1077,11 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
 
         // Si está en PREPARACION, buscar la etapa que corresponde a maquinaImpresion
         if (formData.etapaActual === Etapa.PREPARACION && formData.maquinaImpresion) {
+            // Si la máquina es "Anónimo", retornar ese valor directamente
+            if (formData.maquinaImpresion === 'Anónimo') {
+                return 'Anónimo';
+            }
+            
             const matchingStage = printingStages.find(stage =>
                 ETAPAS[stage]?.title === formData.maquinaImpresion
             );
@@ -1083,21 +1099,37 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
     }, [formData, printingStages, isCurrentlyInPrinting]);
 
     const handlePrintingStageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newStage = e.target.value as Etapa;
+        const newStage = e.target.value;
         if (newStage) {
+            // Si el valor es "Anónimo", usar directamente ese string, si no, buscar el título de la etapa
+            const maquinaNombre = newStage === 'Anónimo' ? 'Anónimo' : (ETAPAS[newStage as Etapa]?.title || '');
+            
             // Si está en PREPARACION, solo actualizar maquinaImpresion sin cambiar la etapa
             if (formData.etapaActual === Etapa.PREPARACION) {
                 setFormData(prev => ({
                     ...prev,
-                    maquinaImpresion: ETAPAS[newStage]?.title || prev.maquinaImpresion,
+                    maquinaImpresion: maquinaNombre,
+                    // Sincronizar checkbox anónimo si se selecciona máquina "Anónimo"
+                    anonimo: maquinaNombre === 'Anónimo' ? true : (prev.maquinaImpresion === 'Anónimo' && maquinaNombre !== 'Anónimo' ? false : prev.anonimo),
                 }));
             } else {
-                // Si está en impresión, cambiar tanto la etapa como la máquina
-                setFormData(prev => ({
-                    ...prev,
-                    etapaActual: newStage,
-                    maquinaImpresion: ETAPAS[newStage]?.title || prev.maquinaImpresion,
-                }));
+                // Si está en impresión, cambiar tanto la etapa como la máquina (solo si newStage es una etapa válida)
+                if (newStage !== 'Anónimo') {
+                    setFormData(prev => ({
+                        ...prev,
+                        etapaActual: newStage as Etapa,
+                        maquinaImpresion: maquinaNombre,
+                        // Sincronizar checkbox anónimo si se selecciona máquina "Anónimo"
+                        anonimo: maquinaNombre === 'Anónimo' ? true : (prev.maquinaImpresion === 'Anónimo' && maquinaNombre !== 'Anónimo' ? false : prev.anonimo),
+                    }));
+                } else {
+                    // Si selecciona "Anónimo" mientras está en impresión, solo actualizar la máquina, no la etapa
+                    setFormData(prev => ({
+                        ...prev,
+                        maquinaImpresion: 'Anónimo',
+                        anonimo: true,
+                    }));
+                }
             }
         }
     };
@@ -1429,6 +1461,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAr
                                                                     {ETAPAS[stageId].title}
                                                                 </option>
                                                             ))}
+                                                            <option value="Anónimo">Anónimo</option>
                                                         </select>
                                                     </div>
 

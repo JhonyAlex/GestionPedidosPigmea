@@ -128,5 +128,6 @@ export const MAQUINAS_IMPRESION = [
     { id: 'Windmöller 1', nombre: 'Windmöller 1' },
     { id: 'GIAVE', nombre: 'GIAVE' },
     { id: 'Windmöller 3', nombre: 'Windmöller 3' },
+    { id: 'Anónimo', nombre: 'Anónimo' },
 
 ] as const;

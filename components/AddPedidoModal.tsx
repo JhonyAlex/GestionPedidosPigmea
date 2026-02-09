@@ -376,9 +376,27 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                 vendedorId: value,
                 vendedorNombre: vendedorSeleccionado?.nombre || ''
             }));
+        } else if (name === 'maquinaImpresion') {
+            // Sincronizar checkbox "anonimo" si se selecciona la máquina "Anónimo"
+            setFormData(prev => ({
+                ...prev,
+                maquinaImpresion: value,
+                anonimo: value === 'Anónimo' ? true : prev.anonimo
+            }));
         } else if (type === 'checkbox') {
             const { checked } = e.target as HTMLInputElement;
-            setFormData(prev => ({ ...prev, [name]: checked }));
+            // Si se marca/desmarca el checkbox "anonimo", sincronizar con maquinaImpresion
+            if (name === 'anonimo') {
+                setFormData(prev => ({
+                    ...prev,
+                    anonimo: checked,
+                    // Si se activa el checkbox, seleccionar máquina "Anónimo"
+                    // Si se desactiva y la máquina actual es "Anónimo", limpiar la selección
+                    maquinaImpresion: checked ? 'Anónimo' : (prev.maquinaImpresion === 'Anónimo' ? '' : prev.maquinaImpresion)
+                }));
+            } else {
+                setFormData(prev => ({ ...prev, [name]: checked }));
+            }
         } else {
             const valueToSet = type === 'number' ? parseInt(value, 10) || 0 : value;
             setFormData(prev => ({ ...prev, [name]: valueToSet }));
@@ -620,6 +638,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                                         </option>
                                                     );
                                                 })}
+                                                <option value="Anónimo">Anónimo</option>
                                             </select>
                                         </div>
 
