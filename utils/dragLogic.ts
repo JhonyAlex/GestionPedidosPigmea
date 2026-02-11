@@ -1,7 +1,8 @@
 import React from 'react';
 import { DropResult } from '@hello-pangea/dnd';
 import { Pedido, Etapa, UserRole, HistorialEntry } from '../types';
-import { ETAPAS, PREPARACION_SUB_ETAPAS_IDS } from '../constants';
+import { Material } from '../types/material';
+import { ETAPAS, PREPARACION_SUB_ETAPAS_IDS, KANBAN_FUNNELS } from '../constants';
 import { store } from '../services/storage';
 import { calculateTotalProductionTime } from './kpi';
 
@@ -17,6 +18,7 @@ type ProcessDragEndArgs = {
     handleSavePedido: (pedido: Pedido) => Promise<any>;
     handleUpdatePedidoEtapa: (pedido: Pedido, newEtapa: Etapa, newSubEtapa?: string | null) => Promise<void>;
     setSortConfig: (key: keyof Pedido, direction?: 'ascending' | 'descending') => void;
+    getMaterialesByPedidoId: (pedidoId: string) => Promise<Material[]>;
 };
 
 export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> => {
@@ -30,7 +32,8 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
         setPedidos,
         handleSavePedido,
         handleUpdatePedidoEtapa,
-        setSortConfig
+        setSortConfig,
+        getMaterialesByPedidoId
     } = args;
 
     const { destination, source, draggableId } = result;
@@ -148,6 +151,35 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
             if (!confirmed) {
                 // Usuario canceló - no hacer nada, el pedido se queda donde estaba
                 return;
+            }
+        }
+
+        // ⚠️ VALIDAR MATERIALES PENDIENTES: Bloquear movimiento si hay materiales pendientes de recibir
+        // Solo aplica cuando se intenta mover a "Cliché no disponible" o etapas posteriores
+        const esMovimientoPostMaterial =
+            destId === PREPARACION_SUB_ETAPAS_IDS.CLICHE_NO_DISPONIBLE ||
+            destId === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION ||
+            KANBAN_FUNNELS.IMPRESION.stages.includes(destId as Etapa) ||
+            KANBAN_FUNNELS.POST_IMPRESION.stages.includes(destId as Etapa);
+
+        if (esMovimientoPostMaterial) {
+            try {
+                // Obtener los materiales del pedido
+                const materialesPedido = await getMaterialesByPedidoId(movedPedido.id);
+                const materialesPendientes = materialesPedido.filter(m => m.pendienteRecibir === true);
+
+                if (materialesPendientes.length > 0) {
+                    alert(
+                        '🚫 No se puede mover el pedido\n\n' +
+                        `Hay ${materialesPendientes.length} material(es) pendiente(s) de recibir:\n\n` +
+                        materialesPendientes.map(m => `⏳ ${m.numero}${m.descripcion ? ` - ${m.descripcion}` : ''}`).join('\n') +
+                        '\n\nPor favor, marca todos los materiales como recibidos antes de continuar.'
+                    );
+                    return; // ⛔ Bloquear el cambio
+                }
+            } catch (error) {
+                console.error('Error al verificar materiales pendientes:', error);
+                // Continuar con el movimiento si hay error al obtener materiales
             }
         }
 

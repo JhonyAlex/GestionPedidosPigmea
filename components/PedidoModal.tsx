@@ -793,6 +793,29 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                 }
             }
 
+            // 1.5. ⚠️ VALIDAR MATERIALES PENDIENTES: Bloquear movimiento si hay materiales pendientes de recibir
+            // Solo aplica cuando se intenta mover de "Material No Disponible" a "Cliché no disponible" o etapas posteriores
+            const esMovimientoPostMaterial =
+                value === PREPARACION_SUB_ETAPAS_IDS.CLICHE_NO_DISPONIBLE ||
+                value === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION ||
+                KANBAN_FUNNELS.IMPRESION.stages.includes(value as Etapa) ||
+                KANBAN_FUNNELS.POST_IMPRESION.stages.includes(value as Etapa);
+
+            if (esMovimientoPostMaterial) {
+                // Verificar si hay materiales pendientes de recibir
+                const materialesPendientes = pedidoMateriales.filter(m => m.pendienteRecibir === true);
+
+                if (materialesPendientes.length > 0) {
+                    alert(
+                        '🚫 No se puede mover el pedido\n\n' +
+                        `Hay ${materialesPendientes.length} material(es) pendiente(s) de recibir:\n\n` +
+                        materialesPendientes.map(m => `⏳ ${m.numero}${m.descripcion ? ` - ${m.descripcion}` : ''}`).join('\n') +
+                        '\n\nPor favor, marca todos los materiales como recibidos antes de continuar.'
+                    );
+                    return; // ⛔ Bloquear el cambio
+                }
+            }
+
             // 2. Validar si intenta mover a "Listo para Producción"
             if (value === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION) {
                 const errors: string[] = [];

@@ -44,6 +44,7 @@ import { NotificationProvider } from './contexts/NotificationContext';
 import { calcularSiguienteEtapa, estaFueraDeSecuencia } from './utils/etapaLogic';
 import { procesarDragEnd } from './utils/dragLogic';
 import { usePedidosManager } from './hooks/usePedidosManager';
+import { useMaterialesManager } from './hooks/useMaterialesManager';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useFiltrosYOrden } from './hooks/useFiltrosYOrden';
 import { useNavigateToPedido } from './hooks/useNavigateToPedido';
@@ -176,6 +177,9 @@ const AppContent: React.FC = () => {
         subscribeToPedidosByVendedorUpdated,
         subscribeToPedidosByClienteUpdated
     );
+
+    // Hook de materiales
+    const { getMaterialesByPedidoId } = useMaterialesManager();
 
     const {
         processedPedidos,
@@ -336,10 +340,11 @@ const AppContent: React.FC = () => {
             setPedidos,
             handleSavePedido: handleSavePedidoLogic,
             handleUpdatePedidoEtapa,
-            setSortConfig: updateSortConfig // Usar la función correcta para establecer el sorting
+            setSortConfig: updateSortConfig, // Usar la función correcta para establecer el sorting
+            getMaterialesByPedidoId
         });
 
-    }, [pedidos, currentUserRole, processedPedidos, generarEntradaHistorial, logAction, handleSort, setPedidos, handleSavePedidoLogic, handleUpdatePedidoEtapa]);
+    }, [pedidos, currentUserRole, processedPedidos, generarEntradaHistorial, logAction, handleSort, setPedidos, handleSavePedidoLogic, handleUpdatePedidoEtapa, getMaterialesByPedidoId]);
 
     const handleAdvanceStage = async (pedidoToAdvance: Pedido) => {
         // Si es un pedido con antivaho no realizado en post-impresión, abrir modal de reconfirmación
