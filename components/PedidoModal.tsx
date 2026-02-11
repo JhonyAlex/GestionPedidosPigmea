@@ -801,11 +801,16 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                 KANBAN_FUNNELS.IMPRESION.stages.includes(value as Etapa) ||
                 KANBAN_FUNNELS.POST_IMPRESION.stages.includes(value as Etapa);
 
+            console.log('🔍 [Modal] Validación de materiales - Destino:', value, 'esMovimientoPostMaterial:', esMovimientoPostMaterial);
+
             if (esMovimientoPostMaterial) {
+                console.log('🔍 [Modal] Materiales del pedido:', pedidoMateriales);
                 // Verificar si hay materiales pendientes de recibir
                 const materialesPendientes = pedidoMateriales.filter(m => m.pendienteRecibir === true);
+                console.log('🔍 [Modal] Materiales pendientes de recibir:', materialesPendientes);
 
                 if (materialesPendientes.length > 0) {
+                    console.log('⚠️ [Modal] Bloqueando movimiento - hay materiales pendientes');
                     alert(
                         '🚫 No se puede mover el pedido\n\n' +
                         `Hay ${materialesPendientes.length} material(es) pendiente(s) de recibir:\n\n` +

@@ -162,13 +162,19 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
             KANBAN_FUNNELS.IMPRESION.stages.includes(destId as Etapa) ||
             KANBAN_FUNNELS.POST_IMPRESION.stages.includes(destId as Etapa);
 
+        console.log('🔍 Validación de materiales - Destino:', destId, 'esMovimientoPostMaterial:', esMovimientoPostMaterial);
+
         if (esMovimientoPostMaterial) {
             try {
+                console.log('🔍 Obteniendo materiales para pedido:', movedPedido.id);
                 // Obtener los materiales del pedido
                 const materialesPedido = await getMaterialesByPedidoId(movedPedido.id);
+                console.log('🔍 Materiales obtenidos:', materialesPedido);
                 const materialesPendientes = materialesPedido.filter(m => m.pendienteRecibir === true);
+                console.log('🔍 Materiales pendientes de recibir:', materialesPendientes);
 
                 if (materialesPendientes.length > 0) {
+                    console.log('⚠️ Bloqueando movimiento - hay materiales pendientes');
                     alert(
                         '🚫 No se puede mover el pedido\n\n' +
                         `Hay ${materialesPendientes.length} material(es) pendiente(s) de recibir:\n\n` +
@@ -178,7 +184,7 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
                     return; // ⛔ Bloquear el cambio
                 }
             } catch (error) {
-                console.error('Error al verificar materiales pendientes:', error);
+                console.error('❌ Error al verificar materiales pendientes:', error);
                 // Continuar con el movimiento si hay error al obtener materiales
             }
         }
