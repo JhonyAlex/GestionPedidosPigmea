@@ -793,29 +793,38 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                 }
             }
 
-            // 1.5. ⚠️ VALIDAR MATERIALES PENDIENTES: Bloquear movimiento si hay materiales pendientes de recibir
-            // Solo aplica cuando se intenta mover de "Material No Disponible" a "Cliché no disponible" o etapas posteriores
+            // 1.5. ⚠️ VALIDAR MATERIAL DISPONIBLE Y MATERIALES PENDIENTES:
+            // Bloquear movimiento si el material no está disponible o hay materiales pendientes de recibir
+            // Solo aplica cuando se intenta mover a "Cliché no disponible" o etapas posteriores
             const esMovimientoPostMaterial =
                 value === PREPARACION_SUB_ETAPAS_IDS.CLICHE_NO_DISPONIBLE ||
                 value === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION ||
                 KANBAN_FUNNELS.IMPRESION.stages.includes(value as Etapa) ||
                 KANBAN_FUNNELS.POST_IMPRESION.stages.includes(value as Etapa);
 
-            console.log('🔍 [Modal] Validación de materiales - Destino:', value, 'esMovimientoPostMaterial:', esMovimientoPostMaterial);
-
             if (esMovimientoPostMaterial) {
-                console.log('🔍 [Modal] Materiales del pedido:', pedidoMateriales);
-                // Verificar si hay materiales pendientes de recibir
-                const materialesPendientes = pedidoMateriales.filter(m => m.pendienteRecibir === true);
-                console.log('🔍 [Modal] Materiales pendientes de recibir:', materialesPendientes);
+                const errores: string[] = [];
 
+                // Validación 1: Flag materialDisponible del pedido
+                if (!formData.materialDisponible) {
+                    errores.push('❌ El material NO está marcado como disponible en este pedido.');
+                }
+
+                // Validación 2: Materiales pendientes de recibir
+                const materialesPendientes = pedidoMateriales.filter(m => m.pendienteRecibir === true);
                 if (materialesPendientes.length > 0) {
-                    console.log('⚠️ [Modal] Bloqueando movimiento - hay materiales pendientes');
+                    errores.push(
+                        `⏳ Hay ${materialesPendientes.length} material(es) pendiente(s) de recibir:\n` +
+                        materialesPendientes.map(m => `   - ${m.numero}${m.descripcion ? ` (${m.descripcion})` : ''}`).join('\n')
+                    );
+                }
+
+                if (errores.length > 0) {
                     alert(
                         '🚫 No se puede mover el pedido\n\n' +
-                        `Hay ${materialesPendientes.length} material(es) pendiente(s) de recibir:\n\n` +
-                        materialesPendientes.map(m => `⏳ ${m.numero}${m.descripcion ? ` - ${m.descripcion}` : ''}`).join('\n') +
-                        '\n\nPor favor, marca todos los materiales como recibidos antes de continuar.'
+                        'Problemas encontrados:\n\n' +
+                        errores.join('\n\n') +
+                        '\n\nPor favor, asegúrese de que el material esté disponible y todos los materiales hayan sido recibidos antes de continuar.'
                     );
                     return; // ⛔ Bloquear el cambio
                 }
