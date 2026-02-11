@@ -6,7 +6,6 @@ import { ETAPAS, PREPARACION_SUB_ETAPAS_IDS, KANBAN_FUNNELS } from '../constants
 import { store } from '../services/storage';
 import { calculateTotalProductionTime } from './kpi';
 
-
 type ProcessDragEndArgs = {
     result: DropResult;
     pedidos: Pedido[];
@@ -167,25 +166,32 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
         if (esMovimientoPostMaterial) {
             try {
                 console.log('🔍 Obteniendo materiales para pedido:', movedPedido.id);
-                // Obtener los materiales del pedido
+
+                // Obtener materiales del pedido (siempre datos frescos, sin caché)
                 const materialesPedido = await getMaterialesByPedidoId(movedPedido.id);
                 console.log('🔍 Materiales obtenidos:', materialesPedido);
                 const materialesPendientes = materialesPedido.filter(m => m.pendienteRecibir === true);
                 console.log('🔍 Materiales pendientes de recibir:', materialesPendientes);
 
                 if (materialesPendientes.length > 0) {
-                    console.log('⚠️ Bloqueando movimiento - hay materiales pendientes');
+                    console.log('⚠️ BLOQUEANDO movimiento - hay materiales pendientes');
                     alert(
                         '🚫 No se puede mover el pedido\n\n' +
                         `Hay ${materialesPendientes.length} material(es) pendiente(s) de recibir:\n\n` +
                         materialesPendientes.map(m => `⏳ ${m.numero}${m.descripcion ? ` - ${m.descripcion}` : ''}`).join('\n') +
                         '\n\nPor favor, marca todos los materiales como recibidos antes de continuar.'
                     );
-                    return; // ⛔ Bloquear el cambio
+                    return; // ⛔ Bloquear el cambio - NO actualizar el estado
                 }
+                console.log('✅ No hay materiales pendientes - permitiendo movimiento');
             } catch (error) {
                 console.error('❌ Error al verificar materiales pendientes:', error);
-                // Continuar con el movimiento si hay error al obtener materiales
+                // En caso de error, bloquear el movimiento por seguridad
+                alert(
+                    '⚠️ Error al verificar materiales\n\n' +
+                    'No se pudo verificar el estado de los materiales. Por favor, intenta nuevamente o verifica manualmente los materiales pendientes.'
+                );
+                return; // ⛔ Bloquear el cambio por seguridad
             }
         }
 
