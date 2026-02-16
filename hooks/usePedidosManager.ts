@@ -518,6 +518,13 @@ export const usePedidosManager = (
         // Eliminamos la actualización optimista para confiar en el WebSocket
         // y evitar conflictos de estado.
 
+        // Sanitizar secuenciaTrabajo: solo etapas de Post-Impresión son válidas
+        if (modifiedPedido.secuenciaTrabajo) {
+            modifiedPedido.secuenciaTrabajo = modifiedPedido.secuenciaTrabajo.filter(
+                (etapa: Etapa) => KANBAN_FUNNELS.POST_IMPRESION.stages.includes(etapa)
+            );
+        }
+
         try {
             await store.update(modifiedPedido);
             // El estado se actualizará vía WebSocket (evento 'pedido-updated')

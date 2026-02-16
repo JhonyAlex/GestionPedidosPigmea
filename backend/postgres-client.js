@@ -2478,6 +2478,7 @@ class PostgreSQLClient {
                 whereClause += ` AND etapa_actual IN (
                     'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
                     'POST_LAMINACION_SL2', 'POST_LAMINACION_NEXUS',
+                    'POST_ECCONVERT_21', 'POST_ECCONVERT_22',
                     'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',
                     'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_REBOBINADO_TEMAC'
                 )`;
@@ -2526,6 +2527,7 @@ class PostgreSQLClient {
                         'PREPARACION', 'PENDIENTE',
                         'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
                         'POST_LAMINACION_SL2', 'POST_LAMINACION_NEXUS',
+                        'POST_ECCONVERT_21', 'POST_ECCONVERT_22',
                         'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',
                         'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_REBOBINADO_TEMAC'
                     )) as pedidos_en_produccion,
@@ -2567,6 +2569,7 @@ class PostgreSQLClient {
                         'PREPARACION', 'PENDIENTE',
                         'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
                         'POST_LAMINACION_SL2', 'POST_LAMINACION_NEXUS',
+                        'POST_ECCONVERT_21', 'POST_ECCONVERT_22',
                         'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',
                         'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_REBOBINADO_TEMAC'
                     )) as pedidos_en_produccion,
@@ -2782,6 +2785,7 @@ class PostgreSQLClient {
                 whereClause += ` AND etapa_actual IN (
                     'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
                     'POST_LAMINACION_SL2', 'POST_LAMINACION_NEXUS',
+                    'POST_ECCONVERT_21', 'POST_ECCONVERT_22',
                     'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',
                     'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_REBOBINADO_TEMAC'
                 )`;
@@ -2830,6 +2834,7 @@ class PostgreSQLClient {
                         'PREPARACION', 'PENDIENTE',
                         'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
                         'POST_LAMINACION_SL2', 'POST_LAMINACION_NEXUS',
+                        'POST_ECCONVERT_21', 'POST_ECCONVERT_22',
                         'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',
                         'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_REBOBINADO_TEMAC'
                     )) as pedidos_en_produccion,
@@ -2871,6 +2876,7 @@ class PostgreSQLClient {
                         'PREPARACION', 'PENDIENTE',
                         'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
                         'POST_LAMINACION_SL2', 'POST_LAMINACION_NEXUS',
+                        'POST_ECCONVERT_21', 'POST_ECCONVERT_22',
                         'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',
                         'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_REBOBINADO_TEMAC'
                     )) as pedidos_en_produccion,

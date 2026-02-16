@@ -9,9 +9,11 @@ export const ETAPAS: Record<Etapa, KanbanEtapa> = {
     [Etapa.IMPRESION_GIAVE]: { id: Etapa.IMPRESION_GIAVE, title: 'GIAVE', color: 'bg-cyan-700' },
     [Etapa.IMPRESION_WM3]: { id: Etapa.IMPRESION_WM3, title: 'Windmöller 3', color: 'bg-cyan-800' },
 
-    // Colores para el embudo de Post-Impresión (tonos variados: Indigo, Púrpura, Rosa)
+    // Colores para el embudo de Post-Impresión (tonos variados: Indigo, Púrpura, Rosa, Gris)
     [Etapa.POST_LAMINACION_SL2]: { id: Etapa.POST_LAMINACION_SL2, title: 'Laminación SL2', color: 'bg-indigo-500' },
     [Etapa.POST_LAMINACION_NEXUS]: { id: Etapa.POST_LAMINACION_NEXUS, title: 'Laminación NEXUS', color: 'bg-indigo-600' },
+    [Etapa.POST_ECCONVERT_21]: { id: Etapa.POST_ECCONVERT_21, title: 'Ec-convert 21', color: 'bg-gray-600' },
+    [Etapa.POST_ECCONVERT_22]: { id: Etapa.POST_ECCONVERT_22, title: 'Ec-convert 22', color: 'bg-gray-700' },
     [Etapa.POST_REBOBINADO_S2DT]: { id: Etapa.POST_REBOBINADO_S2DT, title: 'Rebobinado S2DT', color: 'bg-purple-500' },
     [Etapa.POST_REBOBINADO_PROSLIT]: { id: Etapa.POST_REBOBINADO_PROSLIT, title: 'Rebobinado PROSLIT', color: 'bg-purple-600' },
     [Etapa.POST_PERFORACION_MIC]: { id: Etapa.POST_PERFORACION_MIC, title: 'Perforación MIC', color: 'bg-pink-500' },
@@ -56,9 +58,11 @@ export const KANBAN_FUNNELS = {
         stages: [
             Etapa.POST_LAMINACION_SL2,      // Fila 1
             Etapa.POST_LAMINACION_NEXUS,    // Fila 1
+            Etapa.POST_ECCONVERT_21,        // Fila 1
+            Etapa.POST_ECCONVERT_22,        // Fila 1
             Etapa.POST_REBOBINADO_S2DT,     // Fila 1
-            Etapa.POST_REBOBINADO_PROSLIT,  // Fila 1
-            Etapa.POST_REBOBINADO_TEMAC,    // Fila 1
+            Etapa.POST_REBOBINADO_PROSLIT,  // Fila 2
+            Etapa.POST_REBOBINADO_TEMAC,    // Fila 2
             Etapa.POST_PERFORACION_MIC,     // Fila 2
             Etapa.POST_PERFORACION_MAC,     // Fila 2
         ],
@@ -86,6 +90,8 @@ export const STAGE_GROUPS = {
     REBOBINADO_Y_PERFORACION: {
         title: 'Rebobinado y Perforación',
         stages: [
+            Etapa.POST_ECCONVERT_21,
+            Etapa.POST_ECCONVERT_22,
             Etapa.POST_REBOBINADO_S2DT,
             Etapa.POST_REBOBINADO_PROSLIT,
             Etapa.POST_PERFORACION_MIC,

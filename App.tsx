@@ -985,7 +985,7 @@ const AppContent: React.FC = () => {
                         <section>
                             <h2 className="text-3xl font-extrabold text-gray-800 dark:text-white mb-4 border-l-4 border-indigo-500 pl-4">Post-Impresión</h2>
 
-                            {/* Primera fila: 5 etapas (Laminación SL2, Laminación NEXUS, Rebobinado S2DT, Rebobinado PROSLIT, Rebobinado TEMAC) */}
+                            {/* Primera fila: 5 etapas (Laminación SL2, Laminación NEXUS, Ec-convert 21, Ec-convert 22, Rebobinado S2DT) */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-6">
                                 {KANBAN_FUNNELS.POST_IMPRESION.stages.slice(0, 5).map(etapaId => (
                                     <KanbanColumn
@@ -1006,9 +1006,9 @@ const AppContent: React.FC = () => {
                                 ))}
                             </div>
 
-                            {/* Segunda fila: 2 etapas (Perforación MIC, Perforación MAC) */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                {KANBAN_FUNNELS.POST_IMPRESION.stages.slice(5, 7).map(etapaId => (
+                            {/* Segunda fila: 4 etapas (Rebobinado PROSLIT, Rebobinado TEMAC, Perforación MIC, Perforación MAC) */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                {KANBAN_FUNNELS.POST_IMPRESION.stages.slice(5, 9).map(etapaId => (
                                     <KanbanColumn
                                         key={etapaId}
                                         etapa={ETAPAS[etapaId]}

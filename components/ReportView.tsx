@@ -1124,6 +1124,10 @@ const ReportView: React.FC<ReportViewProps> = ({
                                     { id: Etapa.POST_LAMINACION_SL2, label: 'Laminación SL2', color: 'indigo' },
                                     { id: Etapa.POST_LAMINACION_NEXUS, label: 'Laminación NEXUS', color: 'indigo' },
 
+                                    // Etapas Post-Impresión - Ec-convert
+                                    { id: Etapa.POST_ECCONVERT_21, label: 'Ec-convert 21', color: 'gray' },
+                                    { id: Etapa.POST_ECCONVERT_22, label: 'Ec-convert 22', color: 'gray' },
+
                                     // Etapas Post-Impresión - Rebobinado
                                     { id: Etapa.POST_REBOBINADO_S2DT, label: 'Rebobinado S2DT', color: 'purple' },
                                     { id: Etapa.POST_REBOBINADO_PROSLIT, label: 'Rebobinado PROSLIT', color: 'purple' },
@@ -1143,6 +1147,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                         'indigo': { active: 'bg-indigo-500 border-indigo-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
                                         'purple': { active: 'bg-purple-500 border-purple-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
                                         'pink': { active: 'bg-pink-500 border-pink-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                        'gray': { active: 'bg-gray-600 border-gray-700 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
                                         'green': { active: 'bg-green-500 border-green-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
                                     };
                                     const colors = stageColors[stage.color] || stageColors['cyan'];

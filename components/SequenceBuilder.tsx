@@ -1,6 +1,7 @@
 import React from 'react';
 import { Etapa } from '../types';
 import { ETAPAS, KANBAN_FUNNELS } from '../constants';
+import { formatStageTitle } from '../utils/formatStageTitle';
 
 interface SequenceBuilderProps {
     sequence: Etapa[];
@@ -13,8 +14,12 @@ const MinusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" view
 const UpIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" /></svg>;
 const DownIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>;
 
-const SequenceBuilder: React.FC<SequenceBuilderProps> = ({ sequence, onChange, isReadOnly }) => {
-    const availableStages = KANBAN_FUNNELS.POST_IMPRESION.stages.filter(
+const SequenceBuilder: React.FC<SequenceBuilderProps> = ({ sequence: rawSequence, onChange, isReadOnly }) => {
+    // Filtrar: solo etapas de Post-Impresión son válidas en la secuencia de trabajo
+    const validPostImpresionStages = KANBAN_FUNNELS.POST_IMPRESION.stages;
+    const sequence = rawSequence.filter(stage => validPostImpresionStages.includes(stage));
+
+    const availableStages = validPostImpresionStages.filter(
         stage => !sequence.includes(stage)
     );
 
@@ -45,7 +50,7 @@ const SequenceBuilder: React.FC<SequenceBuilderProps> = ({ sequence, onChange, i
             }`}
             onClick={title === 'Añadir a secuencia' && !isReadOnly ? onClick : undefined}
         >
-            <span className="text-sm font-medium">{ETAPAS[stage].title}</span>
+            <span className="text-sm font-medium">{formatStageTitle(ETAPAS[stage].title)}</span>
             {!isReadOnly && (
                 <div className="flex items-center gap-1" onClick={(e) => title === 'Añadir a secuencia' && e.stopPropagation()}>
                     {title === 'reorder' && (

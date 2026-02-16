@@ -417,7 +417,7 @@ async function processBulkImport({ rows, globalFields = {}, options = {}, dbClie
                     observacionesRapidas: pedidoData.observacionesRapidas || null,
                     observacionesMaterial: pedidoData.observacionesMaterial || null,
                     tiempoProduccionPlanificado: '00:00',
-                    secuenciaTrabajo: [pedidoData.etapaActual || DEFAULT_ETAPA],
+                    secuenciaTrabajo: [], // Vacío: la secuencia de post-impresión se define al enviar a producción
                     etapasSecuencia: [{
                         etapa: pedidoData.etapaActual || DEFAULT_ETAPA,
                         fecha: currentDate

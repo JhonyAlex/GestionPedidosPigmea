@@ -156,6 +156,8 @@ const VendedorDetailModal: React.FC<VendedorDetailModalProps> = ({ isOpen, onClo
             'IMPRESION_ANON': 'Impresión ANON',
             'POST_LAMINACION_SL2': 'Laminación SL2',
             'POST_LAMINACION_NEXUS': 'Laminación NEXUS',
+            'POST_ECCONVERT_21': 'Ec-convert 21',
+            'POST_ECCONVERT_22': 'Ec-convert 22',
             'POST_REBOBINADO_S2DT': 'Rebobinado S2DT',
             'POST_REBOBINADO_PROSLIT': 'Rebobinado PROSLIT',
             'POST_PERFORACION_MIC': 'Perforación MIC',

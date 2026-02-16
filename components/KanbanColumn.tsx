@@ -4,6 +4,7 @@ import { Pedido, KanbanEtapa, UserRole } from '../types';
 import PedidoCard from './PedidoCard';
 import { useLockObserver } from '../hooks/useLockObserver';
 import { useAuth } from '../contexts/AuthContext';
+import { formatStageTitle } from '../utils/formatStageTitle';
 
 interface KanbanColumnProps {
     etapa: KanbanEtapa;
@@ -79,7 +80,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                                 title={allSelected ? "Deseleccionar todos" : "Seleccionar todos"}
                             />
                         )}
-                        <h2 className="text-lg font-medium text-white">{etapa.title}</h2>
+                        <h2 className="text-lg font-medium text-white">{formatStageTitle(etapa.title)}</h2>
                     </div>
                     <span className="bg-black bg-opacity-25 text-white text-xs font-bold px-2 py-0.5 rounded-full">
                         {pedidos.length}

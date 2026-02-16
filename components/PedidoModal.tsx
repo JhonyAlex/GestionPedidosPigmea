@@ -18,6 +18,7 @@ import { useMaterialesManager } from '../hooks/useMaterialesManager';
 import type { Material } from '../types/material';
 import ClienteModalMejorado from './ClienteModalMejorado';
 import { useActionRecorder } from '../hooks/useActionRecorder';
+import { formatStageTitle } from '../utils/formatStageTitle';
 import { useActionHistory } from '../hooks/useActionHistory';
 import { checkNumeroPedidoClienteExists } from '../services/storage';
 
@@ -1348,7 +1349,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                 🔄 Etapa Actual del Pedido:
                             </span>
                             <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
-                                {ETAPAS[formData.etapaActual]?.title || formData.etapaActual}
+                                {formatStageTitle(ETAPAS[formData.etapaActual]?.title || formData.etapaActual)}
                                 {formData.etapaActual === Etapa.PREPARACION && formData.subEtapaActual && (
                                     <span className="ml-1 text-xs font-normal text-gray-600 dark:text-gray-400">
                                         ({PREPARACION_COLUMNS.find(col => col.id === formData.subEtapaActual)?.title})
