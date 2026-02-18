@@ -801,7 +801,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                     </div>
 
                                     <div>
-                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Vendedor</label>
+                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Comercial</label>
                                         <SearchableSelect
                                             name="vendedorId"
                                             value={formData.vendedorId}
@@ -817,9 +817,9 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                                 label: v.nombre,
                                                 isInactive: !v.activo
                                             }))}
-                                            placeholder="Seleccione un vendedor"
+                                            placeholder="Seleccione un comercial"
                                             allowCreate={true}
-                                            createLabel="-- Crear nuevo vendedor --"
+                                            createLabel="-- Crear nuevo comercial --"
                                             onCreateNew={() => setVendedorModalOpen(true)}
                                             showActiveOnly={false}
                                         />

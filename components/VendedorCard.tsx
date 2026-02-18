@@ -75,14 +75,14 @@ const VendedorCard: React.FC<VendedorCardProps> = ({
             <button
               onClick={handleEditClick}
               className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              aria-label="Editar vendedor"
+              aria-label="Editar comercial"
             >
               <Icons.Edit className="h-5 w-5" />
             </button>
             <button
               onClick={handleDeleteClick}
               className="p-2 rounded-full text-gray-500 hover:bg-red-100 dark:hover:bg-red-900 hover:text-red-600 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-              aria-label="Eliminar vendedor"
+              aria-label="Eliminar comercial"
             >
               <Icons.Trash className="h-5 w-5" />
             </button>

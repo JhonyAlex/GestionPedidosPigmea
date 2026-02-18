@@ -36,11 +36,11 @@ const VendedorModal: React.FC<VendedorModalProps> = ({ isOpen, onClose, onSave, 
   } = useVendedorLock({
     vendedorId: vendedor?.id || null,
     onLockDenied: (lockedByUser) => {
-      setLockWarningMessage(`Este vendedor está siendo editado por ${lockedByUser}`);
+      setLockWarningMessage(`Este comercial está siendo editado por ${lockedByUser}`);
       setShowLockWarning(true);
     },
     onLockLost: () => {
-      alert('⚠️ Has perdido el bloqueo de este vendedor por inactividad.');
+      alert('⚠️ Has perdido el bloqueo de este comercial por inactividad.');
       onClose();
     },
     autoUnlock: !isEmbedded
@@ -98,7 +98,7 @@ const VendedorModal: React.FC<VendedorModalProps> = ({ isOpen, onClose, onSave, 
 
     // En modo embedded, al menos necesitamos el nombre
     if (isEmbedded && (!formData.nombre || formData.nombre.trim() === '')) {
-      errors.nombre = 'El nombre es necesario para crear un vendedor';
+      errors.nombre = 'El nombre es necesario para crear un comercial';
     }
 
     if (formData.email && formData.email.trim() !== '') {
@@ -116,7 +116,7 @@ const VendedorModal: React.FC<VendedorModalProps> = ({ isOpen, onClose, onSave, 
     setError(null);
 
     if (isReadOnly) {
-      setError('Este vendedor está bloqueado por otro usuario (solo lectura).');
+      setError('Este comercial está bloqueado por otro usuario (solo lectura).');
       return;
     }
 
@@ -179,7 +179,7 @@ const VendedorModal: React.FC<VendedorModalProps> = ({ isOpen, onClose, onSave, 
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex justify-between items-center">
             <h3 className="text-xl font-bold text-white">
-              {vendedor ? 'Editar Vendedor' : 'Nuevo Vendedor'}
+              {vendedor ? 'Editar Comercial' : 'Nuevo Comercial'}
               {isReadOnly && <span className="ml-2 text-sm text-red-200">(Solo lectura)</span>}
             </h3>
             <button

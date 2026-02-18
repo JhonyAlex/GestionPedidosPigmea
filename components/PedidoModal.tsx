@@ -1735,7 +1735,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                                 </div>
 
                                                 <div>
-                                                    <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Vendedor</label>
+                                                    <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Comercial</label>
                                                     <SearchableSelect
                                                         name="vendedorId"
                                                         value={formData.vendedorId || ''}
@@ -1752,10 +1752,10 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                                             isInactive: !v.activo,
                                                             disabled: false
                                                         }))}
-                                                        placeholder="Seleccione un vendedor"
+                                                        placeholder="Seleccione un comercial"
                                                         disabled={isReadOnly}
                                                         allowCreate={!isReadOnly}
-                                                        createLabel="-- Crear nuevo vendedor --"
+                                                        createLabel="-- Crear nuevo comercial --"
                                                         onCreateNew={() => setShowVendedorInput(true)}
                                                         showActiveOnly={false}
                                                     />
@@ -1768,7 +1768,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                                                     type="text"
                                                                     value={nuevoVendedor}
                                                                     onChange={(e) => setNuevoVendedor(e.target.value)}
-                                                                    placeholder="Nombre del vendedor"
+                                                                    placeholder="Nombre del comercial"
                                                                     className="flex-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2 text-sm"
                                                                     autoFocus
                                                                 />
@@ -1776,7 +1776,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                                                     type="button"
                                                                     onClick={handleAddVendedor}
                                                                     className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg transition-colors text-sm"
-                                                                    title="Guardar vendedor"
+                                                                    title="Guardar comercial"
                                                                 >
                                                                     ✓
                                                                 </button>

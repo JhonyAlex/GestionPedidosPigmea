@@ -254,7 +254,7 @@ const Header: React.FC<HeaderProps> = ({
     // Vistas de gestión (requieren permisos)
     const managementViews: { id: ViewType; label: string, permission?: () => boolean }[] = [
         { id: 'clientes', label: 'Clientes', permission: canViewClientes },
-        { id: 'vendedores', label: 'Vendedores', permission: canViewClientes },
+        { id: 'vendedores', label: 'Comerciales', permission: canViewClientes },
         { id: 'permissions-debug', label: '🔍 Debug Permisos', permission: canAccessAdmin },
     ];
 
@@ -684,7 +684,7 @@ const Header: React.FC<HeaderProps> = ({
                                     label: v.nombre,
                                     isInactive: !v.activo
                                 }))}
-                                placeholder="Vendedor"
+                                placeholder="Comercial"
                                 icon="👤"
                                 disabled={vendedoresLoading}
                                 allowSelectAll={true}

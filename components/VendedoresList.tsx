@@ -244,7 +244,7 @@ const VendedoresList: React.FC<VendedoresListProps> = ({ onCrearPedido, onNaviga
                     <div className="relative">
                         <input
                             type="text"
-                            placeholder="🔍 Buscar vendedores..."
+                            placeholder="🔍 Buscar comerciales..."
                             value={searchTerm}
                             className="w-full px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                             onChange={handleSearchChange}

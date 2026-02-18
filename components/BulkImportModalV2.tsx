@@ -117,9 +117,9 @@ const AVAILABLE_FIELDS = [
   { value: 'observacionesRapidas', label: '⚡ Observaciones Rápidas' },
   { value: 'observacionesMaterial', label: '🧱 Observaciones Material' },
   
-  // Máquinas y vendedores
+  // Máquinas y comerciales
   { value: 'maquinaImpresion', label: '🖨️ Máquina de Impresión' },
-  { value: 'vendedorNombre', label: '💼 Vendedor' },
+  { value: 'vendedorNombre', label: '💼 Comercial' },
   
   // Fechas y plazos
   { value: 'fechaCreacion', label: '🕐 Fecha Creación' },
@@ -1605,9 +1605,9 @@ function MappingPhaseV2({
             </select>
           </div>
 
-          {/* Vendedor con SELECT */}
+          {/* Comercial con SELECT */}
           <div>
-            <label className="block text-xs font-medium mb-1.5 text-gray-700 dark:text-gray-300">💼 Vendedor (opcional):</label>
+            <label className="block text-xs font-medium mb-1.5 text-gray-700 dark:text-gray-300">💼 Comercial (opcional):</label>
             <select
               value={globalFields.vendedorId || ''}
               onChange={(e) => {
@@ -2076,7 +2076,7 @@ function ImportingPhaseV2({
             
             {stats.createdVendors > 0 && (
               <div className="bg-purple-50 dark:bg-purple-900 dark:bg-opacity-20 p-4 rounded-lg">
-                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Vendedores Nuevos</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Comerciales Nuevos</div>
                 <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{stats.createdVendors}</div>
               </div>
             )}
@@ -2848,9 +2848,9 @@ function ImportingPhaseV2({
           <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
             <h5 className="text-xs font-bold mb-2 text-gray-700 dark:text-gray-300 uppercase">👥 Personas</h5>
             
-            {/* Vendedor */}
+            {/* Comercial */}
             <div>
-              <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">💼 Vendedor:</label>
+              <label className="block text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">💼 Comercial:</label>
               <select
                 value={globalFields.vendedorId || ''}
                 onChange={(e) => {

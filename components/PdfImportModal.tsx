@@ -88,7 +88,7 @@ const SYSTEM_FIELDS = [
   { value: 'observacionesRapidas', label: '⚡ Observaciones Rápidas' },
   
   // ========== VENDEDOR ==========
-  { value: 'vendedorNombre', label: '💼 Vendedor' },
+  { value: 'vendedorNombre', label: '💼 Comercial' },
   
   // ========== FECHAS ==========
   { value: 'nuevaFechaEntrega', label: '📅 Nueva Fecha Entrega' },

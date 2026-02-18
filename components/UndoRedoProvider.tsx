@@ -143,7 +143,7 @@ export const useActionRecorder = () => {
                 'vendedor',
                 'UPDATE',
                 { before, after },
-                `Vendedor actualizado: ${after.nombre}`
+                `Comercial actualizado: ${after.nombre}`
             );
         },
         [recordAction]

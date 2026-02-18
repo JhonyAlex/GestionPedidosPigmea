@@ -88,7 +88,7 @@ const AVAILABLE_FIELDS = [
   { value: 'capa', label: 'Capa' },
   { value: 'observaciones', label: 'Observaciones' },
   { value: 'maquinaImpresion', label: 'Máquina de Impresión' },
-  { value: 'vendedorNombre', label: 'Vendedor' }
+  { value: 'vendedorNombre', label: 'Comercial' }
 ];
 
 // Valores por defecto para campos globales

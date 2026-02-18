@@ -27,8 +27,8 @@ export const PERMISSION_CONFIG: PermissionConfig = {
                 },
                 {
                     id: 'vista.vendedores',
-                    name: 'Vista Vendedores',
-                    description: 'Acceso completo a la sección de Vendedores',
+                    name: 'Vista Comerciales',
+                    description: 'Acceso completo a la sección de Comerciales',
                     category: 'vistas'
                 },
                 {
@@ -104,7 +104,7 @@ export const DEFAULT_ROLE_PERMISSIONS: RolePermissions[] = [
             // Vistas principales
             { id: 'vista.pedidos', name: 'Vista Pedidos', description: 'Acceso completo a la sección de Pedidos', category: 'vistas' as const, enabled: true },
             { id: 'vista.clientes', name: 'Vista Clientes', description: 'Acceso completo a la sección de Clientes', category: 'vistas' as const, enabled: true },
-            { id: 'vista.vendedores', name: 'Vista Vendedores', description: 'Acceso completo a la sección de Vendedores', category: 'vistas' as const, enabled: true },
+            { id: 'vista.vendedores', name: 'Vista Comerciales', description: 'Acceso completo a la sección de Comerciales', category: 'vistas' as const, enabled: true },
             { id: 'vista.preparacion', name: 'Vista Preparación', description: 'Acceso a sección de preparación de pedidos', category: 'vistas' as const, enabled: true },
             { id: 'vista.listo_produccion', name: 'Vista Listo Producción', description: 'Acceso a sección de pedidos listos para producción', category: 'vistas' as const, enabled: true },
             { id: 'vista.reportes', name: 'Vista Reportes', description: 'Acceso a sección de reportes y análisis', category: 'vistas' as const, enabled: true },

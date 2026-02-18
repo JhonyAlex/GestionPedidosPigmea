@@ -92,7 +92,7 @@ export const RankingsTable: React.FC<RankingsTableProps> = ({
     }
 
     const tabs = [
-        { id: 'vendors' as RankingType, label: 'Vendedores', count: vendorData.length, tooltip: 'Ranking de vendedores ordenados por metros totales producidos. Los datos se agrupan por el campo "vendedorNombre" de cada pedido.' },
+        { id: 'vendors' as RankingType, label: 'Comerciales', count: vendorData.length, tooltip: 'Ranking de comerciales ordenados por metros totales producidos. Los datos se agrupan por el campo "vendedorNombre" de cada pedido.' },
         { id: 'clients' as RankingType, label: 'Clientes', count: clientData.length, tooltip: 'Ranking de clientes ordenados por metros totales producidos. Los datos se agrupan por el campo "cliente" de cada pedido.' },
         { id: 'stages' as RankingType, label: 'Etapas', count: stageData.length, tooltip: 'Distribución de pedidos por etapa del proceso. Muestra cuántos pedidos y metros están en cada fase del flujo productivo.' }
     ];
@@ -103,7 +103,7 @@ export const RankingsTable: React.FC<RankingsTableProps> = ({
 
         if (activeTab === 'vendors') {
             data = sortData(vendorData);
-            nameLabel = 'Vendedor';
+            nameLabel = 'Comercial';
         } else if (activeTab === 'clients') {
             data = sortData(clientData);
             nameLabel = 'Cliente';
@@ -237,7 +237,7 @@ export const RankingsTable: React.FC<RankingsTableProps> = ({
                     </svg>
                     Rankings de Producción
                     <InfoTooltip 
-                        content="Tablas comparativas de rendimiento. Alterna entre rankings de Vendedores, Clientes y Etapas. Haz clic en las columnas para ordenar por diferentes métricas."
+                        content="Tablas comparativas de rendimiento. Alterna entre rankings de Comerciales, Clientes y Etapas. Haz clic en las columnas para ordenar por diferentes métricas."
                         position="right"
                     />
                 </h3>

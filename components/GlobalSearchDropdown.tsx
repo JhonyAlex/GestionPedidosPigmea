@@ -196,11 +196,11 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
                                             <span className="text-gray-800 dark:text-gray-200">{pedido.cliente}</span>
                                         </div>
 
-                                        {/* Tercera línea: Vendedor y Metros */}
+                                        {/* Tercera línea: Comercial y Metros */}
                                         <div className="flex items-center gap-6 text-base text-gray-600 dark:text-gray-400 flex-wrap">
                                             {pedido.vendedorNombre && (
                                                 <div>
-                                                    <span className="font-semibold text-gray-900 dark:text-white">Vendedor:</span>{' '}
+                                                    <span className="font-semibold text-gray-900 dark:text-white">Comercial:</span>{' '}
                                                     <span className="text-gray-800 dark:text-gray-200">{pedido.vendedorNombre}</span>
                                                 </div>
                                             )}

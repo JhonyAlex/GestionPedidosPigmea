@@ -148,7 +148,7 @@ const ListoProduccionView: React.FC<ListoProduccionViewProps> = ({
                             <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Cliente</th>
                             <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Desarrollo</th>
                             <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Máquina</th>
-                            <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Vendedor</th>
+                            <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Comercial</th>
                             <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Metros</th>
                             <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Tiempo</th>
                             <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Prioridad</th>
@@ -336,9 +336,9 @@ const ListoProduccionView: React.FC<ListoProduccionViewProps> = ({
                             </div>
                         </div>
 
-                        {/* Pedidos por Vendedor */}
+                        {/* Pedidos por Comercial */}
                         <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                            <h4 className="font-semibold text-gray-800 dark:text-white mb-3">Pedidos por Vendedor</h4>
+                            <h4 className="font-semibold text-gray-800 dark:text-white mb-3">Pedidos por Comercial</h4>
                             <div className="space-y-1 max-h-40 overflow-y-auto">
                                 {Object.entries(metricas.pedidosPorVendedor)
                                     .sort((a, b) => b[1] - a[1])

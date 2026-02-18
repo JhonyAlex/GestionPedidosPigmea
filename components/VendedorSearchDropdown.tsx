@@ -74,7 +74,7 @@ const VendedorSearchDropdown: React.FC<VendedorSearchDropdownProps> = ({
                             type="text"
                             value={searchTerm}
                             onChange={(e) => onSearchChange(e.target.value)}
-                            placeholder="Buscar vendedores..."
+                            placeholder="Buscar comerciales..."
                             className="flex-1 bg-transparent text-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none"
                             onKeyDown={(e) => {
                                 if (e.key === 'Escape') {
