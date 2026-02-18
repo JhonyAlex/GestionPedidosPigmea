@@ -206,6 +206,68 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
         return;
     }
 
+    // ✅ Reordenamiento dentro de la MISMA columna Kanban (no lista, no preparación)
+    if (source.droppableId === destination.droppableId) {
+        const etapaId = source.droppableId as Etapa;
+
+        // Obtener los pedidos de esta columna en el orden actual (ya filtrados/ordenados por processedPedidos)
+        const columnPedidos = processedPedidos.filter(p => p.etapaActual === etapaId);
+
+        // Reordenar
+        const reordered = Array.from(columnPedidos);
+        const [moved] = reordered.splice(source.index, 1);
+        reordered.splice(destination.index, 0, moved);
+
+        // Asignar posicionEnEtapa secuencial (1, 2, 3...)
+        const updatedPositions = new Map<string, number>();
+        reordered.forEach((pedido, index) => {
+            updatedPositions.set(pedido.id, index + 1);
+        });
+
+        // Identificar pedidos que realmente cambiaron de posición
+        const newPedidosList = pedidos.map(pedido => {
+            const newPos = updatedPositions.get(pedido.id);
+            if (newPos !== undefined && newPos !== pedido.posicionEnEtapa) {
+                const historialEntry = generarEntradaHistorial(
+                    currentUserRole,
+                    'Reordenamiento Manual en Kanban',
+                    `Posición en ${ETAPAS[etapaId]?.title ?? etapaId} cambiada de ${pedido.posicionEnEtapa || 'sin posición'} a ${newPos}.`
+                );
+                return {
+                    ...pedido,
+                    posicionEnEtapa: newPos,
+                    historial: [...pedido.historial, historialEntry]
+                };
+            }
+            if (newPos !== undefined) {
+                return { ...pedido, posicionEnEtapa: newPos };
+            }
+            return pedido;
+        });
+
+        // Actualización optimista inmediata
+        setPedidos(newPedidosList);
+
+        // Asegurar que el sort está en posicionEnEtapa para mantener el orden manual
+        setSortConfig('posicionEnEtapa', 'ascending');
+
+        logAction(`Pedido ${moved.numeroPedidoCliente} reordenado manualmente en ${ETAPAS[etapaId]?.title ?? etapaId}.`, moved.id);
+
+        // Persistir en background solo los pedidos que cambiaron
+        const changedPedidos = newPedidosList.filter(p => {
+            const originalPedido = pedidos.find(op => op.id === p.id);
+            return originalPedido && originalPedido.posicionEnEtapa !== p.posicionEnEtapa;
+        });
+
+        if (changedPedidos.length > 0) {
+            Promise.all(changedPedidos.map(p => store.update(p))).catch(error => {
+                console.error("Error al actualizar pedidos reordenados en Kanban:", error);
+            });
+        }
+
+        return;
+    }
+
     const newEtapa = destination.droppableId as Etapa;
     const oldEtapa = source.droppableId as Etapa;
 

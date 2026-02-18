@@ -543,6 +543,11 @@ export const usePedidosManager = (
         const initialStage = Etapa.PREPARACION; // ✅ Los pedidos nuevos van a "Preparación" con sub-etapa "Sin Gestión Iniciada"
         const maxOrder = Math.max(...pedidos.map(p => p.orden), 0);
 
+        // ✅ Calcular posición al final de la etapa PREPARACION
+        const maxPosInPrep = pedidos
+            .filter(p => p.etapaActual === Etapa.PREPARACION)
+            .reduce((max, p) => Math.max(max, p.posicionEnEtapa || 0), 0);
+
         // ✅ Determinar la sub-etapa inicial basándose en los datos del pedido
         const initialSubEtapa = PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA; // Por defecto, todos los pedidos nuevos van a "Sin Gestión Iniciada"
 
@@ -563,6 +568,7 @@ export const usePedidosManager = (
             antivaho: pedidoData.antivaho || false,
             antivahoRealizado: false,
             anonimo: pedidoData.anonimo || false,
+            posicionEnEtapa: maxPosInPrep + 1,
         };
 
         // ✅ Marcar este ID como "en proceso de creación" ANTES de llamar al backend
@@ -593,12 +599,14 @@ export const usePedidosManager = (
             secuenciaTrabajo: postImpresionSequence,
         };
 
-        // Determinar si es una reconfirmación desde post-impresión
+        // Determinar si es una reconfirmación desde post-impresión o desde listo para producción
         const isReconfirmationFromPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedidoToUpdate.etapaActual);
+        const isFromListoProduccion = pedidoToUpdate.etapaActual === Etapa.PREPARACION &&
+                                       pedidoToUpdate.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION;
 
-        // SOLO marcar antivahoRealizado en reconfirmaciones desde post-impresión
-        // NO marcar cuando se envía por primera vez desde preparación
-        if (pedidoToUpdate.antivaho && isReconfirmationFromPostImpresion) {
+        // SOLO marcar antivahoRealizado en reconfirmaciones desde post-impresión o listo para producción
+        // NO marcar cuando se envía por primera vez desde preparación (otras subetapas)
+        if (pedidoToUpdate.antivaho && (isReconfirmationFromPostImpresion || isFromListoProduccion)) {
             updatedPedido.antivahoRealizado = true;
         }
 
@@ -660,6 +668,11 @@ export const usePedidosManager = (
         const initialStage = Etapa.PREPARACION;
         const maxOrder = Math.max(...pedidos.map(p => p.orden), 0);
 
+        // ✅ Calcular posición al final de la etapa PREPARACION
+        const maxPosDup = pedidos
+            .filter(p => p.etapaActual === Etapa.PREPARACION)
+            .reduce((max, p) => Math.max(max, p.posicionEnEtapa || 0), 0);
+
         // ✅ Guardar el numeroPedidoCliente ORIGINAL para el historial ANTES de cualquier modificación
         const numeroPedidoOriginal = pedidoToDuplicate.numeroPedidoCliente || '(sin número)';
         const idOriginal = pedidoToDuplicate.id;
@@ -696,6 +709,7 @@ export const usePedidosManager = (
             clicheDisponible: false, // ✅ Resetear disponibilidad de cliché
             materialDisponible: false, // ✅ Resetear disponibilidad de material
             clicheInfoAdicional: undefined, // ✅ Limpiar información adicional de cliché
+            posicionEnEtapa: maxPosDup + 1, // ✅ Posición al final de Preparación
         };
 
         // ✅ Marcar este ID como "en proceso de creación"
@@ -795,11 +809,14 @@ export const usePedidosManager = (
 
     const handleUpdatePedidoEtapa = async (pedido: Pedido, newEtapa: Etapa, newSubEtapa?: string | null) => {
         const fromPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual);
+        const fromListoProduccion = pedido.etapaActual === Etapa.PREPARACION && 
+                                     pedido.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION;
         const toImpresion = KANBAN_FUNNELS.IMPRESION.stages.includes(newEtapa);
 
         // SOLO mostrar modal de confirmación si el antivaho NO está realizado
         // Si ya está realizado, debe comportarse como pedido normal
-        if (pedido.antivaho && !pedido.antivahoRealizado && fromPostImpresion && toImpresion) {
+        // 🆕 EXTENDIDO: También aplica para pedidos desde "Listo para Producción"
+        if (pedido.antivaho && !pedido.antivahoRealizado && (fromPostImpresion || fromListoProduccion) && toImpresion) {
             setAntivahoModalState({ isOpen: true, pedido: pedido, toEtapa: newEtapa });
             return;
         }
@@ -822,14 +839,21 @@ export const usePedidosManager = (
         } else {
             updatedPedido.subEtapaActual = undefined;
         }
+        // ✅ Asignar posicionEnEtapa: siempre al final de la etapa destino
+        const maxPosInNewEtapa = pedidos
+            .filter(p => p.etapaActual === newEtapa && p.id !== pedido.id)
+            .reduce((max, p) => Math.max(max, p.posicionEnEtapa || 0), 0);
+        updatedPedido.posicionEnEtapa = maxPosInNewEtapa + 1;
         await handleSavePedido(updatedPedido);
     };
 
     const handleConfirmAntivaho = async () => {
         if (!antivahoModalState.pedido || !antivahoModalState.toEtapa) return;
 
-        // Determinar si es una reconfirmación desde post-impresión
+        // Determinar si es una reconfirmación desde post-impresión o desde listo para producción
         const isReconfirmationFromPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(antivahoModalState.pedido.etapaActual);
+        const isFromListoProduccion = antivahoModalState.pedido.etapaActual === Etapa.PREPARACION &&
+                                       antivahoModalState.pedido.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION;
 
         const updatedPedido = {
             ...antivahoModalState.pedido,
@@ -867,11 +891,18 @@ export const usePedidosManager = (
                 finalUpdatedPedido.maquinaImpresion = ETAPAS[antivahoModalState.toEtapa]?.title;
             }
 
+            // ✅ Asignar posicionEnEtapa: siempre al final de la etapa destino
+            finalUpdatedPedido.posicionEnEtapa = Date.now();
+
             await handleSavePedido(finalUpdatedPedido);
 
-            // Si es una reconfirmación desde post-impresión, no abrir el modal de envío
-            // Solo abrir el modal si se está enviando a impresión desde preparación
-            if (!isReconfirmationFromPostImpresion && KANBAN_FUNNELS.IMPRESION.stages.includes(antivahoModalState.toEtapa)) {
+            // Si es una reconfirmación desde post-impresión o desde listo para producción, no abrir el modal de envío
+            // Solo abrir el modal si se está enviando a impresión desde preparación (otras subetapas)
+            const shouldOpenSendModal = !isReconfirmationFromPostImpresion && 
+                                        !isFromListoProduccion && 
+                                        KANBAN_FUNNELS.IMPRESION.stages.includes(antivahoModalState.toEtapa);
+            
+            if (shouldOpenSendModal) {
                 setPedidoToSend(finalUpdatedPedido);
             }
         }

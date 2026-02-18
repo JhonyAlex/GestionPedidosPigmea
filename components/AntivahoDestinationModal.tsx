@@ -7,6 +7,8 @@ interface AntivahoDestinationModalProps {
     onCancel: () => void;
     pedido?: {
         numeroPedidoCliente: string;
+        etapaActual?: string;
+        subEtapaActual?: string;
     } | null;
 }
 
@@ -19,6 +21,18 @@ const AntivahoDestinationModal: React.FC<AntivahoDestinationModalProps> = ({
 }) => {
     if (!isOpen) return null;
 
+    // Determinar si viene de "Listo para Producción" o de "Post-Impresión"
+    const isFromListoProduccion = pedido?.etapaActual === 'PREPARACION' && 
+                                   pedido?.subEtapaActual === 'LISTO_PARA_PRODUCCION';
+    
+    const impresionButtonText = isFromListoProduccion 
+        ? 'Enviar a Impresión' 
+        : 'Regresar a Impresión';
+
+    const descripcionText = isFromListoProduccion
+        ? 'El pedido está listo y el antivaho ha sido completado.'
+        : 'El antivaho ha sido completado.';
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
@@ -26,7 +40,7 @@ const AntivahoDestinationModal: React.FC<AntivahoDestinationModalProps> = ({
                     ¿A dónde enviar el pedido?
                 </h2>
                 <p className="text-gray-700 dark:text-gray-300 mb-6">
-                    El antivaho del pedido <span className="font-semibold">{pedido?.numeroPedidoCliente}</span> ha sido completado.
+                    {descripcionText} Pedido <span className="font-semibold">{pedido?.numeroPedidoCliente}</span>.
                     <br /><br />
                     Selecciona el siguiente destino:
                 </p>
@@ -38,7 +52,7 @@ const AntivahoDestinationModal: React.FC<AntivahoDestinationModalProps> = ({
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                         </svg>
-                        Regresar a Impresión
+                        {impresionButtonText}
                     </button>
                     <button
                         onClick={onSelectListoProduccion}
@@ -47,7 +61,7 @@ const AntivahoDestinationModal: React.FC<AntivahoDestinationModalProps> = ({
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        Mover a Listo a Producción
+                        {isFromListoProduccion ? 'Mantener en Listo para Producción' : 'Mover a Listo a Producción'}
                     </button>
                 </div>
                 <div className="flex justify-end">

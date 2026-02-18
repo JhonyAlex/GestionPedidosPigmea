@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { Pedido, Etapa, ViewType, UserRole, AuditEntry, Prioridad, EstadoCliché, HistorialEntry, DateField } from './types';
-import { KANBAN_FUNNELS, ETAPAS, PRIORIDAD_ORDEN, PREPARACION_SUB_ETAPAS_IDS } from './constants';
+import { KANBAN_FUNNELS, ETAPAS, PREPARACION_SUB_ETAPAS_IDS } from './constants';
 import { DateFilterOption } from './utils/date';
 import { calculateTotalProductionTime, generatePedidosPDF } from './utils/kpi';
 import { scrollToPedido } from './utils/scroll';
@@ -347,9 +347,12 @@ const AppContent: React.FC = () => {
     }, [pedidos, currentUserRole, processedPedidos, generarEntradaHistorial, logAction, handleSort, setPedidos, handleSavePedidoLogic, handleUpdatePedidoEtapa, getMaterialesByPedidoId]);
 
     const handleAdvanceStage = async (pedidoToAdvance: Pedido) => {
-        // Si es un pedido con antivaho no realizado en post-impresión, abrir modal de reconfirmación
-        if (pedidoToAdvance.antivaho && !pedidoToAdvance.antivahoRealizado &&
-            KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedidoToAdvance.etapaActual)) {
+        // 🆕 EXTENDIDO: Si es un pedido con antivaho no realizado en post-impresión o listo para producción, abrir modal de reconfirmación
+        const isInPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedidoToAdvance.etapaActual);
+        const isInListoProduccion = pedidoToAdvance.etapaActual === Etapa.PREPARACION && 
+                                     pedidoToAdvance.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION;
+        
+        if (pedidoToAdvance.antivaho && !pedidoToAdvance.antivahoRealizado && (isInPostImpresion || isInListoProduccion)) {
             setPedidoToSend(pedidoToAdvance);
             return;
         }
@@ -406,7 +409,9 @@ const AppContent: React.FC = () => {
     };
 
     const handleSavePedido = async (updatedPedido: Pedido) => {
+        const originalPedido = pedidos.find(p => p.id === updatedPedido.id);
         const result = await handleSavePedidoLogic(updatedPedido);
+        
         if (result?.hasChanges) {
             logAction(`Pedido ${result.modifiedPedido.numeroPedidoCliente} actualizado.`, result.modifiedPedido.id);
             // 🚀 Emitir actividad WebSocket
@@ -414,6 +419,21 @@ const AppContent: React.FC = () => {
                 pedidoId: result.modifiedPedido.id,
                 numeroCliente: result.modifiedPedido.numeroPedidoCliente
             });
+
+            // 🆕 LÓGICA ESPECIAL PARA ANTIVAHO DESDE LISTO PARA PRODUCCIÓN
+            // Si se marca antivahoRealizado=true desde LISTO_PARA_PRODUCCION, abrir modal de destino
+            const wasInListoProduccion = originalPedido?.etapaActual === Etapa.PREPARACION && 
+                                         originalPedido?.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION;
+            const hasAntivahoAndJustMarked = updatedPedido.antivaho && 
+                                              updatedPedido.antivahoRealizado && 
+                                              !originalPedido?.antivahoRealizado;
+            
+            if (wasInListoProduccion && hasAntivahoAndJustMarked) {
+                // Abrir modal de destino de antivaho
+                setAntivahoDestinationModalState({ isOpen: true, pedido: result.modifiedPedido });
+                setSelectedPedido(null);
+                return;
+            }
         }
         setSelectedPedido(null);
     };
@@ -421,6 +441,7 @@ const AppContent: React.FC = () => {
     // ✅ FIX: Auto-save separado que NO cierra el modal
     // Usado por SeccionDatosTecnicosDeMaterial cuando materialDisponible cambia automáticamente
     const handleAutoSavePedido = async (updatedPedido: Pedido) => {
+        const originalPedido = pedidos.find(p => p.id === updatedPedido.id);
         const result = await handleSavePedidoLogic(updatedPedido);
         if (result?.hasChanges) {
             logAction(`Pedido ${result.modifiedPedido.numeroPedidoCliente} auto-guardado.`, result.modifiedPedido.id);
@@ -428,8 +449,23 @@ const AppContent: React.FC = () => {
                 pedidoId: result.modifiedPedido.id,
                 numeroCliente: result.modifiedPedido.numeroPedidoCliente
             });
+
+            // 🆕 LÓGICA ESPECIAL PARA ANTIVAHO DESDE LISTO PARA PRODUCCIÓN
+            // Si se marca antivahoRealizado=true desde LISTO_PARA_PRODUCCION, abrir modal de destino
+            const wasInListoProduccion = originalPedido?.etapaActual === Etapa.PREPARACION && 
+                                         originalPedido?.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION;
+            const hasAntivahoAndJustMarked = updatedPedido.antivaho && 
+                                              updatedPedido.antivahoRealizado && 
+                                              !originalPedido?.antivahoRealizado;
+            
+            if (wasInListoProduccion && hasAntivahoAndJustMarked) {
+                // Abrir modal de destino de antivaho
+                setAntivahoDestinationModalState({ isOpen: true, pedido: result.modifiedPedido });
+                setSelectedPedido(null);
+                return;
+            }
         }
-        // ✅ NO cerrar el modal - el usuario sigue editando
+        // ✅ NO cerrar el modal - el usuario sigue editando (a menos que se abra el modal de antivaho)
     };
 
     const handleAddPedido = async (data: { pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'subEtapasSecuencia' | 'etapaActual' | 'subEtapaActual' | 'secuenciaTrabajo' | 'orden' | 'historial'>; secuenciaTrabajo: Etapa[]; }) => {

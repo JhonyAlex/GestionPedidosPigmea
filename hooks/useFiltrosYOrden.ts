@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Pedido, Prioridad, Etapa, DateField, WeekFilter, EstadoCliché } from '../types';
-import { ETAPAS, PRIORIDAD_ORDEN } from '../constants';
+import { ETAPAS } from '../constants';
 import { getDateRange, DateFilterOption } from '../utils/date';
 import { getCurrentWeek, isDateInWeek } from '../utils/weekUtils';
 import { useDebounce } from './useDebounce';
@@ -83,9 +83,14 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
     const [customDateRange, setCustomDateRange] = useState<{ start: string, end: string }>(
         savedFilters.customDateRange || { start: '', end: '' }
     );
-    const [sortConfig, setSortConfig] = useState<{ key: keyof Pedido, direction: 'ascending' | 'descending' }>(
-        savedFilters.sortConfig || { key: 'prioridad', direction: 'ascending' }
-    );
+    const [sortConfig, setSortConfig] = useState<{ key: keyof Pedido, direction: 'ascending' | 'descending' }>(() => {
+        const saved = savedFilters.sortConfig;
+        // Migrar sortConfig legacy: si el usuario tenía ordenar por 'prioridad', cambiar a 'posicionEnEtapa'
+        if (saved && saved.key === 'prioridad') {
+            return { key: 'posicionEnEtapa' as keyof Pedido, direction: 'ascending' as const };
+        }
+        return saved || { key: 'posicionEnEtapa' as keyof Pedido, direction: 'ascending' as const };
+    });
 
     // Estado para filtro de semana
     const [weekFilter, setWeekFilter] = useState<WeekFilter>(
@@ -278,7 +283,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
             week: currentWeek.week,
             dateField: 'fechaEntrega'
         });
-        setSortConfig({ key: 'prioridad', direction: 'ascending' });
+        setSortConfig({ key: 'posicionEnEtapa' as keyof Pedido, direction: 'ascending' });
 
         // Limpiar localStorage
         try {
@@ -397,41 +402,52 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
                 let comparison = 0;
 
                 switch (sortConfig.key) {
-                    case 'prioridad':
-                        // Lógica personalizada: URGENTE siempre arriba, el resto por orden de llegada a la etapa (FIFO)
-                        const isAUrgente = a.prioridad === Prioridad.URGENTE;
-                        const isBUrgente = b.prioridad === Prioridad.URGENTE;
+                    case 'posicionEnEtapa':
+                        // Ordenar por posición manual dentro de la etapa (Kanban)
+                        // Pedidos con posición definida se ordenan por ella
+                        // Pedidos sin posición (legacy) usan FIFO por timestamp de entrada a la etapa
+                        const posA = a.posicionEnEtapa;
+                        const posB = b.posicionEnEtapa;
 
-                        if (isAUrgente && !isBUrgente) {
-                            // Si A es urgente y B no, A va primero SIEMPRE (si es ascendente)
-                            // Nota: Como 'comparison' luego se invierte si es descending, esto funciona correctamente.
-                            comparison = -1;
-                        } else if (!isAUrgente && isBUrgente) {
+                        if (posA != null && posB != null) {
+                            // Ambos tienen posición: comparar directamente
+                            comparison = posA - posB;
+                        } else if (posA != null && posB == null) {
+                            // Solo A tiene posición: B es legacy, va primero (es más antiguo)
                             comparison = 1;
+                        } else if (posA == null && posB != null) {
+                            // Solo B tiene posición: A es legacy, va primero (es más antiguo)
+                            comparison = -1;
                         } else {
-                            // Empate de prioridad (ambos Urgentes o ambos No Urgentes)
-                            // Ordenar por fecha de entrada a la etapa/sub-etapa actual (FIFO: más antiguo arriba, más reciente abajo)
-                            // Esto asegura que los pedidos que RECIÉN LLEGAN a una etapa aparezcan AL FINAL
+                            // Ninguno tiene posición: FIFO por timestamp de entrada a la etapa
                             const getStageEntryTime = (p: Pedido) => {
-                                // Si está en Preparación y tiene sub-etapa, usar subEtapasSecuencia
                                 if (p.etapaActual === Etapa.PREPARACION && p.subEtapaActual && p.subEtapasSecuencia) {
                                     const subEntry = p.subEtapasSecuencia.find(e => e.subEtapa === p.subEtapaActual);
                                     if (subEntry) {
                                         return new Date(subEntry.fecha).getTime();
                                     }
                                 }
-                                // Para otras etapas o si no hay sub-etapa, usar etapasSecuencia
                                 const entry = p.etapasSecuencia?.find(e => e.etapa === p.etapaActual);
                                 return entry ? new Date(entry.fecha).getTime() : (p.fechaCreacion ? new Date(p.fechaCreacion).getTime() : 0);
                             };
-
-                            const timeA = getStageEntryTime(a);
-                            const timeB = getStageEntryTime(b);
-
-                            // timeA - timeB: Si A es más antiguo (menor timestamp), sale negativo → A va antes (arriba)
-                            // Si B es más antiguo, sale positivo → B va antes (arriba)
-                            comparison = timeA - timeB;
+                            comparison = getStageEntryTime(a) - getStageEntryTime(b);
                         }
+                        break;
+
+                    case 'prioridad':
+                        // Sort por prioridad puro (sin efecto en el orden por defecto)
+                        // Solo se activa si el usuario selecciona manualment ordenar por prioridad
+                        const getStageEntryTimePrio = (p: Pedido) => {
+                            if (p.etapaActual === Etapa.PREPARACION && p.subEtapaActual && p.subEtapasSecuencia) {
+                                const subEntry = p.subEtapasSecuencia.find(e => e.subEtapa === p.subEtapaActual);
+                                if (subEntry) {
+                                    return new Date(subEntry.fecha).getTime();
+                                }
+                            }
+                            const entry = p.etapasSecuencia?.find(e => e.etapa === p.etapaActual);
+                            return entry ? new Date(entry.fecha).getTime() : (p.fechaCreacion ? new Date(p.fechaCreacion).getTime() : 0);
+                        };
+                        comparison = getStageEntryTimePrio(a) - getStageEntryTimePrio(b);
                         break;
 
                     case 'orden':

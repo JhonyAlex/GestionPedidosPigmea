@@ -1591,9 +1591,9 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                                             </div>
                                                         </div>
 
-                                                        {/* Checkbox de Antivaho Realizado - Solo visible en Producción */}
+                                                        {/* Checkbox de Antivaho Realizado - Solo visible en Producción y Listo para Producción */}
                                                         {formData.antivaho && 
-                                                         formData.etapaActual !== Etapa.PREPARACION && 
+                                                         (formData.etapaActual !== Etapa.PREPARACION || formData.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION) && 
                                                          formData.etapaActual !== Etapa.ARCHIVADO && 
                                                          formData.etapaActual !== Etapa.COMPLETADO && (
                                                             <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">

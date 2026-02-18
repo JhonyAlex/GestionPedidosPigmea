@@ -107,6 +107,7 @@ export interface Pedido {
     anonimo?: boolean;
     anonimoPostImpresion?: string; // ✅ NUEVO: Campo para especificar el tipo de post-impresión en anónimos
     atencionObservaciones?: boolean; // Marca pedidos que requieren atención especial en observaciones
+    posicionEnEtapa?: number; // Posición del pedido dentro de su etapa actual (para ordenamiento manual en Kanban)
 
     /** El nombre o código del producto final. */
     producto?: string | null;
