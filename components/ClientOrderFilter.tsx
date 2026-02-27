@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Pedido } from '../types';
+import { Pedido, Etapa } from '../types';
+import { ETAPAS, PREPARACION_COLUMNS } from '../constants';
 
 interface Cliente {
     id: string;
@@ -21,6 +22,31 @@ const formatShortDate = (dateStr: string): string => {
     return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 };
 
+const getEtapaLabel = (p: Pedido): string => {
+    // Si está en Preparación y tiene sub-etapa, mostrar la sub-etapa
+    if (p.etapaActual === Etapa.PREPARACION && p.subEtapaActual) {
+        const subCol = PREPARACION_COLUMNS.find(c => c.id === p.subEtapaActual);
+        if (subCol) return subCol.title;
+    }
+    // Si no, mostrar la etapa principal
+    const etapa = ETAPAS[p.etapaActual];
+    return etapa ? etapa.title : p.etapaActual;
+};
+
+const getEtapaColor = (p: Pedido): string => {
+    if (p.etapaActual === Etapa.PREPARACION && p.subEtapaActual) {
+        const subCol = PREPARACION_COLUMNS.find(c => c.id === p.subEtapaActual);
+        if (subCol) return subCol.color;
+    }
+    const etapa = ETAPAS[p.etapaActual];
+    return etapa ? etapa.color : 'bg-gray-400';
+};
+
+const getDateFieldLabel = (p: Pedido): string => {
+    if (p.nuevaFechaEntrega) return 'Nueva entrega';
+    return 'Entrega';
+};
+
 const ClientOrderFilter: React.FC<ClientOrderFilterProps> = ({
     pedidos,
     clientes,
@@ -35,11 +61,14 @@ const ClientOrderFilter: React.FC<ClientOrderFilterProps> = ({
     const [dateTo, setDateTo] = useState('');
 
     const clientSearchResults = useMemo(() => {
-        if (!clientSearchTerm || clientSearchTerm.trim().length < 2) return [];
-        const term = clientSearchTerm.toLowerCase();
+        const term = clientSearchTerm.trim().toLowerCase();
+        if (!term) {
+            // Sin texto: mostrar todos los clientes (limitado a 15)
+            return clientes.slice(0, 15);
+        }
         return clientes
             .filter(c => c.nombre.toLowerCase().includes(term))
-            .slice(0, 8);
+            .slice(0, 15);
     }, [clientes, clientSearchTerm]);
 
     const filteredPedidos = useMemo(() => {
@@ -127,13 +156,8 @@ const ClientOrderFilter: React.FC<ClientOrderFilterProps> = ({
                                         type="text"
                                         placeholder="Buscar cliente..."
                                         value={clientSearchTerm}
-                                        onChange={(e) => {
-                                            setClientSearchTerm(e.target.value);
-                                            setShowDropdown(e.target.value.trim().length >= 2);
-                                        }}
-                                        onFocus={() => {
-                                            if (clientSearchTerm.trim().length >= 2) setShowDropdown(true);
-                                        }}
+                                        onChange={(e) => setClientSearchTerm(e.target.value)}
+                                        onFocus={() => setShowDropdown(true)}
                                         onBlur={() => {
                                             setTimeout(() => setShowDropdown(false), 150);
                                         }}
@@ -183,26 +207,37 @@ const ClientOrderFilter: React.FC<ClientOrderFilterProps> = ({
 
                     {selectedCliente && filteredPedidos.length > 0 && (
                         <div className="max-h-60 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-md divide-y divide-gray-100 dark:divide-gray-700">
-                            {filteredPedidos.map(p => (
-                                <button
-                                    key={p.id}
-                                    onClick={() => {
-                                        if (onSelectPedido) onSelectPedido(p);
-                                        else if (onNavigateToPedido) onNavigateToPedido(p);
-                                    }}
-                                    className="w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
-                                >
-                                    <span className="font-mono font-medium text-gray-900 dark:text-white">
-                                        {p.numeroPedidoCliente}
-                                    </span>
-                                    <span className="text-gray-500 dark:text-gray-400 truncate flex-1">
-                                        {p.cliente}
-                                    </span>
-                                    <span className="text-gray-400 dark:text-gray-500 whitespace-nowrap text-xs">
-                                        {formatShortDate(p.nuevaFechaEntrega || p.fechaEntrega)}
-                                    </span>
-                                </button>
-                            ))}
+                            {filteredPedidos.map(p => {
+                                const etapaLabel = getEtapaLabel(p);
+                                const etapaColor = getEtapaColor(p);
+                                const dateFieldLabel = getDateFieldLabel(p);
+                                const dateValue = p.nuevaFechaEntrega || p.fechaEntrega;
+
+                                return (
+                                    <button
+                                        key={p.id}
+                                        onClick={() => {
+                                            if (onSelectPedido) onSelectPedido(p);
+                                            else if (onNavigateToPedido) onNavigateToPedido(p);
+                                        }}
+                                        className="w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+                                    >
+                                        <span className="font-mono font-medium text-gray-900 dark:text-white">
+                                            {p.numeroPedidoCliente}
+                                        </span>
+                                        <span className="text-gray-500 dark:text-gray-400 truncate flex-1">
+                                            {p.cliente}
+                                        </span>
+                                        <span className={`${etapaColor} text-white text-[10px] font-medium px-1.5 py-0.5 rounded whitespace-nowrap`}>
+                                            {etapaLabel}
+                                        </span>
+                                        <span className="text-gray-400 dark:text-gray-500 whitespace-nowrap text-xs text-right">
+                                            <span className="text-[10px] text-gray-300 dark:text-gray-600">{dateFieldLabel}:</span>{' '}
+                                            {formatShortDate(dateValue || '')}
+                                        </span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     )}
 
