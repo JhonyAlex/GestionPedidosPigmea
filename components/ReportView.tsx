@@ -19,6 +19,7 @@ import html2canvas from 'html2canvas';
 import { generateProductionAnalysis, saveAnalysisToCache, getAnalysisFromCache, clearAnalysisCache } from '../utils/aiAnalysis';
 import { io, Socket } from 'socket.io-client';
 import InfoTooltip from './InfoTooltip';
+import ClientOrderFilter from './ClientOrderFilter';
 
 /**
  * =============================================================================
@@ -1057,6 +1058,14 @@ const ReportView: React.FC<ReportViewProps> = ({
                             </div>
                         </div>
                     )}
+
+                    {/* --- Client Order Filter --- */}
+                    <ClientOrderFilter
+                        pedidos={enrichedPedidos}
+                        clientes={clientes}
+                        onSelectPedido={onSelectPedido}
+                        onNavigateToPedido={onNavigateToPedido}
+                    />
 
                     {/* --- Toolbar --- */}
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow space-y-6">
