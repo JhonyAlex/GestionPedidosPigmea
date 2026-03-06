@@ -79,6 +79,9 @@ export interface WebSocketEvents {
   'vendedor-unlocked': (data: { vendedorId: string }) => void;
   'vendedor-locks-updated': (data: { locks: any[] }) => void;
 
+  // Eventos de historial de acciones en tiempo real
+  'action-history-update': (data: { contextId: string; contextType: string; userId: string; actionType: string }) => void;
+
   // Eventos de versionado y actualizaciones
   'server-version': (data: { version: string; buildTime: string }) => void;
   'app-updated': (data: { version: string; buildTime: string }) => void;
@@ -139,6 +142,9 @@ class WebSocketService {
   private pedidosByVendedorUpdatedListeners: ((data: any) => void)[] = [];
   // Callbacks para clientes cuando cambian pedidos por nombre
   private pedidosByClienteUpdatedListeners: ((data: any) => void)[] = [];
+
+  // Callbacks para actualizaciones del historial de acciones en tiempo real
+  private actionHistoryUpdatedListeners: ((data: { contextId: string; contextType: string; userId: string; actionType: string }) => void)[] = [];
 
   // Control de visibilidad de pestaña y sincronización
   private isPageVisible = true;
@@ -655,6 +661,10 @@ class WebSocketService {
       console.log('📗 Pedidos del cliente actualizados:', data);
       this.notifyPedidosByClienteUpdatedListeners(data);
     });
+
+    this.socket.on('action-history-update', (data) => {
+      this.notifyActionHistoryUpdatedListeners(data);
+    });
   }
 
   // Métodos públicos
@@ -924,6 +934,20 @@ class WebSocketService {
 
   private notifyPedidosByClienteUpdatedListeners(data: any) {
     this.pedidosByClienteUpdatedListeners.forEach(listener => listener(data));
+  }
+
+  private notifyActionHistoryUpdatedListeners(data: { contextId: string; contextType: string; userId: string; actionType: string }) {
+    this.actionHistoryUpdatedListeners.forEach(listener => listener(data));
+  }
+
+  public subscribeToActionHistoryUpdate(callback: (data: { contextId: string; contextType: string; userId: string; actionType: string }) => void): () => void {
+    this.actionHistoryUpdatedListeners.push(callback);
+    return () => {
+      const index = this.actionHistoryUpdatedListeners.indexOf(callback);
+      if (index > -1) {
+        this.actionHistoryUpdatedListeners.splice(index, 1);
+      }
+    };
   }
 
   public disconnect() {

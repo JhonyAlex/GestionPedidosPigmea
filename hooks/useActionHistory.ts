@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { ActionHistoryEntry, ActionPayload, ActionType } from '../types';
 import { actionHistoryDB } from '../services/actionHistory';
 import { useAuth } from '../contexts/AuthContext';
+import webSocketService from '../services/websocket';
 
 export interface ActionHistoryState {
     historyCount: number;
@@ -10,33 +11,6 @@ export interface ActionHistoryState {
 export interface UseActionHistoryOptions {
     maxHistorySize?: number;
 }
-
-const deduplicateHistory = (actions: ActionHistoryEntry[]): ActionHistoryEntry[] => {
-    const grouped = new Map<string, ActionHistoryEntry[]>();
-
-    for (const action of actions) {
-        const sec = action.timestamp?.substring(0, 19) || '';
-        const detailFingerprint = action.payload?.summary?.details || action.description || '';
-        const key = `${action.contextType}|${action.contextId}|${sec}|${action.type}|${action.userId}|${detailFingerprint}`;
-        const group = grouped.get(key) || [];
-        group.push(action);
-        grouped.set(key, group);
-    }
-
-    const deduped: ActionHistoryEntry[] = [];
-
-    for (const group of grouped.values()) {
-        if (group.length === 1) {
-            deduped.push(group[0]);
-            continue;
-        }
-
-        const frontend = group.find(a => a.source === 'frontend');
-        deduped.push(frontend || group[0]);
-    }
-
-    return deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-};
 
 export const useActionHistory = (options: UseActionHistoryOptions = {}) => {
     const { user } = useAuth();
@@ -52,11 +26,10 @@ export const useActionHistory = (options: UseActionHistoryOptions = {}) => {
 
         try {
             const userActions = await actionHistoryDB.getActionsByUser(user.id, maxHistorySize);
-            const deduped = deduplicateHistory(userActions);
-            setHistory(deduped);
+            setHistory(userActions);
 
             setState({
-                historyCount: deduped.length,
+                historyCount: userActions.length,
             });
         } catch (error) {
             console.error('Error al refrescar historial:', error);
@@ -70,6 +43,18 @@ export const useActionHistory = (options: UseActionHistoryOptions = {}) => {
             setHistory([]);
             setState({ historyCount: 0 });
         }
+    }, [user?.id, refreshHistory]);
+
+    // Suscripción en tiempo real: cuando cualquier usuario guarda una acción,
+    // el backend emite 'action-history-update' y este hook refresca automáticamente
+    useEffect(() => {
+        if (!user?.id) return;
+
+        const unsubscribe = webSocketService.subscribeToActionHistoryUpdate(() => {
+            refreshHistory();
+        });
+
+        return unsubscribe;
     }, [user?.id, refreshHistory]);
 
     const recordAction = useCallback(
@@ -109,8 +94,7 @@ export const useActionHistory = (options: UseActionHistoryOptions = {}) => {
 
     const getContextHistory = useCallback(async (contextId: string): Promise<ActionHistoryEntry[]> => {
         try {
-            const contextActions = await actionHistoryDB.getActionsByContext(contextId);
-            return deduplicateHistory(contextActions);
+            return await actionHistoryDB.getActionsByContext(contextId);
         } catch (error) {
             console.error('Error al obtener historial del contexto:', error);
             return [];

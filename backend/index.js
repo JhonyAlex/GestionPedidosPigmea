@@ -3129,14 +3129,7 @@ app.put('/api/pedidos/:id', requirePermission('pedidos.edit'), async (req, res) 
             );
         }
 
-        // Auditoria server-side
-        await recordAuditAction(dbClient.pool, {
-            contextId: pedidoId, contextType: 'pedido', actionType: 'UPDATE',
-            userId: req.user?.id, userName: req.user?.displayName || req.user?.username,
-            before: previousPedido, after: updatedPedido,
-            description: 'Actualizacion: ' + (updatedPedido.numeroPedidoCliente || pedidoId)
-        });
-
+        // Nota: la auditoría de UPDATE la registra el frontend con más detalle (useActionRecorder)
         res.status(200).json(updatedPedido);
 
     } catch (error) {
@@ -4117,6 +4110,14 @@ app.post('/api/action-history', async (req, res) => {
         if (result.rowCount === 0) {
             return res.status(409).json({ message: 'Acción ya existe' });
         }
+
+        // 🔥 Notificar en tiempo real a todos los clientes conectados
+        broadcastToClients('action-history-update', {
+            contextId: action.contextId,
+            contextType: action.contextType,
+            userId,
+            actionType: action.type,
+        });
 
         console.log(`✅ Historial guardado: ${action.contextType} ${action.contextId} - ${action.type}`);
         res.status(201).json(result.rows[0]);
