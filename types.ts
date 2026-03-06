@@ -330,6 +330,7 @@ export interface ActionHistoryEntry {
     userId: string; // ID del usuario que realizó la acción
     userName: string; // Nombre del usuario
     description: string; // Descripción legible de la acción
+    source?: 'frontend' | 'backend'; // Origen del registro
 }
 
 // ============== TIPOS PARA IMPORTACIÓN MASIVA ==============

@@ -7,6 +7,35 @@ interface ActionHistoryPanelProps {
     contextId?: string; // Si se proporciona, muestra solo el historial de este contexto
     onNavigateToPedidoId?: (pedidoId: string) => void;
 }
+/**
+ * Deduplica registros de historial: si frontend y backend registraron la misma accion
+ * en el mismo segundo para el mismo contexto, prioriza el del frontend (tiene labels legibles).
+ */
+function deduplicateHistory(actions: ActionHistoryEntry[]): ActionHistoryEntry[] {
+    const grouped = new Map<string, ActionHistoryEntry[]>();
+    for (const a of actions) {
+        // Agrupar por contextId + segundo del timestamp + actionType
+        const sec = a.timestamp.substring(0, 19); // YYYY-MM-DDTHH:MM:SS
+        const key = `${a.contextId}|${sec}|${a.type}`;
+        const group = grouped.get(key) || [];
+        group.push(a);
+        grouped.set(key, group);
+    }
+
+    const result: ActionHistoryEntry[] = [];
+    for (const group of grouped.values()) {
+        if (group.length === 1) {
+            result.push(group[0]);
+        } else {
+            // Preferir frontend sobre backend
+            const frontend = group.find(a => a.source === 'frontend');
+            result.push(frontend || group[0]);
+        }
+    }
+
+    return result.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+}
+
 
 const ActionHistoryPanel: React.FC<ActionHistoryPanelProps> = ({ onClose, contextId, onNavigateToPedidoId }) => {
     const { history, state, getContextHistory } = useActionHistory();
@@ -16,9 +45,9 @@ const ActionHistoryPanel: React.FC<ActionHistoryPanelProps> = ({ onClose, contex
         const loadHistory = async () => {
             if (contextId) {
                 const contextActions = await getContextHistory(contextId);
-                setFilteredHistory(contextActions);
+                setFilteredHistory(deduplicateHistory(contextActions));
             } else {
-                setFilteredHistory(history);
+                setFilteredHistory(deduplicateHistory(history));
             }
         };
 

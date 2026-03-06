@@ -12,7 +12,6 @@ import SearchableMultiSelect from './SearchableMultiSelect';
 import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { useNotifications } from '../contexts/NotificationContext';
-import { useActionHistory } from '../hooks/useActionHistory';
 import ActivityPanel from './ActivityPanel';
 import { normalizeSearchValue, pedidoMatchesSearch } from '../utils/search';
 import { useVendedoresManager } from '../hooks/useVendedoresManager';
@@ -154,19 +153,12 @@ const Header: React.FC<HeaderProps> = ({
     const canCreatePedidos = canViewPedidos;
     const canViewConfig = canManageConfig;
     const canAccessAdmin = () => isAdmin() || canManageUsers() || canManageConfig();
-    const { state: actionHistoryState, markAllAsRead } = useActionHistory();
     const currentUserRole = user?.role || 'Visualizador';
     const [isStageFiltersCollapsed, setIsStageFiltersCollapsed] = useState(true);
     const [showSearchDropdown, setShowSearchDropdown] = useState(false);
     const [showBurgerMenu, setShowBurgerMenu] = useState(false);
     const [showActivityPanel, setShowActivityPanel] = useState(false);
     const [showMaquinaDropdown, setShowMaquinaDropdown] = useState(false);
-    // Al abrir (y mientras esté abierto), marcar como leído para que el badge baje a 0
-    useEffect(() => {
-        if (!showActivityPanel) return;
-        if (actionHistoryState.unreadCount <= 0) return;
-        markAllAsRead();
-    }, [showActivityPanel, actionHistoryState.unreadCount, markAllAsRead]);
 
     const searchContainerRef = useRef<HTMLDivElement>(null);
     const burgerMenuRef = useRef<HTMLDivElement>(null);
@@ -336,11 +328,7 @@ const Header: React.FC<HeaderProps> = ({
                         <div className="flex items-center gap-1">
                             <button
                                 onClick={() => {
-                                    const next = !showActivityPanel;
-                                    setShowActivityPanel(next);
-                                    if (next) {
-                                        markAllAsRead();
-                                    }
+                                    setShowActivityPanel(!showActivityPanel);
                                 }}
                                 className={`relative p-2 rounded-md transition-colors ${showActivityPanel
                                     ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
@@ -352,11 +340,6 @@ const Header: React.FC<HeaderProps> = ({
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                 </svg>
-                                {actionHistoryState.unreadCount > 0 && (
-                                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-[10px] font-bold flex items-center justify-center text-white">
-                                        {actionHistoryState.unreadCount > 9 ? '9+' : actionHistoryState.unreadCount}
-                                    </span>
-                                )}
                             </button>
                         </div>
 

@@ -250,9 +250,7 @@ const ReportView: React.FC<ReportViewProps> = ({
         loadInstructions();
 
         // Configurar Socket.IO para sincronización en tiempo real
-        const API_BASE = process.env.NODE_ENV === 'production'
-            ? window.location.origin
-            : 'http://localhost:8080';
+        const API_BASE = window.location.origin; // Vite proxy maneja /socket.io en dev
 
         const socketInstance = io(API_BASE, {
             transports: ['websocket', 'polling']

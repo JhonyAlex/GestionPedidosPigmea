@@ -68,9 +68,7 @@ export interface AnalyticsFilters {
     priority?: string;
 }
 
-const API_BASE = process.env.NODE_ENV === 'production'
-    ? window.location.origin
-    : 'http://localhost:8080';
+const API_BASE = ''; // URL relativa — Vite proxy en dev, servidor real en prod
 
 const getAuthHeaders = () => {
     const savedUser = localStorage.getItem('pigmea_user');

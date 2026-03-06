@@ -528,6 +528,35 @@ class MigrationManager {
                 CREATE INDEX idx_vendedores_history_vendedor_id_v2 ON limpio.vendedores_history(vendedor_id);
             `
         });
+
+        // Migración 019: Optimizar índices de action_history y notifications
+        this.migrations.push({
+            id: '019-optimize-history-notifications-indexes',
+            name: 'Agregar índices compuestos para action_history y notifications',
+            sql: `
+                -- action_history: índice compuesto para consultas filtradas por tipo + contexto
+                CREATE INDEX IF NOT EXISTS idx_action_history_context_type_id ON action_history(context_type, context_id);
+
+                -- action_history: timestamp DESC para ordenamiento eficiente
+                CREATE INDEX IF NOT EXISTS idx_action_history_timestamp_desc ON action_history(timestamp DESC);
+
+                -- notifications: índice compuesto para conteo rápido de no leídas por usuario
+                CREATE INDEX IF NOT EXISTS idx_notifications_user_id_read ON notifications(user_id, read);
+
+                -- notifications: timestamp DESC para ordenamiento eficiente
+                CREATE INDEX IF NOT EXISTS idx_notifications_timestamp_desc ON notifications(timestamp DESC);
+            `
+        });
+
+        // Migracion 020: Columna source en action_history
+        this.migrations.push({
+            id: '020-audit-source-column',
+            name: 'Agregar columna source a action_history para distinguir frontend/backend',
+            sql: `
+                ALTER TABLE action_history ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'backend';
+                UPDATE action_history SET source = 'frontend' WHERE source = 'backend';
+            `
+        });
     }
 
     /**

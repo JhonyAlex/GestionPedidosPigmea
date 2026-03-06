@@ -32,16 +32,49 @@ const safeString = (value: unknown, maxLen: number = 32) => {
     }
 };
 
-const shallowEqual = (a: unknown, b: unknown) => {
-    if (a === b) return true;
-    if (Array.isArray(a) && Array.isArray(b)) {
-        if (a.length !== b.length) return false;
-        for (let i = 0; i < a.length; i++) {
-            if (a[i] !== b[i]) return false;
-        }
-        return true;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const isEquiv = (a: any, b: any): boolean => {
+    // null, undefined y string vacío son equivalentes
+    const isEmptyA = a === null || a === undefined || a === '';
+    const isEmptyB = b === null || b === undefined || b === '';
+    if (isEmptyA && isEmptyB) return true;
+
+    // Si uno es vacío y el otro no
+    if (isEmptyA !== isEmptyB) {
+        if (Array.isArray(a) && a.length === 0 && isEmptyB) return true;
+        if (Array.isArray(b) && b.length === 0 && isEmptyA) return true;
+        return false;
     }
-    return false;
+
+    // Ambos son objetos (arrays u objetos planos): comparación profunda
+    if (typeof a === 'object' && typeof b === 'object' && a !== null && b !== null) {
+        if (Array.isArray(a) !== Array.isArray(b)) return false;
+
+        if (Array.isArray(a)) {
+            if (a.length !== b.length) return false;
+            return a.every((v: any, i: number) => isEquiv(v, b[i]));
+        }
+
+        // Comparación profunda de objetos por claves
+        const keysA = Object.keys(a);
+        const keysB = Object.keys(b);
+        if (keysA.length !== keysB.length) return false;
+        return keysA.every(k => k in b && isEquiv(a[k], b[k]));
+    }
+
+    // Números vs strings numéricos (ej. '0' == 0, '1.5' == 1.5)
+    if (!isNaN(Number(a)) && !isNaN(Number(b))) {
+        return Number(a) === Number(b);
+    }
+
+    // Fechas: strings ISO que representan el mismo instante
+    if (typeof a === 'string' && typeof b === 'string') {
+        const da = Date.parse(a);
+        const db = Date.parse(b);
+        if (!isNaN(da) && !isNaN(db) && da === db) return true;
+    }
+
+    return a === b;
 };
 
 const etapaTitle = (etapa: Pedido['etapaActual']) => {
@@ -49,49 +82,58 @@ const etapaTitle = (etapa: Pedido['etapaActual']) => {
     return info?.title ?? String(etapa);
 };
 
+const IGNORED_KEYS = new Set(['id', 'updatedAt', 'createdAt', 'history', '_id', 'historial']);
+
+const FIELD_LABELS: Record<string, string> = {
+    etapaActual: 'Etapa',
+    subEtapaActual: 'Sub-etapa',
+    prioridad: 'Prioridad',
+    fechaEntrega: 'Entrega',
+    maquinaImpresion: 'Máquina',
+    metros: 'Metros',
+    tipoImpresion: 'Impresión',
+    desarrollo: 'Desarrollo',
+    capa: 'Capa',
+    camisa: 'Camisa',
+    producto: 'Producto',
+    antivaho: 'Antivaho',
+    antivahoRealizado: 'Antivaho hecho',
+    microperforado: 'Micro',
+    macroperforado: 'Macro',
+    anonimo: 'Anónimo',
+    compraCliche: 'Compra Cliché',
+    horasConfirmadas: 'Horas Confirmadas',
+    numerosCompra: 'Nº compra',
+    cliente: 'Cliente',
+    numeroPedidoCliente: 'Nº Pedido',
+    etapasSecuencia: 'Secuencia de etapas',
+    subEtapasSecuencia: 'Secuencia sub-etapas',
+    materialConsumo: 'Material/Consumo',
+    tiempoProduccionDecimal: 'Tiempo producción',
+};
+
 const diffPedidoChanges = (before: Pedido, after: Pedido): string[] => {
     const changes: string[] = [];
+    if (!before || !after) return changes;
 
-    // 1) Movimiento / etapa
-    if (before.etapaActual !== after.etapaActual) {
-        changes.push(`Etapa: ${etapaTitle(before.etapaActual)} → ${etapaTitle(after.etapaActual)}`);
-    }
-    if (before.subEtapaActual !== after.subEtapaActual) {
-        changes.push(`Sub-etapa: ${safeString(before.subEtapaActual)} → ${safeString(after.subEtapaActual)}`);
-    }
+    const allKeys = new Set([...Object.keys(before), ...Object.keys(after)]);
 
-    // 2) Campos relevantes (resumen)
-    const fields: Array<{ key: keyof Pedido; label: string }> = [
-        { key: 'prioridad', label: 'Prioridad' },
-        { key: 'fechaEntrega', label: 'Entrega' },
-        { key: 'maquinaImpresion', label: 'Máquina' },
-        { key: 'metros', label: 'Metros' },
-        { key: 'tipoImpresion', label: 'Impresión' },
-        { key: 'desarrollo', label: 'Desarrollo' },
-        { key: 'capa', label: 'Capa' },
-        { key: 'camisa', label: 'Camisa' },
-        { key: 'producto', label: 'Producto' },
-        { key: 'antivaho', label: 'Antivaho' },
-        { key: 'antivahoRealizado', label: 'Antivaho hecho' },
-        { key: 'microperforado', label: 'Micro' },
-        { key: 'macroperforado', label: 'Macro' },
-        { key: 'anonimo', label: 'Anónimo' },
-        { key: 'compraCliche', label: 'Compra Cliché' },
-        { key: 'horasConfirmadas', label: 'Horas Confirmadas' },
-    ];
+    allKeys.forEach(key => {
+        if (IGNORED_KEYS.has(key)) return;
 
-    for (const field of fields) {
-        const beforeValue = before[field.key];
-        const afterValue = after[field.key];
-        if (shallowEqual(beforeValue, afterValue)) continue;
-        if (beforeValue === afterValue) continue;
-        changes.push(`${field.label}: ${safeString(beforeValue)} → ${safeString(afterValue)}`);
-    }
+        const oldVal = (before as any)[key];
+        const newVal = (after as any)[key];
 
-    // Arrays (resumen por conteo/preview)
-    if (!shallowEqual(before.numerosCompra, after.numerosCompra)) {
-        changes.push(`Nº compra: ${safeString(before.numerosCompra)} → ${safeString(after.numerosCompra)}`);
-    }
+        // Comparación unificada con isEquiv (soporta objetos profundos)
+        if (!isEquiv(oldVal, newVal)) {
+            const label = FIELD_LABELS[key] || key;
+            if (key === 'etapaActual') {
+                changes.push(`${label}: ${etapaTitle(oldVal)} → ${etapaTitle(newVal)}`);
+            } else {
+                changes.push(`${label}: ${safeString(oldVal)} → ${safeString(newVal)}`);
+            }
+        }
+    });
 
     return changes;
 };
@@ -126,6 +168,9 @@ export const useActionRecorder = () => {
         async (before: Pedido, after: Pedido) => {
             const changes = diffPedidoChanges(before, after);
 
+            // No registrar si no hay cambios reales
+            if (changes.length === 0) return;
+
             const preview = changes.slice(0, MAX_CHANGE_PREVIEW);
             const extraChangesCount = Math.max(0, changes.length - preview.length);
             const previewText = preview.join('; ');
@@ -135,13 +180,11 @@ export const useActionRecorder = () => {
                 ? `Cambio de Etapa: ${after.numeroPedidoCliente}`
                 : `Edición: ${after.numeroPedidoCliente}`;
 
-            const details = changes.length > 0
-                ? `${previewText}${extraChangesCount > 0 ? `; +${extraChangesCount} más` : ''}`
-                : 'Actualización sin cambios detectables.';
+            const details = `${previewText}${extraChangesCount > 0 ? `; +${extraChangesCount} más` : ''}`;
 
             const description = isStageMove
                 ? `Movimiento: ${after.numeroPedidoCliente} — ${etapaTitle(before.etapaActual)} → ${etapaTitle(after.etapaActual)}`
-                : `Actualizado: ${after.numeroPedidoCliente}${changes.length > 0 ? ` (${previewText}${extraChangesCount > 0 ? `; +${extraChangesCount} más` : ''})` : ''}`;
+                : `Actualizado: ${after.numeroPedidoCliente} (${previewText}${extraChangesCount > 0 ? `; +${extraChangesCount} más` : ''})`;
 
             await recordAction(
                 after.id,

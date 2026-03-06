@@ -42,7 +42,7 @@ export interface PaginationOptions {
 // Detectar entorno y configurar URL base
 const isDevelopment = typeof window !== 'undefined' && 
                      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-const API_BASE_URL = isDevelopment ? 'http://localhost:8080/api' : '/api';
+const API_BASE_URL = '/api'; // Siempre relativo — Vite proxy redirige a backend en dev, servidor real en prod
 
 // Función para detectar errores de red
 function isNetworkError(error: any): boolean {

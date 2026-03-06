@@ -1,8 +1,6 @@
 import { AuditEntry } from '../types';
 
-const API_BASE = process.env.NODE_ENV === 'production' 
-    ? window.location.origin 
-    : 'http://localhost:8080';
+const API_BASE = ''; // URL relativa — Vite proxy en dev, servidor real en prod
 
 // Helper para obtener headers de autenticación desde localStorage
 const getAuthHeaders = (): Record<string, string> => {

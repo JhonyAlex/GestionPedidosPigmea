@@ -1235,6 +1235,123 @@ function detectChanges(previousPedido, updatedPedido) {
     return changes;
 }
 
+// === HELPER: Registro de auditoria server-side ===
+
+function generateAuditId() {
+    return 'srv-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+}
+
+function serverDiffChanges(before, after) {
+    if (!before || !after) return [];
+    const changes = [];
+    const IGNORED = new Set(['id', 'updatedAt', 'createdAt', 'history', '_id', 'historial']);
+    const LABELS = {
+        etapaActual: 'Etapa', subEtapaActual: 'Sub-etapa', prioridad: 'Prioridad',
+        fechaEntrega: 'Entrega', maquinaImpresion: 'Maquina', metros: 'Metros',
+        tipoImpresion: 'Impresion', desarrollo: 'Desarrollo', capa: 'Capa',
+        camisa: 'Camisa', producto: 'Producto', antivaho: 'Antivaho',
+        antivahoRealizado: 'Antivaho hecho', microperforado: 'Micro',
+        macroperforado: 'Macro', anonimo: 'Anonimo', compraCliche: 'Compra Cliche',
+        horasConfirmadas: 'Horas Confirmadas', numerosCompra: 'No compra',
+        cliente: 'Cliente', numeroPedidoCliente: 'No Pedido',
+        etapasSecuencia: 'Secuencia de etapas', subEtapasSecuencia: 'Secuencia sub-etapas',
+        materialConsumo: 'Material/Consumo', tiempoProduccionDecimal: 'Tiempo produccion',
+        nuevaFechaEntrega: 'Nueva fecha entrega', fechaProduccion: 'Fecha produccion',
+        materialDisponible: 'Material disponible', clicheDisponible: 'Cliche disponible',
+        archivado: 'Archivado', velocidadPosible: 'Velocidad posible',
+    };
+
+    function isEquivServer(a, b) {
+        const emptyA = a === null || a === undefined || a === '';
+        const emptyB = b === null || b === undefined || b === '';
+        if (emptyA && emptyB) return true;
+        if (emptyA !== emptyB) {
+            if (Array.isArray(a) && a.length === 0 && emptyB) return true;
+            if (Array.isArray(b) && b.length === 0 && emptyA) return true;
+            return false;
+        }
+        if (typeof a === 'object' && typeof b === 'object' && a !== null && b !== null) {
+            if (Array.isArray(a) !== Array.isArray(b)) return false;
+            if (Array.isArray(a)) {
+                if (a.length !== b.length) return false;
+                return a.every((v, i) => isEquivServer(v, b[i]));
+            }
+            const keysA = Object.keys(a);
+            const keysB = Object.keys(b);
+            if (keysA.length !== keysB.length) return false;
+            return keysA.every(k => k in b && isEquivServer(a[k], b[k]));
+        }
+        if (!isNaN(Number(a)) && !isNaN(Number(b))) return Number(a) === Number(b);
+        if (typeof a === 'string' && typeof b === 'string') {
+            const da = Date.parse(a), db = Date.parse(b);
+            if (!isNaN(da) && !isNaN(db) && da === db) return true;
+        }
+        return a === b;
+    }
+
+    function safeStr(v) {
+        if (v === null || v === undefined) return '—';
+        if (typeof v === 'boolean') return v ? 'Si' : 'No';
+        if (typeof v === 'number') return String(v);
+        if (typeof v === 'string') return v.length > 32 ? v.slice(0, 31) + '…' : v;
+        if (Array.isArray(v)) return '[' + v.length + ' items]';
+        return '[obj]';
+    }
+
+    const allKeys = new Set([...Object.keys(before), ...Object.keys(after)]);
+    for (const key of allKeys) {
+        if (IGNORED.has(key)) continue;
+        if (!isEquivServer(before[key], after[key])) {
+            const label = LABELS[key] || key;
+            changes.push(label + ': ' + safeStr(before[key]) + ' → ' + safeStr(after[key]));
+        }
+    }
+    return changes;
+}
+
+async function recordAuditAction(pool, opts) {
+    try {
+        const { contextId, contextType, actionType, userId, userName, before, after, description } = opts;
+        const changes = (before && after) ? serverDiffChanges(before, after) : [];
+        const preview = changes.slice(0, 3);
+        const extraCount = Math.max(0, changes.length - 3);
+        const details = preview.length > 0
+            ? preview.join('; ') + (extraCount > 0 ? '; +' + extraCount + ' mas' : '')
+            : description;
+
+        const payload = {
+            before: before || null,
+            after: after || null,
+            summary: {
+                title: description,
+                details,
+                changes,
+                extraChangesCount: extraCount,
+            }
+        };
+
+        const query = 'INSERT INTO action_history (id, context_id, context_type, action_type, payload, timestamp, user_id, user_name, description, source) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ON CONFLICT (id) DO NOTHING;';
+
+        await pool.query(query, [
+            generateAuditId(),
+            contextId,
+            contextType || 'pedido',
+            actionType,
+            JSON.stringify(payload),
+            new Date().toISOString(),
+            userId || 'system',
+            userName || 'Sistema',
+            description,
+            'backend'
+        ]);
+    } catch (err) {
+        console.error('Error registrando auditoria server-side:', err.message);
+        // No silenciar - permitir que el endpoint maneje el error
+        throw err;
+    }
+}
+
+
 /**
  * Crear y persistir una notificación en la base de datos
  * @param {string} type - Tipo de notificación: success, info, warning, error
@@ -1272,9 +1389,21 @@ async function createAndBroadcastNotification(type, title, message, options = {}
         }
     }
 
+    // Emitir notificación por WebSocket (Selectivo o Global)
+    if (options.userId) {
+        // Emitir solo a las sesiones del usuario específico
+        const targetSockets = Array.from(io.sockets.sockets.values())
+            .filter(socket => socket.userId === options.userId);
 
-    // Emitir notificación por WebSocket a todos los clientes
-    broadcastToClients('notification', notification);
+        targetSockets.forEach(socket => {
+            socket.emit('notification', notification);
+        });
+        console.log(`📧 Notificación WebSocket enviada selectivamente a usuario ${options.userId} (${targetSockets.length} sesiones activas)`);
+    } else {
+        // Emitir a todos los clientes conectados
+        broadcastToClients('notification', notification);
+        console.log(`📢 Notificación WebSocket global enviada a todos los clientes`);
+    }
 
     return notification;
 }
@@ -2341,6 +2470,15 @@ app.delete('/api/pedidos/bulk-delete', requirePermission('pedidos.delete'), asyn
             }
         }
 
+        // Auditoria server-side para cada pedido eliminado
+        for (const p of pedidosToDelete) {
+            await recordAuditAction(dbClient.pool, {
+                contextId: p.id, contextType: 'pedido', actionType: 'DELETE',
+                userId: req.user?.id, userName: req.user?.displayName || req.user?.username,
+                before: p, description: 'Eliminacion masiva: ' + (p.numeroPedidoCliente || p.id)
+            });
+        }
+
         // 🔥 EVENTO WEBSOCKET: Pedidos eliminados masivamente
         broadcastToClients('pedidos-bulk-deleted', {
             pedidoIds: ids,
@@ -2433,6 +2571,12 @@ app.patch('/api/pedidos/bulk-update-date', requirePermission('pedidos.edit'), as
                         id: result.id,
                         numeroPedidoCliente: result.numeroPedidoCliente,
                         nuevaFechaEntrega: result.nuevaFechaEntrega
+                    });
+                    await recordAuditAction(dbClient.pool, {
+                        contextId: id, contextType: 'pedido', actionType: 'UPDATE',
+                        userId: req.user?.id, userName: req.user?.displayName || req.user?.username,
+                        before: pedido, after: updatedPedido,
+                        description: 'Fecha masiva: ' + (pedido.numeroPedidoCliente || id)
                     });
                 } else {
                     console.error(`  ❌ Error: update devolvió null para ${id}`);
@@ -2541,6 +2685,12 @@ app.patch('/api/pedidos/bulk-update-machine', requirePermission('pedidos.edit'),
                         id: result.id,
                         numeroPedidoCliente: result.numeroPedidoCliente,
                         maquinaImpresion: result.maquinaImpresion
+                    });
+                    await recordAuditAction(dbClient.pool, {
+                        contextId: id, contextType: 'pedido', actionType: 'UPDATE',
+                        userId: req.user?.id, userName: req.user?.displayName || req.user?.username,
+                        before: pedido, after: updatedPedido,
+                        description: 'Maquina masiva: ' + (pedido.numeroPedidoCliente || id)
                     });
                 } else {
                     console.error(`  ❌ Error: update devolvió null para ${id}`);
@@ -2652,6 +2802,12 @@ app.patch('/api/pedidos/bulk-archive', requirePermission('pedidos.edit'), async 
                         id: result.id,
                         numeroPedidoCliente: result.numeroPedidoCliente,
                         archivado: result.archivado
+                    });
+                    await recordAuditAction(dbClient.pool, {
+                        contextId: id, contextType: 'pedido', actionType: 'UPDATE',
+                        userId: req.user?.id, userName: req.user?.displayName || req.user?.username,
+                        before: pedido, after: updatedPedido,
+                        description: (archived ? 'Archivado' : 'Desarchivado') + ' masivo: ' + (pedido.numeroPedidoCliente || id)
                     });
                 } else {
                     console.error(`  ❌ Error: update devolvió null para ${id}`);
@@ -2860,6 +3016,13 @@ app.post('/api/pedidos', requirePermission('pedidos.create'), async (req, res) =
             }
         );
 
+        // Auditoria server-side
+        await recordAuditAction(dbClient.pool, {
+            contextId: newPedido.id, contextType: 'pedido', actionType: 'CREATE',
+            userId: req.user?.id, userName: req.user?.displayName || req.user?.username,
+            after: newPedido, description: 'Creacion: ' + (newPedido.numeroPedidoCliente || newPedido.id)
+        });
+
         res.status(201).json(newPedido);
 
     } catch (error) {
@@ -2893,6 +3056,14 @@ app.patch('/api/pedidos/:id/horas-confirmadas', requirePermission('pedidos.edit'
             previousPedido: pedido,
             changes: ['Horas Confirmadas'],
             message: `Horas Confirmadas actualizado para pedido: ${updatedPedido.numeroPedidoCliente}`
+        });
+
+        // Auditoria server-side
+        await recordAuditAction(dbClient.pool, {
+            contextId: pedidoId, contextType: 'pedido', actionType: 'UPDATE',
+            userId: req.user?.id, userName: req.user?.displayName || req.user?.username,
+            before: pedido, after: updatedPedido,
+            description: 'Horas Confirmadas: ' + (updatedPedido.numeroPedidoCliente || pedidoId)
         });
 
         res.status(200).json({ success: true, horasConfirmadas });
@@ -2958,6 +3129,14 @@ app.put('/api/pedidos/:id', requirePermission('pedidos.edit'), async (req, res) 
             );
         }
 
+        // Auditoria server-side
+        await recordAuditAction(dbClient.pool, {
+            contextId: pedidoId, contextType: 'pedido', actionType: 'UPDATE',
+            userId: req.user?.id, userName: req.user?.displayName || req.user?.username,
+            before: previousPedido, after: updatedPedido,
+            description: 'Actualizacion: ' + (updatedPedido.numeroPedidoCliente || pedidoId)
+        });
+
         res.status(200).json(updatedPedido);
 
     } catch (error) {
@@ -3003,6 +3182,14 @@ app.delete('/api/pedidos/:id', requirePermission('pedidos.delete'), async (req, 
                 }
             }
         );
+
+        // Auditoria server-side
+        await recordAuditAction(dbClient.pool, {
+            contextId: pedidoId, contextType: 'pedido', actionType: 'DELETE',
+            userId: req.user?.id, userName: req.user?.displayName || req.user?.username,
+            before: deletedPedido,
+            description: 'Eliminacion: ' + (deletedPedido?.numeroPedidoCliente || pedidoId)
+        });
 
         res.status(204).send();
 
@@ -3891,11 +4078,19 @@ app.post('/api/action-history', async (req, res) => {
             return res.status(400).json({ message: 'Faltan campos requeridos' });
         }
 
+        // Usar userId/userName del middleware de autenticación (no del body) para evitar suplantación
+        const userId = req.user?.id || action.userId;
+        const userName = req.user?.displayName || req.user?.username || action.userName;
+
+        if (!userId) {
+            return res.status(401).json({ message: 'Usuario no autenticado' });
+        }
+
         const query = `
             INSERT INTO action_history (
                 id, context_id, context_type, action_type, payload, 
-                timestamp, user_id, user_name, description
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                timestamp, user_id, user_name, description, source
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             ON CONFLICT (id) DO NOTHING
             RETURNING *;
         `;
@@ -3911,9 +4106,10 @@ app.post('/api/action-history', async (req, res) => {
             action.type,
             JSON.stringify(action.payload || {}),
             action.timestamp,
-            action.userId,
-            action.userName,
-            action.description
+            userId,
+            userName,
+            action.description,
+            'frontend'
         ];
 
         const result = await dbClient.pool.query(query, values);
@@ -3941,7 +4137,7 @@ app.get('/api/action-history/:contextId', async (req, res) => {
             SELECT 
                 id, context_id as "contextId", context_type as "contextType",
                 action_type as "type", payload, timestamp,
-                user_id as "userId", user_name as "userName", description
+                user_id as "userId", user_name as "userName", description, source
             FROM action_history
             WHERE context_id = $1
         `;
@@ -3982,7 +4178,7 @@ app.get('/api/action-history/user/:userId', async (req, res) => {
             SELECT 
                 id, context_id as "contextId", context_type as "contextType",
                 action_type as "type", payload, timestamp,
-                user_id as "userId", user_name as "userName", description
+                user_id as "userId", user_name as "userName", description, source
             FROM action_history
             WHERE user_id = $1
             ORDER BY timestamp DESC
@@ -5354,7 +5550,7 @@ app.post('/api/comments', requireAuth, async (req, res) => {
                         .filter(socket => socket.userId === mentionedUser.id);
 
                     targetSockets.forEach(socket => {
-                        socket.emit('notification:new', notificationPayload);
+                        socket.emit('notification', notificationPayload);
                     });
 
                     console.log(`📧 Notificación de mención enviada a ${mentionedUser.username} (${targetSockets.length} sesiones activas)`);
