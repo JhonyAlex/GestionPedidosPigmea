@@ -1,103 +1,59 @@
-index-B0cSY_55.js:2 🔓 [MODAL] Desbloqueando antes de guardar pedido: 1769707411735
-index-B0cSY_55.js:2 ✅ Acción agregada al historial local: action-1769715391732-hterrsy7o
-index-B0cSY_55.js:2 ✅ Acción sincronizada con el servidor: action-1769715391732-hterrsy7o
-index-B0cSY_55.js:2   PUT https://planning.pigmea.click/api/pedidos/1769707411735 500 (Internal Server Error)
-ca @ index-B0cSY_55.js:2
-da @ index-B0cSY_55.js:2
-update @ index-B0cSY_55.js:2
-E @ index-B0cSY_55.js:222
-Ot @ index-B0cSY_55.js:222
-(anonymous) @ index-B0cSY_55.js:2
-await in (anonymous)
-De @ index-B0cSY_55.js:2
-De @ vendor-DtuzQOD1.js:10
-je @ vendor-DtuzQOD1.js:10
-(anonymous) @ vendor-DtuzQOD1.js:10
-Ur @ vendor-DtuzQOD1.js:10
-Vr @ vendor-DtuzQOD1.js:10
-(anonymous) @ vendor-DtuzQOD1.js:10
-Re @ vendor-DtuzQOD1.js:10
-Wr @ vendor-DtuzQOD1.js:10
-Yn @ vendor-DtuzQOD1.js:10
-qn @ vendor-DtuzQOD1.js:10
-onClick @ index-B0cSY_55.js:2
-De @ vendor-DtuzQOD1.js:10
-je @ vendor-DtuzQOD1.js:10
-(anonymous) @ vendor-DtuzQOD1.js:10
-Ur @ vendor-DtuzQOD1.js:10
-Vr @ vendor-DtuzQOD1.js:10
-(anonymous) @ vendor-DtuzQOD1.js:10
-cs @ vendor-DtuzQOD1.js:10
-Re @ vendor-DtuzQOD1.js:10
-Wr @ vendor-DtuzQOD1.js:10
-Yn @ vendor-DtuzQOD1.js:10
-qn @ vendor-DtuzQOD1.js:10
-index-B0cSY_55.js:2  Error en la llamada a la API (/pedidos/1769707411735): Error: Error interno del servidor al actualizar el pedido.
-    at ca (index-B0cSY_55.js:2:212280)
-    at async da (index-B0cSY_55.js:2:211254)
-    at async E (index-B0cSY_55.js:222:431962)
-    at async Ot (index-B0cSY_55.js:222:449334)
-ca @ index-B0cSY_55.js:2
-await in ca
-da @ index-B0cSY_55.js:2
-update @ index-B0cSY_55.js:2
-E @ index-B0cSY_55.js:222
-Ot @ index-B0cSY_55.js:222
-(anonymous) @ index-B0cSY_55.js:2
-await in (anonymous)
-De @ index-B0cSY_55.js:2
-De @ vendor-DtuzQOD1.js:10
-je @ vendor-DtuzQOD1.js:10
-(anonymous) @ vendor-DtuzQOD1.js:10
-Ur @ vendor-DtuzQOD1.js:10
-Vr @ vendor-DtuzQOD1.js:10
-(anonymous) @ vendor-DtuzQOD1.js:10
-Re @ vendor-DtuzQOD1.js:10
-Wr @ vendor-DtuzQOD1.js:10
-Yn @ vendor-DtuzQOD1.js:10
-qn @ vendor-DtuzQOD1.js:10
-onClick @ index-B0cSY_55.js:2
-De @ vendor-DtuzQOD1.js:10
-je @ vendor-DtuzQOD1.js:10
-(anonymous) @ vendor-DtuzQOD1.js:10
-Ur @ vendor-DtuzQOD1.js:10
-Vr @ vendor-DtuzQOD1.js:10
-(anonymous) @ vendor-DtuzQOD1.js:10
-cs @ vendor-DtuzQOD1.js:10
-Re @ vendor-DtuzQOD1.js:10
-Wr @ vendor-DtuzQOD1.js:10
-Yn @ vendor-DtuzQOD1.js:10
-qn @ vendor-DtuzQOD1.js:10
-index-B0cSY_55.js:222  Error al actualizar el pedido: Error: Error interno del servidor al actualizar el pedido.
-    at ca (index-B0cSY_55.js:2:212532)
-    at async da (index-B0cSY_55.js:2:211254)
-    at async E (index-B0cSY_55.js:222:431962)
-    at async Ot (index-B0cSY_55.js:222:449334)
-E @ index-B0cSY_55.js:222
-await in E
-Ot @ index-B0cSY_55.js:222
-(anonymous) @ index-B0cSY_55.js:2
-await in (anonymous)
-De @ index-B0cSY_55.js:2
-De @ vendor-DtuzQOD1.js:10
-je @ vendor-DtuzQOD1.js:10
-(anonymous) @ vendor-DtuzQOD1.js:10
-Ur @ vendor-DtuzQOD1.js:10
-Vr @ vendor-DtuzQOD1.js:10
-(anonymous) @ vendor-DtuzQOD1.js:10
-Re @ vendor-DtuzQOD1.js:10
-Wr @ vendor-DtuzQOD1.js:10
-Yn @ vendor-DtuzQOD1.js:10
-qn @ vendor-DtuzQOD1.js:10
-onClick @ index-B0cSY_55.js:2
-De @ vendor-DtuzQOD1.js:10
-je @ vendor-DtuzQOD1.js:10
-(anonymous) @ vendor-DtuzQOD1.js:10
-Ur @ vendor-DtuzQOD1.js:10
-Vr @ vendor-DtuzQOD1.js:10
-(anonymous) @ vendor-DtuzQOD1.js:10
-cs @ vendor-DtuzQOD1.js:10
-Re @ vendor-DtuzQOD1.js:10
-Wr @ vendor-DtuzQOD1.js:10
-Yn @ vendor-DtuzQOD1.js:10
-qn @ vendor-DtuzQOD1.js:10
+(index):64  cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation
+(anonymous) @ (index):64
+index-Be3z6TDR.js:222 📊 [2026-03-09T09:29:38.512Z] Iniciando carga de pedidos (página 1)...
+index-Be3z6TDR.js:2 🔌 Configurando listeners globales de WebSocket para Vendedores...
+index-Be3z6TDR.js:2 🚀 Iniciando carga inicial de vendedores...
+index-Be3z6TDR.js:2  Error al refrescar historial: Error: Error al obtener historial del usuario: 401
+    at Object.getActionsByUser (index-Be3z6TDR.js:2:183185)
+    at async index-Be3z6TDR.js:2:183441
+(anonymous) @ index-Be3z6TDR.js:2
+index-Be3z6TDR.js:222 📡 Versión del servidor: Object
+index-Be3z6TDR.js:222 💻 Versión del cliente: 1.0.0
+index-Be3z6TDR.js:222 📡 Versión del servidor: Object
+index-Be3z6TDR.js:222 💻 Versión del cliente: 1.0.0
+index-Be3z6TDR.js:222 ✅ [2026-03-09T09:29:38.896Z] Pedidos cargados (modo legacy):
+index-Be3z6TDR.js:222    - Total: 751 pedidos
+index-Be3z6TDR.js:222    - Tiempo de carga: 384ms
+index-Be3z6TDR.js:2 🔒 [MODAL] Modal montado - verificando permisos para bloqueo
+index-Be3z6TDR.js:2 ✅ [MODAL] Tiene permisos - solicitando bloqueo
+index-Be3z6TDR.js:2 🔄 Obteniendo materiales FRESCOS para pedido 1771847376934
+index-Be3z6TDR.js:2  Error al refrescar historial: Error: Error al obtener historial del usuario: 401
+    at Object.getActionsByUser (index-Be3z6TDR.js:2:183185)
+    at async index-Be3z6TDR.js:2:183441
+(anonymous) @ index-Be3z6TDR.js:2
+index-Be3z6TDR.js:2  Error al refrescar historial: Error: Error al obtener historial del usuario: 401
+    at Object.getActionsByUser (index-Be3z6TDR.js:2:183185)
+    at async index-Be3z6TDR.js:2:183441
+(anonymous) @ index-Be3z6TDR.js:2
+index-Be3z6TDR.js:2 ✅ Materiales obtenidos para pedido 1771847376934: Array(0)
+index-Be3z6TDR.js:2  Error al refrescar historial: Error: Error al obtener historial del usuario: 401
+    at Object.getActionsByUser (index-Be3z6TDR.js:2:183185)
+    at async index-Be3z6TDR.js:2:183441
+(anonymous) @ index-Be3z6TDR.js:2
+index-Be3z6TDR.js:2 🔓 [MODAL] Cerrando modal - desbloqueando pedido: 1771847376934
+index-Be3z6TDR.js:2 📝 Pedido actualizado: Object
+index-Be3z6TDR.js:222 🔄 Sincronizando pedido actualizado: 2600738
+index-Be3z6TDR.js:2 📝 Pedido actualizado: Object
+index-Be3z6TDR.js:222 🔄 Sincronizando pedido actualizado: 2600738
+index-Be3z6TDR.js:2 🔒 [MODAL] Modal montado - verificando permisos para bloqueo
+index-Be3z6TDR.js:2 ✅ [MODAL] Tiene permisos - solicitando bloqueo
+index-Be3z6TDR.js:2 🔄 Obteniendo materiales FRESCOS para pedido 1771847376934
+index-Be3z6TDR.js:2  Error al refrescar historial: Error: Error al obtener historial del usuario: 401
+    at Object.getActionsByUser (index-Be3z6TDR.js:2:183185)
+    at async index-Be3z6TDR.js:2:183441
+(anonymous) @ index-Be3z6TDR.js:2
+index-Be3z6TDR.js:2 ✅ Materiales obtenidos para pedido 1771847376934: Array(0)
+index-Be3z6TDR.js:2  Error al refrescar historial: Error: Error al obtener historial del usuario: 401
+    at Object.getActionsByUser (index-Be3z6TDR.js:2:183185)
+    at async index-Be3z6TDR.js:2:183441
+(anonymous) @ index-Be3z6TDR.js:2
+index-Be3z6TDR.js:2  Error al refrescar historial: Error: Error al obtener historial del usuario: 401
+    at Object.getActionsByUser (index-Be3z6TDR.js:2:183185)
+    at async index-Be3z6TDR.js:2:183441
+(anonymous) @ index-Be3z6TDR.js:2
+index-Be3z6TDR.js:2  Error al obtener historial del contexto: Error: Error al obtener historial del contexto: 401
+    at Object.getActionsByContext (index-Be3z6TDR.js:2:182959)
+    at async index-Be3z6TDR.js:2:184385
+    at async index-Be3z6TDR.js:2:232967
+(anonymous) @ index-Be3z6TDR.js:2
+index-Be3z6TDR.js:2 👁️ Usuario regresó a la pestaña después de 0s
