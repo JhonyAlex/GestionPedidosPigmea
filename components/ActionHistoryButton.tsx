@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import ActionHistoryPanel from './ActionHistoryPanel';
-import { useUndoRedo } from '../hooks/useUndoRedo';
+import { useActionHistory } from '../hooks/useActionHistory';
 
 /**
  * Botón flotante para acceder al historial de acciones
  */
 const ActionHistoryButton: React.FC = () => {
     const [isPanelOpen, setIsPanelOpen] = useState(false);
-    const { state } = useUndoRedo();
+    const { state } = useActionHistory();
 
     const openPanel = () => setIsPanelOpen(true);
     const closePanel = () => setIsPanelOpen(false);
@@ -22,8 +22,8 @@ const ActionHistoryButton: React.FC = () => {
                     onClick={togglePanel}
                     className={`w-14 h-14 rounded-full shadow-lg transition-all duration-200 
                         flex items-center justify-center text-white relative
-                        ${isPanelOpen 
-                            ? 'bg-red-500 hover:bg-red-600' 
+                        ${isPanelOpen
+                            ? 'bg-red-500 hover:bg-red-600'
                             : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700'
                         }
                         active:scale-95`}
@@ -35,7 +35,7 @@ const ActionHistoryButton: React.FC = () => {
                     ) : (
                         <span className="text-2xl">📜</span>
                     )}
-                    
+
                     {/* Badge con contador */}
                     {!isPanelOpen && state.historyCount > 0 && (
                         <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full 

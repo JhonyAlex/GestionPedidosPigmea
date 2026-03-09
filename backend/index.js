@@ -2874,24 +2874,24 @@ app.get('/api/pedidos/numeros-existentes', async (req, res) => {
         const result = await dbClient.query(
             'SELECT numero_pedido_cliente FROM limpio.pedidos WHERE numero_pedido_cliente IS NOT NULL'
         );
-        
+
         // Normalizar números (lowercase y trim) para validación case-insensitive
         const numeros = result.rows.map(row => ({
             original: row.numero_pedido_cliente,
             normalized: row.numero_pedido_cliente?.toLowerCase().trim()
         }));
-        
+
         console.log(`📋 Enviando ${numeros.length} números de pedido existentes para validación`);
-        
+
         res.status(200).json({
             count: numeros.length,
             numeros: numeros
         });
     } catch (error) {
         console.error('❌ Error al obtener números de pedido:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Error al cargar números de pedido existentes',
-            message: error.message 
+            message: error.message
         });
     }
 });
@@ -3129,7 +3129,18 @@ app.put('/api/pedidos/:id', requirePermission('pedidos.edit'), async (req, res) 
             );
         }
 
-        // Nota: la auditoría de UPDATE la registra el frontend con más detalle (useActionRecorder)
+        // Auditoría server-side como respaldo (el frontend también registra con más detalle)
+        try {
+            await recordAuditAction(dbClient.pool, {
+                contextId: pedidoId, contextType: 'pedido', actionType: 'UPDATE',
+                userId: req.user?.id, userName: req.user?.displayName || req.user?.username,
+                before: previousPedido, after: updatedPedido,
+                description: 'Actualizacion: ' + (updatedPedido.numeroPedidoCliente || pedidoId)
+            });
+        } catch (auditErr) {
+            console.error('Error en auditoría server-side (no bloquea):', auditErr.message);
+        }
+
         res.status(200).json(updatedPedido);
 
     } catch (error) {
@@ -4063,7 +4074,7 @@ app.get('/api/produccion/metraje/:pedidoId', requireAuth, async (req, res) => {
 // === RUTAS DE HISTORIAL DE ACTIVIDAD ===
 
 // POST /api/action-history - Crear nueva entrada en el historial
-app.post('/api/action-history', async (req, res) => {
+app.post('/api/action-history', requireAuth, async (req, res) => {
     try {
         const action = req.body;
 
@@ -4129,7 +4140,7 @@ app.post('/api/action-history', async (req, res) => {
 });
 
 // GET /api/action-history/:contextId - Obtener historial de un contexto específico
-app.get('/api/action-history/:contextId', async (req, res) => {
+app.get('/api/action-history/:contextId', requireAuth, async (req, res) => {
     try {
         const { contextId } = req.params;
         const { contextType, limit } = req.query;
@@ -4170,7 +4181,7 @@ app.get('/api/action-history/:contextId', async (req, res) => {
 });
 
 // GET /api/action-history/user/:userId - Obtener historial de un usuario
-app.get('/api/action-history/user/:userId', async (req, res) => {
+app.get('/api/action-history/user/:userId', requireAuth, async (req, res) => {
     try {
         const { userId } = req.params;
         const { limit } = req.query;
