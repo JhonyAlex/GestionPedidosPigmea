@@ -118,28 +118,29 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
 
         // 🚫 VALIDACIÓN: Si el pedido está en "Sin Gestión Iniciada" y tiene materiales con
         // "Pendiente Gestión", NO puede ser movido a ninguna otra sub-etapa.
+        // El campo está en pedido.materialConsumo[i].gestionado (dentro del propio pedido)
         if (
             sourceId === PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA &&
             destId !== PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA
         ) {
-            try {
-                const materialesPedido = await getMaterialesByPedidoId(movedPedido.id);
-                const materialesPendientesGestion = materialesPedido.filter(m => m.pendienteGestion === true);
+            const cantidad = movedPedido.materialConsumoCantidad ?? 0;
+            const consumo = movedPedido.materialConsumo ?? [];
+            const materialesSinGestionar: number[] = [];
 
-                if (materialesPendientesGestion.length > 0) {
-                    alert(
-                        '🚫 No se puede mover el pedido\n\n' +
-                        `Este pedido tiene ${materialesPendientesGestion.length} material(es) con estado "Pendiente Gestión":\n\n` +
-                        materialesPendientesGestion
-                            .map(m => `   • ${m.numero}${m.descripcion ? ` — ${m.descripcion}` : ''}`)
-                            .join('\n') +
-                        '\n\nDebes completar la gestión de todos los materiales antes de mover\neste pedido de "Sin Gestión Iniciada".'
-                    );
-                    return; // ⛔ Bloquear el movimiento
+            for (let i = 0; i < cantidad; i++) {
+                if (consumo[i]?.gestionado !== true) {
+                    materialesSinGestionar.push(i + 1);
                 }
-            } catch (error) {
-                console.error('Error al verificar materiales pendientes de gestión:', error);
-                // Si hay error al obtener materiales, permitir el movimiento para no bloquear el flujo
+            }
+
+            if (materialesSinGestionar.length > 0) {
+                alert(
+                    '🚫 No se puede mover el pedido\n\n' +
+                    `Este pedido tiene ${materialesSinGestionar.length} material(es) con estado "Pendiente Gestión":\n\n` +
+                    materialesSinGestionar.map(n => `   • Material ${n}`).join('\n') +
+                    '\n\nDebes completar la gestión de todos los materiales antes de mover\neste pedido de "Sin Gestión Iniciada".'
+                );
+                return; // ⛔ Bloquear el movimiento
             }
         }
 

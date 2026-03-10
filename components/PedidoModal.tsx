@@ -769,18 +769,26 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
             // ✅ VALIDACIONES: Aplicar reglas antes de permitir el cambio de etapa
 
             // 0. 🚫 Bloquear si el pedido está en "Sin Gestión Iniciada" y tiene materiales pendientes de gestión
+            // El campo está en pedido.materialConsumo[i].gestionado (dentro del propio pedido)
             if (
                 formData.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA &&
                 value !== PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA
             ) {
-                const materialesPendientesGestion = pedidoMateriales.filter(m => m.pendienteGestion === true);
-                if (materialesPendientesGestion.length > 0) {
+                const cantidad = formData.materialConsumoCantidad ?? 0;
+                const consumo = formData.materialConsumo ?? [];
+                const materialesSinGestionar: number[] = [];
+
+                for (let i = 0; i < cantidad; i++) {
+                    if (consumo[i]?.gestionado !== true) {
+                        materialesSinGestionar.push(i + 1);
+                    }
+                }
+
+                if (materialesSinGestionar.length > 0) {
                     alert(
                         '🚫 No se puede mover el pedido\n\n' +
-                        `Este pedido tiene ${materialesPendientesGestion.length} material(es) con estado "Pendiente Gestión":\n\n` +
-                        materialesPendientesGestion
-                            .map(m => `   • ${m.numero}${m.descripcion ? ` — ${m.descripcion}` : ''}`)
-                            .join('\n') +
+                        `Este pedido tiene ${materialesSinGestionar.length} material(es) con estado "Pendiente Gestión":\n\n` +
+                        materialesSinGestionar.map(n => `   • Material ${n}`).join('\n') +
                         '\n\nDebes completar la gestión de todos los materiales antes de mover\neste pedido de "Sin Gestión Iniciada".'
                     );
                     return; // ⛔ Bloquear el cambio

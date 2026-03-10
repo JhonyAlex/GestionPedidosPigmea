@@ -158,6 +158,7 @@ const AppContent: React.FC = () => {
         handleConfirmAntivaho,
         handleCancelAntivaho,
         antivahoDestinationModalState,
+        setAntivahoDestinationModalState,
         handleAntivahoDestinationImpresion,
         handleAntivahoDestinationListoProduccion,
         handleCancelAntivahoDestination,
@@ -812,6 +813,7 @@ const AppContent: React.FC = () => {
         }
 
         // 🚫 VALIDACIÓN: Bloquear pedidos en "Sin Gestión Iniciada" con materiales pendientes de gestión
+        // El campo está en pedido.materialConsumo[i].gestionado (dentro del propio pedido)
         const esMovimientoFueraDeSinGestion =
             nuevaSubEtapa !== PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA &&
             !(nuevaEtapa === Etapa.PREPARACION && !nuevaSubEtapa);
@@ -823,26 +825,30 @@ const AppContent: React.FC = () => {
             );
 
             if (pedidosEnGestionNoIniciada.length > 0) {
-                const bloqueados: { pedido: Pedido; materiales: string[] }[] = [];
+                const bloqueados: { numeroPedido: string; indices: number[] }[] = [];
 
                 for (const pedido of pedidosEnGestionNoIniciada) {
-                    try {
-                        const materiales = await getMaterialesByPedidoId(pedido.id);
-                        const pendientes = materiales.filter(m => m.pendienteGestion === true);
-                        if (pendientes.length > 0) {
-                            bloqueados.push({
-                                pedido,
-                                materiales: pendientes.map(m => `${m.numero}${m.descripcion ? ` (${m.descripcion})` : ''}`)
-                            });
+                    const cantidad = pedido.materialConsumoCantidad ?? 0;
+                    const consumo = pedido.materialConsumo ?? [];
+                    const sinGestionar: number[] = [];
+
+                    for (let i = 0; i < cantidad; i++) {
+                        if (consumo[i]?.gestionado !== true) {
+                            sinGestionar.push(i + 1);
                         }
-                    } catch (error) {
-                        console.error(`Error al verificar materiales del pedido ${pedido.id}:`, error);
+                    }
+
+                    if (sinGestionar.length > 0) {
+                        bloqueados.push({
+                            numeroPedido: pedido.numeroPedidoCliente,
+                            indices: sinGestionar
+                        });
                     }
                 }
 
                 if (bloqueados.length > 0) {
                     const detalle = bloqueados
-                        .map(b => `• ${b.pedido.numeroPedidoCliente}: ${b.materiales.join(', ')}`)
+                        .map(b => `• ${b.numeroPedido}: ${b.indices.map(n => `Material ${n}`).join(', ')}`)
                         .join('\n');
                     alert(
                         `🚫 No se puede mover ${bloqueados.length === 1 ? 'este pedido' : `estos ${bloqueados.length} pedidos`}\n\n` +

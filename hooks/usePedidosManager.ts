@@ -974,6 +974,7 @@ export const usePedidosManager = (
         handleConfirmAntivaho,
         handleCancelAntivaho,
         antivahoDestinationModalState,
+        setAntivahoDestinationModalState,
         handleAntivahoDestinationImpresion,
         handleAntivahoDestinationListoProduccion,
         handleCancelAntivahoDestination,
