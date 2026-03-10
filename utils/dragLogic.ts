@@ -114,6 +114,34 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
 
     if (source.droppableId.startsWith('PREP_') && destination.droppableId.startsWith('PREP_')) {
         const destId = destination.droppableId.replace('PREP_', '');
+        const sourceId = source.droppableId.replace('PREP_', '');
+
+        // 🚫 VALIDACIÓN: Si el pedido está en "Sin Gestión Iniciada" y tiene materiales con
+        // "Pendiente Gestión", NO puede ser movido a ninguna otra sub-etapa.
+        if (
+            sourceId === PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA &&
+            destId !== PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA
+        ) {
+            try {
+                const materialesPedido = await getMaterialesByPedidoId(movedPedido.id);
+                const materialesPendientesGestion = materialesPedido.filter(m => m.pendienteGestion === true);
+
+                if (materialesPendientesGestion.length > 0) {
+                    alert(
+                        '🚫 No se puede mover el pedido\n\n' +
+                        `Este pedido tiene ${materialesPendientesGestion.length} material(es) con estado "Pendiente Gestión":\n\n` +
+                        materialesPendientesGestion
+                            .map(m => `   • ${m.numero}${m.descripcion ? ` — ${m.descripcion}` : ''}`)
+                            .join('\n') +
+                        '\n\nDebes completar la gestión de todos los materiales antes de mover\neste pedido de "Sin Gestión Iniciada".'
+                    );
+                    return; // ⛔ Bloquear el movimiento
+                }
+            } catch (error) {
+                console.error('Error al verificar materiales pendientes de gestión:', error);
+                // Si hay error al obtener materiales, permitir el movimiento para no bloquear el flujo
+            }
+        }
 
         // ✅ NUEVO: Solo actualizar subEtapaActual, NO modificar flags de material/cliché
         // Los flags se mantienen tal como están para preservar el estado real del pedido

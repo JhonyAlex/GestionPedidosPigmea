@@ -811,8 +811,52 @@ const AppContent: React.FC = () => {
             return;
         }
 
+        // 🚫 VALIDACIÓN: Bloquear pedidos en "Sin Gestión Iniciada" con materiales pendientes de gestión
+        const esMovimientoFueraDeSinGestion =
+            nuevaSubEtapa !== PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA &&
+            !(nuevaEtapa === Etapa.PREPARACION && !nuevaSubEtapa);
+
+        if (esMovimientoFueraDeSinGestion) {
+            const pedidosEnGestionNoIniciada = pedidosSeleccionados.filter(
+                p => p.etapaActual === Etapa.PREPARACION &&
+                     p.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA
+            );
+
+            if (pedidosEnGestionNoIniciada.length > 0) {
+                const bloqueados: { pedido: Pedido; materiales: string[] }[] = [];
+
+                for (const pedido of pedidosEnGestionNoIniciada) {
+                    try {
+                        const materiales = await getMaterialesByPedidoId(pedido.id);
+                        const pendientes = materiales.filter(m => m.pendienteGestion === true);
+                        if (pendientes.length > 0) {
+                            bloqueados.push({
+                                pedido,
+                                materiales: pendientes.map(m => `${m.numero}${m.descripcion ? ` (${m.descripcion})` : ''}`)
+                            });
+                        }
+                    } catch (error) {
+                        console.error(`Error al verificar materiales del pedido ${pedido.id}:`, error);
+                    }
+                }
+
+                if (bloqueados.length > 0) {
+                    const detalle = bloqueados
+                        .map(b => `• ${b.pedido.numeroPedidoCliente}: ${b.materiales.join(', ')}`)
+                        .join('\n');
+                    alert(
+                        `🚫 No se puede mover ${bloqueados.length === 1 ? 'este pedido' : `estos ${bloqueados.length} pedidos`}\n\n` +
+                        'Los siguientes pedidos están en "Sin Gestión Iniciada" con materiales\npendientes de gestión:\n\n' +
+                        detalle +
+                        '\n\nDebes completar la gestión de sus materiales antes de moverlos.'
+                    );
+                    return; // ⛔ Bloquear toda la operación
+                }
+            }
+        }
+
         try {
-            // ðŸš€ Actualización optimista: mover visualmente antes de guardar
+            // 🚀 Actualización optimista: mover visualmente antes de guardar
             setPedidos(prev => prev.map(p => {
                 if (!ids.includes(p.id)) return p;
                 if (p.etapaActual === nuevaEtapa && (!nuevaSubEtapa || p.subEtapaActual === nuevaSubEtapa)) return p;
