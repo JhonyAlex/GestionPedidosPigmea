@@ -85,15 +85,15 @@ const getHistoryIcon = (action: string) => {
 interface PedidoModalProps {
     pedido: Pedido;
     onClose: () => void;
-    onSave: (pedido: Pedido) => void;
-    onAutoSave?: (pedido: Pedido) => void; // ✅ Auto-save que NO cierra el modal
+    onSave: (pedido: Pedido) => Promise<void> | void;
+    onAutoSave?: (pedido: Pedido) => Promise<void> | void; // ✅ Auto-save que NO cierra el modal
     onArchiveToggle: (pedido: Pedido) => void;
     onDuplicate: (pedido: Pedido) => void;
     onDelete: (pedidoId: string) => void;
     // currentUserRole: UserRole;
-    onAdvanceStage: (pedido: Pedido) => void;
+    onAdvanceStage: (pedido: Pedido) => Promise<void> | void;
     onSendToPrint: (pedido: Pedido) => void;
-    onSetReadyForProduction: (pedido: Pedido) => void;
+    onSetReadyForProduction: (pedido: Pedido) => Promise<void> | void;
     onUpdateEtapa: (pedido: Pedido, newEtapa: Etapa) => void;
     isConnected?: boolean;
 }
@@ -113,8 +113,10 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
     const [pedidoMateriales, setPedidoMateriales] = useState<Material[]>([]);
     const [numeroPedidoError, setNumeroPedidoError] = useState<string | null>(null);
     const [isCheckingNumeroPedido, setIsCheckingNumeroPedido] = useState(false);
+    const [isProcessingAction, setIsProcessingAction] = useState(false);
     const numeroPedidoValidationId = useRef(0);
     const [pedidoHistory, setPedidoHistory] = useState<any[]>([]);
+    const sequenceSectionRef = useRef<HTMLDivElement>(null);
 
     const { user } = useAuth();
     const { vendedores, addVendedor, fetchVendedores } = useVendedoresManager();
@@ -520,16 +522,21 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
             // No bloqueamos el guardado por errores de historial
         }
 
-        if (isLockedByMe) {
-            unlockPedido();
+        setIsProcessingAction(true);
+        try {
+            await Promise.resolve(onSave(pedidoActualizado));
+
+            if (isLockedByMe) {
+                unlockPedido();
+            }
+
+            // Cerrar el modal después de un pequeño delay para garantizar que el unlock llegue al servidor
+            setTimeout(() => {
+                onClose();
+            }, 100);
+        } finally {
+            setIsProcessingAction(false);
         }
-
-        onSave(pedidoActualizado);
-
-        // Cerrar el modal después de un pequeño delay para garantizar que el unlock llegue al servidor
-        setTimeout(() => {
-            onClose();
-        }, 100);
     }, [isLockedByMe, unlockPedido, onSave, onClose, pedido, recordPedidoUpdate, activeTab, getContextHistory]);
 
     // ✅ NUEVO: Guardar automáticamente SIN cerrar el modal (para cambios de material)
@@ -583,7 +590,11 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
         };
     }, [handleClose, showConfirmClose]);
 
-    const handleReadyForProductionClick = () => {
+    const handleReadyForProductionClick = async () => {
+        if (isProcessingAction) {
+            return;
+        }
+
         const errors: string[] = [];
 
         if (!formData.materialDisponible) {
@@ -603,18 +614,13 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
             return;
         }
 
-        // ✅ IMPORTANTE: Desbloquear ANTES de guardar
-        console.log('🔓 [MODAL] Desbloqueando antes de marcar como listo para producción');
-        if (isLockedByMe) {
-            unlockPedido();
+        setIsProcessingAction(true);
+        try {
+            await Promise.resolve(onSetReadyForProduction(formData));
+            closeModalAndUnlock();
+        } finally {
+            setIsProcessingAction(false);
         }
-
-        onSetReadyForProduction(formData);
-
-        // Cerrar después de un pequeño delay
-        setTimeout(() => {
-            onClose();
-        }, 100);
     };
 
     // Guardar cambios y cerrar
@@ -696,6 +702,37 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
 
     const handleDataChange = (field: keyof Pedido, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleCapaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key !== 'Enter') {
+            return;
+        }
+
+        e.preventDefault();
+        const camisaInput = document.querySelector<HTMLInputElement>('input[name="camisa"]');
+        if (camisaInput) {
+            camisaInput.focus();
+            camisaInput.select();
+        }
+    };
+
+    const handleCamisaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key !== 'Enter') {
+            return;
+        }
+
+        e.preventDefault();
+
+        const section = sequenceSectionRef.current;
+        if (!section) {
+            return;
+        }
+
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        const firstInteractive = section.querySelector<HTMLElement>('button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        firstInteractive?.focus();
     };
 
     // Manejar cambios en el estado de los materiales
@@ -1068,9 +1105,18 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
         onArchiveToggle(pedido);
     };
 
-    const handleAdvanceClick = () => {
-        onAdvanceStage(pedido);
-        closeModalAndUnlock();
+    const handleAdvanceClick = async () => {
+        if (isProcessingAction) {
+            return;
+        }
+
+        setIsProcessingAction(true);
+        try {
+            await Promise.resolve(onAdvanceStage(formData as Pedido));
+            closeModalAndUnlock();
+        } finally {
+            setIsProcessingAction(false);
+        }
     };
 
     const handleSendToPrintClick = () => {
@@ -1140,10 +1186,10 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
     const { canAdvance, advanceButtonTitle } = useMemo(() => {
         // Usar la nueva lógica centralizada
         const canAdvanceSequence = puedeAvanzarSecuencia(
-            pedido.etapaActual,
-            pedido.secuenciaTrabajo,
-            pedido.antivaho,
-            pedido.antivahoRealizado
+            formData.etapaActual,
+            formData.secuenciaTrabajo,
+            formData.antivaho,
+            formData.antivahoRealizado
         );
 
         if (!canAdvanceSequence) {
@@ -1151,17 +1197,24 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
         }
 
         // Determinar el título del botón basado en la situación
-        const isPrinting = KANBAN_FUNNELS.IMPRESION.stages.includes(pedido.etapaActual);
-        const isPostPrinting = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual);
-        const isOutOfSequence = estaFueraDeSecuencia(pedido.etapaActual, pedido.secuenciaTrabajo);
+        const isPrinting = KANBAN_FUNNELS.IMPRESION.stages.includes(formData.etapaActual);
+        const isPostPrinting = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(formData.etapaActual);
+        const isOutOfSequence = estaFueraDeSecuencia(formData.etapaActual, formData.secuenciaTrabajo);
 
-        if (isPrinting && pedido.secuenciaTrabajo?.length > 0) {
+        if (isPrinting && formData.secuenciaTrabajo?.length > 0) {
+            if (formData.antivaho && formData.antivahoRealizado) {
+                return { canAdvance: true, advanceButtonTitle: 'Enviar a Impresión' };
+            }
             return { canAdvance: true, advanceButtonTitle: 'Iniciar Post-Impresión' };
         }
 
         if (isPostPrinting) {
+            if (formData.antivaho && formData.antivahoRealizado) {
+                return { canAdvance: true, advanceButtonTitle: 'Enviar a Impresión' };
+            }
+
             // Para pedidos con antivaho en post-impresión, permitir "continuar" para reconfirmar
-            if (pedido.antivaho && !pedido.antivahoRealizado) {
+            if (formData.antivaho && !formData.antivahoRealizado) {
                 return { canAdvance: true, advanceButtonTitle: 'Continuar Secuencia' };
             }
 
@@ -1171,17 +1224,17 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
             }
 
             // Lógica normal para pedidos en secuencia
-            const currentIndex = pedido.secuenciaTrabajo?.indexOf(pedido.etapaActual) ?? -1;
-            if (currentIndex > -1 && currentIndex < pedido.secuenciaTrabajo.length - 1) {
+            const currentIndex = formData.secuenciaTrabajo?.indexOf(formData.etapaActual) ?? -1;
+            if (currentIndex > -1 && currentIndex < formData.secuenciaTrabajo.length - 1) {
                 return { canAdvance: true, advanceButtonTitle: 'Siguiente Etapa' };
             }
-            if (currentIndex > -1 && currentIndex === pedido.secuenciaTrabajo.length - 1) {
+            if (currentIndex > -1 && currentIndex === formData.secuenciaTrabajo.length - 1) {
                 return { canAdvance: true, advanceButtonTitle: 'Marcar como Completado' };
             }
         }
 
         return { canAdvance: false, advanceButtonTitle: '' };
-    }, [pedido]);
+    }, [formData]);
 
     const printingStages = useMemo(() => KANBAN_FUNNELS.IMPRESION.stages, []);
     const isCurrentlyInPrinting = useMemo(() => printingStages.includes(formData.etapaActual), [formData.etapaActual, printingStages]);
@@ -1332,7 +1385,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                     </div>
                     <div className="flex items-center gap-4">
                         {pedido.etapaActual === Etapa.PREPARACION && pedido.subEtapaActual !== 'LISTO_PARA_PRODUCCION' && canMovePedidos() && (
-                            <button onClick={handleReadyForProductionClick} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200" disabled={isReadOnly}>
+                            <button onClick={handleReadyForProductionClick} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200" disabled={isReadOnly || isProcessingAction}>
                                 Listo para Producción
                             </button>
                         )}
@@ -1580,7 +1633,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                                         </div>
                                                         <div>
                                                             <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Capa</label>
-                                                            <input type="text" name="capa" value={formData.capa} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50" placeholder="Número o texto de capa" />
+                                                            <input type="text" name="capa" value={formData.capa} onChange={handleChange} onKeyDown={handleCapaKeyDown} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50" placeholder="Número o texto de capa" />
                                                         </div>
                                                     </div>
 
@@ -1749,7 +1802,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                                     </div>
                                                     <div>
                                                         <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Camisa</label>
-                                                        <input type="text" name="camisa" value={formData.camisa || ''} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50" placeholder="Info de la camisa" />
+                                                        <input type="text" name="camisa" value={formData.camisa || ''} onChange={handleChange} onKeyDown={handleCamisaKeyDown} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50" placeholder="Info de la camisa" />
                                                     </div>
                                                 </div>
 
@@ -1872,7 +1925,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                         </div>
 
                                         {/* Secuencia de Trabajo */}
-                                        <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
+                                        <div ref={sequenceSectionRef} className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
                                             <div className="flex items-center justify-between mb-4">
                                                 <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
                                                     🔄 Secuencia de Trabajo Post-Impresión
@@ -2271,7 +2324,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                     {!isReadOnly && (
                         <>
                             {canMovePedidos() && canAdvance && (
-                                <button type="button" onClick={handleAdvanceClick} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200">
+                                <button type="button" onClick={handleAdvanceClick} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200" disabled={isProcessingAction}>
                                     {advanceButtonTitle}
                                 </button>
                             )}
