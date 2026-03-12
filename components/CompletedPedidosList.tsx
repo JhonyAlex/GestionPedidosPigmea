@@ -30,6 +30,17 @@ const CompletedPedidosList: React.FC<CompletedPedidosListProps> = ({
 }) => {
     const { canArchivePedidos } = usePermissions();
     const allSelected = pedidos.length > 0 && pedidos.every(p => selectedIds.includes(p.id));
+
+    const handleSelectAll = () => {
+        if (!onSelectAll) return;
+
+        if (allSelected) {
+            onSelectAll(selectedIds.filter(id => !pedidos.find(p => p.id === id)));
+            return;
+        }
+
+        onSelectAll([...new Set([...selectedIds, ...pedidos.map(p => p.id)])]);
+    };
     
     return (
         <div className="flex flex-col bg-gray-200 dark:bg-gray-800 rounded-xl shadow-lg h-full">
@@ -52,7 +63,7 @@ const CompletedPedidosList: React.FC<CompletedPedidosListProps> = ({
                                             <input
                                                 type="checkbox"
                                                 checked={allSelected}
-                                                onChange={() => onSelectAll && onSelectAll(pedidos.map(p => p.id))}
+                                                onChange={handleSelectAll}
                                                 className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
                                             />
                                         </th>

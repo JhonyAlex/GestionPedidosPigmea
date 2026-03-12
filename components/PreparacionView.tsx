@@ -16,6 +16,7 @@ interface PreparacionViewProps {
     selectedIds?: string[];
     isSelectionActive?: boolean;
     onToggleSelection?: (id: string) => void;
+    onSelectAll?: (ids: string[]) => void;
 }
 
 const PreparacionView: React.FC<PreparacionViewProps> = ({ 
@@ -28,7 +29,8 @@ const PreparacionView: React.FC<PreparacionViewProps> = ({
     onUpdatePedido,
     selectedIds = [],
     isSelectionActive = false,
-    onToggleSelection
+    onToggleSelection,
+    onSelectAll
 }) => {
 
     const pedidosPorColumna = pedidos.reduce((acc, pedido) => {
@@ -60,6 +62,7 @@ const PreparacionView: React.FC<PreparacionViewProps> = ({
                             selectedIds={selectedIds}
                             isSelectionActive={isSelectionActive}
                             onToggleSelection={onToggleSelection}
+                            onSelectAll={onSelectAll}
                         />
                     ))}
                  </div>

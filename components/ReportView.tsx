@@ -552,6 +552,19 @@ const ReportView: React.FC<ReportViewProps> = ({
         return pedidos;
     }, [processedData, selectedChartFilter, sortColumn, sortDirection]);
 
+    const allSelectedInDetailTable = selectedPedidos.length > 0 && selectedPedidos.every(p => selectedIds?.includes(p.id));
+
+    const handleSelectAllInDetailTable = () => {
+        if (!onSelectAll) return;
+
+        if (allSelectedInDetailTable) {
+            onSelectAll((selectedIds || []).filter(id => !selectedPedidos.find(p => p.id === id)));
+            return;
+        }
+
+        onSelectAll([...(selectedIds || []).filter(id => !selectedPedidos.find(p => p.id === id)), ...selectedPedidos.map(p => p.id)]);
+    };
+
 
     // --- 3. AI Analysis Functions ---
 
@@ -1247,8 +1260,8 @@ const ReportView: React.FC<ReportViewProps> = ({
                                                     <input
                                                         type="checkbox"
                                                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                                                        checked={selectedPedidos.length > 0 && selectedPedidos.every(p => selectedIds?.includes(p.id))}
-                                                        onChange={() => onSelectAll(selectedPedidos.map(p => p.id))}
+                                                        checked={allSelectedInDetailTable}
+                                                        onChange={handleSelectAllInDetailTable}
                                                     />
                                                 </th>
                                             )}

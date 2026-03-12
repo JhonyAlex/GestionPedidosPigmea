@@ -102,6 +102,19 @@ const ListoProduccionView: React.FC<ListoProduccionViewProps> = ({
         return `${horas}h ${minutos}m`;
     };
 
+    const allSelectedInList = pedidosListos.length > 0 && pedidosListos.every(p => selectedIds.includes(p.id));
+
+    const handleSelectAllInList = () => {
+        if (!onSelectAll) return;
+
+        if (allSelectedInList) {
+            onSelectAll(selectedIds.filter(id => !pedidosListos.find(p => p.id === id)));
+            return;
+        }
+
+        onSelectAll([...new Set([...selectedIds, ...pedidosListos.map(p => p.id)])]);
+    };
+
     if (!columnaListo) {
         return (
             <main className="flex-grow p-4 md:p-8">
@@ -125,14 +138,6 @@ const ListoProduccionView: React.FC<ListoProduccionViewProps> = ({
                 </div>
                 {onToggleSelection && (
                     <div className="flex items-center gap-2">
-                        {onSelectAll && (
-                            <button
-                                onClick={() => onSelectAll(pedidosListos.map(p => p.id))}
-                                className="px-3 py-1.5 text-xs font-semibold rounded-md bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-800/60 border border-indigo-200 dark:border-indigo-700"
-                            >
-                                Seleccionar todos
-                            </button>
-                        )}
                         <span className="text-xs text-gray-500 dark:text-gray-400">
                             Seleccionados: {selectedIds.length}
                         </span>
@@ -143,7 +148,18 @@ const ListoProduccionView: React.FC<ListoProduccionViewProps> = ({
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                     <thead className="bg-gray-50 dark:bg-gray-900/40">
                         <tr>
-                            {onToggleSelection && <th className="px-3 py-2 w-10"></th>}
+                            {onToggleSelection && (
+                                <th className="px-3 py-2 w-10 text-center">
+                                    {onSelectAll && (
+                                        <input
+                                            type="checkbox"
+                                            checked={allSelectedInList}
+                                            onChange={handleSelectAllInList}
+                                            className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                        />
+                                    )}
+                                </th>
+                            )}
                             <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">N°</th>
                             <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Cliente</th>
                             <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Desarrollo</th>
@@ -253,6 +269,7 @@ const ListoProduccionView: React.FC<ListoProduccionViewProps> = ({
                             selectedIds={selectedIds}
                             isSelectionActive={isSelectionActive}
                             onToggleSelection={onToggleSelection}
+                            onSelectAll={onSelectAll}
                         />
                     ) : (
                         renderLista()

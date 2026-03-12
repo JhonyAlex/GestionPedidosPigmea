@@ -18,6 +18,7 @@ interface PreparacionColumnProps {
     selectedIds?: string[];
     isSelectionActive?: boolean;
     onToggleSelection?: (id: string) => void;
+    onSelectAll?: (ids: string[]) => void;
 }
 
 const PreparacionColumn: React.FC<PreparacionColumnProps> = ({ 
@@ -31,7 +32,8 @@ const PreparacionColumn: React.FC<PreparacionColumnProps> = ({
     onUpdatePedido,
     selectedIds = [],
     isSelectionActive = false,
-    onToggleSelection
+    onToggleSelection,
+    onSelectAll
 }) => {
     const { user } = useAuth();
     const { getLockInfo } = useLockObserver();
@@ -41,11 +43,41 @@ const PreparacionColumn: React.FC<PreparacionColumnProps> = ({
         setIsMounted(true);
     }, []);
 
+    const allSelected = pedidos.length > 0 && pedidos.every(p => selectedIds.includes(p.id));
+    const someSelected = pedidos.some(p => selectedIds.includes(p.id)) && !allSelected;
+
+    const handleSelectAll = () => {
+        if (!onSelectAll) return;
+
+        if (allSelected) {
+            onSelectAll(selectedIds.filter(id => !pedidos.find(p => p.id === id)));
+            return;
+        }
+
+        onSelectAll([...new Set([...selectedIds, ...pedidos.map(p => p.id)])]);
+    };
+
     return (
         <div className="flex flex-col bg-gray-200 dark:bg-gray-800 rounded-xl shadow-lg h-full">
             <div className={`px-4 py-2 rounded-t-xl ${columna.color}`}>
-                <div className="flex justify-center items-center gap-2">
-                    <h2 className="text-lg font-bold text-white">{columna.title}</h2>
+                <div className="flex justify-between items-center gap-2">
+                    <div className="flex items-center gap-2">
+                        {isSelectionActive && onSelectAll && pedidos.length > 0 && (
+                            <input
+                                type="checkbox"
+                                checked={allSelected}
+                                ref={(input) => {
+                                    if (input) {
+                                        input.indeterminate = someSelected;
+                                    }
+                                }}
+                                onChange={handleSelectAll}
+                                className="w-4 h-4 cursor-pointer accent-white"
+                                title={allSelected ? "Deseleccionar todos" : "Seleccionar todos"}
+                            />
+                        )}
+                        <h2 className="text-lg font-bold text-white">{columna.title}</h2>
+                    </div>
                     <span className="bg-black bg-opacity-25 text-white text-xs font-bold px-2 py-0.5 rounded-full">
                         {pedidos.length}
                     </span>
