@@ -329,6 +329,36 @@ const AppContent: React.FC = () => {
     const listoProduccionPedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual === Etapa.PREPARACION && p.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION), [processedPedidos]);
     const activePedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual !== Etapa.ARCHIVADO && p.etapaActual !== Etapa.PREPARACION), [processedPedidos]);
     const archivedPedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual === Etapa.ARCHIVADO), [processedPedidos]);
+    const visiblePedidoIds = useMemo(() => {
+        switch (view) {
+            case 'preparacion':
+                return preparacionPedidos.map(p => p.id);
+            case 'listoProduccion':
+                return listoProduccionPedidos.map(p => p.id);
+            case 'kanban':
+            case 'list':
+                return activePedidos.map(p => p.id);
+            case 'archived':
+                return archivedPedidos.map(p => p.id);
+            default:
+                return [];
+        }
+    }, [view, preparacionPedidos, listoProduccionPedidos, activePedidos, archivedPedidos]);
+    const allVisibleSelected = useMemo(() => (
+        visiblePedidoIds.length > 0 && visiblePedidoIds.every(id => selectedIds.includes(id))
+    ), [visiblePedidoIds, selectedIds]);
+    const handleToggleVisibleSelection = useCallback(() => {
+        if (visiblePedidoIds.length === 0) {
+            return;
+        }
+
+        if (allVisibleSelected) {
+            selectAll(selectedIds.filter(id => !visiblePedidoIds.includes(id)));
+            return;
+        }
+
+        selectAll([...new Set([...selectedIds, ...visiblePedidoIds])]);
+    }, [allVisibleSelected, selectAll, selectedIds, visiblePedidoIds]);
 
     const handleDragEnd = useCallback(async (result: DropResult) => {
         await procesarDragEnd({
@@ -1235,10 +1265,13 @@ const AppContent: React.FC = () => {
                     onUserManagement={() => setShowUserManagement(true)}
                     onResetAllFilters={resetAllFilters}
                 />
-                {selectedIds.length > 0 && (
+                {(visiblePedidoIds.length > 0 || selectedIds.length > 0) && (
                     <div className="px-2 pt-2 md:px-4 md:pt-3">
                         <BulkActionsToolbar
                             selectedCount={selectedIds.length}
+                            visibleCount={visiblePedidoIds.length}
+                            allVisibleSelected={allVisibleSelected}
+                            onToggleVisibleSelection={handleToggleVisibleSelection}
                             onUpdateDate={() => setShowDateUpdateModal(true)}
                             onUpdateMachine={() => setShowMachineUpdateModal(true)}
                             onUpdateStage={() => setShowStageUpdateModal(true)}

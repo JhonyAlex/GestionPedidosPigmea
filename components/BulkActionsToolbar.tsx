@@ -2,6 +2,9 @@ import React from 'react';
 
 interface BulkActionsToolbarProps {
   selectedCount: number;
+  visibleCount: number;
+  allVisibleSelected: boolean;
+  onToggleVisibleSelection: () => void;
   onUpdateDate: () => void;
   onUpdateMachine: () => void;
   onUpdateStage: () => void;
@@ -46,8 +49,17 @@ const XMarkIcon = () => (
   </svg>
 );
 
+const CheckListIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M9 6.75 11.25 9 15 3.75M4.5 6.75h.008v.008H4.5V6.75Zm0 6h.008v.008H4.5v-.008Zm0 6h.008v.008H4.5v-.008ZM19.5 6.75h-3.75m3.75 6h-3.75m3.75 6h-3.75" />
+  </svg>
+);
+
 const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
   selectedCount,
+  visibleCount,
+  allVisibleSelected,
+  onToggleVisibleSelection,
   onUpdateDate,
   onUpdateMachine,
   onUpdateStage,
@@ -55,10 +67,12 @@ const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
   onArchive,
   onCancel,
 }) => {
-  if (selectedCount < 1) return null;
+  if (selectedCount < 1 && visibleCount < 1) return null;
+
+  const hasSelection = selectedCount > 0;
 
   return (
-    <div className="animate-slide-up">
+    <div className="flex justify-center animate-slide-up">
       <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white/95 px-3 py-3 shadow-lg backdrop-blur-sm dark:border-gray-700 dark:bg-gray-800/95">
         <div className="flex min-w-max items-center gap-2 whitespace-nowrap">
           <div className="flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50/80 px-3 py-2 dark:border-blue-900/60 dark:bg-blue-950/30">
@@ -74,8 +88,23 @@ const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
 
           <div className="flex items-center gap-2">
             <button
+              onClick={onToggleVisibleSelection}
+              className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors duration-200 ${allVisibleSelected
+                ? 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200 dark:hover:bg-amber-900/50'
+                : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'
+              }`}
+              title={allVisibleSelected ? `Deseleccionar ${visibleCount} pedidos visibles` : `Seleccionar ${visibleCount} pedidos visibles`}
+            >
+              <CheckListIcon />
+              <span>{allVisibleSelected ? 'Deseleccionar visibles' : 'Seleccionar visibles'}</span>
+            </button>
+
+            <div className="h-7 w-px bg-gray-200 dark:bg-gray-600"></div>
+
+            <button
               onClick={onUpdateDate}
-              className="flex items-center gap-2 rounded-xl border border-blue-100 bg-white px-3 py-2 text-sm font-medium text-blue-700 transition-colors duration-200 hover:bg-blue-50 dark:border-gray-600 dark:bg-gray-800 dark:text-blue-300 dark:hover:bg-gray-700"
+              disabled={!hasSelection}
+              className="flex items-center gap-2 rounded-xl border border-blue-100 bg-white px-3 py-2 text-sm font-medium text-blue-700 transition-colors duration-200 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-gray-600 dark:bg-gray-800 dark:text-blue-300 dark:hover:bg-gray-700"
               title="Cambiar fecha de entrega"
             >
               <CalendarIcon />
@@ -84,7 +113,8 @@ const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
 
             <button
               onClick={onUpdateMachine}
-              className="flex items-center gap-2 rounded-xl border border-indigo-100 bg-white px-3 py-2 text-sm font-medium text-indigo-700 transition-colors duration-200 hover:bg-indigo-50 dark:border-gray-600 dark:bg-gray-800 dark:text-indigo-300 dark:hover:bg-gray-700"
+              disabled={!hasSelection}
+              className="flex items-center gap-2 rounded-xl border border-indigo-100 bg-white px-3 py-2 text-sm font-medium text-indigo-700 transition-colors duration-200 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-gray-600 dark:bg-gray-800 dark:text-indigo-300 dark:hover:bg-gray-700"
               title="Cambiar máquina de impresión"
             >
               <MachineIcon />
@@ -93,7 +123,8 @@ const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
 
             <button
               onClick={onUpdateStage}
-              className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-white px-3 py-2 text-sm font-medium text-emerald-700 transition-colors duration-200 hover:bg-emerald-50 dark:border-gray-600 dark:bg-gray-800 dark:text-emerald-300 dark:hover:bg-gray-700"
+              disabled={!hasSelection}
+              className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-white px-3 py-2 text-sm font-medium text-emerald-700 transition-colors duration-200 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-gray-600 dark:bg-gray-800 dark:text-emerald-300 dark:hover:bg-gray-700"
               title="Cambiar etapa de los pedidos"
             >
               <StageIcon />
@@ -102,7 +133,8 @@ const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
 
             <button
               onClick={onArchive}
-              className="flex items-center gap-2 rounded-xl border border-violet-100 bg-white px-3 py-2 text-sm font-medium text-violet-700 transition-colors duration-200 hover:bg-violet-50 dark:border-gray-600 dark:bg-gray-800 dark:text-violet-300 dark:hover:bg-gray-700"
+              disabled={!hasSelection}
+              className="flex items-center gap-2 rounded-xl border border-violet-100 bg-white px-3 py-2 text-sm font-medium text-violet-700 transition-colors duration-200 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-gray-600 dark:bg-gray-800 dark:text-violet-300 dark:hover:bg-gray-700"
               title="Archivar pedidos seleccionados"
             >
               <ArchiveIcon />
@@ -111,7 +143,8 @@ const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
 
             <button
               onClick={onDelete}
-              className="flex items-center gap-2 rounded-xl border border-red-100 bg-white px-3 py-2 text-sm font-medium text-red-700 transition-colors duration-200 hover:bg-red-50 dark:border-gray-600 dark:bg-gray-800 dark:text-red-300 dark:hover:bg-gray-700"
+              disabled={!hasSelection}
+              className="flex items-center gap-2 rounded-xl border border-red-100 bg-white px-3 py-2 text-sm font-medium text-red-700 transition-colors duration-200 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-gray-600 dark:bg-gray-800 dark:text-red-300 dark:hover:bg-gray-700"
               title="Eliminar pedidos seleccionados"
             >
               <TrashIcon />
@@ -122,7 +155,8 @@ const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
 
             <button
               onClick={onCancel}
-              className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-700 transition-colors duration-200 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+              disabled={!hasSelection}
+              className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-700 transition-colors duration-200 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-45 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
               title="Cancelar selección"
             >
               <XMarkIcon />
