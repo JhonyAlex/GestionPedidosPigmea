@@ -1068,36 +1068,48 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
         setFormData(prev => ({ ...prev, secuenciaTrabajo: newSequence }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+    const getValidatedPedidoForPersistence = (): Pedido | null => {
         if (isCheckingNumeroPedido) {
             alert('Validando el número de pedido, espere unos segundos.');
-            return;
+            return null;
         }
+
         if (numeroPedidoError) {
             alert(numeroPedidoError);
-            return;
+            return null;
         }
-        // ✅ FIX: Validar que numeroPedidoCliente no esté vacío
+
         if (!formData.numeroPedidoCliente || !formData.numeroPedidoCliente.trim()) {
             alert('❌ El Nº de Pedido del Cliente es obligatorio. Por favor, ingrese un número de pedido.');
-            return;
+            return null;
         }
-        // ✅ FIX: Bloquear guardado con prefijo "COPIA-" (pedido duplicado sin número real)
+
         if (formData.numeroPedidoCliente.trim().startsWith('COPIA-')) {
             alert('❌ Este pedido es una copia y necesita un Nº de Pedido del Cliente real.\n\nPor favor, reemplace "COPIA-..." con el número de pedido correcto.');
-            return;
+            return null;
         }
+
         if (!formData.maquinaImpresion || !formData.maquinaImpresion.trim()) {
             alert('❌ Debe seleccionar una Máquina de Impresión.');
-            return;
+            return null;
         }
+
         const metrosValue = Number(formData.metros);
         if (isNaN(metrosValue) || metrosValue <= 0) {
             alert('Metros debe ser un número mayor a 0.');
+            return null;
+        }
+
+        return { ...formData, metros: metrosValue } as Pedido;
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const pedidoActualizado = getValidatedPedidoForPersistence();
+        if (!pedidoActualizado) {
             return;
         }
-        const pedidoActualizado = { ...formData, metros: metrosValue } as Pedido;
+
         savePedidoAndClose(pedidoActualizado);
     };
 
@@ -1303,10 +1315,21 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
         }
     };
 
-    const handleRevertToPrinting = (newStage: Etapa) => {
+    const handleRevertToPrinting = async (newStage: Etapa) => {
         if (!printingStages.includes(newStage)) return;
-        onUpdateEtapa(pedido, newStage);
-        closeModalAndUnlock();
+
+        const pedidoActualizado = getValidatedPedidoForPersistence();
+        if (!pedidoActualizado) {
+            return;
+        }
+
+        setIsProcessingAction(true);
+        try {
+            await Promise.resolve(onUpdateEtapa(pedidoActualizado, newStage));
+            closeModalAndUnlock();
+        } finally {
+            setIsProcessingAction(false);
+        }
     }
 
     // Cargar historial cuando se abre la pestaña historial o cambia de pedido
@@ -2312,7 +2335,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                         </button>
                     )}
                     {pedido.etapaActual !== Etapa.PREPARACION && !printingStages.includes(pedido.etapaActual) && (
-                        <select onChange={(e) => handleRevertToPrinting(e.target.value as Etapa)} className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded transition-colors duration-200" value="" disabled={isReadOnly}>
+                        <select onChange={(e) => handleRevertToPrinting(e.target.value as Etapa)} className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded transition-colors duration-200" value="" disabled={isReadOnly || isProcessingAction}>
                             <option value="" disabled>Volver a Impresión...</option>
                             {printingStages.map(stage => <option key={stage} value={stage}>{ETAPAS[stage].title}</option>)}
                         </select>
