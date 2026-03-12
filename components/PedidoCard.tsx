@@ -531,7 +531,7 @@ const PedidoCard = React.memo<PedidoCardProps>(({
         if (isPostPrinting) {
             // Para pedidos con antivaho en post-impresión, permitir "continuar" para reconfirmar
             if (pedido.antivaho && !pedido.antivahoRealizado) {
-                return { canAdvance: true, advanceButtonTitle: 'Continuar Secuencia' };
+                return { canAdvance: true, advanceButtonTitle: 'Enviar a Impresión' };
             }
 
             // Si está fuera de secuencia, ofrecer reordenar

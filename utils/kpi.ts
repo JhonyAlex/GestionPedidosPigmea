@@ -297,7 +297,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             p.microperforado ? 'Sí' : 'No',
             getNextStageTitle(p),
             observacionesCombinadas,
-            p.nuevaFechaEntrega ? p.nuevaFechaEntrega.slice(8, 10) + '/' + p.nuevaFechaEntrega.slice(5, 7) : '-',
+            p.nuevaFechaEntrega ? (() => { const meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC']; const mes = parseInt(p.nuevaFechaEntrega!.slice(5, 7), 10) - 1; return p.nuevaFechaEntrega!.slice(8, 10) + '/' + (meses[mes] ?? ''); })() : '-',
         ];
     });
 

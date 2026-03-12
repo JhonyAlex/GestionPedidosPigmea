@@ -1227,7 +1227,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
 
             // Para pedidos con antivaho en post-impresión, permitir "continuar" para reconfirmar
             if (formData.antivaho && !formData.antivahoRealizado) {
-                return { canAdvance: true, advanceButtonTitle: 'Continuar Secuencia' };
+                return { canAdvance: true, advanceButtonTitle: 'Enviar a Impresión' };
             }
 
             // Si está fuera de secuencia, ofrecer reordenar
