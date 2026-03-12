@@ -58,11 +58,11 @@ const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
   if (selectedCount < 1) return null;
 
   return (
-    <div className="fixed bottom-4 left-1/2 z-40 w-full max-w-[calc(100vw-1rem)] -translate-x-1/2 px-2 animate-slide-up sm:max-w-fit sm:px-0">
-      <div className="rounded-2xl border border-gray-200 bg-white/95 px-3 py-3 shadow-xl backdrop-blur-sm dark:border-gray-700 dark:bg-gray-800/95 sm:px-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+    <div className="animate-slide-up">
+      <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white/95 px-3 py-3 shadow-lg backdrop-blur-sm dark:border-gray-700 dark:bg-gray-800/95">
+        <div className="flex min-w-max items-center gap-2 whitespace-nowrap">
           <div className="flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50/80 px-3 py-2 dark:border-blue-900/60 dark:bg-blue-950/30">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white shadow-sm">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white shadow-sm">
               {selectedCount}
             </div>
             <span className="whitespace-nowrap text-sm font-semibold text-gray-800 dark:text-gray-200">
@@ -70,7 +70,9 @@ const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+          <div className="h-7 w-px bg-gray-200 dark:bg-gray-600"></div>
+
+          <div className="flex items-center gap-2">
             <button
               onClick={onUpdateDate}
               className="flex items-center gap-2 rounded-xl border border-blue-100 bg-white px-3 py-2 text-sm font-medium text-blue-700 transition-colors duration-200 hover:bg-blue-50 dark:border-gray-600 dark:bg-gray-800 dark:text-blue-300 dark:hover:bg-gray-700"
@@ -116,7 +118,7 @@ const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
               <span>Eliminar</span>
             </button>
 
-            <div className="hidden h-7 w-px bg-gray-200 dark:bg-gray-600 sm:block"></div>
+            <div className="h-7 w-px bg-gray-200 dark:bg-gray-600"></div>
 
             <button
               onClick={onCancel}

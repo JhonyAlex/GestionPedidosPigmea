@@ -1235,9 +1235,20 @@ const AppContent: React.FC = () => {
                     onUserManagement={() => setShowUserManagement(true)}
                     onResetAllFilters={resetAllFilters}
                 />
-                <div className={selectedIds.length > 0 ? 'pb-32 transition-all duration-300 md:pb-28' : 'transition-all duration-300'}>
-                    {renderContent()}
-                </div>
+                {selectedIds.length > 0 && (
+                    <div className="px-2 pt-2 md:px-4 md:pt-3">
+                        <BulkActionsToolbar
+                            selectedCount={selectedIds.length}
+                            onUpdateDate={() => setShowDateUpdateModal(true)}
+                            onUpdateMachine={() => setShowMachineUpdateModal(true)}
+                            onUpdateStage={() => setShowStageUpdateModal(true)}
+                            onDelete={() => setShowDeleteModal(true)}
+                            onArchive={() => setShowArchiveModal(true)}
+                            onCancel={clearSelection}
+                        />
+                    </div>
+                )}
+                {renderContent()}
                 {selectedPedido && (
                     <PedidoModal
                         pedido={selectedPedido}
@@ -1330,15 +1341,6 @@ const AppContent: React.FC = () => {
                 )}
 
                 {/* 📦 Bulk Operations Components */}
-                <BulkActionsToolbar
-                    selectedCount={selectedIds.length}
-                    onUpdateDate={() => setShowDateUpdateModal(true)}
-                    onUpdateMachine={() => setShowMachineUpdateModal(true)}
-                    onUpdateStage={() => setShowStageUpdateModal(true)}
-                    onDelete={() => setShowDeleteModal(true)}
-                    onArchive={() => setShowArchiveModal(true)}
-                    onCancel={clearSelection}
-                />
 
                 <DeleteConfirmationModal
                     isOpen={showDeleteModal}
