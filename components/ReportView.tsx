@@ -3,7 +3,7 @@ import { Pedido, Etapa, Prioridad } from '../types';
 import { DateFilterOption, getDateRange, formatMetros, formatDecimalHoursToHHMM } from '../utils/date';
 import { getWeekNumber, getWeekDateRange } from '../utils/weekUtils';
 import DateFilterCombined from './DateFilterCombined';
-import { MAQUINAS_IMPRESION, PREPARACION_SUB_ETAPAS_IDS, ETAPAS } from '../constants';
+import { MAQUINAS_IMPRESION, PREPARACION_SUB_ETAPAS_IDS, PREPARACION_COLUMNS, ETAPAS } from '../constants';
 import { parseTimeToMinutes } from '../utils/kpi';
 import { PlanningTable, WeeklyData } from './PlanningTable';
 import { PlanningChart } from './PlanningChart';
@@ -171,7 +171,7 @@ const ReportView: React.FC<ReportViewProps> = ({
     const [selectedChartFilter, setSelectedChartFilter] = useState<{ weekLabel: string, machine: string } | null>(null);
 
     // Sorting State for Details Table
-    type SortColumn = 'pedido' | 'cliente' | 'descripcion' | 'fecha' | 'metros' | 'tiempo';
+    type SortColumn = 'pedido' | 'cliente' | 'subEtapa' | 'descripcion' | 'fecha' | 'metros' | 'tiempo';
     type SortDirection = 'asc' | 'desc';
     const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -509,6 +509,9 @@ const ReportView: React.FC<ReportViewProps> = ({
                     case 'cliente':
                         compareResult = (a.cliente || '').localeCompare(b.cliente || '');
                         break;
+                    case 'subEtapa':
+                        compareResult = getSubEtapaDisplay(a).localeCompare(getSubEtapaDisplay(b));
+                        break;
                     case 'descripcion':
                         const descA = a.producto || a.descripcion || '';
                         const descB = b.producto || b.descripcion || '';
@@ -644,6 +647,18 @@ const ReportView: React.FC<ReportViewProps> = ({
         } catch (error) {
             return dateString; // En caso de error, devolver original
         }
+    };
+
+    const getSubEtapaDisplay = (pedido: Pedido): string => {
+        if (pedido.etapaActual === Etapa.PREPARACION && pedido.subEtapaActual) {
+            const subEtapa = PREPARACION_COLUMNS.find(col => col.id === pedido.subEtapaActual);
+            if (subEtapa) {
+                return subEtapa.title;
+            }
+        }
+
+        const etapa = ETAPAS[pedido.etapaActual];
+        return etapa?.title || pedido.subEtapaActual || pedido.etapaActual || '-';
     };
 
     const toggleStage = (stage: string) => {
@@ -1228,7 +1243,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                     <thead className="bg-gray-50 dark:bg-gray-900">
                                         <tr>
                                             {onSelectAll && (
-                                                <th scope="col" className="px-6 py-3 text-center w-10">
+                                                <th scope="col" className="px-3 py-2.5 text-center w-10">
                                                     <input
                                                         type="checkbox"
                                                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
@@ -1239,7 +1254,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                             )}
                                             <th
                                                 scope="col"
-                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                                className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
                                                 onClick={() => handleColumnSort('pedido')}
                                             >
                                                 <div className="flex items-center">
@@ -1249,7 +1264,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                             </th>
                                             <th
                                                 scope="col"
-                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                                className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
                                                 onClick={() => handleColumnSort('cliente')}
                                             >
                                                 <div className="flex items-center">
@@ -1259,7 +1274,17 @@ const ReportView: React.FC<ReportViewProps> = ({
                                             </th>
                                             <th
                                                 scope="col"
-                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                                className="w-44 px-3 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                                onClick={() => handleColumnSort('subEtapa')}
+                                            >
+                                                <div className="flex items-center">
+                                                    Sub-etapa
+                                                    {renderSortIndicator('subEtapa')}
+                                                </div>
+                                            </th>
+                                            <th
+                                                scope="col"
+                                                className="w-72 px-3 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
                                                 onClick={() => handleColumnSort('descripcion')}
                                             >
                                                 <div className="flex items-center">
@@ -1269,7 +1294,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                             </th>
                                             <th
                                                 scope="col"
-                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                                className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
                                                 onClick={() => handleColumnSort('fecha')}
                                             >
                                                 <div className="flex items-center">
@@ -1279,7 +1304,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                             </th>
                                             <th
                                                 scope="col"
-                                                className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                                className="px-3 py-2.5 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
                                                 onClick={() => handleColumnSort('metros')}
                                             >
                                                 <div className="flex items-center justify-end">
@@ -1289,7 +1314,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                             </th>
                                             <th
                                                 scope="col"
-                                                className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                                className="px-3 py-2.5 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
                                                 onClick={() => handleColumnSort('tiempo')}
                                             >
                                                 <div className="flex items-center justify-end">
@@ -1297,7 +1322,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                                     {renderSortIndicator('tiempo')}
                                                 </div>
                                             </th>
-                                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acción</th>
+                                            <th scope="col" className="px-3 py-2.5 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acción</th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -1324,7 +1349,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                                         }}
                                                     >
                                                         {onToggleSelection && (
-                                                            <td className="px-6 py-4 whitespace-nowrap text-center" onClick={(e) => e.stopPropagation()}>
+                                                            <td className="px-3 py-3 whitespace-nowrap text-center" onClick={(e) => e.stopPropagation()}>
                                                                 <input
                                                                     type="checkbox"
                                                                     className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
@@ -1333,25 +1358,35 @@ const ReportView: React.FC<ReportViewProps> = ({
                                                                 />
                                                             </td>
                                                         )}
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                                                        <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400">
                                                             {pedido.numeroPedidoCliente}
                                                         </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                                                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                                                             {pedido.cliente}
                                                         </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                                                            {pedido.producto || pedido.descripcion || '-'}
+                                                        <td className="px-3 py-3 text-sm text-gray-500 dark:text-gray-300">
+                                                            <div className="max-w-[11rem] truncate" title={getSubEtapaDisplay(pedido)}>
+                                                                {getSubEtapaDisplay(pedido)}
+                                                            </div>
                                                         </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                                                        <td className="px-3 py-3 text-sm text-gray-500 dark:text-gray-300">
+                                                            <div
+                                                                className="max-w-[16rem] truncate xl:max-w-[20rem]"
+                                                                title={pedido.producto || pedido.descripcion || '-'}
+                                                            >
+                                                                {pedido.producto || pedido.descripcion || '-'}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                                                             {formatDateToDDMMYYYY(pedido.nuevaFechaEntrega || pedido.fechaEntrega)}
                                                         </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500 dark:text-gray-300">
+                                                        <td className="px-3 py-3 whitespace-nowrap text-sm text-right text-gray-500 dark:text-gray-300">
                                                             {formatMetros(pedido.metros)} m
                                                         </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono text-gray-900 dark:text-white">
+                                                        <td className="px-3 py-3 whitespace-nowrap text-sm text-right font-mono text-gray-900 dark:text-white">
                                                             {formatDecimalHoursToHHMM(hours)}
                                                         </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                        <td className="px-3 py-3 whitespace-nowrap text-right text-sm font-medium">
                                                             <span className="text-indigo-600 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">
                                                                 Ver →
                                                             </span>
@@ -1361,7 +1396,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                             })
                                         ) : (
                                             <tr>
-                                                <td colSpan={onSelectAll ? 8 : 7} className="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400 italic">
+                                                <td colSpan={onSelectAll ? 9 : 8} className="px-3 py-8 text-center text-sm text-gray-500 dark:text-gray-400 italic">
                                                     No hay pedidos asignados a esta categoría.
                                                 </td>
                                             </tr>

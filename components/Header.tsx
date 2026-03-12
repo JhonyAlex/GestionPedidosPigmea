@@ -164,6 +164,18 @@ const Header: React.FC<HeaderProps> = ({
     const burgerMenuRef = useRef<HTMLDivElement>(null);
     const maquinaDropdownRef = useRef<HTMLDivElement>(null);
 
+    const toggleStageFiltersCollapsed = () => {
+        setIsStageFiltersCollapsed(prev => !prev);
+    };
+
+    const handleStageFiltersContainerClick = (event: React.MouseEvent<HTMLDivElement>) => {
+        if ((event.target as HTMLElement).closest('button')) {
+            return;
+        }
+
+        toggleStageFiltersCollapsed();
+    };
+
     // Resetear el estado cuando cambie la vista
     useEffect(() => {
         if (currentView !== 'list') {
@@ -822,7 +834,10 @@ const Header: React.FC<HeaderProps> = ({
 
                 {/* Tercera fila: Grid de botones de etapas solo para vista de lista */}
                 {currentView === 'list' && (
-                    <div className="border-t border-gray-200 dark:border-gray-600 pt-2">
+                    <div
+                        className="border-t border-gray-200 dark:border-gray-600 pt-2 cursor-pointer"
+                        onClick={handleStageFiltersContainerClick}
+                    >
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
@@ -830,7 +845,10 @@ const Header: React.FC<HeaderProps> = ({
                                         Filtrar por Etapa {selectedStages.length > 0 && `(${selectedStages.length} seleccionadas)`}:
                                     </span>
                                     <button
-                                        onClick={() => setIsStageFiltersCollapsed(!isStageFiltersCollapsed)}
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            toggleStageFiltersCollapsed();
+                                        }}
                                         className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors duration-200 flex items-center gap-1"
                                         title={isStageFiltersCollapsed ? 'Expandir filtros' : 'Contraer filtros'}
                                     >
@@ -846,7 +864,10 @@ const Header: React.FC<HeaderProps> = ({
                                     </button>
                                 </div>
                                 <button
-                                    onClick={() => onStageToggle('all')}
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        onStageToggle('all');
+                                    }}
                                     className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${selectedStages.length === 0
                                         ? 'bg-indigo-600 text-white shadow-sm'
                                         : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
@@ -873,7 +894,10 @@ const Header: React.FC<HeaderProps> = ({
                                                 {group.stages.map(etapaId => (
                                                     <button
                                                         key={etapaId}
-                                                        onClick={() => onStageToggle(etapaId)}
+                                                        onClick={(event) => {
+                                                            event.stopPropagation();
+                                                            onStageToggle(etapaId);
+                                                        }}
                                                         className={`px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-left ${selectedStages.includes(etapaId)
                                                             ? 'bg-indigo-600 text-white shadow-sm'
                                                             : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'

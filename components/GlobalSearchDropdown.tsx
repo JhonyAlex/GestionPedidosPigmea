@@ -63,9 +63,9 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
 
     return (
         <>
-            {/* Overlay de fondo */}
+            {/* Overlay de fondo oscuro para enfocar atención en el buscador */}
             <div
-                className="fixed inset-0 bg-black/20 dark:bg-black/40 z-40 global-search-dropdown"
+                className="fixed inset-0 bg-black/35 dark:bg-black/50 z-40 global-search-dropdown transition-opacity duration-300"
                 onClick={(e) => {
                     e.stopPropagation();
                     onClose();
