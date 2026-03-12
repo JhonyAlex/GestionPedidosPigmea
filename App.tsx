@@ -1235,7 +1235,9 @@ const AppContent: React.FC = () => {
                     onUserManagement={() => setShowUserManagement(true)}
                     onResetAllFilters={resetAllFilters}
                 />
-                {renderContent()}
+                <div className={selectedIds.length > 0 ? 'pb-32 transition-all duration-300 md:pb-28' : 'transition-all duration-300'}>
+                    {renderContent()}
+                </div>
                 {selectedPedido && (
                     <PedidoModal
                         pedido={selectedPedido}

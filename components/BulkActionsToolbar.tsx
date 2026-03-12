@@ -58,76 +58,73 @@ const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
   if (selectedCount < 1) return null;
 
   return (
-    <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 animate-slide-up max-w-[95vw]">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-gray-200 dark:border-gray-700 px-6 py-4">
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          {/* Contador */}
-          <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl px-4 py-2 min-w-fit">
-            <div className="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg shadow-md">
+    <div className="fixed bottom-4 left-1/2 z-40 w-full max-w-[calc(100vw-1rem)] -translate-x-1/2 px-2 animate-slide-up sm:max-w-fit sm:px-0">
+      <div className="rounded-2xl border border-gray-200 bg-white/95 px-3 py-3 shadow-xl backdrop-blur-sm dark:border-gray-700 dark:bg-gray-800/95 sm:px-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+          <div className="flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50/80 px-3 py-2 dark:border-blue-900/60 dark:bg-blue-950/30">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white shadow-sm">
               {selectedCount}
             </div>
-            <span className="text-gray-800 dark:text-gray-200 font-semibold whitespace-nowrap">
+            <span className="whitespace-nowrap text-sm font-semibold text-gray-800 dark:text-gray-200">
               {selectedCount === 1 ? 'pedido seleccionado' : 'pedidos seleccionados'}
             </span>
           </div>
 
-          {/* Botones de acción */}
-          <div className="flex flex-wrap items-center justify-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
             <button
               onClick={onUpdateDate}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-blue-50 text-blue-700 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:scale-105 group"
+              className="flex items-center gap-2 rounded-xl border border-blue-100 bg-white px-3 py-2 text-sm font-medium text-blue-700 transition-colors duration-200 hover:bg-blue-50 dark:border-gray-600 dark:bg-gray-800 dark:text-blue-300 dark:hover:bg-gray-700"
               title="Cambiar fecha de entrega"
             >
               <CalendarIcon />
-              <span className="text-sm">Nueva Fecha</span>
+              <span>Nueva Fecha</span>
             </button>
 
             <button
               onClick={onUpdateMachine}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-indigo-50 text-indigo-700 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:scale-105 group"
+              className="flex items-center gap-2 rounded-xl border border-indigo-100 bg-white px-3 py-2 text-sm font-medium text-indigo-700 transition-colors duration-200 hover:bg-indigo-50 dark:border-gray-600 dark:bg-gray-800 dark:text-indigo-300 dark:hover:bg-gray-700"
               title="Cambiar máquina de impresión"
             >
               <MachineIcon />
-              <span className="text-sm">Máquina</span>
+              <span>Máquina</span>
             </button>
 
             <button
               onClick={onUpdateStage}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-700 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:scale-105 group"
+              className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-white px-3 py-2 text-sm font-medium text-emerald-700 transition-colors duration-200 hover:bg-emerald-50 dark:border-gray-600 dark:bg-gray-800 dark:text-emerald-300 dark:hover:bg-gray-700"
               title="Cambiar etapa de los pedidos"
             >
               <StageIcon />
-              <span className="text-sm">Etapa</span>
+              <span>Etapa</span>
             </button>
 
             <button
               onClick={onArchive}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-purple-50 text-purple-700 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:scale-105 group"
+              className="flex items-center gap-2 rounded-xl border border-violet-100 bg-white px-3 py-2 text-sm font-medium text-violet-700 transition-colors duration-200 hover:bg-violet-50 dark:border-gray-600 dark:bg-gray-800 dark:text-violet-300 dark:hover:bg-gray-700"
               title="Archivar pedidos seleccionados"
             >
               <ArchiveIcon />
-              <span className="text-sm">Archivar</span>
+              <span>Archivar</span>
             </button>
 
             <button
               onClick={onDelete}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-red-50 text-red-700 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:scale-105 group"
+              className="flex items-center gap-2 rounded-xl border border-red-100 bg-white px-3 py-2 text-sm font-medium text-red-700 transition-colors duration-200 hover:bg-red-50 dark:border-gray-600 dark:bg-gray-800 dark:text-red-300 dark:hover:bg-gray-700"
               title="Eliminar pedidos seleccionados"
             >
               <TrashIcon />
-              <span className="text-sm">Eliminar</span>
+              <span>Eliminar</span>
             </button>
 
-            {/* Separador visual */}
-            <div className="h-8 w-px bg-gray-300 dark:bg-gray-600 hidden sm:block"></div>
+            <div className="hidden h-7 w-px bg-gray-200 dark:bg-gray-600 sm:block"></div>
 
             <button
               onClick={onCancel}
-              className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl border border-gray-300 dark:border-gray-600"
+              className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-700 transition-colors duration-200 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
               title="Cancelar selección"
             >
               <XMarkIcon />
-              <span className="text-sm">Cancelar</span>
+              <span>Cancelar</span>
             </button>
           </div>
         </div>
