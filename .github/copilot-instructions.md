@@ -3,6 +3,10 @@
 Usa estas reglas para mantener la calidad y conexión del proyecto.
 
 > 📚 **Guía extendida**: Para cambios en BD o componentes, consultar `.github/agents/database-and-components-guide.md`
+> 🗂️ **Contexto BD (completo)**: `.github/agents/database-context-pedidos-full.md`
+> ⚡ **Contexto BD (rápido)**: `.github/agents/database-context-pedidos-quick.md`
+
+Antes de proponer cambios de esquema/datos SQL, revisar primero el contexto rápido y luego el completo si hay impacto estructural.
 
 ---
 
