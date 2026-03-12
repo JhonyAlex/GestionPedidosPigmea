@@ -24,14 +24,15 @@ const AntivahoDestinationModal: React.FC<AntivahoDestinationModalProps> = ({
     // Determinar si viene de "Listo para Producción" o de "Post-Impresión"
     const isFromListoProduccion = pedido?.etapaActual === 'PREPARACION' && 
                                    pedido?.subEtapaActual === 'LISTO_PARA_PRODUCCION';
+    const isFromPostImpresion = !isFromListoProduccion;
     
     const impresionButtonText = isFromListoProduccion 
         ? 'Enviar a Impresión' 
-        : 'Regresar a Impresión';
+        : 'Elegir impresora y confirmar secuencia';
 
     const descripcionText = isFromListoProduccion
         ? 'El pedido está listo y el antivaho ha sido completado.'
-        : 'El antivaho ha sido completado.';
+        : 'El pedido viene de post-impresión con antivaho pendiente.';
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
@@ -42,7 +43,9 @@ const AntivahoDestinationModal: React.FC<AntivahoDestinationModalProps> = ({
                 <p className="text-gray-700 dark:text-gray-300 mb-6">
                     {descripcionText} Pedido <span className="font-semibold">{pedido?.numeroPedidoCliente}</span>.
                     <br /><br />
-                    Selecciona el siguiente destino:
+                    {isFromPostImpresion
+                        ? 'Selecciona si debe ir a Listo a Producción o volver a una impresora. Si vuelve a impresión, luego confirmarás la nueva secuencia.'
+                        : 'Selecciona el siguiente destino:'}
                 </p>
                 <div className="flex flex-col gap-3 mb-4">
                     <button

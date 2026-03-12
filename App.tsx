@@ -347,12 +347,18 @@ const AppContent: React.FC = () => {
     }, [pedidos, currentUserRole, processedPedidos, generarEntradaHistorial, logAction, handleSort, setPedidos, handleSavePedidoLogic, handleUpdatePedidoEtapa, getMaterialesByPedidoId]);
 
     const handleAdvanceStage = async (pedidoToAdvance: Pedido) => {
-        // 🆕 EXTENDIDO: Si es un pedido con antivaho no realizado en post-impresión o listo para producción, abrir modal de reconfirmación
+        // Para pedidos con antivaho no realizado en post-impresión, primero decidir si vuelve a impresión
+        // o si pasa a listo para producción.
         const isInPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedidoToAdvance.etapaActual);
         const isInListoProduccion = pedidoToAdvance.etapaActual === Etapa.PREPARACION && 
                                      pedidoToAdvance.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION;
         
-        if (pedidoToAdvance.antivaho && !pedidoToAdvance.antivahoRealizado && (isInPostImpresion || isInListoProduccion)) {
+        if (pedidoToAdvance.antivaho && !pedidoToAdvance.antivahoRealizado && isInPostImpresion) {
+            setAntivahoDestinationModalState({ isOpen: true, pedido: pedidoToAdvance });
+            return;
+        }
+
+        if (pedidoToAdvance.antivaho && !pedidoToAdvance.antivahoRealizado && isInListoProduccion) {
             setPedidoToSend(pedidoToAdvance);
             return;
         }

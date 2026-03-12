@@ -273,7 +273,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
         "Láser",
         "Sig. Etapa",
         "Observaciones",
-        "Creación"
+        "Nva. Entrega"
     ];
 
     const tableRows = pedidos.map(p => {
@@ -297,7 +297,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             p.microperforado ? 'Sí' : 'No',
             getNextStageTitle(p),
             observacionesCombinadas,
-            formatDateDDMMYYYY(p.fechaCreacion),
+            p.nuevaFechaEntrega ? p.nuevaFechaEntrega.slice(8, 10) + '/' + p.nuevaFechaEntrega.slice(5, 7) : '-',
         ];
     });
 

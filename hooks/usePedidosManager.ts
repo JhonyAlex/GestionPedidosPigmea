@@ -812,6 +812,7 @@ export const usePedidosManager = (
         const fromListoProduccion = pedido.etapaActual === Etapa.PREPARACION && 
                                      pedido.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION;
         const toImpresion = KANBAN_FUNNELS.IMPRESION.stages.includes(newEtapa);
+        const shouldMarkAntivahoAsDone = pedido.antivaho && !pedido.antivahoRealizado && fromPostImpresion;
 
         // SOLO mostrar modal de confirmación si el antivaho NO está realizado
         // Si ya está realizado, debe comportarse como pedido normal
@@ -821,9 +822,12 @@ export const usePedidosManager = (
             return;
         }
 
-        // Logic to reset antivahoRealizado if moving to PREPARACION
+        // Al salir de post-impresión con antivaho pendiente, siempre queda como realizado.
+        // En otros reingresos a preparación, el estado se resetea como hasta ahora.
         let updatedPedido = { ...pedido };
-        if (newEtapa === Etapa.PREPARACION) {
+        if (shouldMarkAntivahoAsDone) {
+            updatedPedido.antivahoRealizado = true;
+        } else if (newEtapa === Etapa.PREPARACION) {
             updatedPedido.antivahoRealizado = false;
         }
 
@@ -929,15 +933,12 @@ export const usePedidosManager = (
 
         const pedido = antivahoDestinationModalState.pedido;
 
-        // Mover a Listo a Producción (sub-etapa de Preparación)
-        const updatedPedido = {
-            ...pedido,
-            etapaActual: Etapa.PREPARACION,
-            subEtapaActual: PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION,
-        };
-
-        await handleSavePedido(updatedPedido);
         setAntivahoDestinationModalState({ isOpen: false, pedido: null });
+        await handleUpdatePedidoEtapa(
+            pedido,
+            Etapa.PREPARACION,
+            PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION
+        );
     };
 
     const handleCancelAntivahoDestination = () => {
