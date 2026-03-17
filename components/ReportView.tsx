@@ -20,6 +20,7 @@ import { generateProductionAnalysis, saveAnalysisToCache, getAnalysisFromCache, 
 import { io, Socket } from 'socket.io-client';
 import InfoTooltip from './InfoTooltip';
 import ClientOrderFilter from './ClientOrderFilter';
+import BulkActionsToolbar from './BulkActionsToolbar';
 
 /**
  * =============================================================================
@@ -63,6 +64,12 @@ interface ReportViewProps {
     selectedIds?: string[];
     onToggleSelection?: (id: string) => void;
     onSelectAll?: (ids: string[]) => void;
+    onBulkUpdateDate?: () => void;
+    onBulkUpdateMachine?: () => void;
+    onBulkUpdateStage?: () => void;
+    onBulkDelete?: () => void;
+    onBulkArchive?: () => void;
+    onClearSelection?: () => void;
 }
 
 // Special filter constants
@@ -84,7 +91,13 @@ const ReportView: React.FC<ReportViewProps> = ({
     onSelectPedido,
     selectedIds,
     onToggleSelection,
-    onSelectAll
+    onSelectAll,
+    onBulkUpdateDate,
+    onBulkUpdateMachine,
+    onBulkUpdateStage,
+    onBulkDelete,
+    onBulkArchive,
+    onClearSelection
 }) => {
     // --- Tab State ---
     const [activeTab, setActiveTab] = useState<'planning' | 'analytics'>('planning');
@@ -564,6 +577,14 @@ const ReportView: React.FC<ReportViewProps> = ({
 
         onSelectAll([...(selectedIds || []).filter(id => !selectedPedidos.find(p => p.id === id)), ...selectedPedidos.map(p => p.id)]);
     };
+
+    const selectedDetailIds = useMemo(() => {
+        if (!selectedIds?.length || !selectedPedidos.length) return [];
+
+        return selectedPedidos
+            .filter(pedido => selectedIds.includes(pedido.id))
+            .map(pedido => pedido.id);
+    }, [selectedIds, selectedPedidos]);
 
 
     // --- 3. AI Analysis Functions ---
@@ -1228,6 +1249,18 @@ const ReportView: React.FC<ReportViewProps> = ({
                     {/* --- Details Table (Filtered) --- */}
                     {selectedChartFilter && (
                         <div id="planning-details-table" className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden p-4 mt-6 animate-fade-in">
+                            {selectedDetailIds.length > 1 && onBulkUpdateDate && onBulkUpdateMachine && onBulkUpdateStage && onBulkDelete && onBulkArchive && onClearSelection && (
+                                <BulkActionsToolbar
+                                    selectedCount={selectedDetailIds.length}
+                                    onUpdateDate={onBulkUpdateDate}
+                                    onUpdateMachine={onBulkUpdateMachine}
+                                    onUpdateStage={onBulkUpdateStage}
+                                    onDelete={onBulkDelete}
+                                    onArchive={onBulkArchive}
+                                    onCancel={onClearSelection}
+                                    position="inline"
+                                />
+                            )}
                             <div className="flex justify-between items-center mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
                                 <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
                                     <span className="w-2 h-6 bg-blue-500 rounded-sm"></span>

@@ -8,6 +8,7 @@ interface BulkActionsToolbarProps {
   onDelete: () => void;
   onArchive: () => void;
   onCancel: () => void;
+  position?: 'page' | 'inline';
 }
 
 const CalendarIcon = () => (
@@ -54,11 +55,16 @@ const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
   onDelete,
   onArchive,
   onCancel,
+  position = 'page',
 }) => {
   if (selectedCount <= 1) return null;
 
+  const containerClassName = position === 'inline'
+    ? 'mb-4 animate-slide-up'
+    : 'flex justify-center animate-slide-up';
+
   return (
-    <div className="flex justify-center animate-slide-up">
+    <div className={containerClassName}>
       <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white/95 px-3 py-3 shadow-lg backdrop-blur-sm dark:border-gray-700 dark:bg-gray-800/95">
         <div className="flex min-w-max items-center gap-2 whitespace-nowrap">
           <div className="flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50/80 px-3 py-2 dark:border-blue-900/60 dark:bg-blue-950/30">

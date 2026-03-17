@@ -1179,6 +1179,12 @@ const AppContent: React.FC = () => {
                     selectedIds={selectedIds}
                     onToggleSelection={toggleSelection}
                     onSelectAll={selectAll}
+                    onBulkUpdateDate={() => setShowDateUpdateModal(true)}
+                    onBulkUpdateMachine={() => setShowMachineUpdateModal(true)}
+                    onBulkUpdateStage={() => setShowStageUpdateModal(true)}
+                    onBulkDelete={() => setShowDeleteModal(true)}
+                    onBulkArchive={() => setShowArchiveModal(true)}
+                    onClearSelection={clearSelection}
                 />;
 
             case 'permissions-debug':
@@ -1241,7 +1247,7 @@ const AppContent: React.FC = () => {
                     onUserManagement={() => setShowUserManagement(true)}
                     onResetAllFilters={resetAllFilters}
                 />
-                {selectedIds.length > 1 && (
+                {view !== 'report' && selectedIds.length > 1 && (
                     <div className="px-2 pt-2 md:px-4 md:pt-3">
                         <BulkActionsToolbar
                             selectedCount={selectedIds.length}
