@@ -1082,6 +1082,9 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                 compraCliche: value,
                 horasConfirmadas: value ? true : prev.horasConfirmadas
             }));
+        } else if (name === 'metros') {
+            const parsedMetros = sanitizeIntegerInput(value);
+            setFormData(prev => ({ ...prev, metros: parsedMetros }));
         } else if (type === 'checkbox') {
             const { checked } = e.target as HTMLInputElement;
             // Si se marca/desmarca el checkbox "anonimo", sincronizar con maquinaImpresion
@@ -1891,7 +1894,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                                                 <ChartBarIcon />
                                                             </button>
                                                         </div>
-                                                        <input type="text" inputMode="numeric" pattern="[0-9]*" name="metros" value={formData.metros} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50" />
+                                                        <input type="text" inputMode="numeric" pattern="[0-9.]*" name="metros" value={formatMetros(formData.metros)} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50" />
                                                     </div>
                                                     <div>
                                                         <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
@@ -1944,7 +1947,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                                 {showMetrosTracking && (
                                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 p-3">
                                                         <div>
-                                                            <label className="block mb-1 text-xs font-semibold tracking-wide uppercase text-gray-500 dark:text-gray-400">Metros</label>
+                                                            <label className="block mb-1 text-[0.525rem] font-semibold tracking-wide uppercase text-gray-500 dark:text-gray-400">Metros</label>
                                                             <input
                                                                 type="text"
                                                                 value={`${formatMetros(metrosBase)} m`}
@@ -1953,7 +1956,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                                             />
                                                         </div>
                                                         <div>
-                                                            <label className="block mb-1 text-xs font-semibold tracking-wide uppercase text-gray-500 dark:text-gray-400">Metros Llevados</label>
+                                                            <label className="block mb-1 text-[0.525rem] font-semibold tracking-wide uppercase text-gray-500 dark:text-gray-400">Metros Llevados</label>
                                                             <input
                                                                 type="text"
                                                                 inputMode="numeric"
@@ -1965,7 +1968,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                                             />
                                                         </div>
                                                         <div>
-                                                            <label className="block mb-1 text-xs font-semibold tracking-wide uppercase text-gray-500 dark:text-gray-400">Metros Faltantes</label>
+                                                            <label className="block mb-1 text-[0.525rem] font-semibold tracking-wide uppercase text-gray-500 dark:text-gray-400">Metros Faltantes</label>
                                                             <input
                                                                 type="text"
                                                                 value={`${formatMetros(metrosFaltantes)} m`}
