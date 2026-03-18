@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pedido, Etapa } from '../types';
 import { KANBAN_FUNNELS, ETAPAS } from '../constants';
+import { normalizePostImpresionSequence } from '../utils/dntWorkflow';
 import SequenceBuilder from './SequenceBuilder';
 
 interface EnviarAImpresionModalProps {
@@ -14,6 +15,8 @@ interface EnviarAImpresionModalProps {
 }
 
 const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, onClose, onConfirm }) => {
+    const availablePostImpresionStages = normalizePostImpresionSequence(KANBAN_FUNNELS.POST_IMPRESION.stages, pedido.cliente);
+
     const getInitialStage = (): Etapa => {
         if (pedido.maquinaImpresion) {
             const matchingStage = KANBAN_FUNNELS.IMPRESION.stages.find(
@@ -26,7 +29,18 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
     };
 
     const [impresionEtapa, setImpresionEtapa] = useState<Etapa>(getInitialStage());
-    const [postImpresionSequence, setPostImpresionSequence] = useState<Etapa[]>(pedido.secuenciaTrabajo || []);
+    const [postImpresionSequence, setPostImpresionSequence] = useState<Etapa[]>(
+        normalizePostImpresionSequence(pedido.secuenciaTrabajo, pedido.cliente)
+    );
+
+    useEffect(() => {
+        setImpresionEtapa(getInitialStage());
+        setPostImpresionSequence(normalizePostImpresionSequence(pedido.secuenciaTrabajo, pedido.cliente));
+    }, [pedido]);
+
+    const handleSequenceChange = (newSequence: Etapa[]) => {
+        setPostImpresionSequence(normalizePostImpresionSequence(newSequence, pedido.cliente));
+    };
 
     // Determinar si es una reconfirmación de antivaho
     const isAntivahoReconfirmation = pedido.antivaho && !pedido.antivahoRealizado &&
@@ -34,18 +48,19 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        const normalizedSequence = normalizePostImpresionSequence(postImpresionSequence, pedido.cliente);
 
         // Pedidos anónimos: saltar impresión y enviar directamente a la primera etapa de post-impresión
-        if (pedido.anonimo && postImpresionSequence.length > 0) {
-            onConfirm(pedido, postImpresionSequence[0], postImpresionSequence.slice(1));
+        if (pedido.anonimo && normalizedSequence.length > 0) {
+            onConfirm(pedido, normalizedSequence[0], normalizedSequence.slice(1));
             return;
         }
 
         // Si el pedido tiene antivaho, no se ha realizado y está en preparación, enviar directamente a post-impresión
-        if (pedido.antivaho && !pedido.antivahoRealizado && pedido.etapaActual === 'PREPARACION' && postImpresionSequence.length > 0) {
-            onConfirm(pedido, postImpresionSequence[0], postImpresionSequence.slice(1));
+        if (pedido.antivaho && !pedido.antivahoRealizado && pedido.etapaActual === 'PREPARACION' && normalizedSequence.length > 0) {
+            onConfirm(pedido, normalizedSequence[0], normalizedSequence.slice(1));
         } else {
-            onConfirm(pedido, impresionEtapa, postImpresionSequence);
+            onConfirm(pedido, impresionEtapa, normalizedSequence);
         }
     };
 
@@ -144,7 +159,7 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
                                     </optgroup>
                                     {isAntivahoReconfirmation && (
                                         <optgroup label="Post-Impresión">
-                                            {KANBAN_FUNNELS.POST_IMPRESION.stages.map(stageId => (
+                                            {availablePostImpresionStages.map(stageId => (
                                                 <option key={stageId} value={stageId}>
                                                     {ETAPAS[stageId].title}
                                                 </option>
@@ -165,8 +180,9 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
                             </h3>
                             <SequenceBuilder
                                 sequence={postImpresionSequence}
-                                onChange={setPostImpresionSequence}
+                                onChange={handleSequenceChange}
                                 isReadOnly={false}
+                                clienteName={pedido.cliente}
                             />
                             {(pedido.anonimo || pedido.antivaho) && postImpresionSequence.length === 0 && (
                                 <p className="text-red-600 dark:text-red-400 text-sm mt-2">

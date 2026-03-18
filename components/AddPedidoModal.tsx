@@ -12,6 +12,7 @@ import ClienteModalMejorado from './ClienteModalMejorado';
 import VendedorModal from './VendedorModal';
 import { useActionRecorder } from '../hooks/useActionRecorder';
 import { checkNumeroPedidoClienteExists } from '../services/storage';
+import { areStageSequencesEqual, normalizePostImpresionSequence } from '../utils/dntWorkflow';
 
 const decimalToHHMM = (decimal: number): string => {
     if (!Number.isFinite(decimal) || decimal < 0) {
@@ -137,6 +138,13 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
             }));
         }
     }, [clientePreseleccionado]);
+
+    useEffect(() => {
+        setSecuenciaTrabajo(prev => {
+            const normalizedSequence = normalizePostImpresionSequence(prev, formData.cliente);
+            return areStageSequencesEqual(prev, normalizedSequence) ? prev : normalizedSequence;
+        });
+    }, [formData.cliente]);
 
     useEffect(() => {
         const rawValue = formData.numeroPedidoCliente || '';
@@ -432,6 +440,10 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
         }
     };
 
+    const handleSequenceChange = (newSequence: Etapa[]) => {
+        setSecuenciaTrabajo(normalizePostImpresionSequence(newSequence, formData.cliente));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -447,9 +459,10 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
         }
 
         const metrosValue = Number(formData.metros);
+    const normalizedSequence = normalizePostImpresionSequence(secuenciaTrabajo, formData.cliente);
 
         // ✅ Esperar respuesta de onAdd para obtener el pedido creado
-        const newPedido = await onAdd({ pedidoData: { ...formData, metros: metrosValue }, secuenciaTrabajo });
+    const newPedido = await onAdd({ pedidoData: { ...formData, metros: metrosValue }, secuenciaTrabajo: normalizedSequence });
 
         // ✅ Registrar acción CREATE en el historial
         if (newPedido) {
@@ -901,8 +914,9 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                             <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
                                 <SequenceBuilder
                                     sequence={secuenciaTrabajo}
-                                    onChange={setSecuenciaTrabajo}
+                                    onChange={handleSequenceChange}
                                     isReadOnly={false}
+                                    clienteName={formData.cliente}
                                 />
                             </div>
                         </div>

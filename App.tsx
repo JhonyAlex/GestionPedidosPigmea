@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { Pedido, Etapa, ViewType, UserRole, AuditEntry, Prioridad, EstadoCliché, HistorialEntry, DateField } from './types';
-import { KANBAN_FUNNELS, ETAPAS, PREPARACION_SUB_ETAPAS_IDS } from './constants';
+import { KANBAN_FUNNELS, KANBAN_VISUAL_LAYOUT, ETAPAS, PREPARACION_SUB_ETAPAS_IDS } from './constants';
 import { DateFilterOption } from './utils/date';
-import { calculateTotalProductionTime, generatePedidosPDF } from './utils/kpi';
+import { calculateTotalProductionTime, generatePedidosPDF, parseTimeToMinutes, formatMinutesToHHMM } from './utils/kpi';
 import { scrollToPedido } from './utils/scroll';
 import KanbanColumn from './components/KanbanColumn';
 import PedidoModal from './components/PedidoModal';
@@ -329,6 +329,30 @@ const AppContent: React.FC = () => {
     const listoProduccionPedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual === Etapa.PREPARACION && p.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION), [processedPedidos]);
     const activePedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual !== Etapa.ARCHIVADO && p.etapaActual !== Etapa.PREPARACION), [processedPedidos]);
     const archivedPedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual === Etapa.ARCHIVADO), [processedPedidos]);
+    const listViewMetrics = useMemo(() => {
+        const totals = activePedidos.reduce((acc, pedido) => {
+            const metros = typeof pedido.metros === 'number' ? pedido.metros : Number(pedido.metros || 0);
+            const tiempoPlanificado = pedido.tiempoProduccionPlanificado
+                ? parseTimeToMinutes(pedido.tiempoProduccionPlanificado)
+                : Math.round((pedido.tiempoProduccionDecimal || 0) * 60);
+
+            acc.totalPedidos += 1;
+            acc.totalMetros += Number.isFinite(metros) ? metros : 0;
+            acc.totalMinutos += tiempoPlanificado;
+            return acc;
+        }, {
+            totalPedidos: 0,
+            totalMetros: 0,
+            totalMinutos: 0,
+        });
+
+        return {
+            totalPedidos: totals.totalPedidos,
+            totalMetros: totals.totalMetros,
+            totalTiempo: formatMinutesToHHMM(totals.totalMinutos),
+        };
+    }, [activePedidos]);
+
     const handleDragEnd = useCallback(async (result: DropResult) => {
         await procesarDragEnd({
             result,
@@ -364,13 +388,13 @@ const AppContent: React.FC = () => {
         }
 
         // Si el pedido está fuera de secuencia, abrir modal de reordenamiento
-        if (estaFueraDeSecuencia(pedidoToAdvance.etapaActual, pedidoToAdvance.secuenciaTrabajo)) {
+        if (estaFueraDeSecuencia(pedidoToAdvance.etapaActual, pedidoToAdvance.secuenciaTrabajo, pedidoToAdvance.cliente)) {
             setPedidoToReorder(pedidoToAdvance);
             return;
         }
 
         const { etapaActual, secuenciaTrabajo } = pedidoToAdvance;
-        const newEtapa = calcularSiguienteEtapa(etapaActual, secuenciaTrabajo);
+        const newEtapa = calcularSiguienteEtapa(etapaActual, secuenciaTrabajo, pedidoToAdvance.cliente);
 
         if (newEtapa) {
             // Highlight effect
@@ -1052,9 +1076,9 @@ const AppContent: React.FC = () => {
                 return (
                     <main className="flex-grow p-4 md:p-8 flex flex-col gap-10">
                         <section>
-                            <h2 className="text-3xl font-extrabold text-gray-800 dark:text-white mb-4 border-l-4 border-cyan-500 pl-4">Impresión</h2>
+                            <h2 className="text-3xl font-extrabold text-gray-800 dark:text-white mb-4 border-l-4 border-cyan-500 pl-4">Impresión y DNT</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                {KANBAN_FUNNELS.IMPRESION.stages.map(etapaId => (
+                                {KANBAN_VISUAL_LAYOUT.topRow.map(etapaId => (
                                     <KanbanColumn
                                         key={etapaId}
                                         etapa={ETAPAS[etapaId]}
@@ -1077,9 +1101,8 @@ const AppContent: React.FC = () => {
                         <section>
                             <h2 className="text-3xl font-extrabold text-gray-800 dark:text-white mb-4 border-l-4 border-indigo-500 pl-4">Post-Impresión</h2>
 
-                            {/* Primera fila: 5 etapas (Laminación SL2, Laminación NEXUS, Ec-convert 21, Ec-convert 22, Rebobinado S2DT) */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-6">
-                                {KANBAN_FUNNELS.POST_IMPRESION.stages.slice(0, 5).map(etapaId => (
+                                {KANBAN_VISUAL_LAYOUT.postImpresionRows[0].map(etapaId => (
                                     <KanbanColumn
                                         key={etapaId}
                                         etapa={ETAPAS[etapaId]}
@@ -1098,9 +1121,8 @@ const AppContent: React.FC = () => {
                                 ))}
                             </div>
 
-                            {/* Segunda fila: 4 etapas (Rebobinado PROSLIT, Rebobinado TEMAC, Perforación MIC, Perforación MAC) */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                                {KANBAN_FUNNELS.POST_IMPRESION.stages.slice(5, 9).map(etapaId => (
+                                {KANBAN_VISUAL_LAYOUT.postImpresionRows[1].map(etapaId => (
                                     <KanbanColumn
                                         key={etapaId}
                                         etapa={ETAPAS[etapaId]}
@@ -1216,6 +1238,7 @@ const AppContent: React.FC = () => {
                     activeFilters={filters}
                     selectedStages={selectedStages}
                     onStageToggle={handleStageToggle}
+                    listViewMetrics={listViewMetrics}
                     selectedVendedores={selectedVendedores}
                     onVendedorToggle={handleVendedorToggle}
                     selectedClientes={selectedClientes}

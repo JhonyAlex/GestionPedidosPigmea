@@ -28,6 +28,7 @@ export enum Etapa {
 
 
     // Embudo Post-Impresión
+    POST_DNT = 'POST_DNT',
     POST_LAMINACION_SL2 = 'POST_LAMINACION_SL2',
     POST_LAMINACION_NEXUS = 'POST_LAMINACION_NEXUS',
     POST_ECCONVERT_21 = 'POST_ECCONVERT_21',
@@ -70,6 +71,7 @@ export interface Pedido {
     clienteId?: string; // ✅ ID del cliente en la tabla de clientes
     maquinaImpresion: string;
     metros: number | string;
+    metrosLlevados?: number | null;
     fechaCreacion: string; // ISO 8601 date string
     fechaEntrega: string; // YYYY-MM-DD
     nuevaFechaEntrega?: string; // YYYY-MM-DD

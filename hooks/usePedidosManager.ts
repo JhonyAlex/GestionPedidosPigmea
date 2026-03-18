@@ -3,6 +3,7 @@ import { Pedido, UserRole, Etapa, HistorialEntry } from '../types';
 import { store } from '../services/storage';
 import { ETAPAS, KANBAN_FUNNELS, PREPARACION_SUB_ETAPAS_IDS } from '../constants';
 import { determinarEtapaPreparacion } from '../utils/preparacionLogic';
+import { normalizePostImpresionSequence } from '../utils/dntWorkflow';
 import AntivahoConfirmationModal from '../components/AntivahoConfirmationModal';
 
 // 🚀 Configuración de optimización
@@ -198,7 +199,10 @@ export const usePedidosManager = (
         // Hacer una copia profunda del pedido original ANTES de cualquier modificación
         const originalPedidoCopy = JSON.parse(JSON.stringify(originalPedido));
 
-        let modifiedPedido = { ...updatedPedido };
+        let modifiedPedido = {
+            ...updatedPedido,
+            secuenciaTrabajo: normalizePostImpresionSequence(updatedPedido.secuenciaTrabajo, updatedPedido.cliente),
+        };
         let hasChanges = false;
 
         // ✅ ACTUALIZADO: Solo aplicar cambios automáticos si NO está en "SIN GESTION INICIADA"
@@ -518,13 +522,6 @@ export const usePedidosManager = (
         // Eliminamos la actualización optimista para confiar en el WebSocket
         // y evitar conflictos de estado.
 
-        // Sanitizar secuenciaTrabajo: solo etapas de Post-Impresión son válidas
-        if (modifiedPedido.secuenciaTrabajo) {
-            modifiedPedido.secuenciaTrabajo = modifiedPedido.secuenciaTrabajo.filter(
-                (etapa: Etapa) => KANBAN_FUNNELS.POST_IMPRESION.stages.includes(etapa)
-            );
-        }
-
         try {
             await store.update(modifiedPedido);
             // El estado se actualizará vía WebSocket (evento 'pedido-updated')
@@ -551,6 +548,8 @@ export const usePedidosManager = (
         // ✅ Determinar la sub-etapa inicial basándose en los datos del pedido
         const initialSubEtapa = PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA; // Por defecto, todos los pedidos nuevos van a "Sin Gestión Iniciada"
 
+        const normalizedSequence = normalizePostImpresionSequence(secuenciaTrabajo, pedidoData.cliente);
+
         const newPedido: Pedido = {
             ...pedidoData,
             id: newId,
@@ -564,7 +563,7 @@ export const usePedidosManager = (
             subEtapasSecuencia: [{ subEtapa: initialSubEtapa, fecha: now.toISOString() }],
             historial: [generarEntradaHistorial(currentUserRole, 'Creación', 'Pedido creado en Preparación - Sin Gestión Iniciada.')],
             maquinaImpresion: pedidoData.maquinaImpresion || '',
-            secuenciaTrabajo,
+            secuenciaTrabajo: normalizedSequence,
             antivaho: pedidoData.antivaho || false,
             antivahoRealizado: false,
             anonimo: pedidoData.anonimo || false,
@@ -594,9 +593,11 @@ export const usePedidosManager = (
     };
 
     const handleConfirmSendToPrint = async (pedidoToUpdate: Pedido, impresionEtapa: Etapa, postImpresionSequence: Etapa[]) => {
+        const normalizedSequence = normalizePostImpresionSequence(postImpresionSequence, pedidoToUpdate.cliente);
+
         let updatedPedido = {
             ...pedidoToUpdate,
-            secuenciaTrabajo: postImpresionSequence,
+            secuenciaTrabajo: normalizedSequence,
         };
 
         // Determinar si es una reconfirmación desde post-impresión o desde listo para producción
@@ -710,6 +711,7 @@ export const usePedidosManager = (
             materialDisponible: false, // ✅ Resetear disponibilidad de material
             clicheInfoAdicional: undefined, // ✅ Limpiar información adicional de cliché
             posicionEnEtapa: maxPosDup + 1, // ✅ Posición al final de Preparación
+            secuenciaTrabajo: normalizePostImpresionSequence(pedidoClonado.secuenciaTrabajo, pedidoClonado.cliente),
         };
 
         // ✅ Marcar este ID como "en proceso de creación"
@@ -824,7 +826,10 @@ export const usePedidosManager = (
 
         // Al salir de post-impresión con antivaho pendiente, siempre queda como realizado.
         // En otros reingresos a preparación, el estado se resetea como hasta ahora.
-        let updatedPedido = { ...pedido };
+        let updatedPedido = {
+            ...pedido,
+            secuenciaTrabajo: normalizePostImpresionSequence(pedido.secuenciaTrabajo, pedido.cliente),
+        };
         if (shouldMarkAntivahoAsDone) {
             updatedPedido.antivahoRealizado = true;
         } else if (newEtapa === Etapa.PREPARACION) {

@@ -1176,6 +1176,9 @@ const ReportView: React.FC<ReportViewProps> = ({
                                     { id: Etapa.IMPRESION_WM3, label: 'Windmöller 3', color: 'cyan' },
                                     { id: Etapa.IMPRESION_GIAVE, label: 'GIAVE', color: 'cyan' },
 
+                                    // Etapa Post-Impresión DNT
+                                    { id: Etapa.POST_DNT, label: 'DNT', color: 'teal' },
+
                                     // Etapas Post-Impresión - Laminación
                                     { id: Etapa.POST_LAMINACION_SL2, label: 'Laminación SL2', color: 'indigo' },
                                     { id: Etapa.POST_LAMINACION_NEXUS, label: 'Laminación NEXUS', color: 'indigo' },
@@ -1200,6 +1203,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                         'amber': { active: 'bg-amber-500 border-amber-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
                                         'emerald': { active: 'bg-emerald-500 border-emerald-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
                                         'cyan': { active: 'bg-cyan-500 border-cyan-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                        'teal': { active: 'bg-teal-600 border-teal-700 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
                                         'indigo': { active: 'bg-indigo-500 border-indigo-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
                                         'purple': { active: 'bg-purple-500 border-purple-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
                                         'pink': { active: 'bg-pink-500 border-pink-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },

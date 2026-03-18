@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Cliente } from '../hooks/useClientesManager';
-import { Pedido } from '../types';
+import { Pedido, Etapa } from '../types';
 import { Icons } from './Icons';
 import { clienteService } from '../services/clienteService';
 import { formatDateDDMMYYYY, formatMetros } from '../utils/date';
+import { ETAPAS } from '../constants';
 
 interface ClienteDetailModalProps {
     isOpen: boolean;
@@ -110,30 +111,7 @@ const ClienteDetailModal: React.FC<ClienteDetailModalProps> = ({ isOpen, onClose
     };
 
     const formatEtapa = (etapa: string) => {
-        // Diccionario de etapas formateadas
-        const etapasFormato: { [key: string]: string } = {
-            'PREPARACION': 'Preparación',
-            'PENDIENTE': 'Pendiente',
-            // Impresión
-            'IMPRESION_WM1': 'Impresión WM1',
-            'IMPRESION_GIAVE': 'Impresión GIAVE',
-            'IMPRESION_WM3': 'Impresión WM3',
-            'IMPRESION_ANON': 'Impresión ANON',
-            // Post-procesamiento
-            'POST_LAMINACION_SL2': 'Laminación SL2',
-            'POST_LAMINACION_NEXUS': 'Laminación NEXUS',
-            'POST_ECCONVERT_21': 'Ec-convert 21',
-            'POST_ECCONVERT_22': 'Ec-convert 22',
-            'POST_REBOBINADO_S2DT': 'Rebobinado S2DT',
-            'POST_REBOBINADO_PROSLIT': 'Rebobinado PROSLIT',
-            'POST_PERFORACION_MIC': 'Perforación MIC',
-            'POST_PERFORACION_MAC': 'Perforación MAC',
-            'POST_REBOBINADO_TEMAC': 'Rebobinado TEMAC',
-            'COMPLETADO': 'Completado',
-            'ARCHIVADO': 'Archivado'
-        };
-        
-        return etapasFormato[etapa] || etapa.replace(/_/g, ' ');
+        return ETAPAS[etapa as Etapa]?.title || etapa.replace(/_/g, ' ');
     };
 
     const formatFecha = (fecha: string) => {

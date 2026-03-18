@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Pedido, Prioridad, Etapa, UserRole, TipoImpresion, EstadoCliché } from '../types';
 import { calcularTiempoRealProduccion, parseTimeToMinutes, formatMinutesToHHMM, formatMinutesToDaysAndMinutes, getTiempoTotalOEtapa } from '../utils/kpi';
-import { formatDateTimeDDMMYYYY } from '../utils/date';
+import { formatDateTimeDDMMYYYY, formatMetros } from '../utils/date';
 import { puedeAvanzarSecuencia, estaFueraDeSecuencia } from '../utils/etapaLogic';
 import { ETAPAS, KANBAN_FUNNELS, PREPARACION_COLUMNS, PREPARACION_SUB_ETAPAS_IDS } from '../constants';
 import SequenceBuilder from './SequenceBuilder';
@@ -21,6 +21,7 @@ import { useActionRecorder } from '../hooks/useActionRecorder';
 import { formatStageTitle } from '../utils/formatStageTitle';
 import { useActionHistory } from '../hooks/useActionHistory';
 import { checkNumeroPedidoClienteExists } from '../services/storage';
+import { areStageSequencesEqual, normalizePostImpresionSequence } from '../utils/dntWorkflow';
 import webSocketService from '../services/websocket';
 
 const DuplicateIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m9.75 0h-3.375c-.621 0-1.125.504-1.125 1.125v6.75c0 .621.504 1.125 1.125 1.125h3.375c.621 0 1.125-.504 1.125-1.125v-6.75a1.125 1.125 0 0 0-1.125-1.125Z" /></svg>;
@@ -30,6 +31,7 @@ const PlusCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none"
 const ArrowPathIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 11.667 0l3.181-3.183m-4.991-2.696v4.992h-4.992m0 0-3.181-3.183a8.25 8.25 0 0 1 11.667 0l3.181 3.183" /></svg>;
 const ArchiveBoxIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" /></svg>;
 const PaperAirplaneIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" /></svg>;
+const ChartBarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.5h6v7.5H3v-7.5Zm6-10.5h6v18H9V3Zm6 6h6v12h-6V9Z" /></svg>;
 
 const decimalToHHMM = (decimal: number): string => {
     if (!Number.isFinite(decimal) || decimal < 0) {
@@ -70,6 +72,16 @@ const formatDecimalForInput = (value: number | null | undefined): string => {
 
 const sanitizeDecimalInput = (value: string): string => value.replace(',', '.');
 
+const sanitizeIntegerInput = (value: string): number => {
+    const cleaned = value.replace(/\./g, '').replace(/[^0-9]/g, '');
+    if (!cleaned) {
+        return 0;
+    }
+
+    const parsed = Number.parseInt(cleaned, 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+};
+
 // Icons for history
 const PencilIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>;
 
@@ -102,6 +114,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
     const [formData, setFormData] = useState<Pedido>(JSON.parse(JSON.stringify(pedido)));
     const [tiempoProduccionDecimalInput, setTiempoProduccionDecimalInput] = useState<string>(() => formatDecimalForInput(pedido.tiempoProduccionDecimal));
     const [velocidadPosibleInput, setVelocidadPosibleInput] = useState<string>(() => formData.velocidadPosible?.toString() || '');
+    const [showMetrosTracking, setShowMetrosTracking] = useState<boolean>(() => pedido.metrosLlevados !== null && pedido.metrosLlevados !== undefined);
     const [activeTab, setActiveTab] = useState<'detalles' | 'gestion' | 'historial'>('detalles');
     const [showConfirmClose, setShowConfirmClose] = useState(false);
     const [nuevoVendedor, setNuevoVendedor] = useState('');
@@ -184,9 +197,81 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
             clonedPedido.tiempoProduccionPlanificado = '00:00';
         }
 
+        clonedPedido.secuenciaTrabajo = normalizePostImpresionSequence(clonedPedido.secuenciaTrabajo, clonedPedido.cliente);
+
         setFormData(clonedPedido);
         setTiempoProduccionDecimalInput(formatDecimalForInput(clonedPedido.tiempoProduccionDecimal));
+        setShowMetrosTracking(clonedPedido.metrosLlevados !== null && clonedPedido.metrosLlevados !== undefined);
     }, [pedido]);
+
+    const metrosBase = useMemo(() => {
+        const parsed = Number(formData.metros);
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+            return 0;
+        }
+
+        return Math.round(parsed);
+    }, [formData.metros]);
+
+    const metrosLlevados = useMemo(() => {
+        const parsed = Number(formData.metrosLlevados ?? 0);
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+            return 0;
+        }
+
+        return Math.min(Math.round(parsed), metrosBase);
+    }, [formData.metrosLlevados, metrosBase]);
+
+    const metrosFaltantes = useMemo(() => {
+        return Math.max(0, metrosBase - metrosLlevados);
+    }, [metrosBase, metrosLlevados]);
+
+    useEffect(() => {
+        if (formData.metrosLlevados === null || formData.metrosLlevados === undefined) {
+            return;
+        }
+
+        if (formData.metrosLlevados < 0) {
+            setFormData(prev => ({ ...prev, metrosLlevados: 0 }));
+            return;
+        }
+
+        if (formData.metrosLlevados > metrosBase) {
+            setFormData(prev => ({ ...prev, metrosLlevados: metrosBase }));
+        }
+    }, [formData.metrosLlevados, metrosBase]);
+
+    const handleToggleMetrosTracking = useCallback(() => {
+        if (showMetrosTracking) {
+            setShowMetrosTracking(false);
+            return;
+        }
+
+        setShowMetrosTracking(true);
+        setFormData(prev => ({
+            ...prev,
+            metrosLlevados: prev.metrosLlevados ?? 0,
+        }));
+    }, [showMetrosTracking]);
+
+    const handleMetrosLlevadosChange = useCallback((rawValue: string) => {
+        const parsed = sanitizeIntegerInput(rawValue);
+        const clamped = Math.min(Math.max(parsed, 0), metrosBase);
+
+        setFormData(prev => ({
+            ...prev,
+            metrosLlevados: clamped,
+        }));
+    }, [metrosBase]);
+
+    useEffect(() => {
+        setFormData(prev => {
+            const normalizedSequence = normalizePostImpresionSequence(prev.secuenciaTrabajo, prev.cliente);
+            return areStageSequencesEqual(prev.secuenciaTrabajo, normalizedSequence)
+                ? prev
+                : { ...prev, secuenciaTrabajo: normalizedSequence };
+        });
+    }, [formData.cliente]);
 
     useEffect(() => {
         if (isReadOnly) {
@@ -1065,7 +1150,10 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
     };
 
     const handleSequenceChange = (newSequence: Etapa[]) => {
-        setFormData(prev => ({ ...prev, secuenciaTrabajo: newSequence }));
+        setFormData(prev => ({
+            ...prev,
+            secuenciaTrabajo: normalizePostImpresionSequence(newSequence, prev.cliente)
+        }));
     };
 
     const getValidatedPedidoForPersistence = (): Pedido | null => {
@@ -1100,7 +1188,11 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
             return null;
         }
 
-        return { ...formData, metros: metrosValue } as Pedido;
+        return {
+            ...formData,
+            metros: metrosValue,
+            secuenciaTrabajo: normalizePostImpresionSequence(formData.secuenciaTrabajo, formData.cliente)
+        } as Pedido;
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -1124,7 +1216,10 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
 
         setIsProcessingAction(true);
         try {
-            await Promise.resolve(onAdvanceStage(formData as Pedido));
+            await Promise.resolve(onAdvanceStage({
+                ...formData,
+                secuenciaTrabajo: normalizePostImpresionSequence(formData.secuenciaTrabajo, formData.cliente)
+            } as Pedido));
             closeModalAndUnlock();
         } finally {
             setIsProcessingAction(false);
@@ -1144,7 +1239,11 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
         }
 
         // Asegurar que se guarden los cambios antes de enviar a impresión
-        const updatedPedido = { ...pedido, ...formData };
+        const updatedPedido = {
+            ...pedido,
+            ...formData,
+            secuenciaTrabajo: normalizePostImpresionSequence(formData.secuenciaTrabajo, formData.cliente)
+        };
         onSendToPrint(updatedPedido);
         closeModalAndUnlock();
     }
@@ -1162,7 +1261,11 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
             if (hasUnsavedChanges) {
                 const metrosValue = Number(formData.metros);
                 if (!isNaN(metrosValue) && metrosValue > 0) {
-                    const pedidoActualizado = { ...formData, metros: metrosValue } as Pedido;
+                    const pedidoActualizado = {
+                        ...formData,
+                        metros: metrosValue,
+                        secuenciaTrabajo: normalizePostImpresionSequence(formData.secuenciaTrabajo, formData.cliente)
+                    } as Pedido;
                     onSave(pedidoActualizado);
                 }
             }
@@ -1201,7 +1304,8 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
             formData.etapaActual,
             formData.secuenciaTrabajo,
             formData.antivaho,
-            formData.antivahoRealizado
+            formData.antivahoRealizado,
+            formData.cliente
         );
 
         if (!canAdvanceSequence) {
@@ -1211,7 +1315,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
         // Determinar el título del botón basado en la situación
         const isPrinting = KANBAN_FUNNELS.IMPRESION.stages.includes(formData.etapaActual);
         const isPostPrinting = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(formData.etapaActual);
-        const isOutOfSequence = estaFueraDeSecuencia(formData.etapaActual, formData.secuenciaTrabajo);
+        const isOutOfSequence = estaFueraDeSecuencia(formData.etapaActual, formData.secuenciaTrabajo, formData.cliente);
 
         if (isPrinting && formData.secuenciaTrabajo?.length > 0) {
             if (formData.antivaho && formData.antivahoRealizado) {
@@ -1608,7 +1712,12 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                                                     if (value === 'add_new_cliente') {
                                                                         setIsClienteModalOpen(true);
                                                                     } else {
-                                                                        setFormData(prev => ({ ...prev, clienteId: value }));
+                                                                        const clienteSeleccionado = clientes.find(c => c.id === value);
+                                                                        setFormData(prev => ({
+                                                                            ...prev,
+                                                                            clienteId: value,
+                                                                            cliente: clienteSeleccionado?.nombre || prev.cliente
+                                                                        }));
                                                                     }
                                                                 }}
                                                                 options={clientes.map(c => ({
@@ -1765,7 +1874,23 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                             <div className="space-y-4">
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div>
-                                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Metros</label>
+                                                        <div className="mb-2 flex items-center justify-between">
+                                                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">Metros</label>
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleToggleMetrosTracking}
+                                                                disabled={isReadOnly}
+                                                                title={showMetrosTracking ? 'Ocultar seguimiento de metros' : 'Mostrar seguimiento de metros'}
+                                                                aria-label={showMetrosTracking ? 'Ocultar seguimiento de metros' : 'Mostrar seguimiento de metros'}
+                                                                className={`inline-flex h-7 w-7 items-center justify-center rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                                                                    showMetrosTracking
+                                                                        ? 'border-cyan-500 text-cyan-600 bg-cyan-50 dark:bg-cyan-900/30 dark:text-cyan-300'
+                                                                        : 'border-gray-300 text-gray-500 hover:text-gray-700 hover:border-gray-400 dark:border-gray-600 dark:text-gray-400 dark:hover:text-gray-200'
+                                                                }`}
+                                                            >
+                                                                <ChartBarIcon />
+                                                            </button>
+                                                        </div>
                                                         <input type="text" inputMode="numeric" pattern="[0-9]*" name="metros" value={formData.metros} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50" />
                                                     </div>
                                                     <div>
@@ -1815,6 +1940,41 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                                         </div>
                                                     </div>
                                                 </div>
+
+                                                {showMetrosTracking && (
+                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 p-3">
+                                                        <div>
+                                                            <label className="block mb-1 text-xs font-semibold tracking-wide uppercase text-gray-500 dark:text-gray-400">Metros</label>
+                                                            <input
+                                                                type="text"
+                                                                value={`${formatMetros(metrosBase)} m`}
+                                                                readOnly
+                                                                className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 cursor-not-allowed opacity-80 text-sm"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block mb-1 text-xs font-semibold tracking-wide uppercase text-gray-500 dark:text-gray-400">Metros Llevados</label>
+                                                            <input
+                                                                type="text"
+                                                                inputMode="numeric"
+                                                                pattern="[0-9.]*"
+                                                                value={formatMetros(metrosLlevados)}
+                                                                onChange={(e) => handleMetrosLlevadosChange(e.target.value)}
+                                                                disabled={isReadOnly}
+                                                                className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block mb-1 text-xs font-semibold tracking-wide uppercase text-gray-500 dark:text-gray-400">Metros Faltantes</label>
+                                                            <input
+                                                                type="text"
+                                                                value={`${formatMetros(metrosFaltantes)} m`}
+                                                                readOnly
+                                                                className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 cursor-not-allowed opacity-80 text-sm"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
 
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div>
@@ -1964,6 +2124,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                                     sequence={formData.secuenciaTrabajo || []}
                                                     onChange={handleSequenceChange}
                                                     isReadOnly={isReadOnly}
+                                                    clienteName={formData.cliente}
                                                 />
                                             </div>
                                         </div>

@@ -1,5 +1,25 @@
 const { Pool } = require('pg');
 
+const ETAPAS_PRODUCCION_ACTIVA = [
+    'PREPARACION',
+    'PENDIENTE',
+    'IMPRESION_WM1',
+    'IMPRESION_GIAVE',
+    'IMPRESION_WM3',
+    'IMPRESION_ANON',
+    'POST_LAMINACION_SL2',
+    'POST_LAMINACION_NEXUS',
+    'POST_ECCONVERT_21',
+    'POST_ECCONVERT_22',
+    'POST_DNT',
+    'POST_REBOBINADO_S2DT',
+    'POST_REBOBINADO_PROSLIT',
+    'POST_PERFORACION_MIC',
+    'POST_PERFORACION_MAC',
+    'POST_REBOBINADO_TEMAC'
+];
+const ETAPAS_PRODUCCION_ACTIVA_SQL = ETAPAS_PRODUCCION_ACTIVA.map((etapa) => `'${etapa}'`).join(', ');
+
 class PostgreSQLClient {
     constructor() {
         this.pool = null;
@@ -2475,13 +2495,7 @@ class PostgreSQLClient {
                 whereClause += ` AND etapa_actual IN ('PREPARACION', 'PENDIENTE')`;
             } else if (estado === 'produccion') {
                 // Solo pedidos en IMPRESION_* y POST_* (excluyendo PREPARACION y PENDIENTE)
-                whereClause += ` AND etapa_actual IN (
-                    'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
-                    'POST_LAMINACION_SL2', 'POST_LAMINACION_NEXUS',
-                    'POST_ECCONVERT_21', 'POST_ECCONVERT_22',
-                    'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',
-                    'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_REBOBINADO_TEMAC'
-                )`;
+                whereClause += ` AND etapa_actual IN (${ETAPAS_PRODUCCION_ACTIVA_SQL})`;
             }
 
             const query = `
@@ -2523,14 +2537,7 @@ class PostgreSQLClient {
         try {
             const query = `
                 SELECT 
-                    COUNT(*) FILTER (WHERE etapa_actual IN (
-                        'PREPARACION', 'PENDIENTE',
-                        'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
-                        'POST_LAMINACION_SL2', 'POST_LAMINACION_NEXUS',
-                        'POST_ECCONVERT_21', 'POST_ECCONVERT_22',
-                        'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',
-                        'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_REBOBINADO_TEMAC'
-                    )) as pedidos_en_produccion,
+                    COUNT(*) FILTER (WHERE etapa_actual IN (${ETAPAS_PRODUCCION_ACTIVA_SQL})) as pedidos_en_produccion,
                     COUNT(*) FILTER (WHERE etapa_actual NOT IN ('COMPLETADO', 'ARCHIVADO', 'CANCELADO')) as pedidos_activos,
                     COUNT(*) FILTER (WHERE etapa_actual = 'COMPLETADO') as pedidos_completados,
                     COUNT(*) FILTER (WHERE etapa_actual = 'ARCHIVADO') as pedidos_archivados,
@@ -2565,14 +2572,7 @@ class PostgreSQLClient {
             const query = `
                 SELECT 
                     COALESCE(cliente_id::text, data->>'clienteId') as cliente_id,
-                    COUNT(*) FILTER (WHERE etapa_actual IN (
-                        'PREPARACION', 'PENDIENTE',
-                        'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
-                        'POST_LAMINACION_SL2', 'POST_LAMINACION_NEXUS',
-                        'POST_ECCONVERT_21', 'POST_ECCONVERT_22',
-                        'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',
-                        'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_REBOBINADO_TEMAC'
-                    )) as pedidos_en_produccion,
+                    COUNT(*) FILTER (WHERE etapa_actual IN (${ETAPAS_PRODUCCION_ACTIVA_SQL})) as pedidos_en_produccion,
                     COUNT(*) FILTER (WHERE etapa_actual NOT IN ('COMPLETADO', 'ARCHIVADO', 'CANCELADO')) as pedidos_activos,
                     COUNT(*) FILTER (WHERE etapa_actual = 'COMPLETADO') as pedidos_completados,
                     COUNT(*) as total_pedidos
@@ -2782,13 +2782,7 @@ class PostgreSQLClient {
                 whereClause += ` AND etapa_actual IN ('PREPARACION', 'PENDIENTE')`;
             } else if (estado === 'produccion') {
                 // Solo pedidos en IMPRESION_* y POST_* (excluyendo PREPARACION y PENDIENTE)
-                whereClause += ` AND etapa_actual IN (
-                    'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
-                    'POST_LAMINACION_SL2', 'POST_LAMINACION_NEXUS',
-                    'POST_ECCONVERT_21', 'POST_ECCONVERT_22',
-                    'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',
-                    'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_REBOBINADO_TEMAC'
-                )`;
+                whereClause += ` AND etapa_actual IN (${ETAPAS_PRODUCCION_ACTIVA_SQL})`;
             }
 
             const query = `
@@ -2830,14 +2824,7 @@ class PostgreSQLClient {
         try {
             const query = `
                 SELECT 
-                    COUNT(*) FILTER (WHERE etapa_actual IN (
-                        'PREPARACION', 'PENDIENTE',
-                        'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
-                        'POST_LAMINACION_SL2', 'POST_LAMINACION_NEXUS',
-                        'POST_ECCONVERT_21', 'POST_ECCONVERT_22',
-                        'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',
-                        'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_REBOBINADO_TEMAC'
-                    )) as pedidos_en_produccion,
+                    COUNT(*) FILTER (WHERE etapa_actual IN (${ETAPAS_PRODUCCION_ACTIVA_SQL})) as pedidos_en_produccion,
                     COUNT(*) FILTER (WHERE etapa_actual NOT IN ('COMPLETADO', 'ARCHIVADO', 'CANCELADO')) as pedidos_activos,
                     COUNT(*) FILTER (WHERE etapa_actual = 'COMPLETADO') as pedidos_completados,
                     COUNT(*) FILTER (WHERE etapa_actual = 'ARCHIVADO') as pedidos_archivados,
@@ -2872,14 +2859,7 @@ class PostgreSQLClient {
             const query = `
                 SELECT 
                     COALESCE(vendedor_id::text, data->>'vendedorId') as vendedor_id,
-                    COUNT(*) FILTER (WHERE etapa_actual IN (
-                        'PREPARACION', 'PENDIENTE',
-                        'IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'IMPRESION_ANON',
-                        'POST_LAMINACION_SL2', 'POST_LAMINACION_NEXUS',
-                        'POST_ECCONVERT_21', 'POST_ECCONVERT_22',
-                        'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT',
-                        'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_REBOBINADO_TEMAC'
-                    )) as pedidos_en_produccion,
+                    COUNT(*) FILTER (WHERE etapa_actual IN (${ETAPAS_PRODUCCION_ACTIVA_SQL})) as pedidos_en_produccion,
                     COUNT(*) FILTER (WHERE etapa_actual NOT IN ('COMPLETADO', 'ARCHIVADO', 'CANCELADO')) as pedidos_activos,
                     COUNT(*) FILTER (WHERE etapa_actual = 'COMPLETADO') as pedidos_completados,
                     COUNT(*) as total_pedidos

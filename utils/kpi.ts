@@ -3,6 +3,7 @@
 import { Pedido, EtapaInfo, Etapa } from '../types';
 import { ETAPAS, KANBAN_FUNNELS } from '../constants';
 import { formatDateDDMMYYYY } from './date';
+import { normalizePostImpresionSequence } from './dntWorkflow';
 
 // To satisfy TypeScript since jspdf and jspdf-autotable are loaded from script tags
 declare global {
@@ -16,6 +17,7 @@ const ETAPAS_PRODUCCION = [
     Etapa.IMPRESION_WM1,
     Etapa.IMPRESION_GIAVE,
     Etapa.IMPRESION_WM3,
+    Etapa.POST_DNT,
     Etapa.POST_LAMINACION_SL2,
     Etapa.POST_LAMINACION_NEXUS,
     Etapa.POST_ECCONVERT_21,
@@ -180,7 +182,8 @@ const CLIENT_COLOR_PALETTE: number[][] = [
 ];
 
 const getNextStageTitle = (pedido: Pedido): string => {
-    const { etapaActual, secuenciaTrabajo } = pedido;
+    const { etapaActual } = pedido;
+    const secuenciaTrabajo = normalizePostImpresionSequence(pedido.secuenciaTrabajo, pedido.cliente);
 
     if (!secuenciaTrabajo) return 'N/A';
 

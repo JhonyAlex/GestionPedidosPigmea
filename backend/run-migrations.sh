@@ -30,12 +30,18 @@ apply_migration() {
     echo "✅ Migración '$NAME' aplicada."
 }
 
-# ---- SOLO MIGRACIÓN NUEVA ----
-# Las demás migraciones (000-033) ya fueron aplicadas manualmente
+# ---- MIGRACIONES INCREMENTALES PARA REDEPLOY ----
+# Las migraciones históricas base fueron aplicadas manualmente.
+# En redeploy reaplicamos solo migraciones idempotentes necesarias para alinear funciones/vistas.
 
-# Solo ejecutar la migración nueva que agrega el campo antivaho_realizado
 apply_migration "Agregar Campo Antivaho Realizado" \
   "$MIGRATIONS_DIR/036-add-antivaho-realizado.sql"
+
+apply_migration "Agregar etapa POST_DNT a producción activa" \
+    "$MIGRATIONS_DIR/042-add-dnt-stage.sql"
+
+apply_migration "Habilitar seguimiento manual de metros llevados" \
+    "$MIGRATIONS_DIR/043-add-metros-llevados-jsonb.sql"
 
 echo ""
 echo "✅ ¡MIGRACIÓN COMPLETADA!"

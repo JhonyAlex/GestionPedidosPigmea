@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Pedido, Etapa } from '../types';
 import { ETAPAS, KANBAN_FUNNELS } from '../constants';
+import { normalizePostImpresionSequence } from '../utils/dntWorkflow';
 import SequenceBuilder from './SequenceBuilder';
 
 interface SequenceReorderModalProps {
@@ -12,13 +13,13 @@ interface SequenceReorderModalProps {
 const SequenceReorderModal: React.FC<SequenceReorderModalProps> = ({ pedido, onClose, onConfirm }) => {
     // Inicializar con la secuencia actual, incluyendo la etapa actual si no está en la secuencia
     const initializeSequence = () => {
-        const currentSequence = pedido.secuenciaTrabajo || [];
+        const currentSequence = normalizePostImpresionSequence(pedido.secuenciaTrabajo, pedido.cliente);
         const currentEtapa = pedido.etapaActual;
         
         // Si la etapa actual no está en la secuencia y es de post-impresión, la incluimos
         if (KANBAN_FUNNELS.POST_IMPRESION.stages.includes(currentEtapa) && 
             !currentSequence.includes(currentEtapa)) {
-            return [currentEtapa, ...currentSequence];
+            return normalizePostImpresionSequence([currentEtapa, ...currentSequence], pedido.cliente);
         }
         
         return currentSequence;
@@ -134,6 +135,7 @@ const SequenceReorderModal: React.FC<SequenceReorderModalProps> = ({ pedido, onC
                                     sequence={newSequence} 
                                     onChange={setNewSequence} 
                                     isReadOnly={false} 
+                                    clienteName={pedido.cliente}
                                 />
                             </div>
                         </div>

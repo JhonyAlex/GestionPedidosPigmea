@@ -3,6 +3,7 @@ import { Pedido, Etapa, UserRole, EstadoCliché, Prioridad } from '../types';
 import { Material } from '../types/material';
 import { PRIORIDAD_COLORS, KANBAN_FUNNELS } from '../constants';
 import { puedeAvanzarSecuencia, estaFueraDeSecuencia } from '../utils/etapaLogic';
+import { normalizePostImpresionSequence } from '../utils/dntWorkflow';
 import { SparklesIcon } from './Icons';
 import { usePermissions } from '../hooks/usePermissions';
 import { useMaterialesManager } from '../hooks/useMaterialesManager';
@@ -503,12 +504,14 @@ const PedidoCard = React.memo<PedidoCardProps>(({
     };
 
     const { canAdvance, advanceButtonTitle } = useMemo(() => {
+        const normalizedSequence = normalizePostImpresionSequence(pedido.secuenciaTrabajo, pedido.cliente);
         // Usar la nueva lógica centralizada
         const canAdvanceSequence = puedeAvanzarSecuencia(
             pedido.etapaActual,
-            pedido.secuenciaTrabajo,
+            normalizedSequence,
             pedido.antivaho,
-            pedido.antivahoRealizado
+            pedido.antivahoRealizado,
+            pedido.cliente
         );
 
         if (!canAdvanceSequence) {
@@ -522,9 +525,9 @@ const PedidoCard = React.memo<PedidoCardProps>(({
 
         const isPrinting = KANBAN_FUNNELS.IMPRESION.stages.includes(pedido.etapaActual);
         const isPostPrinting = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual);
-        const isOutOfSequence = estaFueraDeSecuencia(pedido.etapaActual, pedido.secuenciaTrabajo);
+        const isOutOfSequence = estaFueraDeSecuencia(pedido.etapaActual, normalizedSequence, pedido.cliente);
 
-        if (isPrinting && pedido.secuenciaTrabajo?.length > 0) {
+        if (isPrinting && normalizedSequence.length > 0) {
             return { canAdvance: true, advanceButtonTitle: 'Iniciar Post-Impresión' };
         }
 
@@ -540,11 +543,11 @@ const PedidoCard = React.memo<PedidoCardProps>(({
             }
 
             // Lógica normal para pedidos en secuencia
-            const currentIndex = pedido.secuenciaTrabajo?.indexOf(pedido.etapaActual) ?? -1;
-            if (currentIndex > -1 && currentIndex < pedido.secuenciaTrabajo.length - 1) {
+            const currentIndex = normalizedSequence.indexOf(pedido.etapaActual);
+            if (currentIndex > -1 && currentIndex < normalizedSequence.length - 1) {
                 return { canAdvance: true, advanceButtonTitle: 'Siguiente Etapa' };
             }
-            if (currentIndex > -1 && currentIndex === pedido.secuenciaTrabajo.length - 1) {
+            if (currentIndex > -1 && currentIndex === normalizedSequence.length - 1) {
                 return { canAdvance: true, advanceButtonTitle: 'Marcar como Completado' };
             }
         }

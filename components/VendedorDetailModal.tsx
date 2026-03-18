@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Vendedor } from '../types/vendedor';
-import { Pedido } from '../types';
+import { Pedido, Etapa } from '../types';
 import { Icons } from './Icons';
 import { formatDateDDMMYYYY, formatMetros } from '../utils/date';
 import { useAuth } from '../contexts/AuthContext';
+import { ETAPAS } from '../constants';
 
 interface VendedorDetailModalProps {
     isOpen: boolean;
@@ -147,27 +148,7 @@ const VendedorDetailModal: React.FC<VendedorDetailModalProps> = ({ isOpen, onClo
     };
 
     const formatEtapa = (etapa: string) => {
-        const etapasFormato: { [key: string]: string } = {
-            'PREPARACION': 'Preparación',
-            'PENDIENTE': 'Pendiente',
-            'IMPRESION_WM1': 'Impresión WM1',
-            'IMPRESION_GIAVE': 'Impresión GIAVE',
-            'IMPRESION_WM3': 'Impresión WM3',
-            'IMPRESION_ANON': 'Impresión ANON',
-            'POST_LAMINACION_SL2': 'Laminación SL2',
-            'POST_LAMINACION_NEXUS': 'Laminación NEXUS',
-            'POST_ECCONVERT_21': 'Ec-convert 21',
-            'POST_ECCONVERT_22': 'Ec-convert 22',
-            'POST_REBOBINADO_S2DT': 'Rebobinado S2DT',
-            'POST_REBOBINADO_PROSLIT': 'Rebobinado PROSLIT',
-            'POST_PERFORACION_MIC': 'Perforación MIC',
-            'POST_PERFORACION_MAC': 'Perforación MAC',
-            'POST_REBOBINADO_TEMAC': 'Rebobinado TEMAC',
-            'COMPLETADO': 'Completado',
-            'ARCHIVADO': 'Archivado'
-        };
-        
-        return etapasFormato[etapa] || etapa.replace(/_/g, ' ');
+        return ETAPAS[etapa as Etapa]?.title || etapa.replace(/_/g, ' ');
     };
 
     const formatFecha = (fecha: string) => {

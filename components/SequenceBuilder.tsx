@@ -1,12 +1,14 @@
 import React from 'react';
 import { Etapa } from '../types';
 import { ETAPAS, KANBAN_FUNNELS } from '../constants';
+import { isDntCliente, normalizePostImpresionSequence } from '../utils/dntWorkflow';
 import { formatStageTitle } from '../utils/formatStageTitle';
 
 interface SequenceBuilderProps {
     sequence: Etapa[];
     onChange: (newSequence: Etapa[]) => void;
     isReadOnly: boolean;
+    clienteName?: string;
 }
 
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>;
@@ -14,23 +16,24 @@ const MinusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" view
 const UpIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" /></svg>;
 const DownIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>;
 
-const SequenceBuilder: React.FC<SequenceBuilderProps> = ({ sequence: rawSequence, onChange, isReadOnly }) => {
+const SequenceBuilder: React.FC<SequenceBuilderProps> = ({ sequence: rawSequence, onChange, isReadOnly, clienteName }) => {
     // Filtrar: solo etapas de Post-Impresión son válidas en la secuencia de trabajo
     const validPostImpresionStages = KANBAN_FUNNELS.POST_IMPRESION.stages;
-    const sequence = rawSequence.filter(stage => validPostImpresionStages.includes(stage));
+    const sequence = normalizePostImpresionSequence(rawSequence, clienteName).filter(stage => validPostImpresionStages.includes(stage));
+    const showDntStage = isDntCliente(clienteName);
 
     const availableStages = validPostImpresionStages.filter(
-        stage => !sequence.includes(stage)
+        stage => !sequence.includes(stage) && (showDntStage || stage !== Etapa.POST_DNT)
     );
 
     const handleAdd = (stage: Etapa) => {
         if (isReadOnly) return;
-        onChange([...sequence, stage]);
+        onChange(normalizePostImpresionSequence([...sequence, stage], clienteName));
     };
 
     const handleRemove = (stage: Etapa) => {
         if (isReadOnly) return;
-        onChange(sequence.filter(s => s !== stage));
+        onChange(normalizePostImpresionSequence(sequence.filter(s => s !== stage), clienteName));
     };
 
     const handleMove = (index: number, direction: 'up' | 'down') => {
@@ -39,7 +42,7 @@ const SequenceBuilder: React.FC<SequenceBuilderProps> = ({ sequence: rawSequence
         const to = direction === 'up' ? index - 1 : index + 1;
         if (to < 0 || to >= newSequence.length) return;
         [newSequence[index], newSequence[to]] = [newSequence[to], newSequence[index]]; // Swap
-        onChange(newSequence);
+        onChange(normalizePostImpresionSequence(newSequence, clienteName));
     };
 
     const StageButton = ({ stage, onClick, icon, disabled, title }: { stage: Etapa, onClick: () => void, icon: React.ReactNode, disabled: boolean, title: string }) => (

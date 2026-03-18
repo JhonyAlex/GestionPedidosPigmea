@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ViewType, Prioridad, Etapa, UserRole, Pedido, DateField, WeekFilter as WeekFilterType, EstadoCliché } from '../types';
 import { ETAPAS_KANBAN, ETAPAS, STAGE_GROUPS, MAQUINAS_IMPRESION } from '../constants';
-import { DateFilterOption } from '../utils/date';
+import { DateFilterOption, formatMetros } from '../utils/date';
 import UserInfo from './UserInfo';
 import WeekFilter from './WeekFilter';
 import DateFilterCombined from './DateFilterCombined';
@@ -29,6 +29,11 @@ interface HeaderProps {
     activeFilters: { priority: string, stage: string, dateField: keyof Pedido };
     selectedStages: string[];
     onStageToggle: (stageId: string) => void;
+    listViewMetrics?: {
+        totalPedidos: number;
+        totalMetros: number;
+        totalTiempo: string;
+    };
     selectedVendedores?: string[];
     onVendedorToggle?: (vendedorId: string) => void;
     selectedClientes?: string[];
@@ -104,6 +109,7 @@ const Header: React.FC<HeaderProps> = ({
     activeFilters,
     selectedStages,
     onStageToggle,
+    listViewMetrics,
     selectedVendedores = [],
     onVendedorToggle,
     selectedClientes = [],
@@ -166,14 +172,6 @@ const Header: React.FC<HeaderProps> = ({
 
     const toggleStageFiltersCollapsed = () => {
         setIsStageFiltersCollapsed(prev => !prev);
-    };
-
-    const handleStageFiltersContainerClick = (event: React.MouseEvent<HTMLDivElement>) => {
-        if ((event.target as HTMLElement).closest('button')) {
-            return;
-        }
-
-        toggleStageFiltersCollapsed();
     };
 
     // Resetear el estado cuando cambie la vista
@@ -834,85 +832,107 @@ const Header: React.FC<HeaderProps> = ({
 
                 {/* Tercera fila: Grid de botones de etapas solo para vista de lista */}
                 {currentView === 'list' && (
-                    <div
-                        className="border-t border-gray-200 dark:border-gray-600 pt-2 cursor-pointer"
-                        onClick={handleStageFiltersContainerClick}
-                    >
-                        <div className="flex flex-col gap-2">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                        Filtrar por Etapa {selectedStages.length > 0 && `(${selectedStages.length} seleccionadas)`}:
-                                    </span>
-                                    <button
-                                        onClick={(event) => {
-                                            event.stopPropagation();
-                                            toggleStageFiltersCollapsed();
-                                        }}
-                                        className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors duration-200 flex items-center gap-1"
-                                        title={isStageFiltersCollapsed ? 'Expandir filtros' : 'Contraer filtros'}
-                                    >
-                                        <svg
-                                            className={`w-4 h-4 transition-transform duration-200 ${isStageFiltersCollapsed ? 'rotate-180' : ''}`}
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
+                    <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
+                        <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-slate-50 via-white to-gray-50 px-3 py-3 shadow-sm dark:border-gray-700 dark:from-gray-900 dark:via-gray-800 dark:to-gray-800 md:px-4">
+                            <div className="flex flex-col gap-3">
+                                <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                                    <div className="space-y-1">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                                                Filtro por etapa
+                                            </span>
+                                            <span className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                                                {selectedStages.length === 0 ? 'Todas activas' : `${selectedStages.length} activas`}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                            La tabla y el resumen cambian en tiempo real según los filtros aplicados.
+                                        </p>
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <button
+                                            onClick={toggleStageFiltersCollapsed}
+                                            className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 transition-colors hover:border-gray-300 hover:text-gray-800 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-500 dark:hover:text-white"
+                                            title={isStageFiltersCollapsed ? 'Expandir filtros' : 'Contraer filtros'}
                                         >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                        {isStageFiltersCollapsed ? 'Mostrar' : 'Ocultar'}
-                                    </button>
+                                            <svg
+                                                className={`h-4 w-4 transition-transform duration-200 ${isStageFiltersCollapsed ? 'rotate-180' : ''}`}
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                            {isStageFiltersCollapsed ? 'Mostrar filtros' : 'Ocultar filtros'}
+                                        </button>
+                                        <button
+                                            onClick={() => onStageToggle('all')}
+                                            className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${selectedStages.length === 0
+                                                ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
+                                                : 'border border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-gray-500 dark:hover:bg-gray-700'
+                                                }`}
+                                        >
+                                            <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80"></span>
+                                            Todas las etapas
+                                        </button>
+                                    </div>
                                 </div>
-                                <button
-                                    onClick={(event) => {
-                                        event.stopPropagation();
-                                        onStageToggle('all');
-                                    }}
-                                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${selectedStages.length === 0
-                                        ? 'bg-indigo-600 text-white shadow-sm'
-                                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+
+                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                    <div className="rounded-xl border border-gray-200 bg-white/90 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-800/80">
+                                        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">Pedidos visibles</div>
+                                        <div className="mt-1 text-xl font-semibold text-gray-900 dark:text-white">{listViewMetrics?.totalPedidos ?? 0}</div>
+                                    </div>
+                                    <div className="rounded-xl border border-gray-200 bg-white/90 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-800/80">
+                                        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">Metros totales</div>
+                                        <div className="mt-1 text-xl font-semibold text-gray-900 dark:text-white">{formatMetros(listViewMetrics?.totalMetros ?? 0)} m</div>
+                                    </div>
+                                    <div className="rounded-xl border border-gray-200 bg-white/90 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-800/80">
+                                        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">Tiempo planificado</div>
+                                        <div className="mt-1 text-xl font-semibold text-gray-900 dark:text-white">{listViewMetrics?.totalTiempo ?? '00:00'}</div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    className={`transition-all duration-300 ease-in-out overflow-hidden ${isStageFiltersCollapsed
+                                        ? 'max-h-0 opacity-0'
+                                        : 'max-h-[40rem] opacity-100'
                                         }`}
                                 >
-                                    ✨ Todas las Etapas
-                                </button>
-                            </div>
-
-                            {/* Grupos de etapas con animación de colapso */}
-                            <div
-                                className={`transition-all duration-300 ease-in-out overflow-hidden ${isStageFiltersCollapsed
-                                    ? 'max-h-0 opacity-0'
-                                    : 'max-h-96 opacity-100'
-                                    }`}
-                            >
-                                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
-                                    {Object.values(STAGE_GROUPS).map(group => (
-                                        <div key={group.title} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-                                            <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
-                                                {group.title}
-                                            </h4>
-                                            <div className="grid grid-cols-1 gap-1.5">
-                                                {group.stages.map(etapaId => (
-                                                    <button
-                                                        key={etapaId}
-                                                        onClick={(event) => {
-                                                            event.stopPropagation();
-                                                            onStageToggle(etapaId);
-                                                        }}
-                                                        className={`px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-left ${selectedStages.includes(etapaId)
-                                                            ? 'bg-indigo-600 text-white shadow-sm'
-                                                            : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
-                                                            }`}
-                                                        title={ETAPAS[etapaId].title}
-                                                    >
-                                                        {ETAPAS[etapaId].title.length > 18
-                                                            ? `${ETAPAS[etapaId].title.substring(0, 18)}...`
-                                                            : ETAPAS[etapaId].title
-                                                        }
-                                                    </button>
-                                                ))}
+                                    <div className="grid grid-cols-1 gap-3 pt-1 lg:grid-cols-2 xl:grid-cols-4">
+                                        {Object.values(STAGE_GROUPS).map(group => (
+                                            <div key={group.title} className="rounded-xl border border-gray-200 bg-white/80 p-3 dark:border-gray-700 dark:bg-gray-900/30">
+                                                <div className="mb-2 flex items-center justify-between gap-2">
+                                                    <h4 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
+                                                        {group.title}
+                                                    </h4>
+                                                    <span className="text-xs text-gray-400 dark:text-gray-500">{group.stages.length}</span>
+                                                </div>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {group.stages.map(etapaId => (
+                                                        <button
+                                                            key={etapaId}
+                                                            onClick={() => onStageToggle(etapaId)}
+                                                            className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${selectedStages.includes(etapaId)
+                                                                ? 'border-indigo-600 bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
+                                                                : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-gray-500 dark:hover:bg-gray-700'
+                                                                }`}
+                                                            title={ETAPAS[etapaId].title}
+                                                        >
+                                                            <span className={`h-1.5 w-1.5 rounded-full ${selectedStages.includes(etapaId) ? 'bg-white' : 'bg-gray-400 dark:bg-gray-500'}`}></span>
+                                                            <span className="truncate">
+                                                                {ETAPAS[etapaId].title.length > 18
+                                                                    ? `${ETAPAS[etapaId].title.substring(0, 18)}...`
+                                                                    : ETAPAS[etapaId].title
+                                                                }
+                                                            </span>
+                                                        </button>
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>
