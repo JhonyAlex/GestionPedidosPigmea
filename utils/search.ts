@@ -26,12 +26,17 @@ export const pedidoMatchesSearch = (pedido: Pedido, normalizedTerm: string): boo
     const matches = (value: string | number | boolean | null | undefined) =>
         normalizeSearchValue(value).includes(normalizedTerm);
 
+    const matchesAnyNumeroCompra = (pedido.numerosCompra || []).some((numeroCompra) =>
+        matches(numeroCompra)
+    );
+
     return (
         matches(pedido.numeroPedidoCliente) ||
         matches(pedido.numeroRegistro) ||
         matches(pedido.cliente) ||
         matches(pedido.clienteId) ||
         matches(pedido.vendedorNombre) ||
-        matches(pedido.vendedorId)
+        matches(pedido.vendedorId) ||
+        matchesAnyNumeroCompra
     );
 };
