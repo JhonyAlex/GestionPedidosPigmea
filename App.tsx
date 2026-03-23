@@ -344,6 +344,13 @@ const AppContent: React.FC = () => {
         }
     }, [pedidos, limpiarHuerfanos]);
 
+    // Si no quedan listas temporales, apagar el filtro para evitar pantalla en blanco.
+    useEffect(() => {
+        if (filtrarSoloTemporales && Object.keys(listasTemporalesMap).length === 0) {
+            setFiltrarSoloTemporales(false);
+        }
+    }, [filtrarSoloTemporales, listasTemporalesMap]);
+
     const preparacionPedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual === Etapa.PREPARACION && p.subEtapaActual !== PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION), [processedPedidos]);
     const listoProduccionPedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual === Etapa.PREPARACION && p.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION), [processedPedidos]);
     const activePedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual !== Etapa.ARCHIVADO && p.etapaActual !== Etapa.PREPARACION), [processedPedidos]);
