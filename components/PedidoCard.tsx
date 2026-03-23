@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Pedido, Etapa, UserRole, EstadoCliché, Prioridad } from '../types';
 import { Material } from '../types/material';
-import { PRIORIDAD_COLORS, KANBAN_FUNNELS } from '../constants';
+import { PRIORIDAD_COLORS, KANBAN_FUNNELS, ETAPAS } from '../constants';
 import { puedeAvanzarSecuencia, estaFueraDeSecuencia } from '../utils/etapaLogic';
 import { normalizePostImpresionSequence } from '../utils/dntWorkflow';
 import { SparklesIcon } from './Icons';
@@ -208,7 +208,18 @@ interface PedidoCardProps {
         isLockedByMe: boolean;
         lockedBy: string | null;
     };
+    // Vista Lista Temporal: solo se pasa en la vista Producción (kanban)
+    listasTemporales?: Etapa[];           // Etapas temporales adicionales del pedido
+    onSetListaTemporal?: (etapa: Etapa, checked: boolean) => void;
+    onResetListaTemporal?: () => void;
+    isTemporalDisplay?: boolean;          // true cuando la tarjeta se muestra FUERA de su etapa real (por override)
 }
+
+// Todas las etapas disponibles en el funnel de Producción para el panel de Listas
+const ETAPAS_PRODUCCION = [
+    ...KANBAN_FUNNELS.IMPRESION.stages,
+    ...KANBAN_FUNNELS.POST_IMPRESION.stages,
+];
 
 const PedidoCard = React.memo<PedidoCardProps>(({
     pedido,
@@ -222,7 +233,11 @@ const PedidoCard = React.memo<PedidoCardProps>(({
     isSelected = false,
     isSelectionActive = false,
     onToggleSelection,
-    lockInfo
+    lockInfo,
+    listasTemporales = [],
+    onSetListaTemporal,
+    onResetListaTemporal,
+    isTemporalDisplay = false,
 }) => {
     const { canMovePedidos, canArchivePedidos } = usePermissions();
     const { getMaterialesByPedidoId } = useMaterialesManager();
@@ -232,6 +247,10 @@ const PedidoCard = React.memo<PedidoCardProps>(({
     const dateContainerRef = useRef<HTMLDivElement>(null);
     const [isHovered, setIsHovered] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+
+    // Estado para el panel de "Listas"
+    const [isListasPanelOpen, setIsListasPanelOpen] = useState(false);
+    const listasPanelRef = useRef<HTMLDivElement>(null);
 
     // 🆕 Estado para materiales de la nueva tabla
     const [materialesNuevos, setMaterialesNuevos] = useState<Material[]>([]);
@@ -378,6 +397,23 @@ const PedidoCard = React.memo<PedidoCardProps>(({
         };
         */
     }, [pedido.id, pedido.numeroPedidoCliente, getMaterialesByPedidoId]);
+
+    // Cerrar el panel de Listas al hacer click fuera
+    useEffect(() => {
+        const handleClickOutsideListas = (event: MouseEvent) => {
+            if (listasPanelRef.current && !listasPanelRef.current.contains(event.target as Node)) {
+                setIsListasPanelOpen(false);
+            }
+        };
+        if (isListasPanelOpen) {
+            setTimeout(() => {
+                document.addEventListener('mousedown', handleClickOutsideListas);
+            }, 100);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutsideListas);
+        };
+    }, [isListasPanelOpen]);
 
     // Cerrar el editor al hacer click fuera del contenedor completo
     useEffect(() => {
@@ -561,7 +597,7 @@ const PedidoCard = React.memo<PedidoCardProps>(({
             onClick={handleCardClick}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className={`${pedido.atencionObservaciones ? 'bg-red-100 dark:bg-red-950/30' : 'bg-white dark:bg-gray-900'} rounded-lg p-3 cursor-pointer ${pedido.atencionObservaciones ? 'hover:bg-red-200 dark:hover:bg-red-950/40' : 'hover:bg-gray-100 dark:hover:bg-gray-700'} border-l-4 ${priorityColor} shadow-md ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''} ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-gray-800' : ''} relative`}>
+            className={`${pedido.atencionObservaciones ? 'bg-red-100 dark:bg-red-950/30' : 'bg-white dark:bg-gray-900'} rounded-lg p-3 cursor-pointer ${pedido.atencionObservaciones ? 'hover:bg-red-200 dark:hover:bg-red-950/40' : 'hover:bg-gray-100 dark:hover:bg-gray-700'} border-l-4 ${priorityColor} shadow-md ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''} ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-gray-800' : ''} ${isTemporalDisplay ? 'ring-2 ring-amber-400 dark:ring-amber-500 ring-offset-1' : ''} relative`}>
 
             {/* Checkbox de selección */}
             {onToggleSelection && (
@@ -859,6 +895,98 @@ const PedidoCard = React.memo<PedidoCardProps>(({
             </div>
 
             <div className="flex items-center justify-end gap-1">
+                {/* Botón Listas: solo en contexto Producción (si se pasa onSetListaTemporal) */}
+                {onSetListaTemporal && (
+                    <div className="relative" ref={listasPanelRef}>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setIsListasPanelOpen(prev => !prev); }}
+                            className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-md border transition-colors ${
+                                listasTemporales.length > 0
+                                    ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border-amber-400 dark:border-amber-600'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                            }`}
+                            title={listasTemporales.length > 0 ? `Temporal en ${listasTemporales.length + 1} listas` : 'Gestionar visión en listas'}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0z" />
+                            </svg>
+                            Listas
+                            {listasTemporales.length > 0 && (
+                                <span className="bg-amber-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                                    +{listasTemporales.length}
+                                </span>
+                            )}
+                        </button>
+
+                        {isListasPanelOpen && (
+                            <div
+                                className="absolute bottom-full right-0 mb-1 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 z-50 p-3"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide">Visibilidad en Listas</span>
+                                    {listasTemporales.length > 0 && onResetListaTemporal && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); onResetListaTemporal(); setIsListasPanelOpen(false); }}
+                                            className="text-[10px] font-semibold px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-red-100 dark:hover:bg-red-900/40 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                                        >
+                                            Restablecer
+                                        </button>
+                                    )}
+                                </div>
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-2">
+                                    El pedido aparecerá resaltado en las listas adicionales marcadas.
+                                </p>
+                                <div className="space-y-1 max-h-52 overflow-y-auto pr-1">
+                                    {ETAPAS_PRODUCCION.map(etapa => {
+                                        const esEtapaActual = etapa === pedido.etapaActual;
+                                        const esTemporal = listasTemporales.includes(etapa);
+                                        return (
+                                            <label
+                                                key={etapa}
+                                                className={`flex items-center gap-2 rounded px-2 py-1 cursor-pointer transition-colors ${
+                                                    esEtapaActual
+                                                        ? 'bg-blue-50 dark:bg-blue-900/30'
+                                                        : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                                                }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={esEtapaActual || esTemporal}
+                                                    disabled={esEtapaActual}
+                                                    onChange={(ev) => {
+                                                        ev.stopPropagation();
+                                                        onSetListaTemporal(etapa, ev.target.checked);
+                                                    }}
+                                                    className="w-3.5 h-3.5 text-amber-500 rounded border-gray-300 dark:border-gray-600 cursor-pointer disabled:cursor-default disabled:opacity-60"
+                                                />
+                                                <span className={`text-xs flex-1 ${
+                                                    esEtapaActual
+                                                        ? 'text-blue-700 dark:text-blue-300 font-semibold'
+                                                        : esTemporal
+                                                            ? 'text-amber-700 dark:text-amber-300 font-medium'
+                                                            : 'text-gray-700 dark:text-gray-300'
+                                                }`}>
+                                                    {ETAPAS[etapa]?.title ?? etapa}
+                                                </span>
+                                                {esEtapaActual && (
+                                                    <span className="text-[9px] bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-300 px-1 py-0.5 rounded font-semibold">
+                                                        Actual
+                                                    </span>
+                                                )}
+                                                {!esEtapaActual && esTemporal && (
+                                                    <span className="text-[9px] bg-amber-100 dark:bg-amber-800 text-amber-600 dark:text-amber-300 px-1 py-0.5 rounded font-semibold">
+                                                        Temporal
+                                                    </span>
+                                                )}
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
                 {canAdvance && canMovePedidos() && (
                     <button
                         onClick={handleAdvanceClick}

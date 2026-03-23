@@ -23,6 +23,9 @@ interface PedidoListProps {
     selectedIds?: string[];
     onToggleSelection?: (id: string) => void;
     onSelectAll?: (ids: string[]) => void;
+    // Vista Lista Temporal: pedidos que se muestran por override
+    listasTemporalesMap?: Record<string, import('../types').Etapa[]>;
+    selectedStages?: string[];
 }
 
 const ArchiveBoxIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" /></svg>;
@@ -100,8 +103,9 @@ const PedidoRow: React.FC<{
     snapshot: any,
     highlightedPedidoId: string | null,
     isSelected?: boolean,
-    onToggleSelection?: (id: string) => void
-}> = ({ pedido, index, onSelectPedido, onArchiveToggle, isArchivedView, currentUserRole, onAdvanceStage, isHighlighted, provided, snapshot, highlightedPedidoId, isSelected, onToggleSelection }) => {
+    onToggleSelection?: (id: string) => void,
+    isTemporalDisplay?: boolean,
+}> = ({ pedido, index, onSelectPedido, onArchiveToggle, isArchivedView, currentUserRole, onAdvanceStage, isHighlighted, provided, snapshot, highlightedPedidoId, isSelected, onToggleSelection, isTemporalDisplay }) => {
     const { canMovePedidos, canArchivePedidos } = usePermissions();
 
     const { canAdvance, advanceButtonTitle } = useMemo(() => {
@@ -158,7 +162,15 @@ const PedidoRow: React.FC<{
             {...provided.draggableProps}
             {...provided.dragHandleProps}
             onClick={() => onSelectPedido(pedido)}
-            className={`${pedido.atencionObservaciones ? 'bg-red-100 dark:bg-red-950/30 hover:bg-red-200 dark:hover:bg-red-950/40' : 'hover:bg-gray-50 dark:hover:bg-gray-700'} cursor-pointer ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''}`}
+            className={`${
+                pedido.atencionObservaciones
+                    ? 'bg-red-100 dark:bg-red-950/30 hover:bg-red-200 dark:hover:bg-red-950/40'
+                    : isTemporalDisplay
+                        ? 'bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30'
+                        : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+            } cursor-pointer ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''} ${
+                isTemporalDisplay ? 'border-l-4 border-amber-400 dark:border-amber-500' : ''
+            }`}
         >
             {onToggleSelection && (
                 <td className="px-2 py-2 w-10 text-center" onClick={(e) => e.stopPropagation()}>
@@ -217,7 +229,7 @@ const PedidoRow: React.FC<{
 };
 
 
-const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArchiveToggle, isArchivedView, currentUserRole, onAdvanceStage, sortConfig, onSort, highlightedPedidoId, selectedIds, onToggleSelection, onSelectAll }) => {
+const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArchiveToggle, isArchivedView, currentUserRole, onAdvanceStage, sortConfig, onSort, highlightedPedidoId, selectedIds, onToggleSelection, onSelectAll, listasTemporalesMap = {}, selectedStages = [] }) => {
     const [isMounted, setIsMounted] = useState(false);
     useEffect(() => {
         setIsMounted(true);
@@ -285,9 +297,15 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
                                                 </td>
                                             </tr>
                                         ) : (
-                                            pedidos.map((pedido, index) => (
+                                        pedidos.map((pedido, index) => (
                                                 <Draggable key={pedido.id} draggableId={pedido.id} index={index}>
-                                                    {(provided, snapshot) => (
+                                                    {(provided, snapshot) => {
+                                                        // Resaltar cuando el pedido aparece por lista temporal (etapa real ≠ etapas filtradas)
+                                                        const temporalEtapas = listasTemporalesMap[pedido.id] || [];
+                                                        const isTemporalDisplay = selectedStages.length > 0
+                                                            && !selectedStages.includes(pedido.etapaActual)
+                                                            && selectedStages.some(s => temporalEtapas.includes(s as import('../types').Etapa));
+                                                        return (
                                                         <PedidoRow
                                                             key={pedido.id}
                                                             pedido={pedido}
@@ -303,8 +321,10 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
                                                             highlightedPedidoId={highlightedPedidoId}
                                                             isSelected={selectedIds?.includes(pedido.id)}
                                                             onToggleSelection={onToggleSelection}
+                                                            isTemporalDisplay={isTemporalDisplay}
                                                         />
-                                                    )}
+                                                        );
+                                                    }}
                                                 </Draggable>
                                             ))
                                         )}

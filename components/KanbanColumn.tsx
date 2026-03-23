@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
-import { Pedido, KanbanEtapa, UserRole } from '../types';
+import { Pedido, KanbanEtapa, UserRole, Etapa } from '../types';
 import PedidoCard from './PedidoCard';
 import { useLockObserver } from '../hooks/useLockObserver';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,6 +20,10 @@ interface KanbanColumnProps {
     isSelectionActive?: boolean;
     onToggleSelection?: (id: string) => void;
     onSelectAll?: (ids: string[]) => void;
+    // Vista Lista Temporal
+    listasTemporalesMap?: Record<string, Etapa[]>;
+    onSetListaTemporal?: (pedidoId: string, etapa: Etapa, checked: boolean) => void;
+    onResetListaTemporal?: (pedidoId: string) => void;
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({ 
@@ -34,7 +38,10 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
     selectedIds = [],
     isSelectionActive = false,
     onToggleSelection,
-    onSelectAll
+    onSelectAll,
+    listasTemporalesMap = {},
+    onSetListaTemporal,
+    onResetListaTemporal,
 }) => {
     const { user } = useAuth();
     const { getLockInfo } = useLockObserver();
@@ -116,6 +123,10 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                                                 isSelectionActive={isSelectionActive}
                                                 onToggleSelection={onToggleSelection}
                                                 lockInfo={getLockInfo(pedido.id, user?.id.toString())}
+                                                listasTemporales={listasTemporalesMap[pedido.id] || []}
+                                                onSetListaTemporal={onSetListaTemporal ? (etapa, checked) => onSetListaTemporal(pedido.id, etapa, checked) : undefined}
+                                                onResetListaTemporal={onResetListaTemporal ? () => onResetListaTemporal(pedido.id) : undefined}
+                                                isTemporalDisplay={pedido.etapaActual !== etapa.id}
                                             />
                                         </div>
                                     )}

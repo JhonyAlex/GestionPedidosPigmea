@@ -50,7 +50,7 @@ const saveFiltersToStorage = (filters: PersistedFilters) => {
 };
 
 
-export const useFiltrosYOrden = (pedidos: Pedido[]) => {
+export const useFiltrosYOrden = (pedidos: Pedido[], listasTemporalesMap: Record<string, import('../types').Etapa[]> = {}) => {
     // Cargar filtros guardados
     const savedFilters = loadFiltersFromStorage();
     const currentWeek = getCurrentWeek();
@@ -327,7 +327,10 @@ export const useFiltrosYOrden = (pedidos: Pedido[]) => {
             const priorityMatch = filters.priority === 'all' || p.prioridad === filters.priority;
             const stageMatch = (selectedStages.length === 0 && filters.stage === 'all') ||
                 selectedStages.includes(p.etapaActual) ||
-                filters.stage === p.etapaActual;
+                filters.stage === p.etapaActual ||
+                // Visibilidad temporal: mostrar si alguna etapa seleccionada está en las listas temporales del pedido
+                (selectedStages.length > 0 && selectedStages.some(s => (listasTemporalesMap[p.id] || []).includes(s as import('../types').Etapa))) ||
+                (filters.stage !== 'all' && (listasTemporalesMap[p.id] || []).includes(filters.stage as import('../types').Etapa));
             const dateToFilter = p[filters.dateField];
             const dateMatch = !dateRange || (dateToFilter && new Date(dateToFilter) >= dateRange.start && new Date(dateToFilter) <= dateRange.end);
             const antivahoMatch = antivahoFilter === 'all' ||

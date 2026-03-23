@@ -47,6 +47,7 @@ import { usePedidosManager } from './hooks/usePedidosManager';
 import { useMaterialesManager } from './hooks/useMaterialesManager';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useFiltrosYOrden } from './hooks/useFiltrosYOrden';
+import { useListasTemporales } from './hooks/useListasTemporales';
 import { useNavigateToPedido } from './hooks/useNavigateToPedido';
 import { useBulkOperations } from './hooks/useBulkOperations';
 import { useToast } from './hooks/useToast';
@@ -182,6 +183,17 @@ const AppContent: React.FC = () => {
     // Hook de materiales
     const { getMaterialesByPedidoId } = useMaterialesManager();
 
+    // Hook para listas temporales (visualización sin cambiar etapa real)
+    const {
+        listasTemporalesMap,
+        setListaTemporal,
+        resetListaTemporal,
+        limpiarHuerfanos,
+    } = useListasTemporales();
+
+    // Estado para filtro de "Solo con lista temporal" en la vista Producción (kanban)
+    const [filtrarSoloTemporales, setFiltrarSoloTemporales] = useState(false);
+
     const {
         processedPedidos,
         searchTerm,
@@ -218,7 +230,7 @@ const AppContent: React.FC = () => {
         handleSort,
         updateSortConfig,
         resetAllFilters,
-    } = useFiltrosYOrden(pedidos);
+    } = useFiltrosYOrden(pedidos, listasTemporalesMap);
 
     // Hook para navegación a pedidos desde reportes y búsqueda global
     const { navigateToPedido } = useNavigateToPedido({
@@ -324,6 +336,13 @@ const AppContent: React.FC = () => {
         };
         loadAuditLog();
     }, []);
+
+    // Limpiar listas temporales de pedidos que ya no existen
+    useEffect(() => {
+        if (pedidos.length > 0) {
+            limpiarHuerfanos(pedidos.map(p => p.id));
+        }
+    }, [pedidos, limpiarHuerfanos]);
 
     const preparacionPedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual === Etapa.PREPARACION && p.subEtapaActual !== PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION), [processedPedidos]);
     const listoProduccionPedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual === Etapa.PREPARACION && p.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION), [processedPedidos]);
@@ -1075,14 +1094,38 @@ const AppContent: React.FC = () => {
             case 'kanban':
                 return (
                     <main className="flex-grow p-4 md:p-8 flex flex-col gap-10">
+                        {/* Filtro de listas temporales en vista Producción */}
+                        {Object.keys(listasTemporalesMap).length > 0 && (
+                            <div className="flex items-center gap-3 -mb-6">
+                                <button
+                                    onClick={() => setFiltrarSoloTemporales(prev => !prev)}
+                                    className={`flex items-center gap-2 text-sm font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+                                        filtrarSoloTemporales
+                                            ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border-amber-400 dark:border-amber-600'
+                                            : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                    }`}
+                                    title="Mostrar solo pedidos con lista temporal activa"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0z" />
+                                    </svg>
+                                    Con lista temporal ({Object.keys(listasTemporalesMap).length})
+                                </button>
+                            </div>
+                        )}
                         <section>
                             <h2 className="text-3xl font-extrabold text-gray-800 dark:text-white mb-4 border-l-4 border-cyan-500 pl-4">Impresión y DNT</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                {KANBAN_VISUAL_LAYOUT.topRow.map(etapaId => (
+                                {KANBAN_VISUAL_LAYOUT.topRow.map(etapaId => {
+                                    const columnPedidos = processedPedidos.filter(p =>
+                                        p.etapaActual === etapaId ||
+                                        (listasTemporalesMap[p.id] || []).includes(etapaId)
+                                    ).filter(p => !filtrarSoloTemporales || (listasTemporalesMap[p.id] || []).length > 0);
+                                    return (
                                     <KanbanColumn
                                         key={etapaId}
                                         etapa={ETAPAS[etapaId]}
-                                        pedidos={processedPedidos.filter(p => p.etapaActual === etapaId)}
+                                        pedidos={columnPedidos}
                                         onSelectPedido={setSelectedPedido}
                                         onArchiveToggle={handleArchiveToggle}
                                         currentUserRole={currentUserRole}
@@ -1093,8 +1136,12 @@ const AppContent: React.FC = () => {
                                         isSelectionActive={isSelectionActive}
                                         onToggleSelection={toggleSelection}
                                         onSelectAll={selectAll}
+                                        listasTemporalesMap={listasTemporalesMap}
+                                        onSetListaTemporal={setListaTemporal}
+                                        onResetListaTemporal={resetListaTemporal}
                                     />
-                                ))}
+                                    );
+                                })}
                             </div>
                         </section>
 
@@ -1102,11 +1149,16 @@ const AppContent: React.FC = () => {
                             <h2 className="text-3xl font-extrabold text-gray-800 dark:text-white mb-4 border-l-4 border-indigo-500 pl-4">Post-Impresión</h2>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-6">
-                                {KANBAN_VISUAL_LAYOUT.postImpresionRows[0].map(etapaId => (
+                                {KANBAN_VISUAL_LAYOUT.postImpresionRows[0].map(etapaId => {
+                                    const columnPedidos = activePedidos.filter(p =>
+                                        p.etapaActual === etapaId ||
+                                        (listasTemporalesMap[p.id] || []).includes(etapaId)
+                                    ).filter(p => !filtrarSoloTemporales || (listasTemporalesMap[p.id] || []).length > 0);
+                                    return (
                                     <KanbanColumn
                                         key={etapaId}
                                         etapa={ETAPAS[etapaId]}
-                                        pedidos={activePedidos.filter(p => p.etapaActual === etapaId)}
+                                        pedidos={columnPedidos}
                                         onSelectPedido={setSelectedPedido}
                                         onArchiveToggle={handleArchiveToggle}
                                         currentUserRole={currentUserRole}
@@ -1117,16 +1169,25 @@ const AppContent: React.FC = () => {
                                         isSelectionActive={isSelectionActive}
                                         onToggleSelection={toggleSelection}
                                         onSelectAll={selectAll}
+                                        listasTemporalesMap={listasTemporalesMap}
+                                        onSetListaTemporal={setListaTemporal}
+                                        onResetListaTemporal={resetListaTemporal}
                                     />
-                                ))}
+                                    );
+                                })}
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                                {KANBAN_VISUAL_LAYOUT.postImpresionRows[1].map(etapaId => (
+                                {KANBAN_VISUAL_LAYOUT.postImpresionRows[1].map(etapaId => {
+                                    const columnPedidos = activePedidos.filter(p =>
+                                        p.etapaActual === etapaId ||
+                                        (listasTemporalesMap[p.id] || []).includes(etapaId)
+                                    ).filter(p => !filtrarSoloTemporales || (listasTemporalesMap[p.id] || []).length > 0);
+                                    return (
                                     <KanbanColumn
                                         key={etapaId}
                                         etapa={ETAPAS[etapaId]}
-                                        pedidos={activePedidos.filter(p => p.etapaActual === etapaId)}
+                                        pedidos={columnPedidos}
                                         onSelectPedido={setSelectedPedido}
                                         onArchiveToggle={handleArchiveToggle}
                                         currentUserRole={currentUserRole}
@@ -1137,8 +1198,12 @@ const AppContent: React.FC = () => {
                                         isSelectionActive={isSelectionActive}
                                         onToggleSelection={toggleSelection}
                                         onSelectAll={selectAll}
+                                        listasTemporalesMap={listasTemporalesMap}
+                                        onSetListaTemporal={setListaTemporal}
+                                        onResetListaTemporal={resetListaTemporal}
                                     />
-                                ))}
+                                    );
+                                })}
                             </div>
                         </section>
 
@@ -1173,6 +1238,8 @@ const AppContent: React.FC = () => {
                     selectedIds={selectedIds}
                     onToggleSelection={toggleSelection}
                     onSelectAll={selectAll}
+                    listasTemporalesMap={listasTemporalesMap}
+                    selectedStages={selectedStages}
                 />;
             case 'archived':
                 return <PedidoList
