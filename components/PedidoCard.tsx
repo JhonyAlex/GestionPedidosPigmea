@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Pedido, Etapa, UserRole, EstadoCliché, Prioridad } from '../types';
 import { Material } from '../types/material';
 import { PRIORIDAD_COLORS, KANBAN_FUNNELS, ETAPAS } from '../constants';
@@ -251,6 +252,8 @@ const PedidoCard = React.memo<PedidoCardProps>(({
     // Estado para el panel de "Listas"
     const [isListasPanelOpen, setIsListasPanelOpen] = useState(false);
     const listasPanelRef = useRef<HTMLDivElement>(null);
+    const listasButtonRef = useRef<HTMLButtonElement>(null);
+    const [panelPosition, setPanelPosition] = useState<{ top: number; left: number } | null>(null);
 
     // 🆕 Estado para materiales de la nueva tabla
     const [materialesNuevos, setMaterialesNuevos] = useState<Material[]>([]);
@@ -401,7 +404,9 @@ const PedidoCard = React.memo<PedidoCardProps>(({
     // Cerrar el panel de Listas al hacer click fuera
     useEffect(() => {
         const handleClickOutsideListas = (event: MouseEvent) => {
-            if (listasPanelRef.current && !listasPanelRef.current.contains(event.target as Node)) {
+            const clickedPanel = listasPanelRef.current && listasPanelRef.current.contains(event.target as Node);
+            const clickedButton = listasButtonRef.current && listasButtonRef.current.contains(event.target as Node);
+            if (!clickedPanel && !clickedButton) {
                 setIsListasPanelOpen(false);
             }
         };
@@ -897,9 +902,20 @@ const PedidoCard = React.memo<PedidoCardProps>(({
             <div className="flex items-center justify-end gap-1">
                 {/* Botón Listas: solo en contexto Producción (si se pasa onSetListaTemporal) */}
                 {onSetListaTemporal && (
-                    <div className="relative" ref={listasPanelRef}>
+                    <>
                         <button
-                            onClick={(e) => { e.stopPropagation(); setIsListasPanelOpen(prev => !prev); }}
+                            ref={listasButtonRef}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (!isListasPanelOpen && listasButtonRef.current) {
+                                    const rect = listasButtonRef.current.getBoundingClientRect();
+                                    setPanelPosition({
+                                        top: rect.top,
+                                        left: Math.max(8, rect.right - 256),
+                                    });
+                                }
+                                setIsListasPanelOpen(prev => !prev);
+                            }}
                             className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-md border transition-colors ${
                                 listasTemporales.length > 0
                                     ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border-amber-400 dark:border-amber-600'
@@ -918,9 +934,17 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                             )}
                         </button>
 
-                        {isListasPanelOpen && (
+                        {isListasPanelOpen && panelPosition && createPortal(
                             <div
-                                className="absolute bottom-full right-0 mb-1 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 z-[9999] p-3"
+                                ref={listasPanelRef}
+                                style={{
+                                    position: 'fixed',
+                                    top: panelPosition.top,
+                                    left: panelPosition.left,
+                                    transform: 'translateY(calc(-100% - 4px))',
+                                    zIndex: 9999,
+                                }}
+                                className="w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 p-3"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 <div className="flex items-center justify-between mb-2">
@@ -983,9 +1007,10 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                                         );
                                     })}
                                 </div>
-                            </div>
+                            </div>,
+                            document.body
                         )}
-                    </div>
+                    </>
                 )}
                 {canAdvance && canMovePedidos() && (
                     <button
