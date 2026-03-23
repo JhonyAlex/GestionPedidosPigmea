@@ -920,7 +920,7 @@ const PedidoCard = React.memo<PedidoCardProps>(({
 
                         {isListasPanelOpen && (
                             <div
-                                className="absolute bottom-full right-0 mb-1 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 z-50 p-3"
+                                className="absolute bottom-full right-0 mb-1 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 z-[9999] p-3"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 <div className="flex items-center justify-between mb-2">
