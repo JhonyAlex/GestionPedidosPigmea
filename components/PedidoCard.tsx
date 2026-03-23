@@ -517,6 +517,8 @@ const PedidoCard = React.memo<PedidoCardProps>(({
 
     const handleAdvanceClick = (e: React.MouseEvent) => {
         e.stopPropagation();
+        // Al avanzar etapa, limpiar siempre las listas temporales del pedido
+        onResetListaTemporal?.();
         if (pedido.etapaActual === Etapa.PREPARACION && onSendToPrint) {
             onSendToPrint(pedido);
         } else if (pedido.antivaho && !pedido.antivahoRealizado && KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual)) {
