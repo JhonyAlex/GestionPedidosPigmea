@@ -55,7 +55,8 @@ const Toast: React.FC<ToastProps> = ({ message, onClose }) => {
 
     return (
         <div
-            className={`${bgColorClass} text-white rounded-lg shadow-xl p-4 mb-3 min-w-[300px] max-w-[500px] transform transition-all duration-300 ${
+            onClick={handleClose}
+            className={`${bgColorClass} text-white rounded-lg shadow-xl p-4 mb-3 min-w-[300px] max-w-[500px] transform transition-all duration-300 cursor-pointer ${
                 isExiting ? 'translate-x-full opacity-0' : 'translate-x-0 opacity-100'
             }`}
         >
