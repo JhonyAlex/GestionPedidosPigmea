@@ -5098,6 +5098,39 @@ app.use('/api/admin/auth/login', loginLimiter);
 // Ruta para obtener datos analíticos agregados (optimizado para dashboard de analytics)
 app.get('/api/analytics/summary', async (req, res) => {
     try {
+        const allowedDateFilters = new Set(['all', 'this-week', 'last-week', 'next-week', 'this-month', 'last-month', 'next-month', 'custom']);
+        const allowedDateFields = new Set(['fechaCreacion', 'fechaEntrega', 'nuevaFechaEntrega', 'fechaFinalizacion', 'compraCliche', 'recepcionCliche']);
+        const datePattern = /^\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?)?$/;
+
+        const getSingleQueryValue = (value) => {
+            if (Array.isArray(value)) {
+                return value[0];
+            }
+            return value;
+        };
+
+        const parseCsvFilter = (value) => {
+            const normalizedValue = getSingleQueryValue(value);
+            if (!normalizedValue || normalizedValue === 'all') {
+                return null;
+            }
+
+            const parsedValues = normalizedValue
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean);
+
+            return parsedValues.length > 0 ? parsedValues : null;
+        };
+
+        const buildSafeTimestampExpr = (fieldName) => {
+            return `CASE
+                WHEN NULLIF(TRIM(data->>'${fieldName}'), '') IS NULL THEN NULL
+                WHEN NULLIF(TRIM(data->>'${fieldName}'), '') ~ '^\\d{4}-\\d{2}-\\d{2}(?:[ T]\\d{2}:\\d{2}(?::\\d{2}(?:\\.\\d{1,6})?)?)?$' THEN (NULLIF(TRIM(data->>'${fieldName}'), ''))::timestamp
+                ELSE NULL
+            END`;
+        };
+
         const {
             dateFilter = 'all',
             dateField = 'nuevaFechaEntrega',
@@ -5110,57 +5143,113 @@ app.get('/api/analytics/summary', async (req, res) => {
             priority
         } = req.query;
 
+        const normalizedDateFilter = getSingleQueryValue(dateFilter) || 'all';
+        const normalizedDateField = getSingleQueryValue(dateField) || 'nuevaFechaEntrega';
+        const normalizedStartDate = getSingleQueryValue(startDate);
+        const normalizedEndDate = getSingleQueryValue(endDate);
+        const normalizedPriority = getSingleQueryValue(priority);
+
+        if (!allowedDateFilters.has(normalizedDateFilter)) {
+            return res.status(400).json({
+                error: 'Parámetro inválido',
+                message: `dateFilter inválido: ${normalizedDateFilter}`
+            });
+        }
+
+        if (!allowedDateFields.has(normalizedDateField)) {
+            return res.status(400).json({
+                error: 'Parámetro inválido',
+                message: `dateField inválido: ${normalizedDateField}`
+            });
+        }
+
+        if (normalizedDateFilter !== 'all') {
+            if (!normalizedStartDate || !normalizedEndDate) {
+                return res.status(400).json({
+                    error: 'Parámetros incompletos',
+                    message: 'startDate y endDate son requeridos cuando dateFilter no es all'
+                });
+            }
+
+            if (!datePattern.test(normalizedStartDate) || !datePattern.test(normalizedEndDate)) {
+                return res.status(400).json({
+                    error: 'Formato de fecha inválido',
+                    message: 'startDate y endDate deben estar en formato YYYY-MM-DD o timestamp compatible'
+                });
+            }
+
+            const parsedStartDate = new Date(normalizedStartDate);
+            const parsedEndDate = new Date(normalizedEndDate);
+
+            if (Number.isNaN(parsedStartDate.getTime()) || Number.isNaN(parsedEndDate.getTime())) {
+                return res.status(400).json({
+                    error: 'Fecha inválida',
+                    message: 'No se pudo parsear startDate o endDate'
+                });
+            }
+
+            if (parsedStartDate > parsedEndDate) {
+                return res.status(400).json({
+                    error: 'Rango de fechas inválido',
+                    message: 'startDate no puede ser mayor a endDate'
+                });
+            }
+        }
+
         // Construir filtros SQL
         const filters = [];
         const params = [];
         let paramCount = 1;
+        const dateFieldTimestampExpr = buildSafeTimestampExpr(normalizedDateField);
+        const nuevaFechaEntregaTimestampExpr = buildSafeTimestampExpr('nuevaFechaEntrega');
 
         // Excluir archivados siempre
         filters.push("etapa_actual != 'ARCHIVADO'");
 
         // Filtro de fechas
-        if (dateFilter !== 'all' && startDate && endDate) {
-            filters.push(`(data->>'${dateField}')::timestamp >= $${paramCount}::timestamp AND (data->>'${dateField}')::timestamp <= $${paramCount + 1}::timestamp`);
-            params.push(startDate, endDate);
+        if (normalizedDateFilter !== 'all' && normalizedStartDate && normalizedEndDate) {
+            filters.push(`${dateFieldTimestampExpr} IS NOT NULL`);
+            filters.push(`${dateFieldTimestampExpr} >= $${paramCount}::timestamp AND ${dateFieldTimestampExpr} <= $${paramCount + 1}::timestamp`);
+            params.push(normalizedStartDate, normalizedEndDate);
             paramCount += 2;
         }
 
         // Filtro de etapas
-        if (stages && stages !== 'all') {
-            const stagesArray = stages.split(',');
+        const stagesArray = parseCsvFilter(stages);
+        if (stagesArray) {
             filters.push(`etapa_actual = ANY($${paramCount})`);
             params.push(stagesArray);
             paramCount++;
         }
 
         // Filtro de máquinas
-        if (machines && machines !== 'all') {
-            const machinesArray = machines.split(',');
+        const machinesArray = parseCsvFilter(machines);
+        if (machinesArray) {
             filters.push(`data->>'maquinaImpresion' = ANY($${paramCount})`);
             params.push(machinesArray);
             paramCount++;
         }
 
         // Filtro de vendedores
-        if (vendors && vendors !== 'all') {
-            const vendorsArray = vendors.split(',');
+        const vendorsArray = parseCsvFilter(vendors);
+        if (vendorsArray) {
             filters.push(`data->>'vendedorNombre' = ANY($${paramCount})`);
             params.push(vendorsArray);
             paramCount++;
         }
 
         // Filtro de clientes
-        if (clients && clients !== 'all') {
-            const clientsArray = clients.split(',');
+        const clientsArray = parseCsvFilter(clients);
+        if (clientsArray) {
             filters.push(`data->>'cliente' = ANY($${paramCount})`);
             params.push(clientsArray);
             paramCount++;
         }
 
         // Filtro de prioridad
-        if (priority && priority !== 'all') {
+        if (normalizedPriority && normalizedPriority !== 'all') {
             filters.push(`data->>'prioridad' = $${paramCount}`);
-            params.push(priority);
+            params.push(normalizedPriority);
             paramCount++;
         }
 
@@ -5176,7 +5265,7 @@ app.get('/api/analytics/summary', async (req, res) => {
                 COALESCE(SUM((data->>'tiempoProduccionDecimal')::NUMERIC), 0) as tiempo_total_horas,
                 COALESCE(AVG((data->>'tiempoProduccionDecimal')::NUMERIC), 0) as tiempo_promedio_horas,
                 COUNT(CASE WHEN data->>'prioridad' = 'Urgente' THEN 1 END) as pedidos_urgentes,
-                COUNT(CASE WHEN (data->>'nuevaFechaEntrega')::timestamp < NOW() AND etapa_actual != 'COMPLETADO' AND etapa_actual != 'ARCHIVADO' THEN 1 END) as pedidos_atrasados
+                COUNT(CASE WHEN ${nuevaFechaEntregaTimestampExpr} < NOW() AND etapa_actual != 'COMPLETADO' AND etapa_actual != 'ARCHIVADO' THEN 1 END) as pedidos_atrasados
             FROM limpio.pedidos
             ${whereClause}
         `;
@@ -5237,15 +5326,30 @@ app.get('/api/analytics/summary', async (req, res) => {
         // Query para tendencia temporal (agrupado por día/semana según rango)
         const timeSeriesQuery = `
             SELECT 
-                DATE_TRUNC('day', (data->>'${dateField}')::timestamp) as fecha,
+                DATE_TRUNC('day', ${dateFieldTimestampExpr}) as fecha,
                 COUNT(*) as total_pedidos,
                 COALESCE(SUM((data->>'metros')::NUMERIC), 0) as metros_totales,
                 COALESCE(SUM((data->>'tiempoProduccionDecimal')::NUMERIC), 0) as tiempo_total_horas
             FROM limpio.pedidos
             ${whereClause}
-            GROUP BY DATE_TRUNC('day', (data->>'${dateField}')::timestamp)
+            GROUP BY DATE_TRUNC('day', ${dateFieldTimestampExpr})
             ORDER BY fecha ASC
         `;
+
+        const runAnalyticsQuery = async (queryName, queryText) => {
+            try {
+                return await dbClient.pool.query(queryText, params);
+            } catch (queryError) {
+                console.error(`[analytics/summary] Fallo query ${queryName}`, {
+                    dateFilter: normalizedDateFilter,
+                    dateField: normalizedDateField,
+                    startDate: normalizedStartDate,
+                    endDate: normalizedEndDate,
+                    queryError: queryError.message
+                });
+                throw queryError;
+            }
+        };
 
         // Ejecutar todas las queries en paralelo
         const [
@@ -5256,12 +5360,12 @@ app.get('/api/analytics/summary', async (req, res) => {
             clientResult,
             timeSeriesResult
         ] = await Promise.all([
-            dbClient.pool.query(metricsQuery, params),
-            dbClient.pool.query(machineMetricsQuery, params),
-            dbClient.pool.query(stageMetricsQuery, params),
-            dbClient.pool.query(vendorRankingQuery, params),
-            dbClient.pool.query(clientRankingQuery, params),
-            dbClient.pool.query(timeSeriesQuery, params)
+            runAnalyticsQuery('metrics', metricsQuery),
+            runAnalyticsQuery('machineMetrics', machineMetricsQuery),
+            runAnalyticsQuery('stageMetrics', stageMetricsQuery),
+            runAnalyticsQuery('vendorRanking', vendorRankingQuery),
+            runAnalyticsQuery('clientRanking', clientRankingQuery),
+            runAnalyticsQuery('timeSeries', timeSeriesQuery)
         ]);
 
         res.json({

@@ -69,6 +69,9 @@ export interface AnalyticsFilters {
 }
 
 const API_BASE = ''; // URL relativa — Vite proxy en dev, servidor real en prod
+const ALLOWED_DATE_FILTERS: DateFilterOption[] = ['all', 'this-week', 'last-week', 'next-week', 'this-month', 'last-month', 'next-month', 'custom'];
+const ALLOWED_DATE_FIELDS = new Set(['fechaCreacion', 'fechaEntrega', 'nuevaFechaEntrega', 'fechaFinalizacion', 'compraCliche', 'recepcionCliche']);
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?)?$/;
 
 const getAuthHeaders = () => {
     const savedUser = localStorage.getItem('pigmea_user');
@@ -91,6 +94,35 @@ export const useAnalyticsData = (filters: AnalyticsFilters) => {
         setError(null);
 
         try {
+            if (!ALLOWED_DATE_FILTERS.includes(filters.dateFilter)) {
+                throw new Error(`Filtro de fecha inválido: ${filters.dateFilter}`);
+            }
+
+            if (!ALLOWED_DATE_FIELDS.has(filters.dateField)) {
+                throw new Error(`Campo de fecha inválido: ${filters.dateField}`);
+            }
+
+            if (filters.dateFilter !== 'all') {
+                if (!filters.startDate || !filters.endDate) {
+                    throw new Error('Debes indicar startDate y endDate para el filtro de fecha seleccionado');
+                }
+
+                if (!DATE_PATTERN.test(filters.startDate) || !DATE_PATTERN.test(filters.endDate)) {
+                    throw new Error('Formato de fecha inválido. Usá YYYY-MM-DD');
+                }
+
+                const parsedStartDate = new Date(filters.startDate);
+                const parsedEndDate = new Date(filters.endDate);
+
+                if (Number.isNaN(parsedStartDate.getTime()) || Number.isNaN(parsedEndDate.getTime())) {
+                    throw new Error('No se pudo interpretar startDate o endDate');
+                }
+
+                if (parsedStartDate > parsedEndDate) {
+                    throw new Error('El rango de fechas es inválido: startDate no puede ser mayor que endDate');
+                }
+            }
+
             const params = new URLSearchParams();
 
             // Add filters to query params
@@ -125,7 +157,16 @@ export const useAnalyticsData = (filters: AnalyticsFilters) => {
             });
 
             if (!response.ok) {
-                throw new Error(`Error ${response.status}: ${response.statusText}`);
+                let backendMessage = response.statusText;
+
+                try {
+                    const errorBody = await response.json();
+                    backendMessage = errorBody?.message || errorBody?.error || backendMessage;
+                } catch (_parseError) {
+                    // Ignorar errores de parseo y conservar statusText
+                }
+
+                throw new Error(`Error ${response.status}: ${backendMessage}`);
             }
 
             const analyticsData = await response.json();

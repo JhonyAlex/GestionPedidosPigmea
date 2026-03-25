@@ -27,40 +27,88 @@ const STORAGE_KEY_ANALYTICS_STAGES = 'analytics_selected_stages';
 const STORAGE_KEY_ANALYTICS_MACHINES = 'analytics_selected_machines';
 const STORAGE_KEY_ANALYTICS_PRIORITY = 'analytics_priority_filter';
 
+const ALLOWED_DATE_FILTERS: DateFilterOption[] = ['all', 'this-week', 'last-week', 'next-week', 'this-month', 'last-month', 'next-month', 'custom'];
+const ALLOWED_DATE_FIELDS = new Set(['fechaCreacion', 'fechaEntrega', 'nuevaFechaEntrega', 'fechaFinalizacion', 'compraCliche', 'recepcionCliche']);
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+const readStoredArray = (key: string): string[] => {
+    const saved = localStorage.getItem(key);
+    if (!saved) {
+        return [];
+    }
+
+    try {
+        const parsed = JSON.parse(saved);
+        if (!Array.isArray(parsed)) {
+            return [];
+        }
+        return parsed.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+    } catch (error) {
+        console.error(`Error parsing analytics filter array for ${key}:`, error);
+        return [];
+    }
+};
+
+const buildDefaultCustomRange = () => {
+    const today = new Date().toISOString().split('T')[0];
+    return { start: today, end: today };
+};
+
+const readStoredCustomDateRange = (): { start: string; end: string } => {
+    const saved = localStorage.getItem(STORAGE_KEY_ANALYTICS_CUSTOM_DATE_RANGE);
+    if (!saved) {
+        return buildDefaultCustomRange();
+    }
+
+    try {
+        const parsed = JSON.parse(saved);
+        if (!parsed || typeof parsed !== 'object') {
+            return buildDefaultCustomRange();
+        }
+
+        const start = typeof parsed.start === 'string' && DATE_ONLY_PATTERN.test(parsed.start)
+            ? parsed.start
+            : buildDefaultCustomRange().start;
+        const end = typeof parsed.end === 'string' && DATE_ONLY_PATTERN.test(parsed.end)
+            ? parsed.end
+            : buildDefaultCustomRange().end;
+
+        return { start, end };
+    } catch (error) {
+        console.error('Error parsing saved custom date range:', error);
+        return buildDefaultCustomRange();
+    }
+};
+
 export const AnalyticsDashboard: React.FC = () => {
     // --- Filter State ---
     const [dateFilter, setDateFilter] = useState<DateFilterOption>(() => {
-        return (localStorage.getItem(STORAGE_KEY_ANALYTICS_DATE_FILTER) as DateFilterOption) || 'this-month';
+        const saved = localStorage.getItem(STORAGE_KEY_ANALYTICS_DATE_FILTER);
+        if (saved && ALLOWED_DATE_FILTERS.includes(saved as DateFilterOption)) {
+            return saved as DateFilterOption;
+        }
+        return 'this-month';
     });
 
     const [dateField, setDateField] = useState<string>(() => {
-        return localStorage.getItem(STORAGE_KEY_ANALYTICS_DATE_FIELD) || 'nuevaFechaEntrega';
+        const saved = localStorage.getItem(STORAGE_KEY_ANALYTICS_DATE_FIELD);
+        if (saved && ALLOWED_DATE_FIELDS.has(saved)) {
+            return saved;
+        }
+        return 'nuevaFechaEntrega';
     });
 
     const [customDateRange, setCustomDateRange] = useState(() => {
-        const saved = localStorage.getItem(STORAGE_KEY_ANALYTICS_CUSTOM_DATE_RANGE);
-        if (saved) {
-            try {
-                return JSON.parse(saved);
-            } catch (e) {
-                console.error('Error parsing saved custom date range:', e);
-            }
-        }
-        return {
-            start: new Date().toISOString().split('T')[0],
-            end: new Date().toISOString().split('T')[0]
-        };
+        return readStoredCustomDateRange();
     });
 
     const [selectedStages, setSelectedStages] = useState<string[]>(() => {
-        const saved = localStorage.getItem(STORAGE_KEY_ANALYTICS_STAGES);
-        return saved ? JSON.parse(saved) : [];
+        return readStoredArray(STORAGE_KEY_ANALYTICS_STAGES);
     });
 
-    const allMachineOptions = MAQUINAS_IMPRESION.map(m => m.nombre);
+    const allMachineOptions: string[] = MAQUINAS_IMPRESION.map(m => m.nombre);
     const [selectedMachines, setSelectedMachines] = useState<string[]>(() => {
-        const saved = localStorage.getItem(STORAGE_KEY_ANALYTICS_MACHINES);
-        return saved ? JSON.parse(saved) : [];
+        return readStoredArray(STORAGE_KEY_ANALYTICS_MACHINES).filter((machine) => allMachineOptions.includes(machine));
     });
 
     const [selectedPriority, setSelectedPriority] = useState<string>(() => {
