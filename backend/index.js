@@ -767,7 +767,8 @@ async function autoArchivarPedidosCompletados() {
             SELECT id
             FROM limpio.pedidos
             WHERE etapa_actual = 'COMPLETADO'
-              AND (data->>'fechaFinalizacion') IS NOT NULL
+              AND NULLIF(TRIM(data->>'fechaFinalizacion'), '') IS NOT NULL
+              AND (data->>'fechaFinalizacion') ~ '^\\d{4}-\\d{2}-\\d{2}'
               AND (data->>'fechaFinalizacion')::timestamptz <= NOW() - INTERVAL '8 days'
         `);
 
@@ -827,9 +828,17 @@ async function autoArchivarPedidosCompletados() {
     }
 }
 
-// Correr al iniciar y luego cada hora
-autoArchivarPedidosCompletados();
-setInterval(autoArchivarPedidosCompletados, 60 * 60 * 1000);
+const AUTO_ARCHIVE_INTERVAL_MS = 60 * 60 * 1000;
+let autoArchiveJobStarted = false;
+
+function startAutoArchiveScheduler() {
+    if (autoArchiveJobStarted) return;
+    autoArchiveJobStarted = true;
+
+    // Primera ejecución inmediata una vez que la BD ya está operativa.
+    autoArchivarPedidosCompletados();
+    setInterval(autoArchivarPedidosCompletados, AUTO_ARCHIVE_INTERVAL_MS);
+}
 
 // Versión/buildTime del servidor (estable durante el proceso)
 const packageJson = require('./package.json');
@@ -5811,6 +5820,9 @@ async function startServer() {
             // 3. Crear resto de tablas e índices (ahora seguro porque 'pedidos' existe)
             console.log('🏗️ Verificando estructura de tablas complementarias...');
             await dbClient.createTables();
+
+            // Iniciar auto-archivado sólo cuando la DB ya está lista.
+            startAutoArchiveScheduler();
 
         } else {
             console.log('⚠️ No se encontró configuración de base de datos');

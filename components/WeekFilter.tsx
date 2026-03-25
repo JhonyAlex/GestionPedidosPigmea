@@ -26,9 +26,7 @@ const WeekFilter: React.FC<WeekFilterProps> = ({
         const handleClickOutside = (event: MouseEvent) => {
             if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
                 setIsPanelOpen(false);
-                if (!weekFilter.enabled) {
-                    setIsCompact(true);
-                }
+                setIsCompact(true);
             }
         };
 
@@ -109,6 +107,7 @@ const WeekFilter: React.FC<WeekFilterProps> = ({
             // Si ya está activo, desactivar
             onToggle();
             setIsPanelOpen(false);
+            setIsCompact(true);
         } else {
             // Si está inactivo, activar y abrir panel
             onToggle();
@@ -149,9 +148,19 @@ const WeekFilter: React.FC<WeekFilterProps> = ({
                         : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                 }`}
             >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                </svg>
+                <span
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setIsPanelOpen(false);
+                        setIsCompact(true);
+                    }}
+                    className="inline-flex"
+                    title="Contraer filtro"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                    </svg>
+                </span>
                 {weekFilter.enabled ? (
                     <span className="flex items-center gap-2">
                         📅 Semana {weekFilter.week}/{weekFilter.year}
