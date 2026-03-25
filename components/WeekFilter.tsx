@@ -18,6 +18,7 @@ const WeekFilter: React.FC<WeekFilterProps> = ({
     const currentWeek = getCurrentWeek();
     const [selectedYear, setSelectedYear] = useState(weekFilter.year);
     const [isPanelOpen, setIsPanelOpen] = useState(false);
+    const [isCompact, setIsCompact] = useState(true);
     const panelRef = useRef<HTMLDivElement>(null);
     
     // Cerrar panel al hacer clic fuera
@@ -25,6 +26,9 @@ const WeekFilter: React.FC<WeekFilterProps> = ({
         const handleClickOutside = (event: MouseEvent) => {
             if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
                 setIsPanelOpen(false);
+                if (!weekFilter.enabled) {
+                    setIsCompact(true);
+                }
             }
         };
 
@@ -123,6 +127,19 @@ const WeekFilter: React.FC<WeekFilterProps> = ({
 
     return (
         <div className="relative" ref={panelRef}>
+            {isCompact ? (
+                <button
+                    onClick={() => setIsCompact(false)}
+                    title="Filtrar por Semana"
+                    className="px-2.5 py-2 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                    aria-label="Filtrar por Semana"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                    </svg>
+                </button>
+            ) : (
+                <>
             {/* Botón principal de activación */}
             <button
                 onClick={handleToggleClick}
@@ -261,6 +278,7 @@ const WeekFilter: React.FC<WeekFilterProps> = ({
                             onClick={() => {
                                 onToggle();
                                 setIsPanelOpen(false);
+                                setIsCompact(true);
                             }}
                             className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors font-medium"
                         >
@@ -268,6 +286,8 @@ const WeekFilter: React.FC<WeekFilterProps> = ({
                         </button>
                     </div>
                 </div>
+            )}
+                </>
             )}
         </div>
     );

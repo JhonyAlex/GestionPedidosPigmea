@@ -755,6 +755,82 @@ function cleanupGhostUsers() {
 // Limpiar usuarios fantasma cada 10 segundos
 setInterval(cleanupGhostUsers, 10000);
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Auto-archivado: pedidos COMPLETADO con F. Finalización > 8 días
+// ─────────────────────────────────────────────────────────────────────────────
+async function autoArchivarPedidosCompletados() {
+    if (!dbClient.isInitialized || !dbClient.pool) return;
+
+    try {
+        // Buscar pedidos COMPLETADO cuya fechaFinalizacion tenga más de 8 días
+        const result = await dbClient.pool.query(`
+            SELECT id
+            FROM limpio.pedidos
+            WHERE etapa_actual = 'COMPLETADO'
+              AND (data->>'fechaFinalizacion') IS NOT NULL
+              AND (data->>'fechaFinalizacion')::timestamptz <= NOW() - INTERVAL '8 days'
+        `);
+
+        if (result.rowCount === 0) return;
+
+        console.log(`⏰ [AUTO-ARCHIVO] ${result.rowCount} pedido(s) completados superaron los 8 días. Archivando...`);
+
+        const updatedIds = [];
+        const updatedPedidos = [];
+
+        for (const row of result.rows) {
+            try {
+                const pedido = await dbClient.findById(row.id);
+                if (!pedido) continue;
+
+                const updatedPedido = {
+                    ...pedido,
+                    etapaActual: 'ARCHIVADO',
+                    archivado: true,
+                    historial: [
+                        ...(pedido.historial || []),
+                        {
+                            timestamp: new Date().toISOString(),
+                            usuario: 'Sistema',
+                            accion: 'Archivado automático',
+                            detalles: `Pedido archivado automáticamente por superar 8 días en etapa COMPLETADO`
+                        }
+                    ]
+                };
+
+                const saved = await dbClient.update(updatedPedido);
+                if (saved) {
+                    updatedIds.push(row.id);
+                    updatedPedidos.push({
+                        id: saved.id,
+                        numeroPedidoCliente: saved.numeroPedidoCliente,
+                        archivado: true
+                    });
+                    console.log(`  ✅ [AUTO-ARCHIVO] Pedido ${pedido.numeroPedidoCliente} archivado.`);
+                }
+            } catch (err) {
+                console.error(`  ❌ [AUTO-ARCHIVO] Error archivando pedido ${row.id}:`, err.message);
+            }
+        }
+
+        if (updatedIds.length > 0) {
+            broadcastToClients('pedidos-bulk-archived', {
+                pedidoIds: updatedIds,
+                count: updatedIds.length,
+                archived: true,
+                pedidos: updatedPedidos
+            });
+            console.log(`✅ [AUTO-ARCHIVO] ${updatedIds.length} pedido(s) archivados y notificados.`);
+        }
+    } catch (err) {
+        console.error('❌ [AUTO-ARCHIVO] Error en job de auto-archivado:', err.message);
+    }
+}
+
+// Correr al iniciar y luego cada hora
+autoArchivarPedidosCompletados();
+setInterval(autoArchivarPedidosCompletados, 60 * 60 * 1000);
+
 // Versión/buildTime del servidor (estable durante el proceso)
 const packageJson = require('./package.json');
 const serverVersion = packageJson.version || '1.0.0';

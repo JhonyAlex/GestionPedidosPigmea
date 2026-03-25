@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Pedido, Prioridad, Etapa, UserRole, TipoImpresion, EstadoCliché } from '../types';
 import { calcularTiempoRealProduccion, parseTimeToMinutes, formatMinutesToHHMM, formatMinutesToDaysAndMinutes, getTiempoTotalOEtapa } from '../utils/kpi';
 import { formatDateTimeDDMMYYYY, formatMetros } from '../utils/date';
@@ -6,7 +6,6 @@ import { puedeAvanzarSecuencia, estaFueraDeSecuencia } from '../utils/etapaLogic
 import { ETAPAS, KANBAN_FUNNELS, PREPARACION_COLUMNS, PREPARACION_SUB_ETAPAS_IDS } from '../constants';
 import SequenceBuilder from './SequenceBuilder';
 import SeccionDatosTecnicosDeMaterial from './SeccionDatosTecnicosDeMaterial';
-import CommentSystem from './comments/CommentSystem';
 import ObservacionesAutocomplete from './ObservacionesAutocomplete';
 import SearchableSelect from './SearchableSelect';
 // import { usePermissions } from '../hooks/usePermissions';
@@ -110,12 +109,63 @@ interface PedidoModalProps {
     isConnected?: boolean;
 }
 
+const renderHistoryTimeline = (historyItems: any[], ringClassName: string) => {
+    if (historyItems.length === 0) {
+        return (
+            <div className="flex h-full items-center justify-center px-6 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                No hay actividad registrada para este pedido
+            </div>
+        );
+    }
+
+    return (
+        <div className="flow-root">
+            <ul role="list" className="-mb-8">
+                {historyItems.map((item, itemIdx) => (
+                    <li key={item.id || item.timestamp + itemIdx}>
+                        <div className="relative pb-8">
+                            {itemIdx !== historyItems.length - 1 ? (
+                                <span className="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
+                            ) : null}
+                            <div className="relative flex space-x-3">
+                                <div>
+                                    <span className={`h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center ${ringClassName} text-gray-600 dark:text-gray-300`}>
+                                        {getHistoryIcon(item.description || item.type || '')}
+                                    </span>
+                                </div>
+                                <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
+                                    <div>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                                            <span className="font-medium text-gray-900 dark:text-white">
+                                                {item.payload?.summary?.title || item.type || 'Acción'}
+                                            </span>{' '}
+                                            por {item.userName || item.usuario || 'Usuario'}
+                                        </p>
+                                        <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
+                                            {item.payload?.summary?.details || item.description || item.detalles || 'Sin detalles'}
+                                        </p>
+                                    </div>
+                                    <div className="whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">
+                                        <time dateTime={item.timestamp}>
+                                            {formatDateTimeDDMMYYYY(item.timestamp)}
+                                        </time>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+};
+
 const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAutoSave, onArchiveToggle, onAdvanceStage, onSendToPrint, onDuplicate, onDelete, onSetReadyForProduction, onUpdateEtapa, isConnected = false }) => {
     const [formData, setFormData] = useState<Pedido>(JSON.parse(JSON.stringify(pedido)));
     const [tiempoProduccionDecimalInput, setTiempoProduccionDecimalInput] = useState<string>(() => formatDecimalForInput(pedido.tiempoProduccionDecimal));
     const [velocidadPosibleInput, setVelocidadPosibleInput] = useState<string>(() => formData.velocidadPosible?.toString() || '');
     const [showMetrosTracking, setShowMetrosTracking] = useState<boolean>(() => pedido.metrosLlevados !== null && pedido.metrosLlevados !== undefined);
-    const [activeTab, setActiveTab] = useState<'detalles' | 'gestion' | 'historial'>('detalles');
+    const [activeTab, setActiveTab] = useState<'detalles' | 'gestion'>('detalles');
     const [showConfirmClose, setShowConfirmClose] = useState(false);
     const [nuevoVendedor, setNuevoVendedor] = useState('');
     const [showVendedorInput, setShowVendedorInput] = useState(false);
@@ -597,11 +647,8 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
         try {
             await recordPedidoUpdate(pedido, pedidoActualizado);
 
-            // Recargar el historial si la pestaña está activa
-            if (activeTab === 'historial') {
-                const updatedHistory = await getContextHistory(pedido.id);
-                setPedidoHistory(updatedHistory);
-            }
+            const updatedHistory = await getContextHistory(pedido.id);
+            setPedidoHistory(updatedHistory);
         } catch (error) {
             console.error('Error al registrar acción en historial:', error);
             // No bloqueamos el guardado por errores de historial
@@ -1439,21 +1486,17 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
         }
     }
 
-    // Cargar historial cuando se abre la pestaña historial o cambia de pedido
+    // Cargar historial al abrir el modal o cambiar de pedido
     useEffect(() => {
         const loadHistory = async () => {
-            if (activeTab === 'historial') {
-                const history = await getContextHistory(pedido.id);
-                setPedidoHistory(history);
-            }
+            const history = await getContextHistory(pedido.id);
+            setPedidoHistory(history);
         };
         loadHistory();
-    }, [pedido.id, activeTab, getContextHistory]);
+    }, [pedido.id, getContextHistory]);
 
     // Actualizar historial del pedido en tiempo real cuando cualquier usuario registra una acción
     useEffect(() => {
-        if (activeTab !== 'historial') return;
-
         const unsubscribe = webSocketService.subscribeToActionHistoryUpdate(async (data) => {
             if (data.contextId === pedido.id) {
                 const updated = await getContextHistory(pedido.id);
@@ -1462,7 +1505,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
         });
 
         return unsubscribe;
-    }, [activeTab, pedido.id, getContextHistory]);
+    }, [pedido.id, getContextHistory]);
 
     const sortedHistory = useMemo(() => {
         // Usar el historial de IndexedDB
@@ -1656,12 +1699,6 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                 className={`py-3 px-6 text-sm font-medium transition-colors duration-200 ${activeTab === 'gestion' ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
                             >
                                 ⚙️ Gestión y Preparación
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('historial')}
-                                className={`py-3 px-6 text-sm font-medium transition-colors duration-200 ${activeTab === 'historial' ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-                            >
-                                📜 Historial de Actividad
                             </button>
                         </div>
 
@@ -2399,78 +2436,26 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                 </fieldset>
                             </form>
                         )}
-                        {activeTab === 'historial' && (
-                            <div className="flow-root">
-                                <ul role="list" className="-mb-8">
-                                    {sortedHistory.length === 0 ? (
-                                        <li className="text-center py-8 text-gray-500 dark:text-gray-400">
-                                            No hay actividad registrada para este pedido
-                                        </li>
-                                    ) : (
-                                        sortedHistory.map((item, itemIdx) => (
-                                            <li key={item.id || item.timestamp + itemIdx}>
-                                                <div className="relative pb-8">
-                                                    {itemIdx !== sortedHistory.length - 1 ? (
-                                                        <span className="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
-                                                    ) : null}
-                                                    <div className="relative flex space-x-3">
-                                                        <div>
-                                                            <span className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center ring-8 ring-white dark:ring-gray-800 text-gray-600 dark:text-gray-300">
-                                                                {getHistoryIcon(item.description || item.type || '')}
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
-                                                            <div>
-                                                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                                    <span className="font-medium text-gray-900 dark:text-white">
-                                                                        {item.payload?.summary?.title || item.type || 'Acción'}
-                                                                    </span> por {item.userName || item.usuario || 'Usuario'}
-                                                                </p>
-                                                                <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
-                                                                    {item.payload?.summary?.details || item.description || item.detalles || 'Sin detalles'}
-                                                                </p>
-                                                            </div>
-                                                            <div className="whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">
-                                                                <time dateTime={item.timestamp}>
-                                                                    {formatDateTimeDDMMYYYY(item.timestamp)}
-                                                                </time>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </li>
-                                        ))
-                                    )}
-                                </ul>
-                            </div>
-                        )}
                     </div>
                 </div>
 
-                {/* Comments panel - Right column */}
+                {/* Activity history panel - Right column */}
                 <div className="w-80 xl:w-96 border-l-2 border-gray-300 dark:border-gray-600 flex flex-col bg-gray-50 dark:bg-gray-900">
-                    <div className="p-4 border-b-2 border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800/80">
+                    <div className="p-4 border-b-2 border-gray-200 dark:border-gray-700 bg-gradient-to-r from-amber-50 via-white to-slate-100 dark:from-gray-800 dark:via-gray-800 dark:to-gray-800/80">
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <div className="p-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
-                                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            <div className="p-1.5 bg-amber-100 dark:bg-amber-900/40 rounded-lg">
+                                <svg className="w-5 h-5 text-amber-600 dark:text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
                                 </svg>
                             </div>
-                            Comentarios
+                            Historial de Actividad
                         </h3>
                         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 font-medium">
-                            Actividades y comentarios en tiempo real
+                            Cambios y acciones en tiempo real
                         </p>
                     </div>
-                    <div className="flex-1 bg-white dark:bg-gray-800 min-h-0">
-                        <CommentSystem
-                            pedidoId={pedido.id}
-                            currentUserId={user?.id}
-                            currentUserRole={user?.role}
-                            canDeleteComments={false}
-                            className="h-full"
-                            isConnected={isConnected}
-                        />
+                    <div className="flex-1 min-h-0 overflow-y-auto bg-white dark:bg-gray-800 px-4 py-5">
+                        {renderHistoryTimeline(sortedHistory, 'ring-8 ring-gray-50 dark:ring-gray-800')}
                     </div>
                 </div>
             </div>
