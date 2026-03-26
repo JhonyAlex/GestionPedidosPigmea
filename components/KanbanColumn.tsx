@@ -5,6 +5,7 @@ import PedidoCard from './PedidoCard';
 import { useLockObserver } from '../hooks/useLockObserver';
 import { useAuth } from '../contexts/AuthContext';
 import { formatStageTitle } from '../utils/formatStageTitle';
+import { buildKanbanDraggableId } from '../utils/kanbanManualOrder';
 
 interface KanbanColumnProps {
     etapa: KanbanEtapa;
@@ -103,7 +104,11 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                             className={`flex-grow p-4 transition-colors duration-150 ease-in-out ${snapshot.isDraggingOver ? 'bg-gray-300 dark:bg-gray-700' : 'bg-gray-200 dark:bg-gray-800'} rounded-b-xl overflow-y-auto min-h-[300px] max-h-[48rem]`}
                         >
                             {pedidos.map((pedido, index) => (
-                                <Draggable key={pedido.id} draggableId={pedido.id} index={index}>
+                                <Draggable
+                                    key={`${pedido.id}-${etapa.id}`}
+                                    draggableId={buildKanbanDraggableId(pedido.id, etapa.id)}
+                                    index={index}
+                                >
                                     {(provided, snapshot) => (
                                         <div
                                             ref={provided.innerRef}

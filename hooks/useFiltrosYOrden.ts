@@ -481,7 +481,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[], listasTemporalesMap: Record<
 
         return filtered;
 
-    }, [pedidos, debouncedSearchTerm, filters, selectedStages, selectedVendedores, selectedClientes, selectedMaquinas, antivahoFilter, preparacionFilter, estadoClicheFilter, anonimoFilter, dateFilter, sortConfig, customDateRange, weekFilter]);
+    }, [pedidos, debouncedSearchTerm, filters, selectedStages, selectedVendedores, selectedClientes, selectedMaquinas, antivahoFilter, preparacionFilter, estadoClicheFilter, anonimoFilter, dateFilter, sortConfig, customDateRange, weekFilter, listasTemporalesMap]);
 
     return {
         processedPedidos,

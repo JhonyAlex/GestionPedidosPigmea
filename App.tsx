@@ -55,6 +55,13 @@ import { useInactivityReload } from './hooks/useInactivityReload';
 import { useVersionCheck } from './hooks/useVersionCheck';
 import { auditService } from './services/audit';
 import UpdateBanner from './components/UpdateBanner';
+import {
+    KanbanManualOrderMap,
+    loadKanbanManualOrderMap,
+    pruneKanbanManualOrderMap,
+    saveKanbanManualOrderMap,
+    sortKanbanColumnPedidos,
+} from './utils/kanbanManualOrder';
 
 
 const AppContent: React.FC = () => {
@@ -95,6 +102,7 @@ const AppContent: React.FC = () => {
     const [showImportModal, setShowImportModal] = useState(false);
     const [showBulkImportModal, setShowBulkImportModal] = useState(false);
     const [showPdfImportModal, setShowPdfImportModal] = useState(false);
+    const [kanbanManualOrderMap, setKanbanManualOrderMap] = useState<KanbanManualOrderMap>(() => loadKanbanManualOrderMap());
 
     // Estados para operaciones masivas
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -344,6 +352,28 @@ const AppContent: React.FC = () => {
         }
     }, [pedidos, limpiarHuerfanos]);
 
+    useEffect(() => {
+        const existingPedidoIds = new Set(pedidos.map(p => p.id));
+
+        setKanbanManualOrderMap(prev => {
+            const next = pruneKanbanManualOrderMap(prev, existingPedidoIds);
+            const prevEntries = Object.entries(prev);
+            const nextEntries = Object.entries(next);
+            const isEqual = prevEntries.length === nextEntries.length
+                && prevEntries.every(([stageId, ids]) => {
+                    const nextIds = next[stageId as Etapa] || [];
+                    return ids.length === nextIds.length && ids.every((id, index) => id === nextIds[index]);
+                });
+
+            if (isEqual) {
+                return prev;
+            }
+
+            saveKanbanManualOrderMap(next);
+            return next;
+        });
+    }, [pedidos]);
+
     // Si no quedan listas temporales, apagar el filtro para evitar pantalla en blanco.
     useEffect(() => {
         if (filtrarSoloTemporales && Object.keys(listasTemporalesMap).length === 0) {
@@ -351,10 +381,68 @@ const AppContent: React.FC = () => {
         }
     }, [filtrarSoloTemporales, listasTemporalesMap]);
 
+    const updateKanbanManualOrderForStage = useCallback((stageId: Etapa, orderedIds: string[]) => {
+        setKanbanManualOrderMap(prev => {
+            const normalizedIds = Array.from(new Set(orderedIds.filter(Boolean)));
+            const previousIds = prev[stageId] || [];
+            const isEqual = previousIds.length === normalizedIds.length
+                && previousIds.every((id, index) => id === normalizedIds[index]);
+
+            if (isEqual) {
+                return prev;
+            }
+
+            const next: KanbanManualOrderMap = { ...prev };
+
+            if (normalizedIds.length > 0) {
+                next[stageId] = normalizedIds;
+            } else {
+                delete next[stageId];
+            }
+
+            saveKanbanManualOrderMap(next);
+            return next;
+        });
+    }, []);
+
+    const productionKanbanStages = useMemo(
+        () => [
+            ...KANBAN_VISUAL_LAYOUT.topRow,
+            ...KANBAN_VISUAL_LAYOUT.postImpresionRows[0],
+            ...KANBAN_VISUAL_LAYOUT.postImpresionRows[1],
+        ],
+        []
+    );
+
     const preparacionPedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual === Etapa.PREPARACION && p.subEtapaActual !== PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION), [processedPedidos]);
     const listoProduccionPedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual === Etapa.PREPARACION && p.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION), [processedPedidos]);
     const activePedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual !== Etapa.ARCHIVADO && p.etapaActual !== Etapa.PREPARACION), [processedPedidos]);
     const archivedPedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual === Etapa.ARCHIVADO), [processedPedidos]);
+
+    const kanbanAllPedidosByStage = useMemo(() => {
+        return productionKanbanStages.reduce((acc, etapaId) => {
+            const columnPedidos = activePedidos.filter(p =>
+                p.etapaActual === etapaId ||
+                (listasTemporalesMap[p.id] || []).includes(etapaId)
+            );
+
+            acc[etapaId] = sortKanbanColumnPedidos(columnPedidos, etapaId, kanbanManualOrderMap);
+            return acc;
+        }, {} as Partial<Record<Etapa, Pedido[]>>);
+    }, [activePedidos, listasTemporalesMap, kanbanManualOrderMap, productionKanbanStages]);
+
+    const kanbanVisiblePedidosByStage = useMemo(() => {
+        return productionKanbanStages.reduce((acc, etapaId) => {
+            const columnPedidos = kanbanAllPedidosByStage[etapaId] || [];
+
+            acc[etapaId] = filtrarSoloTemporales
+                ? columnPedidos.filter(p => (listasTemporalesMap[p.id] || []).length > 0)
+                : columnPedidos;
+
+            return acc;
+        }, {} as Partial<Record<Etapa, Pedido[]>>);
+    }, [filtrarSoloTemporales, kanbanAllPedidosByStage, listasTemporalesMap, productionKanbanStages]);
+
     const listViewMetrics = useMemo(() => {
         const totals = activePedidos.reduce((acc, pedido) => {
             const metros = typeof pedido.metros === 'number' ? pedido.metros : Number(pedido.metros || 0);
@@ -391,10 +479,27 @@ const AppContent: React.FC = () => {
             handleSavePedido: handleSavePedidoLogic,
             handleUpdatePedidoEtapa,
             setSortConfig: updateSortConfig, // Usar la función correcta para establecer el sorting
-            getMaterialesByPedidoId
+            getMaterialesByPedidoId,
+            kanbanAllPedidosByStage,
+            kanbanVisiblePedidosByStage,
+            setKanbanManualOrderForStage: updateKanbanManualOrderForStage,
         });
 
-    }, [pedidos, currentUserRole, processedPedidos, generarEntradaHistorial, logAction, handleSort, setPedidos, handleSavePedidoLogic, handleUpdatePedidoEtapa, getMaterialesByPedidoId]);
+    }, [
+        pedidos,
+        currentUserRole,
+        processedPedidos,
+        generarEntradaHistorial,
+        logAction,
+        setPedidos,
+        handleSavePedidoLogic,
+        handleUpdatePedidoEtapa,
+        getMaterialesByPedidoId,
+        kanbanAllPedidosByStage,
+        kanbanVisiblePedidosByStage,
+        updateKanbanManualOrderForStage,
+        updateSortConfig,
+    ]);
 
     const handleAdvanceStage = async (pedidoToAdvance: Pedido) => {
         // Para pedidos con antivaho no realizado en post-impresión, primero decidir si vuelve a impresión
@@ -1124,10 +1229,7 @@ const AppContent: React.FC = () => {
                             <h2 className="text-3xl font-extrabold text-gray-800 dark:text-white mb-4 border-l-4 border-cyan-500 pl-4">Impresión y DNT</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 {KANBAN_VISUAL_LAYOUT.topRow.map(etapaId => {
-                                    const columnPedidos = processedPedidos.filter(p =>
-                                        p.etapaActual === etapaId ||
-                                        (listasTemporalesMap[p.id] || []).includes(etapaId)
-                                    ).filter(p => !filtrarSoloTemporales || (listasTemporalesMap[p.id] || []).length > 0);
+                                    const columnPedidos = kanbanVisiblePedidosByStage[etapaId] || [];
                                     return (
                                     <KanbanColumn
                                         key={etapaId}
@@ -1157,10 +1259,7 @@ const AppContent: React.FC = () => {
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-6">
                                 {KANBAN_VISUAL_LAYOUT.postImpresionRows[0].map(etapaId => {
-                                    const columnPedidos = activePedidos.filter(p =>
-                                        p.etapaActual === etapaId ||
-                                        (listasTemporalesMap[p.id] || []).includes(etapaId)
-                                    ).filter(p => !filtrarSoloTemporales || (listasTemporalesMap[p.id] || []).length > 0);
+                                    const columnPedidos = kanbanVisiblePedidosByStage[etapaId] || [];
                                     return (
                                     <KanbanColumn
                                         key={etapaId}
@@ -1186,10 +1285,7 @@ const AppContent: React.FC = () => {
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                                 {KANBAN_VISUAL_LAYOUT.postImpresionRows[1].map(etapaId => {
-                                    const columnPedidos = activePedidos.filter(p =>
-                                        p.etapaActual === etapaId ||
-                                        (listasTemporalesMap[p.id] || []).includes(etapaId)
-                                    ).filter(p => !filtrarSoloTemporales || (listasTemporalesMap[p.id] || []).length > 0);
+                                    const columnPedidos = kanbanVisiblePedidosByStage[etapaId] || [];
                                     return (
                                     <KanbanColumn
                                         key={etapaId}

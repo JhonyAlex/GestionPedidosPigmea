@@ -5,6 +5,12 @@ import { Material } from '../types/material';
 import { ETAPAS, PREPARACION_SUB_ETAPAS_IDS, KANBAN_FUNNELS } from '../constants';
 import { store } from '../services/storage';
 import { calculateTotalProductionTime } from './kpi';
+import {
+    getOrderedKanbanColumnPedidos,
+    isProduccionKanbanStage,
+    mergeVisibleKanbanReorder,
+    parseKanbanDraggableId,
+} from './kanbanManualOrder';
 
 type ProcessDragEndArgs = {
     result: DropResult;
@@ -18,6 +24,9 @@ type ProcessDragEndArgs = {
     handleUpdatePedidoEtapa: (pedido: Pedido, newEtapa: Etapa, newSubEtapa?: string | null) => Promise<void>;
     setSortConfig: (key: keyof Pedido, direction?: 'ascending' | 'descending') => void;
     getMaterialesByPedidoId: (pedidoId: string) => Promise<Material[]>;
+    kanbanAllPedidosByStage: Partial<Record<Etapa, Pedido[]>>;
+    kanbanVisiblePedidosByStage: Partial<Record<Etapa, Pedido[]>>;
+    setKanbanManualOrderForStage: (stageId: Etapa, orderedIds: string[]) => void;
 };
 
 export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> => {
@@ -32,10 +41,14 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
         handleSavePedido,
         handleUpdatePedidoEtapa,
         setSortConfig,
-        getMaterialesByPedidoId
+        getMaterialesByPedidoId,
+        kanbanAllPedidosByStage,
+        kanbanVisiblePedidosByStage,
+        setKanbanManualOrderForStage,
     } = args;
 
     const { destination, source, draggableId } = result;
+    const { pedidoId } = parseKanbanDraggableId(draggableId);
 
     if (!destination) return;
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
@@ -106,8 +119,20 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
         return;
     }
 
-    const movedPedido = pedidos.find(p => p.id === draggableId);
+    const movedPedido = pedidos.find(p => p.id === pedidoId);
     if (!movedPedido) return;
+
+    const sourceEsEtapaProduccion = isProduccionKanbanStage(source.droppableId);
+    const destinationEsEtapaProduccion = isProduccionKanbanStage(destination.droppableId);
+
+    if (
+        sourceEsEtapaProduccion &&
+        destinationEsEtapaProduccion &&
+        source.droppableId !== destination.droppableId &&
+        movedPedido.etapaActual !== source.droppableId
+    ) {
+        return;
+    }
 
     // Actualización optimista inmediata para evitar el "salto"
     let updatedPedido: Pedido;
@@ -227,7 +252,7 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
         }
 
         // Actualización optimista inmediata para experiencia fluida
-        setPedidos(prev => prev.map(p => p.id === draggableId ? tempUpdatedPedido : p));
+        setPedidos(prev => prev.map(p => p.id === pedidoId ? tempUpdatedPedido : p));
 
         // Persistir cambio - el hook aplicará determinarEtapaPreparacion basado en los flags
         await handleSavePedido(tempUpdatedPedido);
@@ -236,22 +261,33 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
     }
 
     // ✅ Reordenamiento dentro de la MISMA columna Kanban (no lista, no preparación)
-    if (source.droppableId === destination.droppableId) {
+    if (source.droppableId === destination.droppableId && sourceEsEtapaProduccion) {
         const etapaId = source.droppableId as Etapa;
+        const fullColumnPedidos = kanbanAllPedidosByStage[etapaId] || [];
+        const visibleColumnPedidos = kanbanVisiblePedidosByStage[etapaId] || fullColumnPedidos;
 
-        // Obtener los pedidos de esta columna en el orden actual (ya filtrados/ordenados por processedPedidos)
-        const columnPedidos = processedPedidos.filter(p => p.etapaActual === etapaId);
+        if (visibleColumnPedidos.length === 0) {
+            return;
+        }
 
-        // Reordenar
-        const reordered = Array.from(columnPedidos);
-        const [moved] = reordered.splice(source.index, 1);
-        reordered.splice(destination.index, 0, moved);
+        const orderedIds = mergeVisibleKanbanReorder(
+            fullColumnPedidos,
+            visibleColumnPedidos,
+            source.index,
+            destination.index
+        );
+        const reordered = getOrderedKanbanColumnPedidos(fullColumnPedidos, orderedIds);
+        const moved = visibleColumnPedidos[source.index] || movedPedido;
 
-        // Asignar posicionEnEtapa secuencial (1, 2, 3...)
+        setKanbanManualOrderForStage(etapaId, orderedIds);
+
+        // Mantener la persistencia actual del orden real de la etapa y combinarla con el orden visual manual.
         const updatedPositions = new Map<string, number>();
-        reordered.forEach((pedido, index) => {
+        reordered
+            .filter(pedido => pedido.etapaActual === etapaId)
+            .forEach((pedido, index) => {
             updatedPositions.set(pedido.id, index + 1);
-        });
+            });
 
         // Identificar pedidos que realmente cambiaron de posición
         const newPedidosList = pedidos.map(pedido => {
