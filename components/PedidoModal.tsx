@@ -755,28 +755,13 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
         }
     };
 
-    // Guardar cambios y cerrar
-    const handleSaveAndClose = () => {
-        const metrosValue = Number(formData.metros);
-        if (isNaN(metrosValue) || metrosValue <= 0) {
-            alert('Metros debe ser un número mayor a 0.');
-            return;
+    // Guardar cambios y cerrar usando el mismo flujo de validación que el botón Guardar
+    const handleSaveAndClose = (e?: React.MouseEvent<HTMLButtonElement>) => {
+        e?.preventDefault();
+        const form = document.querySelector('form') as HTMLFormElement | null;
+        if (form) {
+            form.requestSubmit();
         }
-
-        // ✅ FIX: Validar que numeroPedidoCliente no esté vacío
-        if (!formData.numeroPedidoCliente || !formData.numeroPedidoCliente.trim()) {
-            alert('❌ El Nº de Pedido del Cliente es obligatorio. Por favor, ingrese un número de pedido.');
-            return;
-        }
-
-        // ✅ FIX: Bloquear guardado con prefijo "COPIA-"
-        if (formData.numeroPedidoCliente.trim().startsWith('COPIA-')) {
-            alert('❌ Este pedido es una copia y necesita un Nº de Pedido del Cliente real.\n\nPor favor, reemplace "COPIA-..." con el número de pedido correcto.');
-            return;
-        }
-
-        const pedidoActualizado = { ...formData, metros: metrosValue } as Pedido;
-        savePedidoAndClose(pedidoActualizado);
     };
 
     // Descartar cambios y cerrar
