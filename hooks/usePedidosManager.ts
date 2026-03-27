@@ -931,11 +931,18 @@ export const usePedidosManager = (
     const handleAntivahoDestinationImpresion = async () => {
         if (!antivahoDestinationModalState.pedido) return;
 
-        const pedido = antivahoDestinationModalState.pedido;
+        const sourcePedido = antivahoDestinationModalState.pedido;
+        const latestPedido = pedidos.find(p => p.id === sourcePedido.id) || sourcePedido;
+        const pedidoForSend = {
+            ...latestPedido,
+            // Se persiste al confirmar envío; esto asegura que el flujo de retorno desde NEXUS
+            // no pierda el estado por desincronización de datos en memoria.
+            antivahoRealizado: true,
+        };
 
         // Regresar a impresión - abrir el modal de envío a impresión
         setAntivahoDestinationModalState({ isOpen: false, pedido: null });
-        setPedidoToSend(pedido);
+        setPedidoToSend(pedidoForSend);
     };
 
     const handleAntivahoDestinationListoProduccion = async () => {

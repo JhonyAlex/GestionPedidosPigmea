@@ -17,6 +17,19 @@ interface EnviarAImpresionModalProps {
 const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, onClose, onConfirm }) => {
     const availablePostImpresionStages = normalizePostImpresionSequence(KANBAN_FUNNELS.POST_IMPRESION.stages, pedido.cliente);
 
+    const getInitialSequence = (): Etapa[] => {
+        const normalized = normalizePostImpresionSequence(pedido.secuenciaTrabajo, pedido.cliente);
+
+        if (
+            KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual) &&
+            !normalized.includes(pedido.etapaActual)
+        ) {
+            return normalizePostImpresionSequence([pedido.etapaActual, ...normalized], pedido.cliente);
+        }
+
+        return normalized;
+    };
+
     const getInitialStage = (): Etapa => {
         if (pedido.maquinaImpresion) {
             const matchingStage = KANBAN_FUNNELS.IMPRESION.stages.find(
@@ -29,13 +42,11 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
     };
 
     const [impresionEtapa, setImpresionEtapa] = useState<Etapa>(getInitialStage());
-    const [postImpresionSequence, setPostImpresionSequence] = useState<Etapa[]>(
-        normalizePostImpresionSequence(pedido.secuenciaTrabajo, pedido.cliente)
-    );
+    const [postImpresionSequence, setPostImpresionSequence] = useState<Etapa[]>(getInitialSequence());
 
     useEffect(() => {
         setImpresionEtapa(getInitialStage());
-        setPostImpresionSequence(normalizePostImpresionSequence(pedido.secuenciaTrabajo, pedido.cliente));
+        setPostImpresionSequence(getInitialSequence());
     }, [pedido]);
 
     const handleSequenceChange = (newSequence: Etapa[]) => {
