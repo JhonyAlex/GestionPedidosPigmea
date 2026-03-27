@@ -569,6 +569,33 @@ const AppContent: React.FC = () => {
         }
     };
 
+    const handleMoveToVisibleStage = useCallback(async (pedidoId: string, targetEtapa: Etapa) => {
+        const pedido = pedidos.find(p => p.id === pedidoId);
+        if (!pedido || pedido.etapaActual === targetEtapa) return;
+
+        const etapaOrigen = pedido.etapaActual;
+        const fromPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual);
+        const fromListoProduccion = pedido.etapaActual === Etapa.PREPARACION
+            && pedido.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION;
+        const toImpresion = KANBAN_FUNNELS.IMPRESION.stages.includes(targetEtapa);
+        const requiresAntivahoConfirmation = pedido.antivaho
+            && !pedido.antivahoRealizado
+            && (fromPostImpresion || fromListoProduccion)
+            && toImpresion;
+
+        await handleUpdatePedidoEtapa(pedido, targetEtapa);
+        if (requiresAntivahoConfirmation) return;
+
+        // Intercambio de lugar: la etapa de destino pasa a ser real y la anterior queda como temporal.
+        setListaTemporal(pedidoId, targetEtapa, false);
+        setListaTemporal(pedidoId, etapaOrigen, true);
+
+        logAction(
+            `Pedido ${pedido.numeroPedidoCliente} movido desde "${ETAPAS[etapaOrigen].title}" a "${ETAPAS[targetEtapa].title}" desde Visibilidad en Listas.`,
+            pedido.id
+        );
+    }, [pedidos, handleUpdatePedidoEtapa, setListaTemporal, logAction]);
+
     const handleSavePedido = async (updatedPedido: Pedido) => {
         const originalPedido = pedidos.find(p => p.id === updatedPedido.id);
         const result = await handleSavePedidoLogic(updatedPedido);
@@ -1248,6 +1275,7 @@ const AppContent: React.FC = () => {
                                         listasTemporalesMap={listasTemporalesMap}
                                         onSetListaTemporal={setListaTemporal}
                                         onResetListaTemporal={resetListaTemporal}
+                                        onMoveListaTemporal={handleMoveToVisibleStage}
                                     />
                                     );
                                 })}
@@ -1278,6 +1306,7 @@ const AppContent: React.FC = () => {
                                         listasTemporalesMap={listasTemporalesMap}
                                         onSetListaTemporal={setListaTemporal}
                                         onResetListaTemporal={resetListaTemporal}
+                                        onMoveListaTemporal={handleMoveToVisibleStage}
                                     />
                                     );
                                 })}
@@ -1304,6 +1333,7 @@ const AppContent: React.FC = () => {
                                         listasTemporalesMap={listasTemporalesMap}
                                         onSetListaTemporal={setListaTemporal}
                                         onResetListaTemporal={resetListaTemporal}
+                                        onMoveListaTemporal={handleMoveToVisibleStage}
                                     />
                                     );
                                 })}

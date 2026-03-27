@@ -213,6 +213,7 @@ interface PedidoCardProps {
     listasTemporales?: Etapa[];           // Etapas temporales adicionales del pedido
     onSetListaTemporal?: (etapa: Etapa, checked: boolean) => void;
     onResetListaTemporal?: () => void;
+    onMoveListaTemporal?: (etapa: Etapa) => Promise<void> | void;
     isTemporalDisplay?: boolean;          // true cuando la tarjeta se muestra FUERA de su etapa real (por override)
 }
 
@@ -238,6 +239,7 @@ const PedidoCard = React.memo<PedidoCardProps>(({
     listasTemporales = [],
     onSetListaTemporal,
     onResetListaTemporal,
+    onMoveListaTemporal,
     isTemporalDisplay = false,
 }) => {
     const { canMovePedidos, canArchivePedidos } = usePermissions();
@@ -254,6 +256,7 @@ const PedidoCard = React.memo<PedidoCardProps>(({
     const listasPanelRef = useRef<HTMLDivElement>(null);
     const listasButtonRef = useRef<HTMLButtonElement>(null);
     const [panelPosition, setPanelPosition] = useState<{ top: number; left: number } | null>(null);
+    const [movingToEtapa, setMovingToEtapa] = useState<Etapa | null>(null);
 
     // 🆕 Estado para materiales de la nueva tabla
     const [materialesNuevos, setMaterialesNuevos] = useState<Material[]>([]);
@@ -961,51 +964,75 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                                     )}
                                 </div>
                                 <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-2">
-                                    El pedido aparecerá resaltado en las listas adicionales marcadas.
+                                    El pedido aparecera resaltado en las listas adicionales marcadas.
                                 </p>
                                 <div className="space-y-1 max-h-52 overflow-y-auto pr-1">
                                     {ETAPAS_PRODUCCION.map(etapa => {
                                         const esEtapaActual = etapa === pedido.etapaActual;
                                         const esTemporal = listasTemporales.includes(etapa);
+                                        const inputId = `lista-temporal-${pedido.id}-${etapa}`;
+                                        const isMoving = movingToEtapa === etapa;
                                         return (
-                                            <label
+                                            <div
                                                 key={etapa}
-                                                className={`flex items-center gap-2 rounded px-2 py-1 cursor-pointer transition-colors ${
+                                                className={`group flex items-center gap-2 rounded px-2 py-1 transition-colors ${
                                                     esEtapaActual
                                                         ? 'bg-blue-50 dark:bg-blue-900/30'
                                                         : 'hover:bg-gray-50 dark:hover:bg-gray-700'
                                                 }`}
                                             >
-                                                <input
-                                                    type="checkbox"
-                                                    checked={esEtapaActual || esTemporal}
-                                                    disabled={esEtapaActual}
-                                                    onChange={(ev) => {
-                                                        ev.stopPropagation();
-                                                        onSetListaTemporal(etapa, ev.target.checked);
-                                                    }}
-                                                    className="w-3.5 h-3.5 text-amber-500 rounded border-gray-300 dark:border-gray-600 cursor-pointer disabled:cursor-default disabled:opacity-60"
-                                                />
-                                                <span className={`text-xs flex-1 ${
-                                                    esEtapaActual
-                                                        ? 'text-blue-700 dark:text-blue-300 font-semibold'
-                                                        : esTemporal
-                                                            ? 'text-amber-700 dark:text-amber-300 font-medium'
-                                                            : 'text-gray-700 dark:text-gray-300'
-                                                }`}>
-                                                    {ETAPAS[etapa]?.title ?? etapa}
-                                                </span>
-                                                {esEtapaActual && (
-                                                    <span className="text-[9px] bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-300 px-1 py-0.5 rounded font-semibold">
-                                                        Actual
+                                                <label htmlFor={inputId} className="flex items-center gap-2 flex-1 cursor-pointer">
+                                                    <input
+                                                        id={inputId}
+                                                        type="checkbox"
+                                                        checked={esEtapaActual || esTemporal}
+                                                        disabled={esEtapaActual}
+                                                        onChange={(ev) => {
+                                                            ev.stopPropagation();
+                                                            onSetListaTemporal(etapa, ev.target.checked);
+                                                        }}
+                                                        className="w-3.5 h-3.5 text-amber-500 rounded border-gray-300 dark:border-gray-600 cursor-pointer disabled:cursor-default disabled:opacity-60"
+                                                    />
+                                                    <span className={`text-xs flex-1 ${
+                                                        esEtapaActual
+                                                            ? 'text-blue-700 dark:text-blue-300 font-semibold'
+                                                            : esTemporal
+                                                                ? 'text-amber-700 dark:text-amber-300 font-medium'
+                                                                : 'text-gray-700 dark:text-gray-300'
+                                                    }`}>
+                                                        {ETAPAS[etapa]?.title ?? etapa}
                                                     </span>
+                                                    {esEtapaActual && (
+                                                        <span className="text-[9px] bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-300 px-1 py-0.5 rounded font-semibold">
+                                                            Actual
+                                                        </span>
+                                                    )}
+                                                    {!esEtapaActual && esTemporal && (
+                                                        <span className="text-[9px] bg-amber-100 dark:bg-amber-800 text-amber-600 dark:text-amber-300 px-1 py-0.5 rounded font-semibold">
+                                                            Temporal
+                                                        </span>
+                                                    )}
+                                                </label>
+                                                {!esEtapaActual && esTemporal && onMoveListaTemporal && (
+                                                    <button
+                                                        type="button"
+                                                        disabled={isMoving}
+                                                        onClick={async (ev) => {
+                                                            ev.stopPropagation();
+                                                            setMovingToEtapa(etapa);
+                                                            try {
+                                                                await Promise.resolve(onMoveListaTemporal(etapa));
+                                                            } finally {
+                                                                setMovingToEtapa(null);
+                                                            }
+                                                        }}
+                                                        className="text-[10px] font-semibold px-1.5 py-0.5 rounded border border-cyan-300 dark:border-cyan-700 text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-900/30 hover:bg-cyan-100 dark:hover:bg-cyan-900/50 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 disabled:opacity-60"
+                                                        title={`Mover pedido a ${ETAPAS[etapa]?.title ?? etapa}`}
+                                                    >
+                                                        {isMoving ? '...' : 'Mover'}
+                                                    </button>
                                                 )}
-                                                {!esEtapaActual && esTemporal && (
-                                                    <span className="text-[9px] bg-amber-100 dark:bg-amber-800 text-amber-600 dark:text-amber-300 px-1 py-0.5 rounded font-semibold">
-                                                        Temporal
-                                                    </span>
-                                                )}
-                                            </label>
+                                            </div>
                                         );
                                     })}
                                 </div>

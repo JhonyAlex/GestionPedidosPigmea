@@ -25,6 +25,7 @@ interface KanbanColumnProps {
     listasTemporalesMap?: Record<string, Etapa[]>;
     onSetListaTemporal?: (pedidoId: string, etapa: Etapa, checked: boolean) => void;
     onResetListaTemporal?: (pedidoId: string) => void;
+    onMoveListaTemporal?: (pedidoId: string, etapa: Etapa) => Promise<void> | void;
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({ 
@@ -43,6 +44,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
     listasTemporalesMap = {},
     onSetListaTemporal,
     onResetListaTemporal,
+    onMoveListaTemporal,
 }) => {
     const { user } = useAuth();
     const { getLockInfo } = useLockObserver();
@@ -131,6 +133,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                                                 listasTemporales={listasTemporalesMap[pedido.id] || []}
                                                 onSetListaTemporal={onSetListaTemporal ? (etapa, checked) => onSetListaTemporal(pedido.id, etapa, checked) : undefined}
                                                 onResetListaTemporal={onResetListaTemporal ? () => onResetListaTemporal(pedido.id) : undefined}
+                                                onMoveListaTemporal={onMoveListaTemporal ? (etapa) => onMoveListaTemporal(pedido.id, etapa) : undefined}
                                                 isTemporalDisplay={pedido.etapaActual !== etapa.id}
                                             />
                                         </div>
