@@ -600,14 +600,12 @@ export const usePedidosManager = (
             secuenciaTrabajo: normalizedSequence,
         };
 
-        // Determinar si es una reconfirmación desde Laminación NEXUS o desde listo para producción
+        // Determinar si es una reconfirmación desde Laminación NEXUS
         const isFromLaminacionNexus = pedidoToUpdate.etapaActual === Etapa.POST_LAMINACION_NEXUS;
-        const isFromListoProduccion = pedidoToUpdate.etapaActual === Etapa.PREPARACION &&
-                                       pedidoToUpdate.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION;
 
-        // SOLO marcar antivahoRealizado al salir de Laminación NEXUS o desde listo para producción
+        // SOLO marcar antivahoRealizado al salir de Laminación NEXUS
         // NO marcar cuando se envía por primera vez desde preparación (otras subetapas)
-        if (pedidoToUpdate.antivaho && (isFromLaminacionNexus || isFromListoProduccion)) {
+        if (pedidoToUpdate.antivaho && isFromLaminacionNexus) {
             updatedPedido.antivahoRealizado = true;
         }
 
@@ -933,16 +931,10 @@ export const usePedidosManager = (
 
         const sourcePedido = antivahoDestinationModalState.pedido;
         const latestPedido = pedidos.find(p => p.id === sourcePedido.id) || sourcePedido;
-        const pedidoForSend = {
-            ...latestPedido,
-            // Se persiste al confirmar envío; esto asegura que el flujo de retorno desde NEXUS
-            // no pierda el estado por desincronización de datos en memoria.
-            antivahoRealizado: true,
-        };
 
         // Regresar a impresión - abrir el modal de envío a impresión
         setAntivahoDestinationModalState({ isOpen: false, pedido: null });
-        setPedidoToSend(pedidoForSend);
+        setPedidoToSend(latestPedido);
     };
 
     const handleAntivahoDestinationListoProduccion = async () => {
