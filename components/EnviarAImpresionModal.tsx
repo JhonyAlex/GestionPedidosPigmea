@@ -58,7 +58,8 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
 
         // Si el pedido tiene antivaho, no se ha realizado y está en preparación, enviar directamente a post-impresión
         if (pedido.antivaho && !pedido.antivahoRealizado && pedido.etapaActual === 'PREPARACION' && normalizedSequence.length > 0) {
-            onConfirm(pedido, normalizedSequence[0], normalizedSequence.slice(1));
+            // Mantener la secuencia completa para que la etapa inicial no se pierda al avanzar.
+            onConfirm(pedido, normalizedSequence[0], normalizedSequence);
         } else {
             onConfirm(pedido, impresionEtapa, normalizedSequence);
         }

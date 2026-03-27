@@ -134,7 +134,7 @@ const PedidoRow: React.FC<{
 
         if (isPostPrinting) {
             // Para pedidos con antivaho en post-impresión, permitir "continuar" para reconfirmar
-            if (pedido.antivaho && !pedido.antivahoRealizado) {
+            if (pedido.antivaho && !pedido.antivahoRealizado && pedido.etapaActual === Etapa.POST_LAMINACION_NEXUS) {
                 return { canAdvance: true, advanceButtonTitle: 'Continuar Secuencia' };
             }
 

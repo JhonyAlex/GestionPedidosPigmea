@@ -600,14 +600,14 @@ export const usePedidosManager = (
             secuenciaTrabajo: normalizedSequence,
         };
 
-        // Determinar si es una reconfirmación desde post-impresión o desde listo para producción
-        const isReconfirmationFromPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedidoToUpdate.etapaActual);
+        // Determinar si es una reconfirmación desde Laminación NEXUS o desde listo para producción
+        const isFromLaminacionNexus = pedidoToUpdate.etapaActual === Etapa.POST_LAMINACION_NEXUS;
         const isFromListoProduccion = pedidoToUpdate.etapaActual === Etapa.PREPARACION &&
                                        pedidoToUpdate.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION;
 
-        // SOLO marcar antivahoRealizado en reconfirmaciones desde post-impresión o listo para producción
+        // SOLO marcar antivahoRealizado al salir de Laminación NEXUS o desde listo para producción
         // NO marcar cuando se envía por primera vez desde preparación (otras subetapas)
-        if (pedidoToUpdate.antivaho && (isReconfirmationFromPostImpresion || isFromListoProduccion)) {
+        if (pedidoToUpdate.antivaho && (isFromLaminacionNexus || isFromListoProduccion)) {
             updatedPedido.antivahoRealizado = true;
         }
 
@@ -811,10 +811,15 @@ export const usePedidosManager = (
 
     const handleUpdatePedidoEtapa = async (pedido: Pedido, newEtapa: Etapa, newSubEtapa?: string | null) => {
         const fromPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual);
+        const fromPostLaminacionNexus = pedido.etapaActual === Etapa.POST_LAMINACION_NEXUS;
         const fromListoProduccion = pedido.etapaActual === Etapa.PREPARACION && 
                                      pedido.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION;
         const toImpresion = KANBAN_FUNNELS.IMPRESION.stages.includes(newEtapa);
-        const shouldMarkAntivahoAsDone = pedido.antivaho && !pedido.antivahoRealizado && fromPostImpresion;
+        const shouldMarkAntivahoAsDone =
+            pedido.antivaho &&
+            !pedido.antivahoRealizado &&
+            fromPostLaminacionNexus &&
+            newEtapa !== Etapa.POST_LAMINACION_NEXUS;
 
         // SOLO mostrar modal de confirmación si el antivaho NO está realizado
         // Si ya está realizado, debe comportarse como pedido normal

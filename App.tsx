@@ -505,10 +505,12 @@ const AppContent: React.FC = () => {
         // Para pedidos con antivaho no realizado en post-impresión, primero decidir si vuelve a impresión
         // o si pasa a listo para producción.
         const isInPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedidoToAdvance.etapaActual);
+        const isInPostLaminacionNexus = pedidoToAdvance.etapaActual === Etapa.POST_LAMINACION_NEXUS;
         const isInListoProduccion = pedidoToAdvance.etapaActual === Etapa.PREPARACION && 
                                      pedidoToAdvance.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION;
         
-        if (pedidoToAdvance.antivaho && !pedidoToAdvance.antivahoRealizado && isInPostImpresion) {
+        // Para antivaho pendiente, la decisión de destino solo se toma al salir de Laminación NEXUS.
+        if (pedidoToAdvance.antivaho && !pedidoToAdvance.antivahoRealizado && isInPostLaminacionNexus) {
             setAntivahoDestinationModalState({ isOpen: true, pedido: pedidoToAdvance });
             return;
         }
