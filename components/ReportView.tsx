@@ -1180,21 +1180,22 @@ const ReportView: React.FC<ReportViewProps> = ({
                                     { id: Etapa.POST_DNT, label: 'DNT', color: 'teal' },
 
                                     // Etapas Post-Impresión - Laminación
-                                    { id: Etapa.POST_LAMINACION_SL2, label: 'Laminación SL2', color: 'indigo' },
-                                    { id: Etapa.POST_LAMINACION_NEXUS, label: 'Laminación NEXUS', color: 'indigo' },
+                                    { id: Etapa.POST_LAMINACION_SL2, label: 'SL2', color: 'indigo' },
+                                    { id: Etapa.POST_LAMINACION_NEXUS, label: 'NEXUS', color: 'indigo' },
+                                    { id: Etapa.POST_LAMINACION_SL2_EVO, label: 'SL2 EVO', color: 'indigo' },
 
                                     // Etapas Post-Impresión - Ec-convert
                                     { id: Etapa.POST_ECCONVERT_21, label: 'Ec-convert 21', color: 'gray' },
                                     { id: Etapa.POST_ECCONVERT_22, label: 'Ec-convert 22', color: 'gray' },
 
                                     // Etapas Post-Impresión - Rebobinado
-                                    { id: Etapa.POST_REBOBINADO_S2DT, label: 'Rebobinado S2DT', color: 'purple' },
-                                    { id: Etapa.POST_REBOBINADO_PROSLIT, label: 'Rebobinado PROSLIT', color: 'purple' },
-                                    { id: Etapa.POST_REBOBINADO_TEMAC, label: 'Rebobinado TEMAC', color: 'purple' },
+                                    { id: Etapa.POST_REBOBINADO_S2DT, label: 'S2DT', color: 'purple' },
+                                    { id: Etapa.POST_REBOBINADO_PROSLIT, label: 'PROSLIT', color: 'purple' },
 
                                     // Etapas Post-Impresión - Perforación
-                                    { id: Etapa.POST_PERFORACION_MIC, label: 'Perforación MIC', color: 'pink' },
-                                    { id: Etapa.POST_PERFORACION_MAC, label: 'Perforación MAC', color: 'pink' },
+                                    { id: Etapa.POST_PERFORACION_MIC, label: 'Microperforadora', color: 'pink' },
+                                    { id: Etapa.POST_PERFORACION_MAC, label: 'Macroperforadora 1', color: 'pink' },
+                                    { id: Etapa.POST_PERFORACION_MAC2, label: 'Macroperforadora 2', color: 'pink' },
 
                                     // Estado Final
                                     { id: Etapa.COMPLETADO, label: 'Completados', color: 'green' },

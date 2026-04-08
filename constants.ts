@@ -11,15 +11,16 @@ export const ETAPAS: Record<Etapa, KanbanEtapa> = {
 
     // Colores para el embudo de Post-Impresión (tonos variados: Indigo, Púrpura, Rosa, Gris)
     [Etapa.POST_DNT]: { id: Etapa.POST_DNT, title: 'DNT', color: 'bg-teal-700' },
-    [Etapa.POST_LAMINACION_SL2]: { id: Etapa.POST_LAMINACION_SL2, title: 'Laminación SL2', color: 'bg-indigo-500' },
-    [Etapa.POST_LAMINACION_NEXUS]: { id: Etapa.POST_LAMINACION_NEXUS, title: 'Laminación NEXUS', color: 'bg-indigo-600' },
+    [Etapa.POST_LAMINACION_SL2]: { id: Etapa.POST_LAMINACION_SL2, title: 'SL2', color: 'bg-indigo-500' },
+    [Etapa.POST_LAMINACION_NEXUS]: { id: Etapa.POST_LAMINACION_NEXUS, title: 'NEXUS', color: 'bg-indigo-600' },
+    [Etapa.POST_LAMINACION_SL2_EVO]: { id: Etapa.POST_LAMINACION_SL2_EVO, title: 'SL2 EVO', color: 'bg-indigo-700' },
     [Etapa.POST_ECCONVERT_21]: { id: Etapa.POST_ECCONVERT_21, title: 'Ec-convert 21', color: 'bg-gray-600' },
     [Etapa.POST_ECCONVERT_22]: { id: Etapa.POST_ECCONVERT_22, title: 'Ec-convert 22', color: 'bg-gray-700' },
-    [Etapa.POST_REBOBINADO_S2DT]: { id: Etapa.POST_REBOBINADO_S2DT, title: 'Rebobinado S2DT', color: 'bg-purple-500' },
-    [Etapa.POST_REBOBINADO_PROSLIT]: { id: Etapa.POST_REBOBINADO_PROSLIT, title: 'Rebobinado PROSLIT', color: 'bg-purple-600' },
-    [Etapa.POST_PERFORACION_MIC]: { id: Etapa.POST_PERFORACION_MIC, title: 'Perforación MIC', color: 'bg-pink-500' },
-    [Etapa.POST_PERFORACION_MAC]: { id: Etapa.POST_PERFORACION_MAC, title: 'Perforación MAC', color: 'bg-pink-600' },
-    [Etapa.POST_REBOBINADO_TEMAC]: { id: Etapa.POST_REBOBINADO_TEMAC, title: 'Rebobinado TEMAC', color: 'bg-purple-700' },
+    [Etapa.POST_REBOBINADO_S2DT]: { id: Etapa.POST_REBOBINADO_S2DT, title: 'S2DT', color: 'bg-purple-500' },
+    [Etapa.POST_REBOBINADO_PROSLIT]: { id: Etapa.POST_REBOBINADO_PROSLIT, title: 'PROSLIT', color: 'bg-purple-600' },
+    [Etapa.POST_PERFORACION_MIC]: { id: Etapa.POST_PERFORACION_MIC, title: 'Microperforadora', color: 'bg-pink-500' },
+    [Etapa.POST_PERFORACION_MAC]: { id: Etapa.POST_PERFORACION_MAC, title: 'Macroperforadora 1', color: 'bg-pink-600' },
+    [Etapa.POST_PERFORACION_MAC2]: { id: Etapa.POST_PERFORACION_MAC2, title: 'Macroperforadora 2', color: 'bg-pink-700' },
 
     [Etapa.COMPLETADO]: { id: Etapa.COMPLETADO, title: 'Completado', color: 'bg-green-600' },
     [Etapa.ARCHIVADO]: { id: Etapa.ARCHIVADO, title: 'Archivado', color: 'bg-red-800' },
@@ -58,15 +59,16 @@ export const KANBAN_FUNNELS = {
         title: 'Post-Impresión',
         stages: [
             Etapa.POST_DNT,
-            Etapa.POST_LAMINACION_SL2,      // Fila 1
-            Etapa.POST_LAMINACION_NEXUS,    // Fila 1
-            Etapa.POST_ECCONVERT_21,        // Fila 1
-            Etapa.POST_ECCONVERT_22,        // Fila 1
-            Etapa.POST_REBOBINADO_S2DT,     // Fila 1
-            Etapa.POST_REBOBINADO_PROSLIT,  // Fila 2
-            Etapa.POST_REBOBINADO_TEMAC,    // Fila 2
-            Etapa.POST_PERFORACION_MIC,     // Fila 2
-            Etapa.POST_PERFORACION_MAC,     // Fila 2
+            Etapa.POST_LAMINACION_SL2,
+            Etapa.POST_LAMINACION_NEXUS,
+            Etapa.POST_LAMINACION_SL2_EVO,
+            Etapa.POST_ECCONVERT_21,
+            Etapa.POST_ECCONVERT_22,
+            Etapa.POST_REBOBINADO_S2DT,
+            Etapa.POST_REBOBINADO_PROSLIT,
+            Etapa.POST_PERFORACION_MIC,
+            Etapa.POST_PERFORACION_MAC,
+            Etapa.POST_PERFORACION_MAC2,
         ],
     },
 };
@@ -93,18 +95,24 @@ export const STAGE_GROUPS = {
         stages: [
             Etapa.POST_LAMINACION_SL2,
             Etapa.POST_LAMINACION_NEXUS,
+            Etapa.POST_LAMINACION_SL2_EVO,
         ],
     },
-    REBOBINADO_Y_PERFORACION: {
-        title: 'Rebobinado y Perforación',
+    REBOBINADO: {
+        title: 'Rebobinado',
         stages: [
-            Etapa.POST_ECCONVERT_21,
-            Etapa.POST_ECCONVERT_22,
             Etapa.POST_REBOBINADO_S2DT,
             Etapa.POST_REBOBINADO_PROSLIT,
-            Etapa.POST_PERFORACION_MIC,
+            Etapa.POST_ECCONVERT_21,
+            Etapa.POST_ECCONVERT_22,
+        ],
+    },
+    PERFORACION: {
+        title: 'Perforación',
+        stages: [
             Etapa.POST_PERFORACION_MAC,
-            Etapa.POST_REBOBINADO_TEMAC,
+            Etapa.POST_PERFORACION_MAC2,
+            Etapa.POST_PERFORACION_MIC,
         ],
     },
     OTROS: {
@@ -130,19 +138,9 @@ export const KANBAN_VISUAL_LAYOUT = {
         Etapa.POST_DNT,
     ],
     postImpresionRows: [
-        [
-            Etapa.POST_LAMINACION_SL2,
-            Etapa.POST_LAMINACION_NEXUS,
-            Etapa.POST_ECCONVERT_21,
-            Etapa.POST_ECCONVERT_22,
-            Etapa.POST_REBOBINADO_S2DT,
-        ],
-        [
-            Etapa.POST_REBOBINADO_PROSLIT,
-            Etapa.POST_REBOBINADO_TEMAC,
-            Etapa.POST_PERFORACION_MIC,
-            Etapa.POST_PERFORACION_MAC,
-        ],
+        { title: 'Laminación', stages: [Etapa.POST_LAMINACION_SL2, Etapa.POST_LAMINACION_NEXUS, Etapa.POST_LAMINACION_SL2_EVO] },
+        { title: 'Rebobinado', stages: [Etapa.POST_REBOBINADO_S2DT, Etapa.POST_REBOBINADO_PROSLIT, Etapa.POST_ECCONVERT_21, Etapa.POST_ECCONVERT_22] },
+        { title: 'Perforación', stages: [Etapa.POST_PERFORACION_MAC, Etapa.POST_PERFORACION_MAC2, Etapa.POST_PERFORACION_MIC] },
     ],
 } as const;
 

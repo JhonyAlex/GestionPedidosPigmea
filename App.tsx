@@ -408,8 +408,7 @@ const AppContent: React.FC = () => {
     const productionKanbanStages = useMemo(
         () => [
             ...KANBAN_VISUAL_LAYOUT.topRow,
-            ...KANBAN_VISUAL_LAYOUT.postImpresionRows[0],
-            ...KANBAN_VISUAL_LAYOUT.postImpresionRows[1],
+            ...KANBAN_VISUAL_LAYOUT.postImpresionRows.flatMap(row => row.stages),
         ],
         []
     );
@@ -1287,59 +1286,37 @@ const AppContent: React.FC = () => {
                         <section>
                             <h2 className="text-3xl font-extrabold text-gray-800 dark:text-white mb-4 border-l-4 border-indigo-500 pl-4">Post-Impresión</h2>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-6">
-                                {KANBAN_VISUAL_LAYOUT.postImpresionRows[0].map(etapaId => {
-                                    const columnPedidos = kanbanVisiblePedidosByStage[etapaId] || [];
-                                    return (
-                                    <KanbanColumn
-                                        key={etapaId}
-                                        etapa={ETAPAS[etapaId]}
-                                        pedidos={columnPedidos}
-                                        onSelectPedido={setSelectedPedido}
-                                        onArchiveToggle={handleArchiveToggle}
-                                        currentUserRole={currentUserRole}
-                                        onAdvanceStage={handleAdvanceStage}
-                                        highlightedPedidoId={highlightedPedidoId}
-                                        onUpdatePedido={handleSavePedido}
-                                        selectedIds={selectedIds}
-                                        isSelectionActive={isSelectionActive}
-                                        onToggleSelection={toggleSelection}
-                                        onSelectAll={selectAll}
-                                        listasTemporalesMap={listasTemporalesMap}
-                                        onSetListaTemporal={setListaTemporal}
-                                        onResetListaTemporal={resetListaTemporal}
-                                        onMoveListaTemporal={handleMoveToVisibleStage}
-                                    />
-                                    );
-                                })}
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                                {KANBAN_VISUAL_LAYOUT.postImpresionRows[1].map(etapaId => {
-                                    const columnPedidos = kanbanVisiblePedidosByStage[etapaId] || [];
-                                    return (
-                                    <KanbanColumn
-                                        key={etapaId}
-                                        etapa={ETAPAS[etapaId]}
-                                        pedidos={columnPedidos}
-                                        onSelectPedido={setSelectedPedido}
-                                        onArchiveToggle={handleArchiveToggle}
-                                        currentUserRole={currentUserRole}
-                                        onAdvanceStage={handleAdvanceStage}
-                                        highlightedPedidoId={highlightedPedidoId}
-                                        onUpdatePedido={handleSavePedido}
-                                        selectedIds={selectedIds}
-                                        isSelectionActive={isSelectionActive}
-                                        onToggleSelection={toggleSelection}
-                                        onSelectAll={selectAll}
-                                        listasTemporalesMap={listasTemporalesMap}
-                                        onSetListaTemporal={setListaTemporal}
-                                        onResetListaTemporal={resetListaTemporal}
-                                        onMoveListaTemporal={handleMoveToVisibleStage}
-                                    />
-                                    );
-                                })}
-                            </div>
+                            {KANBAN_VISUAL_LAYOUT.postImpresionRows.map((row, rowIndex) => (
+                                <div key={row.title} className="mb-6">
+                                    <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-3 ml-1">{row.title}</h3>
+                                    <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-${row.stages.length <= 3 ? row.stages.length : 4} xl:grid-cols-${row.stages.length <= 5 ? row.stages.length : 5} gap-6`}>
+                                        {row.stages.map(etapaId => {
+                                            const columnPedidos = kanbanVisiblePedidosByStage[etapaId] || [];
+                                            return (
+                                            <KanbanColumn
+                                                key={etapaId}
+                                                etapa={ETAPAS[etapaId]}
+                                                pedidos={columnPedidos}
+                                                onSelectPedido={setSelectedPedido}
+                                                onArchiveToggle={handleArchiveToggle}
+                                                currentUserRole={currentUserRole}
+                                                onAdvanceStage={handleAdvanceStage}
+                                                highlightedPedidoId={highlightedPedidoId}
+                                                onUpdatePedido={handleSavePedido}
+                                                selectedIds={selectedIds}
+                                                isSelectionActive={isSelectionActive}
+                                                onToggleSelection={toggleSelection}
+                                                onSelectAll={selectAll}
+                                                listasTemporalesMap={listasTemporalesMap}
+                                                onSetListaTemporal={setListaTemporal}
+                                                onResetListaTemporal={resetListaTemporal}
+                                                onMoveListaTemporal={handleMoveToVisibleStage}
+                                            />
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
                         </section>
 
                         <section>
