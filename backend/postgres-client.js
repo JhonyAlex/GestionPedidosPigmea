@@ -1065,8 +1065,10 @@ class PostgreSQLClient {
             const query = `
                 SELECT id
                 FROM limpio.pedidos
-                WHERE numero_pedido_cliente = $1
-                   OR data->>'numeroPedidoCliente' = $1
+                WHERE (
+                    lower(btrim(coalesce(numero_pedido_cliente, ''))) = lower(btrim($1))
+                    OR lower(btrim(coalesce(data->>'numeroPedidoCliente', ''))) = lower(btrim($1))
+                )
                 ${excludeId ? 'AND id <> $2' : ''}
                 LIMIT 1
             `;
