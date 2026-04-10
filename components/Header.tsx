@@ -221,7 +221,28 @@ const Header: React.FC<HeaderProps> = ({
             return [];
         }
 
-        return allPedidos.filter(pedido => pedidoMatchesSearch(pedido, normalizedTerm));
+        const matchedPedidos = allPedidos.filter((pedido) => pedidoMatchesSearch(pedido, normalizedTerm));
+        const dedupedPedidos = new Map<string, Pedido>();
+
+        matchedPedidos.forEach((pedido) => {
+            const numeroPedidoKey = normalizeSearchValue(pedido.numeroPedidoCliente);
+            const dedupeKey = numeroPedidoKey || normalizeSearchValue(pedido.id);
+            const existingPedido = dedupedPedidos.get(dedupeKey);
+
+            if (!existingPedido) {
+                dedupedPedidos.set(dedupeKey, pedido);
+                return;
+            }
+
+            const existingIsArchived = existingPedido.etapaActual === Etapa.ARCHIVADO;
+            const currentIsArchived = pedido.etapaActual === Etapa.ARCHIVADO;
+
+            if (existingIsArchived && !currentIsArchived) {
+                dedupedPedidos.set(dedupeKey, pedido);
+            }
+        });
+
+        return Array.from(dedupedPedidos.values());
     }, [searchTerm, allPedidos]);
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {

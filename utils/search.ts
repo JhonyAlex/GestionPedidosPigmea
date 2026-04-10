@@ -32,7 +32,6 @@ export const pedidoMatchesSearch = (pedido: Pedido, normalizedTerm: string): boo
 
     return (
         matches(pedido.numeroPedidoCliente) ||
-        matches(pedido.numeroRegistro) ||
         matches(pedido.cliente) ||
         matches(pedido.clienteId) ||
         matches(pedido.vendedorNombre) ||
