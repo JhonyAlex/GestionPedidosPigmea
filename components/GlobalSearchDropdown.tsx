@@ -112,12 +112,9 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
 
                         {/* Botón cerrar */}
                         <button
-                            onClick={() => {
-                                onSearchChange('');
-                                inputRef.current?.focus();
-                            }}
+                            onClick={onClose}
                             className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
-                            title="Limpiar búsqueda"
+                            title="Cerrar y limpiar búsqueda"
                         >
                             <svg className="w-5 h-5" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
                                 <path d="M6 18L18 6M6 6l12 12"></path>
