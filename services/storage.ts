@@ -55,7 +55,7 @@ function isNetworkError(error: any): boolean {
 
 // Función con reintentos automáticos para errores de red
 async function apiRetryFetch<T>(endpoint: string, options: RequestInit = {}, maxRetries: number = 3): Promise<T> {
-    let lastError: Error;
+    let lastError: Error = new Error('Error de red desconocido');
     
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
