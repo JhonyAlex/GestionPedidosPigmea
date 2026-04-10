@@ -107,6 +107,12 @@ export const usePedidosManager = (
             const unsubscribeCreated = subscribeToPedidoCreated((newPedido: Pedido) => {
                 console.log('🔄 Sincronizando nuevo pedido desde WebSocket:', newPedido.numeroPedidoCliente, 'ID:', newPedido.id);
 
+                // Ignorar pedidos archivados — se cargan solo en la vista de archivados
+                if (newPedido.etapaActual === Etapa.ARCHIVADO) {
+                    console.log('📦 Pedido archivado recibido por WebSocket, ignorando en lista activa:', newPedido.numeroPedidoCliente);
+                    return;
+                }
+
                 // Verificar si este pedido está siendo creado localmente
                 if (creatingPedidoIds.has(newPedido.id)) {
                     console.log('⚠️ Pedido en proceso de creación local, omitiendo evento WebSocket:', newPedido.numeroPedidoCliente);
@@ -136,6 +142,13 @@ export const usePedidosManager = (
             const unsubscribeUpdated = subscribeToPedidoUpdated((updatedPedido: Pedido) => {
                 console.log('🔄 Sincronizando pedido actualizado:', updatedPedido.numeroPedidoCliente);
 
+                // Si el pedido fue archivado, removerlo de la lista activa
+                if (updatedPedido.etapaActual === Etapa.ARCHIVADO) {
+                    console.log('📦 Pedido archivado, removiendo de lista activa:', updatedPedido.numeroPedidoCliente);
+                    setPedidos(current => current.filter(p => p.id !== updatedPedido.id));
+                    return;
+                }
+
                 // Verificar si cambió de etapa o sub-etapa (para debug de ordenamiento)
                 const currentPedido = pedidos.find(p => p.id === updatedPedido.id);
                 if (currentPedido) {
@@ -147,9 +160,15 @@ export const usePedidosManager = (
                     }
                 }
 
-                setPedidos(current =>
-                    current.map(p => p.id === updatedPedido.id ? updatedPedido : p)
-                );
+                setPedidos(current => {
+                    // Si el pedido no existe (fue desarchivado desde otra pestaña), agregarlo
+                    const exists = current.some(p => p.id === updatedPedido.id);
+                    if (!exists) {
+                        console.log('📥 Pedido desarchivado, agregando a lista activa:', updatedPedido.numeroPedidoCliente);
+                        return [updatedPedido, ...current];
+                    }
+                    return current.map(p => p.id === updatedPedido.id ? updatedPedido : p);
+                });
             });
             unsubscribeFunctions.push(unsubscribeUpdated);
         }

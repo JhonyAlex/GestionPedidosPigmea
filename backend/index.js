@@ -2507,6 +2507,35 @@ app.get('/api/pedidos/exists', async (req, res) => {
     }
 });
 
+// GET /api/pedidos/archived - Obtener solo pedidos archivados (carga diferida, paginado)
+app.get('/api/pedidos/archived', async (req, res) => {
+    try {
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({
+                error: 'Service Unavailable',
+                message: 'El sistema no está disponible.'
+            });
+        }
+
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 50;
+
+        const result = await dbClient.getArchivedPaginated({ page, limit });
+
+        const timestamp = new Date().toISOString();
+        console.log(`📦 [${timestamp}] GET /api/pedidos/archived - Página ${page}: ${result.pedidos.length}/${result.pagination.total} archivados`);
+
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('Error in GET /api/pedidos/archived:', error);
+        res.status(500).json({
+            message: 'Error interno del servidor al obtener pedidos archivados.',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
 // === ENDPOINTS DE OPERACIONES MASIVAS (DEBEN IR ANTES DE RUTAS CON :id) ===
 
 // DELETE /api/pedidos/bulk-delete - Eliminar múltiples pedidos

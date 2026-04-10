@@ -1491,9 +1491,59 @@ class PostgreSQLClient {
         const client = await this.pool.connect();
 
         try {
-            const result = await client.query('SELECT data FROM limpio.pedidos ORDER BY secuencia_pedido DESC');
+            // Excluir archivados de la carga global — se cargan bajo demanda en su propia vista
+            const result = await client.query(
+                `SELECT data FROM limpio.pedidos
+                 WHERE (estado IS NULL OR estado != 'ARCHIVADO')
+                   AND data->>'etapaActual' != 'ARCHIVADO'
+                 ORDER BY secuencia_pedido DESC`
+            );
             return result.rows.map(row => row.data);
 
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Obtener solo pedidos archivados con paginación (carga diferida)
+     * @param {Object} options
+     * @param {number} options.page - Número de página (1-indexed)
+     * @param {number} options.limit - Cantidad por página
+     * @returns {Promise<{pedidos: Array, pagination: Object}>}
+     */
+    async getArchivedPaginated(options = {}) {
+        if (!this.isInitialized) {
+            throw new Error('Database not initialized');
+        }
+
+        const { page = 1, limit = 50 } = options;
+        const offset = (page - 1) * limit;
+        const client = await this.pool.connect();
+
+        try {
+            const result = await client.query(
+                `SELECT data FROM limpio.pedidos
+                 WHERE data->>'etapaActual' = 'ARCHIVADO'
+                 ORDER BY secuencia_pedido DESC
+                 LIMIT $1 OFFSET $2`,
+                [limit, offset]
+            );
+
+            const countResult = await client.query(
+                `SELECT COUNT(*) FROM limpio.pedidos WHERE data->>'etapaActual' = 'ARCHIVADO'`
+            );
+            const total = parseInt(countResult.rows[0].count);
+
+            return {
+                pedidos: result.rows.map(row => row.data),
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    totalPages: Math.ceil(total / limit)
+                }
+            };
         } finally {
             client.release();
         }

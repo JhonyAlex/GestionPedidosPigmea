@@ -49,6 +49,7 @@ import { useWebSocket } from './hooks/useWebSocket';
 import { useFiltrosYOrden } from './hooks/useFiltrosYOrden';
 import { useListasTemporales } from './hooks/useListasTemporales';
 import { useNavigateToPedido } from './hooks/useNavigateToPedido';
+import { store } from './services/storage';
 import { useBulkOperations } from './hooks/useBulkOperations';
 import { useToast } from './hooks/useToast';
 import { useInactivityReload } from './hooks/useInactivityReload';
@@ -416,7 +417,49 @@ const AppContent: React.FC = () => {
     const preparacionPedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual === Etapa.PREPARACION && p.subEtapaActual !== PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION), [processedPedidos]);
     const listoProduccionPedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual === Etapa.PREPARACION && p.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION), [processedPedidos]);
     const activePedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual !== Etapa.ARCHIVADO && p.etapaActual !== Etapa.PREPARACION), [processedPedidos]);
-    const archivedPedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual === Etapa.ARCHIVADO), [processedPedidos]);
+
+    // --- Archivados: estado separado con carga diferida ---
+    const [archivedPedidos, setArchivedPedidos] = useState<Pedido[]>([]);
+    const [isLoadingArchived, setIsLoadingArchived] = useState(false);
+    const [archivedPage, setArchivedPage] = useState(1);
+    const [archivedHasMore, setArchivedHasMore] = useState(true);
+    const [archivedTotal, setArchivedTotal] = useState(0);
+
+    const loadArchivedPedidos = useCallback(async (page: number = 1, append: boolean = false) => {
+        try {
+            setIsLoadingArchived(true);
+            const result = await store.getArchived(page, 50);
+            if (append) {
+                setArchivedPedidos(prev => {
+                    const existingIds = new Set(prev.map(p => p.id));
+                    const uniqueNew = result.pedidos.filter(p => !existingIds.has(p.id));
+                    return [...prev, ...uniqueNew];
+                });
+            } else {
+                setArchivedPedidos(result.pedidos);
+            }
+            setArchivedPage(page);
+            setArchivedHasMore(page < result.pagination.totalPages);
+            setArchivedTotal(result.pagination.total);
+        } catch (error) {
+            console.error('❌ Error cargando archivados:', error);
+        } finally {
+            setIsLoadingArchived(false);
+        }
+    }, []);
+
+    // Cargar archivados al entrar a la vista, limpiar al salir
+    useEffect(() => {
+        if (view === 'archived') {
+            loadArchivedPedidos(1, false);
+        } else {
+            // Limpiar memoria cuando el usuario sale de la vista
+            setArchivedPedidos([]);
+            setArchivedPage(1);
+            setArchivedHasMore(true);
+            setArchivedTotal(0);
+        }
+    }, [view, loadArchivedPedidos]);
 
     const kanbanAllPedidosByStage = useMemo(() => {
         return productionKanbanStages.reduce((acc, etapaId) => {
@@ -1367,6 +1410,10 @@ const AppContent: React.FC = () => {
                     selectedIds={selectedIds}
                     onToggleSelection={toggleSelection}
                     onSelectAll={selectAll}
+                    isLoadingMore={isLoadingArchived}
+                    hasMore={archivedHasMore}
+                    totalItems={archivedTotal}
+                    onLoadMore={() => loadArchivedPedidos(archivedPage + 1, true)}
                 />;
             case 'report':
                 if (currentUserRole !== 'Administrador') {

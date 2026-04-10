@@ -14,6 +14,7 @@ export interface DataStore<T extends { id: string }> {
   delete(id: string): Promise<void>;
   findById(id: string): Promise<T | undefined>;
   getAll(): Promise<T[]>;
+  getArchived(page?: number, limit?: number): Promise<PaginatedResponse<T>>;
   clear(): Promise<void>;
   bulkInsert(items: T[]): Promise<void>;
 }
@@ -208,6 +209,14 @@ class ApiClient implements DataStore<Pedido> {
         return apiRetryFetch<Pedido[]>('/pedidos');
     }
 
+    public async getArchived(page: number = 1, limit: number = 50): Promise<PaginatedResponse<Pedido>> {
+        const params = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+        });
+        return apiRetryFetch<PaginatedResponse<Pedido>>(`/pedidos/archived?${params.toString()}`);
+    }
+
     public async getPaginated(options: PaginationOptions): Promise<PaginatedResponse<Pedido>> {
         const params = new URLSearchParams({
             page: options.page.toString(),
@@ -307,6 +316,16 @@ class MockApiClient implements DataStore<Pedido> {
         return this.simulateDelay([...this.pedidos].sort((a, b) => b.secuenciaPedido - a.secuenciaPedido)); // Devuelve una copia ordenada
     }
 
+    public async getArchived(page: number = 1, limit: number = 50): Promise<PaginatedResponse<Pedido>> {
+        const archived = this.pedidos.filter(p => p.etapaActual === 'ARCHIVADO');
+        const start = (page - 1) * limit;
+        const pedidos = archived.slice(start, start + limit);
+        return this.simulateDelay({
+            pedidos,
+            pagination: { page, limit, total: archived.length, totalPages: Math.ceil(archived.length / limit) }
+        });
+    }
+
     public async clear(): Promise<void> {
         this.pedidos = [];
         return this.simulateDelay(undefined);
@@ -320,4 +339,4 @@ class MockApiClient implements DataStore<Pedido> {
 
 // --- EXPORTACIÓN CONDICIONAL ---
 // Exportamos una única instancia para ser usada en toda la app
-export const store = MODO_DESARROLLO ? new MockApiClient() : new ApiClient();
+export const store: DataStore<Pedido> = MODO_DESARROLLO ? new MockApiClient() : new ApiClient();

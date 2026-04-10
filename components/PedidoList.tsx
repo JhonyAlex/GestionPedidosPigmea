@@ -26,6 +26,11 @@ interface PedidoListProps {
     // Vista Lista Temporal: pedidos que se muestran por override
     listasTemporalesMap?: Record<string, import('../types').Etapa[]>;
     selectedStages?: string[];
+    // Paginación para vista archivados
+    isLoadingMore?: boolean;
+    hasMore?: boolean;
+    totalItems?: number;
+    onLoadMore?: () => void;
 }
 
 const ArchiveBoxIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" /></svg>;
@@ -229,7 +234,7 @@ const PedidoRow: React.FC<{
 };
 
 
-const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArchiveToggle, isArchivedView, currentUserRole, onAdvanceStage, sortConfig, onSort, highlightedPedidoId, selectedIds, onToggleSelection, onSelectAll, listasTemporalesMap = {}, selectedStages = [] }) => {
+const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArchiveToggle, isArchivedView, currentUserRole, onAdvanceStage, sortConfig, onSort, highlightedPedidoId, selectedIds, onToggleSelection, onSelectAll, listasTemporalesMap = {}, selectedStages = [], isLoadingMore, hasMore, totalItems, onLoadMore }) => {
     const [isMounted, setIsMounted] = useState(false);
     useEffect(() => {
         setIsMounted(true);
@@ -338,6 +343,22 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
                         <div className="text-center py-10 text-gray-500">Cargando...</div>
                     )}
                 </div>
+                {isArchivedView && (
+                    <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                            Mostrando {pedidos.length}{totalItems !== undefined ? ` de ${totalItems}` : ''} archivados
+                        </span>
+                        {hasMore && onLoadMore && (
+                            <button
+                                onClick={onLoadMore}
+                                disabled={isLoadingMore}
+                                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isLoadingMore ? 'Cargando...' : 'Cargar más'}
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
         </main>
     );
