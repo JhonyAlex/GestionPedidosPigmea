@@ -3051,6 +3051,20 @@ app.get('/api/pedidos/:id', async (req, res) => {
     }
 });
 
+function isNumeroPedidoDuplicateError(error) {
+    if (!error) {
+        return false;
+    }
+
+    if (error.code === '23505') {
+        return true;
+    }
+
+    const message = String(error.message || '').toLowerCase();
+    return message.includes('duplicate key') &&
+        (message.includes('numero_pedido_cliente') || message.includes('ux_pedidos_numero_pedido_norm'));
+}
+
 // POST /api/pedidos - Create a new pedido
 // POST /api/pedidos - Crear un nuevo pedido
 app.post('/api/pedidos', requirePermission('pedidos.create'), async (req, res) => {
@@ -3075,6 +3089,18 @@ app.post('/api/pedidos', requirePermission('pedidos.create'), async (req, res) =
         // ✅ VALIDACIÓN: Campo Máquina de Impresión obligatorio
         if (!newPedido.maquinaImpresion || !newPedido.maquinaImpresion.trim()) {
             return res.status(400).json({ message: 'El campo Máquina de Impresión es obligatorio.' });
+        }
+
+        const numeroPedidoNormalizado = (newPedido.numeroPedidoCliente || '').trim();
+        if (numeroPedidoNormalizado) {
+            const exists = await dbClient.existsNumeroPedidoCliente(numeroPedidoNormalizado);
+            if (exists) {
+                return res.status(409).json({
+                    code: 'PEDIDO_DUPLICADO',
+                    field: 'numeroPedidoCliente',
+                    message: `Ya existe un pedido con el número ${numeroPedidoNormalizado}.`
+                });
+            }
         }
 
         await dbClient.create(newPedido);
@@ -3111,6 +3137,14 @@ app.post('/api/pedidos', requirePermission('pedidos.create'), async (req, res) =
         res.status(201).json(newPedido);
 
     } catch (error) {
+        if (isNumeroPedidoDuplicateError(error)) {
+            return res.status(409).json({
+                code: 'PEDIDO_DUPLICADO',
+                field: 'numeroPedidoCliente',
+                message: 'El número de pedido ya existe. Actualice la vista e intente con otro número.'
+            });
+        }
+
         console.error("Error creating pedido:", error);
         res.status(500).json({ message: "Error interno del servidor al crear el pedido." });
     }
@@ -3175,6 +3209,18 @@ app.put('/api/pedidos/:id', requirePermission('pedidos.edit'), async (req, res) 
             return res.status(400).json({ message: 'El campo Máquina de Impresión es obligatorio.' });
         }
 
+        const numeroPedidoNormalizado = (updatedPedido.numeroPedidoCliente || '').trim();
+        if (numeroPedidoNormalizado) {
+            const exists = await dbClient.existsNumeroPedidoCliente(numeroPedidoNormalizado, pedidoId);
+            if (exists) {
+                return res.status(409).json({
+                    code: 'PEDIDO_DUPLICADO',
+                    field: 'numeroPedidoCliente',
+                    message: `Ya existe un pedido con el número ${numeroPedidoNormalizado}.`
+                });
+            }
+        }
+
         // Obtener el pedido anterior para comparar cambios
         const previousPedido = await dbClient.findById(pedidoId);
 
@@ -3229,6 +3275,14 @@ app.put('/api/pedidos/:id', requirePermission('pedidos.edit'), async (req, res) 
         res.status(200).json(updatedPedido);
 
     } catch (error) {
+        if (isNumeroPedidoDuplicateError(error)) {
+            return res.status(409).json({
+                code: 'PEDIDO_DUPLICADO',
+                field: 'numeroPedidoCliente',
+                message: 'El número de pedido ya existe. Actualice la vista e intente con otro número.'
+            });
+        }
+
         console.error(`Error updating pedido ${req.params.id}:`, error);
         res.status(500).json({ message: "Error interno del servidor al actualizar el pedido." });
     }

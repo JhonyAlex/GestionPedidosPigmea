@@ -459,14 +459,21 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
         }
 
         const metrosValue = Number(formData.metros);
-    const normalizedSequence = normalizePostImpresionSequence(secuenciaTrabajo, formData.cliente);
+        const normalizedSequence = normalizePostImpresionSequence(secuenciaTrabajo, formData.cliente);
 
-        // ✅ Esperar respuesta de onAdd para obtener el pedido creado
-    const newPedido = await onAdd({ pedidoData: { ...formData, metros: metrosValue }, secuenciaTrabajo: normalizedSequence });
+        try {
+            // ✅ Esperar respuesta de onAdd para obtener el pedido creado
+            const newPedido = await onAdd({ pedidoData: { ...formData, metros: metrosValue }, secuenciaTrabajo: normalizedSequence });
 
-        // ✅ Registrar acción CREATE en el historial
-        if (newPedido) {
-            recordPedidoCreate(newPedido);
+            // ✅ Registrar acción CREATE en el historial
+            if (newPedido) {
+                recordPedidoCreate(newPedido);
+            }
+        } catch (error) {
+            const message = error instanceof Error
+                ? error.message
+                : 'No se pudo crear el pedido.';
+            alert(message);
         }
     };
 

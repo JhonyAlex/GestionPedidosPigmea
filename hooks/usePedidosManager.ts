@@ -197,7 +197,7 @@ export const usePedidosManager = (
         if (!originalPedido) return;
 
         // Hacer una copia profunda del pedido original ANTES de cualquier modificación
-        const originalPedidoCopy = JSON.parse(JSON.stringify(originalPedido));
+        const originalPedidoCopy: Pedido = JSON.parse(JSON.stringify(originalPedido)) as Pedido;
 
         let modifiedPedido = {
             ...updatedPedido,
@@ -270,8 +270,8 @@ export const usePedidosManager = (
                 let hasChanges = false;
 
                 for (let i = 0; i < maxLength; i++) {
-                    const originalItem = originalArray[i] || {};
-                    const modifiedItem = modifiedArray[i] || {};
+                    const originalItem = (originalArray[i] || {}) as Record<string, unknown>;
+                    const modifiedItem = (modifiedArray[i] || {}) as Record<string, unknown>;
 
                     // Verificar cada campo del objeto
                     const fieldsToCheck = arrayName === 'materialCapas'
@@ -368,7 +368,12 @@ export const usePedidosManager = (
                                     `Material ${idx + 1}: ${item.necesario || 'N/A'} necesario, ${item.recibido ? 'Recibido' : 'Pendiente'}, ${item.gestionado ? 'Gestionado' : 'No gestionado'}`
                                 ).join('; ') || 'Vacía';
                             } else if (fieldName === 'etapasSecuencia') {
-                                return val.map(v => ETAPAS[v]?.title || v).join(', ') || 'Vacía';
+                                return val.map((v: unknown) => {
+                                    if (typeof v === 'string' && Object.prototype.hasOwnProperty.call(ETAPAS, v)) {
+                                        return ETAPAS[v as Etapa].title;
+                                    }
+                                    return String(v ?? 'N/A');
+                                }).join(', ') || 'Vacía';
                             } else {
                                 return val.join(', ') || 'Vacía';
                             }
@@ -528,6 +533,10 @@ export const usePedidosManager = (
             return { modifiedPedido, hasChanges };
         } catch (error) {
             console.error('Error al actualizar el pedido:', error);
+            const message = error instanceof Error
+                ? error.message
+                : 'No se pudo actualizar el pedido.';
+            alert(message);
             return undefined;
         }
     };
