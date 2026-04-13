@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Pedido, Etapa, EtapaInfo } from '../types';
 import { ETAPAS, PREPARACION_COLUMNS, STAGE_GROUPS } from '../constants';
 import { DateFilterOption, getDateRange } from '../utils/date';
@@ -150,8 +150,8 @@ const SearchIcon: React.FC<{ className?: string }> = ({ className }) => (
 );
 
 const SortArrow: React.FC<{ active: boolean; dir: SortDir }> = ({ active, dir }) => {
-    if (!active) return <span className="ml-1 text-gray-400 dark:text-gray-600">?</span>;
-    return <span className="ml-1">{dir === 'asc' ? '?' : '?'}</span>;
+    if (!active) return <span className="ml-1 text-gray-400 dark:text-gray-600">⇅</span>;
+    return <span className="ml-1">{dir === 'asc' ? '▲' : '▼'}</span>;
 };
 
 // --- Props ---
@@ -164,37 +164,13 @@ interface ProductionTrackingTableProps {
 // --- Component ---
 
 const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ pedidos, onNavigateToPedido }) => {
-    // --- Load archived pedidos (not included in main pedidos array) ---
-    const [archivedPedidos, setArchivedPedidos] = useState<Pedido[]>([]);
-
-    useEffect(() => {
-        let cancelled = false;
-        async function loadAllArchived() {
-            try {
-                let allArchived: Pedido[] = [];
-                let page = 1;
-                let hasMore = true;
-                while (hasMore) {
-                    const result = await store.getArchived(page, 100);
-                    allArchived = [...allArchived, ...result.pedidos];
-                    hasMore = page < result.pagination.totalPages;
-                    page++;
-                }
-                if (!cancelled) setArchivedPedidos(allArchived);
-            } catch (err) {
-                console.error('❌ Error cargando archivados para tracking:', err);
-            }
-        }
-        loadAllArchived();
-        return () => { cancelled = true; };
-    }, []);
-
-    // Combine props pedidos + archived (deduplicate by id)
-    const allPedidos = useMemo(() => {
-        const idSet = new Set(pedidos.map(p => p.id));
-        const uniqueArchived = archivedPedidos.filter(p => !idSet.has(p.id));
-        return [...pedidos, ...uniqueArchived];
-    }, [pedidos, archivedPedidos]);
+    // --- Pagination state ---
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(50);
+    const [totalRows, setTotalRows] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+    const [trackingRows, setTrackingRows] = useState<TrackingRow[]>([]);
+    const [loading, setLoading] = useState(false);
 
     // --- Filter state (persisted in localStorage) ---
     const [dateFilter, setDateFilter] = useState<DateFilterOption>(
@@ -213,21 +189,34 @@ const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ pedid
         return { start: '', end: '' };
     });
     const [searchText, setSearchText] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [stageFilter, setStageFilter] = useState<Etapa | ''>('');
 
     // --- Sort state ---
     const [sortKey, setSortKey] = useState<SortKey>('numeroPedidoCliente');
     const [sortDir, setSortDir] = useState<SortDir>('asc');
 
+    // --- Debounce search ---
+    const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(() => {
+        if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+        searchTimerRef.current = setTimeout(() => {
+            setDebouncedSearch(searchText.trim());
+        }, 350);
+        return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
+    }, [searchText]);
+
     // --- localStorage sync ---
     const handleDateFilterChange = useCallback((value: DateFilterOption) => {
         setDateFilter(value);
         localStorage.setItem('tracking_date_filter', value);
+        setCurrentPage(1);
     }, []);
 
     const handleDateFieldChange = useCallback((field: keyof Pedido) => {
         setDateField(field);
         localStorage.setItem('tracking_date_field', field as string);
+        setCurrentPage(1);
     }, []);
 
     const handleCustomDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -237,6 +226,7 @@ const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ pedid
             localStorage.setItem('tracking_custom_date_range', JSON.stringify(next));
             return next;
         });
+        setCurrentPage(1);
     }, []);
 
     // --- Sort toggle ---
@@ -249,70 +239,79 @@ const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ pedid
             }
             return key;
         });
+        setCurrentPage(1);
     }, []);
 
-    // --- Compute tracking data (solo completados y archivados) ---
-    const trackingRows = useMemo<TrackingRow[]>(() => {
-        return allPedidos
-            .filter((p) => p.etapaActual === Etapa.COMPLETADO || p.etapaActual === Etapa.ARCHIVADO)
-            .map(buildTrackingRow);
-    }, [allPedidos]);
+    // Reset page when debounced search or stage filter changes
+    useEffect(() => { setCurrentPage(1); }, [debouncedSearch, stageFilter]);
 
-    // --- Filter ---
-    const filteredRows = useMemo<TrackingRow[]>(() => {
-        let rows = trackingRows;
-
-        // Date filter
+    // --- Compute date range for API ---
+    const apiDateRange = useMemo(() => {
         if (dateFilter === 'custom') {
-            if (customDateRange.start || customDateRange.end) {
-                const startMs = customDateRange.start ? new Date(customDateRange.start + 'T00:00:00').getTime() : -Infinity;
-                const endMs = customDateRange.end ? new Date(customDateRange.end + 'T23:59:59.999').getTime() : Infinity;
-                rows = rows.filter((r) => {
-                    const val = r.pedido[dateField];
-                    if (!val || typeof val !== 'string') return false;
-                    const t = new Date(val).getTime();
-                    return t >= startMs && t <= endMs;
-                });
-            }
-        } else if (dateFilter !== 'all') {
+            return { dateFrom: customDateRange.start, dateTo: customDateRange.end };
+        }
+        if (dateFilter !== 'all') {
             const range = getDateRange(dateFilter);
             if (range) {
-                rows = rows.filter((r) => {
-                    const val = r.pedido[dateField];
-                    if (!val || typeof val !== 'string') return false;
-                    const t = new Date(val).getTime();
-                    return t >= range.start.getTime() && t <= range.end.getTime();
-                });
+                const from = range.start.toISOString().slice(0, 10);
+                const to = range.end.toISOString().slice(0, 10);
+                return { dateFrom: from, dateTo: to };
             }
         }
+        return { dateFrom: '', dateTo: '' };
+    }, [dateFilter, customDateRange]);
 
-        // Text search
-        if (searchText.trim()) {
-            const lower = searchText.trim().toLowerCase();
-            rows = rows.filter(
-                (r) =>
-                    r.pedido.numeroPedidoCliente.toLowerCase().includes(lower) ||
-                    r.pedido.cliente.toLowerCase().includes(lower) ||
-                    (r.pedido.vendedorNombre ?? '').toLowerCase().includes(lower),
-            );
+    // --- Map dateField to backend-safe field ---
+    const apiDateField = useMemo(() => {
+        const MAP: Record<string, string> = {
+            fechaCreacion: 'fechaCreacion',
+            fechaEntrega: 'fechaEntrega',
+            fechaFinalizacion: 'fechaFinalizacion',
+        };
+        return MAP[dateField as string] || 'fechaCreacion';
+    }, [dateField]);
+
+    // --- Fetch data from server ---
+    useEffect(() => {
+        let cancelled = false;
+        async function fetchPage() {
+            setLoading(true);
+            try {
+                const result = await store.getTracking({
+                    page: currentPage,
+                    limit: pageSize,
+                    search: debouncedSearch,
+                    stageFilter: stageFilter || undefined,
+                    dateField: apiDateField,
+                    dateFrom: apiDateRange.dateFrom || undefined,
+                    dateTo: apiDateRange.dateTo || undefined,
+                    sortKey,
+                    sortDir,
+                });
+                if (!cancelled) {
+                    setTrackingRows(result.pedidos.map(buildTrackingRow));
+                    setTotalRows(result.pagination.total);
+                    setTotalPages(result.pagination.totalPages);
+                }
+            } catch (err) {
+                console.error('❌ Error cargando tracking:', err);
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
         }
+        fetchPage();
+        return () => { cancelled = true; };
+    }, [currentPage, pageSize, debouncedSearch, stageFilter, apiDateField, apiDateRange, sortKey, sortDir]);
 
-        // Stage filter
-        if (stageFilter) {
-            rows = rows.filter((r) => r.pedido.etapaActual === stageFilter);
-        }
-
-        return rows;
-    }, [trackingRows, dateFilter, dateField, customDateRange, searchText, stageFilter]);
-
-    // --- Sort ---
-    const sortedRows = useMemo<TrackingRow[]>(() => {
-        return [...filteredRows].sort((a, b) => compareRows(a, b, sortKey, sortDir));
-    }, [filteredRows, sortKey, sortDir]);
+    // --- Page size change ---
+    const handlePageSizeChange = useCallback((newSize: number) => {
+        setPageSize(newSize);
+        setCurrentPage(1);
+    }, []);
 
     // --- Column definitions ---
     const columns: { key: SortKey; label: string }[] = [
-        { key: 'numeroPedidoCliente', label: 'N� Pedido' },
+        { key: 'numeroPedidoCliente', label: 'Nº Pedido' },
         { key: 'etapaActual', label: 'Etapa Actual' },
         { key: 'cliente', label: 'Cliente' },
         { key: 'vendedorNombre', label: 'Vendedor' },
@@ -338,10 +337,10 @@ const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ pedid
                 <div className="flex items-center gap-2">
                     <ClipboardIcon className="w-6 h-6 text-indigo-500 dark:text-indigo-400" />
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                        Seguimiento de Producci�n
+                        Seguimiento de Producción
                     </h2>
                     <span className="ml-2 inline-flex items-center rounded-full bg-indigo-100 dark:bg-indigo-900/40 px-2.5 py-0.5 text-xs font-medium text-indigo-700 dark:text-indigo-300">
-                        {sortedRows.length}
+                        {totalRows}
                     </span>
                 </div>
             </div>
@@ -386,7 +385,12 @@ const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ pedid
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 relative">
+                {loading && (
+                    <div className="absolute inset-0 bg-white/50 dark:bg-gray-900/50 z-10 flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+                    </div>
+                )}
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead className="bg-gray-50 dark:bg-gray-800">
                         <tr>
@@ -406,14 +410,14 @@ const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ pedid
                         </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                        {sortedRows.length === 0 ? (
+                        {trackingRows.length === 0 && !loading ? (
                             <tr>
                                 <td colSpan={columns.length} className="px-3 py-12 text-center text-sm text-gray-500 dark:text-gray-400">
                                     No se encontraron pedidos con los filtros seleccionados.
                                 </td>
                             </tr>
                         ) : (
-                            sortedRows.map((row) => {
+                            trackingRows.map((row) => {
                                 const p = row.pedido;
                                 const subLabel =
                                     p.etapaActual === Etapa.PREPARACION
@@ -472,6 +476,60 @@ const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ pedid
                     </tbody>
                 </table>
             </div>
+
+            {/* Pagination controls */}
+            {totalPages > 0 && (
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-sm text-gray-700 dark:text-gray-300">
+                    <div className="flex items-center gap-2">
+                        <span>Filas por página:</span>
+                        <select
+                            value={pageSize}
+                            onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                            className="py-1 px-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                            {[25, 50, 100].map((s) => (
+                                <option key={s} value={s}>{s}</option>
+                            ))}
+                        </select>
+                        <span className="text-gray-500 dark:text-gray-400">
+                            Mostrando {Math.min((currentPage - 1) * pageSize + 1, totalRows)}–{Math.min(currentPage * pageSize, totalRows)} de {totalRows}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => setCurrentPage(1)}
+                            disabled={currentPage <= 1}
+                            className="px-2 py-1 rounded-md border border-gray-300 dark:border-gray-600 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                            «
+                        </button>
+                        <button
+                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                            disabled={currentPage <= 1}
+                            className="px-3 py-1 rounded-md border border-gray-300 dark:border-gray-600 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                            Anterior
+                        </button>
+                        <span className="px-3 py-1">
+                            Página {currentPage} de {totalPages}
+                        </span>
+                        <button
+                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                            disabled={currentPage >= totalPages}
+                            className="px-3 py-1 rounded-md border border-gray-300 dark:border-gray-600 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                            Siguiente
+                        </button>
+                        <button
+                            onClick={() => setCurrentPage(totalPages)}
+                            disabled={currentPage >= totalPages}
+                            className="px-2 py-1 rounded-md border border-gray-300 dark:border-gray-600 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                            »
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

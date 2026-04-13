@@ -1550,6 +1550,111 @@ class PostgreSQLClient {
     }
 
     /**
+     * Obtener pedidos COMPLETADO/ARCHIVADO con paginación, filtros y ordenación server-side.
+     * Usado por la vista "Seguimiento de Producción".
+     */
+    async getTrackingPaginated(options = {}) {
+        if (!this.isInitialized) {
+            throw new Error('Database not initialized');
+        }
+
+        const {
+            page = 1, limit = 50,
+            search = '', stageFilter = '',
+            dateField = 'fechaCreacion', dateFrom = '', dateTo = '',
+            sortKey = 'numeroPedidoCliente', sortDir = 'asc'
+        } = options;
+
+        const offset = (page - 1) * limit;
+        const client = await this.pool.connect();
+
+        try {
+            // --- Build WHERE clause ---
+            const conditions = [];
+            const params = [];
+            let paramIndex = 1;
+
+            // Base: only COMPLETADO + ARCHIVADO
+            if (stageFilter && ['COMPLETADO', 'ARCHIVADO'].includes(stageFilter)) {
+                conditions.push(`data->>'etapaActual' = $${paramIndex}`);
+                params.push(stageFilter);
+                paramIndex++;
+            } else {
+                conditions.push(`data->>'etapaActual' IN ('COMPLETADO', 'ARCHIVADO')`);
+            }
+
+            // Text search (ILIKE on multiple fields)
+            if (search) {
+                conditions.push(`(
+                    data->>'numeroPedidoCliente' ILIKE $${paramIndex} OR
+                    data->>'cliente' ILIKE $${paramIndex} OR
+                    data->>'vendedorNombre' ILIKE $${paramIndex}
+                )`);
+                params.push(`%${search}%`);
+                paramIndex++;
+            }
+
+            // Date range (whitelist dateField to prevent SQL injection)
+            const VALID_DATE_FIELDS = ['fechaCreacion', 'fechaEntrega', 'fechaFinalizacion'];
+            const safeDateField = VALID_DATE_FIELDS.includes(dateField) ? dateField : 'fechaCreacion';
+
+            if (dateFrom) {
+                conditions.push(`data->>'${safeDateField}' >= $${paramIndex}`);
+                params.push(dateFrom + 'T00:00:00.000Z');
+                paramIndex++;
+            }
+            if (dateTo) {
+                conditions.push(`data->>'${safeDateField}' <= $${paramIndex}`);
+                params.push(dateTo + 'T23:59:59.999Z');
+                paramIndex++;
+            }
+
+            // --- Build ORDER BY ---
+            const SORT_MAP = {
+                numeroPedidoCliente: `data->>'numeroPedidoCliente'`,
+                etapaActual: `data->>'etapaActual'`,
+                cliente: `data->>'cliente'`,
+                vendedorNombre: `data->>'vendedorNombre'`,
+                metros: `COALESCE(NULLIF(data->>'metros',''),'0')::numeric`,
+                fechaCompletado: `COALESCE(data->>'fechaFinalizacion','')`,
+                fechaImpreso: `secuencia_pedido`,
+                fechaRebobinado: `secuencia_pedido`,
+                fechaLaminado: `secuencia_pedido`,
+                fechaPerforado: `secuencia_pedido`,
+            };
+            const orderCol = SORT_MAP[sortKey] || 'secuencia_pedido';
+            const orderDir = sortDir === 'desc' ? 'DESC' : 'ASC';
+
+            const whereClause = conditions.join(' AND ');
+
+            // Data query
+            const dataQuery = `SELECT data FROM limpio.pedidos
+                WHERE ${whereClause}
+                ORDER BY ${orderCol} ${orderDir}
+                LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+
+            const result = await client.query(dataQuery, [...params, limit, offset]);
+
+            // Count query (same filters, no pagination)
+            const countQuery = `SELECT COUNT(*) FROM limpio.pedidos WHERE ${whereClause}`;
+            const countResult = await client.query(countQuery, params);
+            const total = parseInt(countResult.rows[0].count);
+
+            return {
+                pedidos: result.rows.map(row => row.data),
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    totalPages: Math.ceil(total / limit)
+                }
+            };
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
      * Obtener pedidos con paginación y filtros
      * @param {Object} options - Opciones de filtrado y paginación
      * @param {number} options.page - Número de página (1-indexed)

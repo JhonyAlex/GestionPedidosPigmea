@@ -15,6 +15,7 @@ export interface DataStore<T extends { id: string }> {
   findById(id: string): Promise<T | undefined>;
   getAll(): Promise<T[]>;
   getArchived(page?: number, limit?: number): Promise<PaginatedResponse<T>>;
+  getTracking(options: TrackingQueryOptions): Promise<PaginatedResponse<T>>;
   clear(): Promise<void>;
   bulkInsert(items: T[]): Promise<void>;
 }
@@ -36,6 +37,18 @@ export interface PaginationOptions {
   fechaEntregaDesde?: string;
   fechaEntregaHasta?: string;
   sinFiltroFecha?: boolean; // 🔥 Cargar todos los pedidos sin restricción de fecha
+}
+
+export interface TrackingQueryOptions {
+  page: number;
+  limit: number;
+  search?: string;
+  stageFilter?: string;
+  dateField?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  sortKey?: string;
+  sortDir?: 'asc' | 'desc';
 }
 
 // --- MODO DE PRODUCCIÓN (API REAL) ---
@@ -232,6 +245,21 @@ class ApiClient implements DataStore<Pedido> {
         return apiRetryFetch<PaginatedResponse<Pedido>>(`/pedidos/archived?${params.toString()}`);
     }
 
+    public async getTracking(options: TrackingQueryOptions): Promise<PaginatedResponse<Pedido>> {
+        const params = new URLSearchParams({
+            page: options.page.toString(),
+            limit: options.limit.toString(),
+        });
+        if (options.search) params.append('search', options.search);
+        if (options.stageFilter) params.append('stageFilter', options.stageFilter);
+        if (options.dateField) params.append('dateField', options.dateField);
+        if (options.dateFrom) params.append('dateFrom', options.dateFrom);
+        if (options.dateTo) params.append('dateTo', options.dateTo);
+        if (options.sortKey) params.append('sortKey', options.sortKey);
+        if (options.sortDir) params.append('sortDir', options.sortDir);
+        return apiRetryFetch<PaginatedResponse<Pedido>>(`/pedidos/tracking?${params.toString()}`);
+    }
+
     public async getPaginated(options: PaginationOptions): Promise<PaginatedResponse<Pedido>> {
         const params = new URLSearchParams({
             page: options.page.toString(),
@@ -338,6 +366,28 @@ class MockApiClient implements DataStore<Pedido> {
         return this.simulateDelay({
             pedidos,
             pagination: { page, limit, total: archived.length, totalPages: Math.ceil(archived.length / limit) }
+        });
+    }
+
+    public async getTracking(options: TrackingQueryOptions): Promise<PaginatedResponse<Pedido>> {
+        let rows = this.pedidos.filter(p => p.etapaActual === 'COMPLETADO' || p.etapaActual === 'ARCHIVADO');
+        if (options.search) {
+            const q = options.search.toLowerCase();
+            rows = rows.filter(p =>
+                p.numeroPedidoCliente.toLowerCase().includes(q) ||
+                p.cliente.toLowerCase().includes(q) ||
+                (p.vendedorNombre ?? '').toLowerCase().includes(q),
+            );
+        }
+        if (options.stageFilter) {
+            rows = rows.filter(p => p.etapaActual === options.stageFilter);
+        }
+        const total = rows.length;
+        const start = (options.page - 1) * options.limit;
+        const pedidos = rows.slice(start, start + options.limit);
+        return this.simulateDelay({
+            pedidos,
+            pagination: { page: options.page, limit: options.limit, total, totalPages: Math.ceil(total / options.limit) }
         });
     }
 

@@ -2507,6 +2507,46 @@ app.get('/api/pedidos/exists', async (req, res) => {
     }
 });
 
+// GET /api/pedidos/tracking - Seguimiento de producción (COMPLETADO + ARCHIVADO) con paginación, filtros y orden
+app.get('/api/pedidos/tracking', async (req, res) => {
+    try {
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({
+                error: 'Service Unavailable',
+                message: 'El sistema no está disponible.'
+            });
+        }
+
+        const page = parseInt(req.query.page) || 1;
+        const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+        const search = (req.query.search || '').toString().trim();
+        const stageFilter = (req.query.stageFilter || '').toString().trim();
+        const dateField = (req.query.dateField || 'fechaCreacion').toString().trim();
+        const dateFrom = (req.query.dateFrom || '').toString().trim();
+        const dateTo = (req.query.dateTo || '').toString().trim();
+        const sortKey = (req.query.sortKey || 'numeroPedidoCliente').toString().trim();
+        const sortDir = (req.query.sortDir || 'asc').toString().trim();
+
+        const result = await dbClient.getTrackingPaginated({
+            page, limit, search, stageFilter,
+            dateField, dateFrom, dateTo,
+            sortKey, sortDir
+        });
+
+        const timestamp = new Date().toISOString();
+        console.log(`📊 [${timestamp}] GET /api/pedidos/tracking - Pág ${page}: ${result.pedidos.length}/${result.pagination.total}`);
+
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('Error in GET /api/pedidos/tracking:', error);
+        res.status(500).json({
+            message: 'Error interno del servidor al obtener seguimiento de producción.',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
 // GET /api/pedidos/archived - Obtener solo pedidos archivados (carga diferida, paginado)
 app.get('/api/pedidos/archived', async (req, res) => {
     try {
