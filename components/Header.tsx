@@ -16,6 +16,8 @@ import ActivityPanel from './ActivityPanel';
 import { normalizeSearchValue, pedidoMatchesSearch } from '../utils/search';
 import { useVendedoresManager } from '../hooks/useVendedoresManager';
 import { useClientesManager } from '../hooks/useClientesManager';
+import { searchArchivedPedidos } from '../services/storage';
+import { useDebounce } from '../hooks/useDebounce';
 
 
 interface HeaderProps {
@@ -165,6 +167,10 @@ const Header: React.FC<HeaderProps> = ({
     const [showBurgerMenu, setShowBurgerMenu] = useState(false);
     const [showActivityPanel, setShowActivityPanel] = useState(false);
     const [showMaquinaDropdown, setShowMaquinaDropdown] = useState(false);
+    const [archivedSearchResults, setArchivedSearchResults] = useState<Pedido[]>([]);
+    const [isSearchingArchived, setIsSearchingArchived] = useState(false);
+
+    const debouncedSearchTerm = useDebounce(searchTerm, 400);
 
     const searchContainerRef = useRef<HTMLDivElement>(null);
     const burgerMenuRef = useRef<HTMLDivElement>(null);
@@ -214,6 +220,38 @@ const Header: React.FC<HeaderProps> = ({
         };
     }, []);
 
+    // Buscar pedidos archivados en el backend cuando cambia el término de búsqueda
+    useEffect(() => {
+        const normalizedTerm = normalizeSearchValue(debouncedSearchTerm);
+        if (!normalizedTerm || normalizedTerm.length < 2) {
+            setArchivedSearchResults([]);
+            setIsSearchingArchived(false);
+            return;
+        }
+
+        let cancelled = false;
+        setIsSearchingArchived(true);
+
+        searchArchivedPedidos(debouncedSearchTerm, 30)
+            .then((results) => {
+                if (!cancelled) {
+                    setArchivedSearchResults(results);
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setArchivedSearchResults([]);
+                }
+            })
+            .finally(() => {
+                if (!cancelled) {
+                    setIsSearchingArchived(false);
+                }
+            });
+
+        return () => { cancelled = true; };
+    }, [debouncedSearchTerm]);
+
     // Función para filtrar pedidos basada en el término de búsqueda
     const searchResults = React.useMemo(() => {
         const normalizedTerm = normalizeSearchValue(searchTerm);
@@ -242,8 +280,17 @@ const Header: React.FC<HeaderProps> = ({
             }
         });
 
+        // Agregar resultados archivados del backend que no estén ya presentes
+        archivedSearchResults.forEach((pedido) => {
+            const numeroPedidoKey = normalizeSearchValue(pedido.numeroPedidoCliente);
+            const dedupeKey = numeroPedidoKey || normalizeSearchValue(pedido.id);
+            if (!dedupedPedidos.has(dedupeKey)) {
+                dedupedPedidos.set(dedupeKey, pedido);
+            }
+        });
+
         return Array.from(dedupedPedidos.values());
-    }, [searchTerm, allPedidos]);
+    }, [searchTerm, allPedidos, archivedSearchResults]);
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -856,6 +903,7 @@ const Header: React.FC<HeaderProps> = ({
                                 onSelectPedido={handleSelectPedido}
                                 onClose={handleHideSearchDropdown}
                                 onCloseAndClear={handleCloseSearchDropdown}
+                                isSearchingArchived={isSearchingArchived}
                             />
                         )}
                     </div>

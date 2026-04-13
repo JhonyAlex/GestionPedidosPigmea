@@ -178,6 +178,21 @@ export async function checkNumeroPedidoClienteExists(numero: string, excludeId?:
     return Boolean(result?.exists);
 }
 
+/**
+ * Busca pedidos archivados en la base de datos por término de búsqueda.
+ * Solo devuelve archivados para complementar la búsqueda en memoria de activos.
+ */
+export async function searchArchivedPedidos(term: string, limit: number = 30): Promise<Pedido[]> {
+    const trimmed = (term || '').trim();
+    if (!trimmed || MODO_DESARROLLO) {
+        return [];
+    }
+
+    const encodedTerm = encodeURIComponent(trimmed);
+    const params = new URLSearchParams({ onlyArchived: 'true', limit: String(limit) });
+    return apiRetryFetch<Pedido[]>(`/pedidos/search/${encodedTerm}?${params.toString()}`);
+}
+
 class ApiClient implements DataStore<Pedido> {
     public async init(): Promise<void> {
         return Promise.resolve();

@@ -1734,7 +1734,7 @@ class PostgreSQLClient {
         }
     }
 
-    async searchPedidos(searchTerm) {
+    async searchPedidos(searchTerm, { limit = 50, onlyArchived = false } = {}) {
         if (!this.isInitialized) {
             throw new Error('Database not initialized');
         }
@@ -1742,23 +1742,27 @@ class PostgreSQLClient {
         const client = await this.pool.connect();
 
         try {
+            const archivedFilter = onlyArchived ? `AND etapa_actual = 'ARCHIVADO'` : '';
             const query = `
                 SELECT data FROM limpio.pedidos 
-                WHERE 
+                WHERE (
                     numero_pedido_cliente ILIKE $1 OR
                     cliente ILIKE $1 OR
+                    vendedor_nombre ILIKE $1 OR
                     EXISTS (
                         SELECT 1
                         FROM jsonb_array_elements_text(numeros_compra) AS numero
                         WHERE numero ILIKE $1
                     ) OR
-                    etapa_actual ILIKE $1 OR
                     data->>'observaciones' ILIKE $1
+                )
+                ${archivedFilter}
                 ORDER BY secuencia_pedido DESC
+                LIMIT $2
             `;
 
             const searchPattern = `%${searchTerm}%`;
-            const result = await client.query(query, [searchPattern]);
+            const result = await client.query(query, [searchPattern, limit]);
             return result.rows.map(row => row.data);
 
         } finally {

@@ -12,6 +12,7 @@ interface GlobalSearchDropdownProps {
     onClose: () => void;
     onCloseAndClear: () => void;
     maxResults?: number;
+    isSearchingArchived?: boolean;
 }
 
 const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
@@ -21,7 +22,8 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
     onSelectPedido,
     onClose,
     onCloseAndClear,
-    maxResults = 10
+    maxResults = 10,
+    isSearchingArchived = false
 }) => {
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -124,6 +126,11 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
                         </button>
 
                         {/* Badge de resultados */}
+                        {isSearchingArchived && (
+                            <span className="text-sm text-blue-500 dark:text-blue-400 whitespace-nowrap animate-pulse">
+                                Buscando archivados…
+                            </span>
+                        )}
                         <span className="text-sm text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">
                             {results.length} {results.length === 1 ? 'resultado' : 'resultados'}
                         </span>
