@@ -194,7 +194,7 @@ const Header: React.FC<HeaderProps> = ({
             }
 
             if (searchContainerRef.current && !searchContainerRef.current.contains(target)) {
-                handleCloseSearchDropdown();
+                handleHideSearchDropdown();
             }
 
             // Cerrar menú hamburguesa
@@ -262,6 +262,10 @@ const Header: React.FC<HeaderProps> = ({
 
     const handleCloseSearchDropdown = () => {
         onSearch('');
+        setShowSearchDropdown(false);
+    };
+
+    const handleHideSearchDropdown = () => {
         setShowSearchDropdown(false);
     };
 
@@ -850,7 +854,8 @@ const Header: React.FC<HeaderProps> = ({
                                 }}
                                 results={searchResults}
                                 onSelectPedido={handleSelectPedido}
-                                onClose={handleCloseSearchDropdown}
+                                onClose={handleHideSearchDropdown}
+                                onCloseAndClear={handleCloseSearchDropdown}
                             />
                         )}
                     </div>

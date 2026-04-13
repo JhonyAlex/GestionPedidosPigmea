@@ -10,6 +10,7 @@ interface GlobalSearchDropdownProps {
     results: Pedido[];
     onSelectPedido: (pedido: Pedido) => void;
     onClose: () => void;
+    onCloseAndClear: () => void;
     maxResults?: number;
 }
 
@@ -19,6 +20,7 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
     results,
     onSelectPedido,
     onClose,
+    onCloseAndClear,
     maxResults = 10
 }) => {
     const inputRef = useRef<HTMLInputElement>(null);
@@ -112,7 +114,7 @@ const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
 
                         {/* Botón cerrar */}
                         <button
-                            onClick={onClose}
+                            onClick={onCloseAndClear}
                             className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
                             title="Cerrar y limpiar búsqueda"
                         >
