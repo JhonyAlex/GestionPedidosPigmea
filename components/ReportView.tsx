@@ -997,8 +997,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                 <AnalyticsDashboard />
             ) : activeTab === 'tracking' ? (
                 <ProductionTrackingTable
-                    pedidos={enrichedPedidos}
-                    onNavigateToPedido={onNavigateToPedido}
+                    onNavigateToPedido={onSelectPedido}
                 />
             ) : (
                 <>

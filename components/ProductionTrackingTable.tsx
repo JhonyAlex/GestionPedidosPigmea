@@ -154,16 +154,18 @@ const SortArrow: React.FC<{ active: boolean; dir: SortDir }> = ({ active, dir })
     return <span className="ml-1">{dir === 'asc' ? '▲' : '▼'}</span>;
 };
 
+// --- Tracking filter type (for stage dropdown) ---
+type TrackingStageFilter = 'COMPLETADO' | 'ARCHIVADO' | '';
+
 // --- Props ---
 
 interface ProductionTrackingTableProps {
-    pedidos: Pedido[];
     onNavigateToPedido?: (pedido: Pedido) => void;
 }
 
 // --- Component ---
 
-const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ pedidos, onNavigateToPedido }) => {
+const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ onNavigateToPedido }) => {
     // --- Pagination state ---
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(50);
@@ -190,7 +192,9 @@ const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ pedid
     });
     const [searchText, setSearchText] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
-    const [stageFilter, setStageFilter] = useState<Etapa | ''>('');
+    const [stageFilter, setStageFilter] = useState<TrackingStageFilter>(
+        () => (localStorage.getItem('tracking_stage_filter') as TrackingStageFilter) || 'COMPLETADO',
+    );
 
     // --- Sort state ---
     const [sortKey, setSortKey] = useState<SortKey>('numeroPedidoCliente');
@@ -323,10 +327,11 @@ const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ pedid
         { key: 'fechaCompletado', label: 'F. Completado' },
     ];
 
-    // --- Stage options for filter dropdown ---
-    const stageOptions = useMemo(() => {
-        const all = Object.values(Etapa);
-        return all.map((e) => ({ value: e, label: ETAPAS[e]?.title ?? e }));
+    // --- Stage filter handler (persist to localStorage) ---
+    const handleStageFilterChange = useCallback((value: TrackingStageFilter) => {
+        setStageFilter(value);
+        localStorage.setItem('tracking_stage_filter', value);
+        setCurrentPage(1);
     }, []);
 
     // --- Render ---
@@ -369,18 +374,15 @@ const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ pedid
                     />
                 </div>
 
-                {/* Stage filter */}
+                {/* Stage filter (Completados / Archivados / Todos) */}
                 <select
                     value={stageFilter}
-                    onChange={(e) => setStageFilter(e.target.value as Etapa | '')}
+                    onChange={(e) => handleStageFilterChange(e.target.value as TrackingStageFilter)}
                     className="py-1.5 px-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
-                    <option value="">Todas las etapas</option>
-                    {stageOptions.map((s) => (
-                        <option key={s.value} value={s.value}>
-                            {s.label}
-                        </option>
-                    ))}
+                    <option value="COMPLETADO">Solo Completados</option>
+                    <option value="ARCHIVADO">Solo Archivados</option>
+                    <option value="">Completados + Archivados</option>
                 </select>
             </div>
 
