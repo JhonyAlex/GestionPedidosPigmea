@@ -1748,10 +1748,10 @@ class PostgreSQLClient {
                 WHERE (
                     numero_pedido_cliente ILIKE $1 OR
                     cliente ILIKE $1 OR
-                    vendedor_nombre ILIKE $1 OR
+                    COALESCE(data->>'vendedorNombre', vendedor) ILIKE $1 OR
                     EXISTS (
                         SELECT 1
-                        FROM jsonb_array_elements_text(numeros_compra) AS numero
+                        FROM jsonb_array_elements_text(COALESCE(numeros_compra, '[]'::jsonb)) AS numero
                         WHERE numero ILIKE $1
                     ) OR
                     data->>'observaciones' ILIKE $1

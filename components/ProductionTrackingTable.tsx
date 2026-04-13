@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Pedido, Etapa, EtapaInfo } from '../types';
 import { ETAPAS, PREPARACION_COLUMNS, STAGE_GROUPS } from '../constants';
 import { DateFilterOption, getDateRange } from '../utils/date';
 import DateFilterCombined from './DateFilterCombined';
+import { store } from '../services/storage';
 
 // --- Stage sets for exit date computation ---
 const IMPRESION_STAGES = new Set<Etapa>(STAGE_GROUPS.IMPRESION.stages);
@@ -163,6 +164,38 @@ interface ProductionTrackingTableProps {
 // --- Component ---
 
 const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ pedidos, onNavigateToPedido }) => {
+    // --- Load archived pedidos (not included in main pedidos array) ---
+    const [archivedPedidos, setArchivedPedidos] = useState<Pedido[]>([]);
+
+    useEffect(() => {
+        let cancelled = false;
+        async function loadAllArchived() {
+            try {
+                let allArchived: Pedido[] = [];
+                let page = 1;
+                let hasMore = true;
+                while (hasMore) {
+                    const result = await store.getArchived(page, 100);
+                    allArchived = [...allArchived, ...result.pedidos];
+                    hasMore = page < result.pagination.totalPages;
+                    page++;
+                }
+                if (!cancelled) setArchivedPedidos(allArchived);
+            } catch (err) {
+                console.error('❌ Error cargando archivados para tracking:', err);
+            }
+        }
+        loadAllArchived();
+        return () => { cancelled = true; };
+    }, []);
+
+    // Combine props pedidos + archived (deduplicate by id)
+    const allPedidos = useMemo(() => {
+        const idSet = new Set(pedidos.map(p => p.id));
+        const uniqueArchived = archivedPedidos.filter(p => !idSet.has(p.id));
+        return [...pedidos, ...uniqueArchived];
+    }, [pedidos, archivedPedidos]);
+
     // --- Filter state (persisted in localStorage) ---
     const [dateFilter, setDateFilter] = useState<DateFilterOption>(
         () => (localStorage.getItem('tracking_date_filter') as DateFilterOption) || 'all',
@@ -220,10 +253,10 @@ const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ pedid
 
     // --- Compute tracking data (solo completados y archivados) ---
     const trackingRows = useMemo<TrackingRow[]>(() => {
-        return pedidos
+        return allPedidos
             .filter((p) => p.etapaActual === Etapa.COMPLETADO || p.etapaActual === Etapa.ARCHIVADO)
             .map(buildTrackingRow);
-    }, [pedidos]);
+    }, [allPedidos]);
 
     // --- Filter ---
     const filteredRows = useMemo<TrackingRow[]>(() => {
