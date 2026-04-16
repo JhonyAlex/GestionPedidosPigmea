@@ -1,15 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { UserRole } from '../types';
 
 const LoginModal: React.FC = () => {
-    const { login, register, loading, authError, clearAuthError } = useAuth(); // ✅ Usar authError del contexto
-    const [isRegisterMode, setIsRegisterMode] = useState(false);
+    const { login, loading, authError, clearAuthError } = useAuth();
     const [formData, setFormData] = useState({
         username: '',
         password: '',
-        displayName: '',
-        role: 'Visualizador' as UserRole
     });
     const [success, setSuccess] = useState('');
 
@@ -36,65 +32,35 @@ const LoginModal: React.FC = () => {
             ...prev,
             [name]: value
         }));
-        clearAuthError(); // ✅ Limpiar error del contexto
+        clearAuthError();
         setSuccess('');
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        clearAuthError(); // ✅ Limpiar error del contexto
+        clearAuthError();
         setSuccess('');
 
         if (!formData.username.trim() || !formData.password.trim()) {
-            // Para errores de validación local, podemos seguir usando setError si lo necesitamos
-            // o usar el authError del contexto
             console.log('⚠️ Validación: Usuario y contraseña requeridos');
             return;
         }
 
         try {
             console.log('📝 Iniciando submit del formulario...');
-            let result;
-
-            if (isRegisterMode) {
-                console.log('📝 Modo registro');
-                result = await register({
-                    username: formData.username.trim(),
-                    password: formData.password,
-                    displayName: formData.displayName.trim() || formData.username.trim(),
-                    role: formData.role
-                });
-            } else {
-                console.log('📝 Modo login');
-                result = await login(formData.username.trim(), formData.password);
-            }
+            const result = await login(formData.username.trim(), formData.password);
 
             console.log('📝 Resultado recibido:', result);
 
             if (!result.success) {
                 console.log('❌ Login fallido, error ya guardado en contexto');
-                // El error ya está en authError del contexto
             } else {
                 console.log('✅ Login exitoso, mostrando mensaje:', result.message);
                 setSuccess(result.message);
-                // El login/register exitoso será manejado por el contexto
             }
         } catch (error) {
             console.error('💥 Error inesperado en handleSubmit:', error);
-            // Este caso es muy raro, normalmente los errores ya están manejados en login/register
         }
-    };
-
-    const toggleMode = () => {
-        setIsRegisterMode(!isRegisterMode);
-        clearAuthError(); // ✅ Limpiar error del contexto
-        setSuccess('');
-        setFormData({
-            username: '',
-            password: '',
-            displayName: '',
-            role: 'Visualizador'
-        });
     };
 
     return (
@@ -105,7 +71,7 @@ const LoginModal: React.FC = () => {
                         Planning Pigmea
                     </h1>
                     <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300">
-                        {isRegisterMode ? 'Crear Cuenta' : 'Iniciar Sesión'}
+                        Iniciar Sesión
                     </h2>
                 </div>
 
@@ -143,44 +109,6 @@ const LoginModal: React.FC = () => {
                             disabled={loading}
                         />
                     </div>
-
-                    {isRegisterMode && (
-                        <>
-                            <div>
-                                <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Nombre a mostrar (opcional)
-                                </label>
-                                <input
-                                    type="text"
-                                    id="displayName"
-                                    name="displayName"
-                                    value={formData.displayName}
-                                    onChange={handleInputChange}
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                                    placeholder="Ej: Juan Pérez"
-                                    disabled={loading}
-                                />
-                            </div>
-
-                            <div>
-                                <label htmlFor="role" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Rol
-                                </label>
-                                <select
-                                    id="role"
-                                    name="role"
-                                    value={formData.role}
-                                    onChange={handleInputChange}
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                                    disabled={loading}
-                                >
-                                    <option value="Visualizador">Visualizador</option>
-                                    <option value="Supervisor">Supervisor</option>
-                                    <option value="Administrador">Administrador</option>
-                                </select>
-                            </div>
-                        </>
-                    )}
 
                     {authError && (
                         <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 dark:border-red-700 px-4 py-3 rounded relative">
@@ -250,26 +178,11 @@ const LoginModal: React.FC = () => {
                                 Procesando...
                             </span>
                         ) : (
-                            isRegisterMode ? 'Crear Cuenta' : 'Iniciar Sesión'
+                            'Iniciar Sesión'
                         )}
                     </button>
                 </form>
 
-                <div className="mt-6 text-center">
-                    <button
-                        type="button"
-                        onClick={toggleMode}
-                        disabled={loading}
-                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors duration-200"
-                    >
-                        {isRegisterMode
-                            ? '¿Ya tienes cuenta? Inicia sesión'
-                            : '¿No tienes cuenta? Créala aquí'
-                        }
-                    </button>
-
-
-                </div>
             </div>
         </div>
     );

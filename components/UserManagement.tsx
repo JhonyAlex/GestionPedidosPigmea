@@ -121,7 +121,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                 // Actualizar el usuario en la lista sin recargar todo
                 setUsers(prevUsers =>
                     prevUsers.map(u =>
-                        u.id === data.userId
+                        u.id === String(data.userId)
                             ? { ...u, lastLogin: data.lastLogin }
                             : u
                     )
@@ -166,8 +166,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ onClose }) => {
                     }),
                 });
             } else {
-                // Crear nuevo usuario
-                response = await fetch('/api/auth/register', {
+                // Crear nuevo usuario (ruta protegida, solo admins)
+                response = await fetch('/api/auth/admin/create-user', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

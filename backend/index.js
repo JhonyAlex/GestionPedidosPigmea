@@ -1641,9 +1641,27 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
-// POST /api/auth/register - Registrar nuevo usuario
-app.post('/api/auth/register', async (req, res) => {
+// POST /api/auth/register - DESHABILITADO: solo admins crean usuarios desde el panel
+app.post('/api/auth/register', (req, res) => {
+    console.warn(`⚠️ Intento de registro público bloqueado desde IP: ${req.ip}`);
+    res.status(403).json({
+        error: 'Registro deshabilitado',
+        message: 'El registro público no está permitido. Contacte al administrador.'
+    });
+});
+
+// POST /api/auth/admin/create-user - Crear usuario (solo admins autenticados)
+app.post('/api/auth/admin/create-user', requireAuth, async (req, res) => {
     try {
+        // Verificar que el usuario es admin
+        if (!req.user || !['ADMIN', 'Administrador'].includes(req.user.role)) {
+            console.warn(`⚠️ Intento de crear usuario sin permisos de admin por: ${req.user?.username || 'desconocido'}`);
+            return res.status(403).json({
+                error: 'No autorizado',
+                message: 'Solo los administradores pueden crear usuarios.'
+            });
+        }
+
         const { username, password, role = 'Operador', displayName } = req.body;
 
         if (!username || !password) {
@@ -1664,66 +1682,57 @@ app.post('/api/auth/register', async (req, res) => {
             });
         }
 
-        // Verificar que la BD está disponible
         if (!dbClient.isInitialized) {
-            console.error('🚨 BD no disponible - rechazando registro');
             return res.status(503).json({
                 error: 'Service Unavailable',
-                message: 'El sistema no está disponible. Por favor, contacte al administrador.'
+                message: 'El sistema no está disponible.'
             });
         }
 
-        // Usar base de datos
-        // Verificar si el usuario ya existe
         const existingAdmin = await dbClient.getAdminUserByUsername(username);
-
         if (existingAdmin) {
             return res.status(409).json({
                 error: 'El nombre de usuario ya existe'
             });
         }
 
-        // Hashear la contraseña
         const saltRounds = 12;
         const passwordHash = await bcrypt.hash(password, saltRounds);
 
-        // Crear nuevo usuario admin
         const names = (displayName || username).split(' ');
         const firstName = names[0] || username;
         const lastName = names.slice(1).join(' ') || '';
 
         const newUser = {
             username: username.trim(),
-            email: `${username.trim()}@pigmea.local`, // Email temporal si no se proporciona
+            email: `${username.trim()}@pigmea.local`,
             firstName: firstName.trim(),
             lastName: lastName.trim(),
             passwordHash: passwordHash,
-            role: mapRole(role, true), // Convertir a formato de BD
+            role: mapRole(role, true),
             isActive: true
         };
 
         const createdUser = await dbClient.createAdminUser(newUser);
 
-        // Devolver datos del usuario (sin contraseña)
         const userData = {
             id: createdUser.id,
             username: createdUser.username,
-            role: mapRole(createdUser.role, false), // Convertir de vuelta a formato frontend
+            role: mapRole(createdUser.role, false),
             displayName: `${createdUser.first_name} ${createdUser.last_name}`.trim(),
             email: createdUser.email,
             isActive: createdUser.is_active
         };
 
-        console.log(`✅ Usuario registrado: ${username} (${role})`);
+        console.log(`✅ Usuario creado por admin ${req.user.username}: ${username} (${role})`);
 
         res.status(201).json({
             success: true,
             user: userData,
             message: 'Usuario creado exitosamente'
         });
-
     } catch (error) {
-        console.error('Error en registro:', error);
+        console.error('Error creando usuario:', error);
         res.status(500).json({
             error: error.message || 'Error interno del servidor'
         });
@@ -5182,8 +5191,8 @@ app.delete('/api/observaciones/templates/:id', async (req, res) => {
 // Aplicar rate limiting a todas las rutas admin
 app.use('/api/admin', adminLimiter);
 
-// Aplicar rate limiting especial al login
-app.use('/api/admin/auth/login', loginLimiter);
+// Aplicar rate limiting especial al login (ruta real: /api/auth/login)
+app.use('/api/auth/login', loginLimiter);
 
 // Rutas de autenticación administrativa (comentadas temporalmente)
 // app.use('/api/admin/auth', adminAuthRoutes);
