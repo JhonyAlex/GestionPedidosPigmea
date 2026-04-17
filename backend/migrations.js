@@ -557,6 +557,32 @@ class MigrationManager {
                 UPDATE action_history SET source = 'frontend' WHERE source = 'backend';
             `
         });
+
+        // Migración 021: Agregar fecha_baja y actualizar constraint estado en limpio.clientes
+        this.migrations.push({
+            id: '021-add-fecha-baja-clientes',
+            name: 'Agregar columna fecha_baja y corregir constraint de estado en limpio.clientes',
+            sql: `
+                -- Agregar columna fecha_baja si no existe
+                ALTER TABLE limpio.clientes 
+                    ADD COLUMN IF NOT EXISTS fecha_baja TIMESTAMP WITH TIME ZONE;
+
+                CREATE INDEX IF NOT EXISTS idx_clientes_fecha_baja ON limpio.clientes(fecha_baja);
+
+                -- Actualizar constraint de estado para incluir 'Archivado'
+                DO $$
+                BEGIN
+                    -- Eliminar constraint existente si tiene nombre estándar
+                    IF EXISTS (
+                        SELECT 1 FROM pg_constraint 
+                        WHERE conname = 'clientes_estado_check'
+                        AND conrelid = 'limpio.clientes'::regclass
+                    ) THEN
+                        ALTER TABLE limpio.clientes DROP CONSTRAINT clientes_estado_check;
+                    END IF;
+                END $$;
+            `
+        });
     }
 
     /**
