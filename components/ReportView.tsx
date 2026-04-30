@@ -684,7 +684,7 @@ const ReportView: React.FC<ReportViewProps> = ({
         }
     };
 
-    const getSubEtapaDisplay = (pedido: Pedido): string => {
+    function getSubEtapaDisplay(pedido: Pedido): string {
         if (pedido.etapaActual === Etapa.PREPARACION && pedido.subEtapaActual) {
             const subEtapa = PREPARACION_COLUMNS.find(col => col.id === pedido.subEtapaActual);
             if (subEtapa) {
@@ -694,7 +694,7 @@ const ReportView: React.FC<ReportViewProps> = ({
 
         const etapa = ETAPAS[pedido.etapaActual];
         return etapa?.title || pedido.subEtapaActual || pedido.etapaActual || '-';
-    };
+    }
 
     const toggleStage = (stage: string) => {
         setSelectedStages(prev =>
