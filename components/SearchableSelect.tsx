@@ -56,6 +56,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
     const containerRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
+    const isKeyboardNavRef = useRef(false);
 
     // Filtrar y ordenar opciones
     const filteredOptions = useMemo(() => {
@@ -113,14 +114,15 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
         }
     }, [isOpen]);
 
-    // Scroll automático al elemento resaltado
+    // Scroll automático al elemento resaltado (solo en navegación por teclado)
     useEffect(() => {
-        if (highlightedIndex >= 0 && listRef.current) {
+        if (isKeyboardNavRef.current && highlightedIndex >= 0 && listRef.current) {
             const highlightedElement = listRef.current.children[highlightedIndex] as HTMLElement;
             if (highlightedElement) {
                 highlightedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
             }
         }
+        isKeyboardNavRef.current = false;
     }, [highlightedIndex]);
 
     const handleToggle = () => {
@@ -159,6 +161,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
         switch (e.key) {
             case 'ArrowDown':
                 e.preventDefault();
+                isKeyboardNavRef.current = true;
                 setHighlightedIndex(prev => 
                     prev < filteredOptions.length - 1 + (allowCreate ? 1 : 0) ? prev + 1 : prev
                 );
@@ -166,6 +169,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                 
             case 'ArrowUp':
                 e.preventDefault();
+                isKeyboardNavRef.current = true;
                 setHighlightedIndex(prev => prev > 0 ? prev - 1 : prev);
                 break;
                 
@@ -209,6 +213,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                     );
                     
                     if (matchIndex !== -1) {
+                        isKeyboardNavRef.current = true;
                         setHighlightedIndex(matchIndex);
                     } else {
                         // Si no encuentra desde startIndex, buscar desde el inicio
@@ -216,6 +221,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                             opt.label.toLowerCase().startsWith(key)
                         );
                         if (fallbackIndex !== -1) {
+                            isKeyboardNavRef.current = true;
                             setHighlightedIndex(fallbackIndex);
                         }
                     }
