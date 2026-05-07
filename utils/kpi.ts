@@ -311,7 +311,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             { cliente: p.cliente, pedido: p.numeroPedidoCliente },
             formattedMetros,
             p.tipoImpresion.replace(' (SUP)', '').replace(' (TTE)', ''),
-            '□',
+            '',
             p.capa,
             p.camisa || '-',
             p.antivaho ? 'Sí' : 'No',
@@ -367,6 +367,18 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
         },
         didDrawCell: (data) => {
             const pedido = pedidos[data.row.index];
+            if (data.section === 'body' && data.column.index === 4) {
+                // Draw a real checkbox square to avoid font/symbol rendering issues in PDF viewers.
+                const { x, y, width, height } = data.cell;
+                const boxSize = Math.min(8, width - 6, height - 4);
+                const boxX = x + (width - boxSize) / 2;
+                const boxY = y + (height - boxSize) / 2;
+
+                doc.setDrawColor(31, 41, 55);
+                doc.setLineWidth(0.75);
+                doc.rect(boxX, boxY, boxSize, boxSize);
+            }
+
             if (pedido && data.section === 'body' && data.column.index === 1) {
                 // Manual rendering for "Cliente / # Pedido" to mix normal and bold text
                 const cell = data.cell;
