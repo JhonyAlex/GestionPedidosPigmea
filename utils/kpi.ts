@@ -208,6 +208,21 @@ const getNextStageTitle = (pedido: Pedido): string => {
     return 'N/A';
 };
 
+const formatMetrosForPdf = (metros: Pedido['metros']): string => {
+    if (metros === null || metros === undefined || metros === '') return '0';
+    const numericValue = typeof metros === 'number'
+        ? metros
+        : Number(String(metros).replace(/\./g, '').replace(',', '.'));
+
+    if (!Number.isFinite(numericValue)) {
+        return String(metros);
+    }
+
+    return new Intl.NumberFormat('es-ES', {
+        maximumFractionDigits: 2
+    }).format(numericValue);
+};
+
 
 export const generatePedidosPDF = (pedidos: Pedido[]) => {
     const { jsPDF } = window.jspdf;
@@ -271,6 +286,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
         "Cliente / # Pedido",
         "Metros",
         "Tipo",
+        "Hecho",
         "Capa",
         "Camisa",
         "Antiv.",
@@ -286,8 +302,8 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
         const obsNormal = p.observaciones || '';
         const observacionesCombinadas = [obsRapidas, obsNormal].filter(Boolean).join('\n') || '-';
 
-        // Formatear metros con separador de miles
-        const formattedMetros = p.metros ? p.metros.toLocaleString('es-ES') : '0';
+        // Formatear metros con separador de miles consistente desde 1.000
+        const formattedMetros = formatMetrosForPdf(p.metros);
 
         return [
             p.desarrollo || '-',
@@ -295,6 +311,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             { cliente: p.cliente, pedido: p.numeroPedidoCliente },
             formattedMetros,
             p.tipoImpresion.replace(' (SUP)', '').replace(' (TTE)', ''),
+            '□',
             p.capa,
             p.camisa || '-',
             p.antivaho ? 'Sí' : 'No',
@@ -328,17 +345,18 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             cellPadding: { top: 2, right: 2, bottom: 2, left: 2 },
         },
         columnStyles: {
-            0: { cellWidth: 35 }, // Des.
-            1: { cellWidth: 100, halign: 'left' }, // Cliente y # Pedido (Increased from 80)
-            2: { cellWidth: 40 }, // Metros (Increased from 35)
-            3: { cellWidth: 40, fontSize: 5.5 }, // Tipo (Reduced by 30%: 8 * 0.7 = 5.6 approx)
-            4: { cellWidth: 25, fontSize: 5.2 }, // Capa (Reduced by 35%: 8 * 0.65 = 5.2)
-            5: { cellWidth: 35 }, // Camisa (Increased from 32)
-            6: { cellWidth: 25 }, // Antiv. (Increased from 24)
-            7: { cellWidth: 25 }, // Láser (Increased from 24)
-            8: { cellWidth: 60 }, // Sig. Etapa (Increased from 55)
-            9: { cellWidth: 140, halign: 'left' }, // Observaciones (Increased from 120)
-            10: { cellWidth: 40, fontSize: 5.5 }, // Creación (Reduced by 30%: 8 * 0.7 = 5.6 approx)
+            0: { cellWidth: 32 }, // Des.
+            1: { cellWidth: 94, halign: 'left', fontSize: 6.8 }, // Cliente y # Pedido (-15%)
+            2: { cellWidth: 43 }, // Metros
+            3: { cellWidth: 36, fontSize: 5.5 }, // Tipo
+            4: { cellWidth: 24, fontSize: 8 }, // Hecho (checkbox)
+            5: { cellWidth: 24, fontSize: 5.2 }, // Capa
+            6: { cellWidth: 31 }, // Camisa
+            7: { cellWidth: 24 }, // Antiv.
+            8: { cellWidth: 24 }, // Láser
+            9: { cellWidth: 52, fontSize: 6.8 }, // Sig. Etapa (-15%)
+            10: { cellWidth: 125, halign: 'left', fontSize: 6.8 }, // Observaciones (-15%)
+            11: { cellWidth: 36, fontSize: 5.5 }, // Nva. Entrega
         },
         willDrawCell: (data) => {
             // Prevent standard text drawing for the custom rendered column by clearing text JUST BEFORE drawing
@@ -406,7 +424,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
                 }
 
                 // Highlight 'Capa' cell if layer is 3 or more
-                if (data.column.index === 4) { // "Capa" column
+                if (data.column.index === 5) { // "Capa" column
                     const capaValue = pedido.capa;
                     const numericCapa = parseInt(capaValue, 10);
                     if (!isNaN(numericCapa) && numericCapa >= 3) {
@@ -415,7 +433,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
                 }
 
                 // Highlight 'Láser' cell if microperforado is active
-                if (data.column.index === 7 && pedido.microperforado) { // "Láser" column
+                if (data.column.index === 8 && pedido.microperforado) { // "Láser" column
                     data.cell.styles.fillColor = [196, 181, 253]; // light purple (purple-300)
                     data.cell.styles.fontStyle = 'bold';
                     data.cell.styles.textColor = [76, 29, 149]; // dark purple (purple-900)
