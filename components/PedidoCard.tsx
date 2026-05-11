@@ -884,6 +884,11 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                             )}
                         </div>
                     )}
+                    {pedido.bobinaMadre != null && pedido.bobinaMadre > 0 && (
+                        <span className="flex items-center text-xs font-medium text-gray-700 dark:text-gray-300 mt-0.5" title="Bobina Madre (mm)">
+                            <span className="mr-1">🎯</span> Ancho: {pedido.bobinaMadre}
+                        </span>
+                    )}
                 </div>
 
                 {/* Información del pedido en la derecha */}
