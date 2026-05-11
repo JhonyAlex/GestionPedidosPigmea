@@ -257,10 +257,10 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
 
     const subtitleParts: string[] = [];
     if (printingMachines.size > 0) {
-        subtitleParts.push(`Impresión: ${Array.from(printingMachines).join(', ')}`);
+        subtitleParts.push(Array.from(printingMachines).join(', '));
     }
     if (postPrintingStages.size > 0) {
-        subtitleParts.push(`Post-Impresión: ${Array.from(postPrintingStages).join(', ')}`);
+        subtitleParts.push(Array.from(postPrintingStages).join(', '));
     }
     const dynamicSubtitle = subtitleParts.join(' | ');
 
@@ -348,7 +348,7 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
             0: { cellWidth: 32 }, // Des.
             1: { cellWidth: 94, halign: 'left', fontSize: 6.8 }, // Cliente y # Pedido (-15%)
             2: { cellWidth: 43 }, // Metros
-            3: { cellWidth: 36, fontSize: 5.5 }, // Tipo
+            3: { cellWidth: 41, fontSize: 5.5 }, // Tipo (+15%)
             4: { cellWidth: 24, fontSize: 8 }, // Hecho (checkbox)
             5: { cellWidth: 24, fontSize: 5.2 }, // Capa
             6: { cellWidth: 31 }, // Camisa

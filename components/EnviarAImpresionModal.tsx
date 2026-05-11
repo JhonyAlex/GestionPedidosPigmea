@@ -53,9 +53,11 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
         setPostImpresionSequence(normalizePostImpresionSequence(newSequence, pedido.cliente));
     };
 
-    // Determinar si es una reconfirmación de antivaho
+    // Determinar si es una reconfirmación de antivaho o si se marcó como hecho desde preparación
     const isAntivahoReconfirmation = pedido.antivaho && !pedido.antivahoRealizado &&
         KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual);
+
+    const isAntivahoHechoInPreparacion = pedido.antivaho && pedido.antivahoRealizado && pedido.etapaActual === 'PREPARACION';
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -63,14 +65,16 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
 
         // Pedidos anónimos: saltar impresión y enviar directamente a la primera etapa de post-impresión
         if (pedido.anonimo && normalizedSequence.length > 0) {
-            onConfirm(pedido, normalizedSequence[0], normalizedSequence.slice(1));
+            onConfirm(pedido, normalizedSequence[0], normalizedSequence);
             return;
         }
 
         // Si el pedido tiene antivaho, no se ha realizado y está en preparación, enviar directamente a post-impresión
-        if (pedido.antivaho && !pedido.antivahoRealizado && pedido.etapaActual === 'PREPARACION' && normalizedSequence.length > 0) {
+        // O si ya se marcó como realizado pero el usuario decide enviarlo a la primera etapa de post-impresión (vía isAntivahoHechoInPreparacion)
+        if ((pedido.antivaho && !pedido.antivahoRealizado && pedido.etapaActual === 'PREPARACION' && normalizedSequence.length > 0) || 
+            (isAntivahoHechoInPreparacion && KANBAN_FUNNELS.POST_IMPRESION.stages.includes(impresionEtapa))) {
             // Mantener la secuencia completa para que la etapa inicial no se pierda al avanzar.
-            onConfirm(pedido, normalizedSequence[0], normalizedSequence);
+            onConfirm(pedido, impresionEtapa || normalizedSequence[0], normalizedSequence);
         } else {
             onConfirm(pedido, impresionEtapa, normalizedSequence);
         }
@@ -154,7 +158,9 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
                         {!pedido.anonimo && (!pedido.antivaho || pedido.antivahoRealizado || isAntivahoReconfirmation) && (
                             <div>
                                 <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
-                                    {isAntivahoReconfirmation ? 'Etapa de Destino' : 'Máquina de Impresión (Etapa Inicial)'}
+                                    {isAntivahoReconfirmation || (isAntivahoHechoInPreparacion && KANBAN_FUNNELS.POST_IMPRESION.stages.includes(impresionEtapa)) 
+                                        ? 'Etapa de Destino' 
+                                        : 'Máquina de Impresión (Etapa Inicial)'}
                                 </label>
                                 <select
                                     value={impresionEtapa}
@@ -169,7 +175,7 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
                                             </option>
                                         ))}
                                     </optgroup>
-                                    {isAntivahoReconfirmation && (
+                                    {(isAntivahoReconfirmation || isAntivahoHechoInPreparacion) && (
                                         <optgroup label="Post-Impresión">
                                             {availablePostImpresionStages.map(stageId => (
                                                 <option key={stageId} value={stageId}>
@@ -217,7 +223,7 @@ const EnviarAImpresionModal: React.FC<EnviarAImpresionModalProps> = ({ pedido, o
                                 ? "Confirmar Cambio (Antivaho Realizado)"
                                 : pedido.anonimo
                                     ? "Confirmar y Enviar a Post-Impresión"
-                                    : pedido.antivaho && !pedido.antivahoRealizado && pedido.etapaActual === 'PREPARACION'
+                                    : (pedido.antivaho && !pedido.antivahoRealizado && pedido.etapaActual === 'PREPARACION') || (isAntivahoHechoInPreparacion && KANBAN_FUNNELS.POST_IMPRESION.stages.includes(impresionEtapa))
                                         ? "Confirmar y Enviar a Post-Impresión"
                                         : "Confirmar y Enviar"
                             }
