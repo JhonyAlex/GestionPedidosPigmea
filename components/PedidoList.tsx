@@ -1,7 +1,6 @@
 
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { Pedido, Etapa, UserRole, Prioridad } from '../types';
 import { ETAPAS, PRIORIDAD_COLORS, KANBAN_FUNNELS } from '../constants';
 import { puedeAvanzarSecuencia, estaFueraDeSecuencia } from '../utils/etapaLogic';
@@ -104,13 +103,11 @@ const PedidoRow: React.FC<{
     currentUserRole: UserRole,
     onAdvanceStage: (pedido: Pedido) => void,
     isHighlighted: boolean,
-    provided: any,
-    snapshot: any,
     highlightedPedidoId: string | null,
     isSelected?: boolean,
     onToggleSelection?: (id: string) => void,
     isTemporalDisplay?: boolean,
-}> = ({ pedido, index, onSelectPedido, onArchiveToggle, isArchivedView, currentUserRole, onAdvanceStage, isHighlighted, provided, snapshot, highlightedPedidoId, isSelected, onToggleSelection, isTemporalDisplay }) => {
+}> = ({ pedido, index, onSelectPedido, onArchiveToggle, isArchivedView, currentUserRole, onAdvanceStage, isHighlighted, highlightedPedidoId, isSelected, onToggleSelection, isTemporalDisplay }) => {
     const { canMovePedidos, canArchivePedidos } = usePermissions();
 
     const { canAdvance, advanceButtonTitle } = useMemo(() => {
@@ -163,9 +160,6 @@ const PedidoRow: React.FC<{
 
     return (
         <tr
-            ref={provided.innerRef}
-            {...provided.draggableProps}
-            {...provided.dragHandleProps}
             onClick={() => onSelectPedido(pedido)}
             className={`${
                 pedido.atencionObservaciones
@@ -288,55 +282,42 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
                             </tr>
                         </thead>
                         {isMounted && (
-                            <Droppable droppableId="pedido-list">
-                                {(provided) => (
-                                    <tbody
-                                        {...provided.droppableProps}
-                                        ref={provided.innerRef}
-                                        className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
-                                    >
-                                        {pedidos.length === 0 ? (
-                                            <tr>
-                                                <td colSpan={14} className="text-center py-10 text-gray-500">
-                                                    No se encontraron pedidos con los filtros actuales.
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                        pedidos.map((pedido, index) => (
-                                                <Draggable key={pedido.id} draggableId={pedido.id} index={index}>
-                                                    {(provided, snapshot) => {
-                                                        // Resaltar cuando el pedido aparece por lista temporal (etapa real ≠ etapas filtradas)
-                                                        const temporalEtapas = listasTemporalesMap[pedido.id] || [];
-                                                        const isTemporalDisplay = selectedStages.length > 0
-                                                            && !selectedStages.includes(pedido.etapaActual)
-                                                            && selectedStages.some(s => temporalEtapas.includes(s as import('../types').Etapa));
-                                                        return (
-                                                        <PedidoRow
-                                                            key={pedido.id}
-                                                            pedido={pedido}
-                                                            index={index}
-                                                            onSelectPedido={onSelectPedido}
-                                                            onArchiveToggle={onArchiveToggle}
-                                                            isArchivedView={isArchivedView}
-                                                            currentUserRole={currentUserRole}
-                                                            onAdvanceStage={onAdvanceStage}
-                                                            isHighlighted={pedido.id === highlightedPedidoId}
-                                                            provided={provided}
-                                                            snapshot={snapshot}
-                                                            highlightedPedidoId={highlightedPedidoId}
-                                                            isSelected={selectedIds?.includes(pedido.id)}
-                                                            onToggleSelection={onToggleSelection}
-                                                            isTemporalDisplay={isTemporalDisplay}
-                                                        />
-                                                        );
-                                                    }}
-                                                </Draggable>
-                                            ))
-                                        )}
-                                        {provided.placeholder}
-                                    </tbody>
+                            <tbody
+                                className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
+                            >
+                                {pedidos.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={14} className="text-center py-10 text-gray-500">
+                                            No se encontraron pedidos con los filtros actuales.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                pedidos.map((pedido, index) => {
+                                        // Resaltar cuando el pedido aparece por lista temporal (etapa real ≠ etapas filtradas)
+                                        const temporalEtapas = listasTemporalesMap[pedido.id] || [];
+                                        const isTemporalDisplay = selectedStages.length > 0
+                                            && !selectedStages.includes(pedido.etapaActual)
+                                            && selectedStages.some(s => temporalEtapas.includes(s as import('../types').Etapa));
+                                        return (
+                                        <PedidoRow
+                                            key={pedido.id}
+                                            pedido={pedido}
+                                            index={index}
+                                            onSelectPedido={onSelectPedido}
+                                            onArchiveToggle={onArchiveToggle}
+                                            isArchivedView={isArchivedView}
+                                            currentUserRole={currentUserRole}
+                                            onAdvanceStage={onAdvanceStage}
+                                            isHighlighted={pedido.id === highlightedPedidoId}
+                                            highlightedPedidoId={highlightedPedidoId}
+                                            isSelected={selectedIds?.includes(pedido.id)}
+                                            onToggleSelection={onToggleSelection}
+                                            isTemporalDisplay={isTemporalDisplay}
+                                        />
+                                        );
+                                    })
                                 )}
-                            </Droppable>
+                            </tbody>
                         )}
                     </table>
                     {!isMounted && (

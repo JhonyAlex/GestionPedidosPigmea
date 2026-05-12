@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Pedido, Prioridad, Etapa, DateField, WeekFilter, EstadoCliché } from '../types';
-import { ETAPAS } from '../constants';
+import { ETAPAS, KANBAN_VISUAL_LAYOUT } from '../constants';
 import { getDateRange, DateFilterOption } from '../utils/date';
 import { getCurrentWeek, isDateInWeek } from '../utils/weekUtils';
 import { useDebounce } from './useDebounce';
@@ -406,9 +406,27 @@ export const useFiltrosYOrden = (pedidos: Pedido[], listasTemporalesMap: Record<
 
                 switch (sortConfig.key) {
                     case 'posicionEnEtapa':
-                        // Ordenar por posición manual dentro de la etapa (Kanban)
-                        // Pedidos con posición definida se ordenan por ella
-                        // Pedidos sin posición (legacy) usan FIFO por timestamp de entrada a la etapa
+                        // Espejo de la vista Kanban: 
+                        // 1. Ordenar por la columna en la que está (según el layout visual)
+                        // 2. Ordenar por posición manual dentro de esa columna
+                        const kanbanStages = [
+                            ...KANBAN_VISUAL_LAYOUT.topRow,
+                            ...KANBAN_VISUAL_LAYOUT.postImpresionRows.flatMap(row => row.stages),
+                        ];
+                        
+                        const stageIndexA = kanbanStages.indexOf(a.etapaActual as any);
+                        const stageIndexB = kanbanStages.indexOf(b.etapaActual as any);
+                        
+                        // Si tienen distinta etapa y ambas están en el kanban, ordenar por etapa
+                        if (stageIndexA !== stageIndexB) {
+                            // Si uno no está en el layout, enviarlo al final
+                            if (stageIndexA === -1) return 1;
+                            if (stageIndexB === -1) return -1;
+                            comparison = stageIndexA - stageIndexB;
+                            break;
+                        }
+
+                        // Si están en la misma etapa (o ninguna), ordenar por posición manual
                         const posA = a.posicionEnEtapa;
                         const posB = b.posicionEnEtapa;
 
