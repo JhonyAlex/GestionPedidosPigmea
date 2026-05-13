@@ -109,7 +109,13 @@ export const sortKanbanColumnPedidos = (
     const orderedIds = manualOrderMap[stageId] || [];
 
     if (orderedIds.length === 0) {
-        return pedidos;
+        return [...pedidos].sort((a, b) => {
+            const tA = a.etapaActual !== stageId;
+            const tB = b.etapaActual !== stageId;
+            if (tA && !tB) return 1;
+            if (!tA && tB) return -1;
+            return 0;
+        });
     }
 
     const orderIndex = new Map(orderedIds.map((id, index) => [id, index]));
@@ -129,6 +135,12 @@ export const sortKanbanColumnPedidos = (
         if (indexB != null) {
             return 1;
         }
+
+        const isTemporalA = a.etapaActual !== stageId;
+        const isTemporalB = b.etapaActual !== stageId;
+
+        if (isTemporalA && !isTemporalB) return 1;
+        if (!isTemporalA && isTemporalB) return -1;
 
         return 0;
     });

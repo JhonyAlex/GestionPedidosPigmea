@@ -267,11 +267,30 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
         return;
     }
 
+    // Movimiento entre columnas de producción o etapas diferentes
     const newEtapa = destination.droppableId as Etapa;
     const oldEtapa = source.droppableId as Etapa;
 
-    // Use the centralized stage change handler
+    // Calcular posición final en la columna destino
+    const destColumnPedidos = kanbanAllPedidosByStage[newEtapa] || [];
+    const existingRealPedidos = destColumnPedidos.filter(p => p.etapaActual === newEtapa);
+    const maxPosicion = existingRealPedidos.length > 0
+        ? Math.max(...existingRealPedidos.map(p => p.posicionEnEtapa || 0))
+        : 0;
+    const nuevaPosicion = maxPosicion + 1;
+
+    // Crear pedido actualizado con posición al final
+    const pedidoCrossColumn = {
+        ...movedPedido,
+        posicionEnEtapa: nuevaPosicion,
+    };
+
+    // Actualización optimista
+    setPedidos(prev => prev.map(p => p.id === pedidoId ? pedidoCrossColumn : p));
+
+    // Aplicar cambio de etapa
     await handleUpdatePedidoEtapa(movedPedido, newEtapa);
 
-    logAction(`Pedido ${movedPedido.numeroPedidoCliente} movido (manual) de ${ETAPAS[oldEtapa]?.title ?? oldEtapa} a ${ETAPAS[newEtapa]?.title ?? newEtapa}.`, movedPedido.id);
+    logAction(`Pedido ${movedPedido.numeroPedidoCliente} movido al final de ${ETAPAS[newEtapa]?.title ?? newEtapa}.`, movedPedido.id);
+
 };
