@@ -50,7 +50,7 @@ const saveFiltersToStorage = (filters: PersistedFilters) => {
 };
 
 
-export const useFiltrosYOrden = (pedidos: Pedido[], listasTemporalesMap: Record<string, import('../types').Etapa[]> = {}) => {
+export const useFiltrosYOrden = (pedidos: Pedido[], listasTemporalesMap: Record<string, import('../types').Etapa[]> = {}, kanbanManualOrderMap: Partial<Record<import('../types').Etapa, string[]>> = {}) => {
     // Cargar filtros guardados
     const savedFilters = loadFiltersFromStorage();
     const currentWeek = getCurrentWeek();
@@ -406,41 +406,90 @@ export const useFiltrosYOrden = (pedidos: Pedido[], listasTemporalesMap: Record<
 
                 switch (sortConfig.key) {
                     case 'posicionEnEtapa':
-                        // Espejo de la vista Kanban: 
-                        // 1. Ordenar por la columna en la que está (según el layout visual)
-                        // 2. Ordenar por posición manual dentro de esa columna
                         const kanbanStages = [
                             ...KANBAN_VISUAL_LAYOUT.topRow,
                             ...KANBAN_VISUAL_LAYOUT.postImpresionRows.flatMap(row => row.stages),
                         ];
-                        
-                        const stageIndexA = kanbanStages.indexOf(a.etapaActual as any);
-                        const stageIndexB = kanbanStages.indexOf(b.etapaActual as any);
-                        
-                        // Si tienen distinta etapa y ambas están en el kanban, ordenar por etapa
+
+                        // Determinar la "etapa visual" de cada pedido (real o temporal seleccionada)
+                        const getVisualStage = (p: Pedido): import('../types').Etapa | string => {
+                            const temporales = listasTemporalesMap[p.id] || [];
+                            if (selectedStages.length > 0) {
+                                const temporalInSelected = temporales.find(t => selectedStages.includes(t));
+                                if (temporalInSelected && p.etapaActual !== temporalInSelected) {
+                                    return temporalInSelected;
+                                }
+                            }
+                            if (filters.stage !== 'all' && temporales.includes(filters.stage as import('../types').Etapa)) {
+                                return filters.stage;
+                            }
+                            return p.etapaActual;
+                        };
+
+                        const visualStageA = getVisualStage(a);
+                        const visualStageB = getVisualStage(b);
+
+                        const stageIndexA = kanbanStages.indexOf(visualStageA as any);
+                        const stageIndexB = kanbanStages.indexOf(visualStageB as any);
+
+                        // Si tienen distinta etapa visual, ordenar por etapa
                         if (stageIndexA !== stageIndexB) {
-                            // Si uno no está en el layout, enviarlo al final
                             if (stageIndexA === -1) return 1;
                             if (stageIndexB === -1) return -1;
                             comparison = stageIndexA - stageIndexB;
                             break;
                         }
 
-                        // Si están en la misma etapa (o ninguna), ordenar por posición manual
+                        // Misma etapa visual: usar kanbanManualOrderMap (mismo orden que Producci�n)
+                        const visualStageId = visualStageA as import('../types').Etapa;
+                        const orderedIds = kanbanManualOrderMap[visualStageId] || [];
+
+                        if (orderedIds.length > 0) {
+                            const orderIndex = new Map(orderedIds.map((id: string, index: number) => [id, index]));
+                            const indexA = orderIndex.get(a.id);
+                            const indexB = orderIndex.get(b.id);
+
+                            if (indexA != null && indexB != null) {
+                                comparison = indexA - indexB;
+                                break;
+                            }
+
+                            if (indexA != null) {
+                                comparison = -1;
+                                break;
+                            }
+
+                            if (indexB != null) {
+                                comparison = 1;
+                                break;
+                            }
+                        }
+
+                        // Sin orden manual: pedidos temporales al final
+                        const isTemporalA = a.etapaActual !== visualStageId;
+                        const isTemporalB = b.etapaActual !== visualStageId;
+
+                        if (isTemporalA && !isTemporalB) {
+                            comparison = 1;
+                            break;
+                        }
+
+                        if (!isTemporalA && isTemporalB) {
+                            comparison = -1;
+                            break;
+                        }
+
+                        // Fallback: posicionEnEtapa
                         const posA = a.posicionEnEtapa;
                         const posB = b.posicionEnEtapa;
 
                         if (posA != null && posB != null) {
-                            // Ambos tienen posición: comparar directamente
                             comparison = posA - posB;
                         } else if (posA != null && posB == null) {
-                            // Solo A tiene posición: B es legacy, va primero (es más antiguo)
                             comparison = 1;
                         } else if (posA == null && posB != null) {
-                            // Solo B tiene posición: A es legacy, va primero (es más antiguo)
                             comparison = -1;
                         } else {
-                            // Ninguno tiene posición: FIFO por timestamp de entrada a la etapa
                             const getStageEntryTime = (p: Pedido) => {
                                 if (p.etapaActual === Etapa.PREPARACION && p.subEtapaActual && p.subEtapasSecuencia) {
                                     const subEntry = p.subEtapasSecuencia.find(e => e.subEtapa === p.subEtapaActual);
@@ -454,7 +503,6 @@ export const useFiltrosYOrden = (pedidos: Pedido[], listasTemporalesMap: Record<
                             comparison = getStageEntryTime(a) - getStageEntryTime(b);
                         }
                         break;
-
                     case 'prioridad':
                         // Sort por prioridad puro (sin efecto en el orden por defecto)
                         // Solo se activa si el usuario selecciona manualment ordenar por prioridad
@@ -499,7 +547,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[], listasTemporalesMap: Record<
 
         return filtered;
 
-    }, [pedidos, debouncedSearchTerm, filters, selectedStages, selectedVendedores, selectedClientes, selectedMaquinas, antivahoFilter, preparacionFilter, estadoClicheFilter, anonimoFilter, dateFilter, sortConfig, customDateRange, weekFilter, listasTemporalesMap]);
+    }, [pedidos, debouncedSearchTerm, filters, selectedStages, selectedVendedores, selectedClientes, selectedMaquinas, antivahoFilter, preparacionFilter, estadoClicheFilter, anonimoFilter, dateFilter, sortConfig, customDateRange, weekFilter, listasTemporalesMap, kanbanManualOrderMap]);
 
     return {
         processedPedidos,

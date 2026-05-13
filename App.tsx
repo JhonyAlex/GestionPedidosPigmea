@@ -239,7 +239,7 @@ const AppContent: React.FC = () => {
         handleSort,
         updateSortConfig,
         resetAllFilters,
-    } = useFiltrosYOrden(pedidos, listasTemporalesMap);
+    } = useFiltrosYOrden(pedidos, listasTemporalesMap, kanbanManualOrderMap);
 
     // Hook para navegación a pedidos desde reportes y búsqueda global
     const { navigateToPedido } = useNavigateToPedido({
