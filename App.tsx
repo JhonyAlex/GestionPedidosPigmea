@@ -1195,7 +1195,7 @@ const AppContent: React.FC = () => {
     const handleExportPDF = () => {
         const pedidosToExport = view === 'list' ? activePedidos : (view === 'archived' ? archivedPedidos : []);
         if (pedidosToExport.length > 0) {
-            generatePedidosPDF(pedidosToExport);
+            generatePedidosPDF(pedidosToExport, listasTemporalesMap);
         } else {
             alert("No hay pedidos para exportar en la vista actual.");
         }

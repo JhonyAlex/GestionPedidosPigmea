@@ -224,7 +224,7 @@ const formatMetrosForPdf = (metros: Pedido['metros']): string => {
 };
 
 
-export const generatePedidosPDF = (pedidos: Pedido[]) => {
+export const generatePedidosPDF = (pedidos: Pedido[], listasTemporalesMap?: Record<string, string[]>) => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'pt', 'a4'); // 'p' for portrait (vertical orientation) - A4 portrait = 595x842 pt
 
@@ -241,11 +241,15 @@ export const generatePedidosPDF = (pedidos: Pedido[]) => {
     let tableStartY = 50; // Adjusted start Y for the table
     doc.text(mainSubtitle, 20, 42);
 
-    // Dynamic subtitle part based on stages present in the exported list
+    // Dynamic subtitle: solo etapas de pedidos REALMENTE en esa etapa (etapaActual),
+    // excluyendo los que tienen Lista temporal activa (estan copiados temporalmente en otra etapa)
     const printingMachines = new Set<string>();
     const postPrintingStages = new Set<string>();
 
     pedidos.forEach(p => {
+        const listasTemporales = listasTemporalesMap?.[p.id] || [];
+        if (listasTemporales.length > 0) return;
+
         if (KANBAN_FUNNELS.IMPRESION.stages.includes(p.etapaActual)) {
             const title = ETAPAS[p.etapaActual]?.title;
             if (title) printingMachines.add(title);
