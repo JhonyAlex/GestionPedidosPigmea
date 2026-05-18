@@ -224,7 +224,11 @@ const formatMetrosForPdf = (metros: Pedido['metros']): string => {
 };
 
 
-export const generatePedidosPDF = (pedidos: Pedido[], listasTemporalesMap?: Record<string, string[]>) => {
+export const generatePedidosPDF = (
+    pedidos: Pedido[], 
+    listasTemporalesMap?: Record<string, string[]>,
+    filtros?: { stage?: string, selectedStages?: string[] }
+) => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'pt', 'a4'); // 'p' for portrait (vertical orientation) - A4 portrait = 595x842 pt
 
@@ -241,23 +245,42 @@ export const generatePedidosPDF = (pedidos: Pedido[], listasTemporalesMap?: Reco
     let tableStartY = 50; // Adjusted start Y for the table
     doc.text(mainSubtitle, 20, 42);
 
-    // Dynamic subtitle: solo etapas de pedidos REALMENTE en esa etapa (etapaActual),
-    // excluyendo los que tienen Lista temporal activa (estan copiados temporalmente en otra etapa)
+    // Dynamic subtitle
     const printingMachines = new Set<string>();
     const postPrintingStages = new Set<string>();
 
-    pedidos.forEach(p => {
-        const listasTemporales = listasTemporalesMap?.[p.id] || [];
-        if (listasTemporales.length > 0) return;
-
-        if (KANBAN_FUNNELS.IMPRESION.stages.includes(p.etapaActual)) {
-            const title = ETAPAS[p.etapaActual]?.title;
-            if (title) printingMachines.add(title);
-        } else if (KANBAN_FUNNELS.POST_IMPRESION.stages.includes(p.etapaActual)) {
-            const title = ETAPAS[p.etapaActual]?.title;
-            if (title) postPrintingStages.add(title);
+    if (filtros && (filtros.stage !== 'all' || (filtros.selectedStages && filtros.selectedStages.length > 0))) {
+        const stagesToInclude = new Set<string>();
+        if (filtros.stage && filtros.stage !== 'all') {
+            stagesToInclude.add(filtros.stage);
         }
-    });
+        if (filtros.selectedStages) {
+            filtros.selectedStages.forEach(s => stagesToInclude.add(s));
+        }
+
+        stagesToInclude.forEach(stage => {
+            if (KANBAN_FUNNELS.IMPRESION.stages.includes(stage as any)) {
+                const title = ETAPAS[stage as any]?.title;
+                if (title) printingMachines.add(title);
+            } else if (KANBAN_FUNNELS.POST_IMPRESION.stages.includes(stage as any)) {
+                const title = ETAPAS[stage as any]?.title;
+                if (title) postPrintingStages.add(title);
+            }
+        });
+    } else {
+        pedidos.forEach(p => {
+            const listasTemporales = listasTemporalesMap?.[p.id] || [];
+            if (listasTemporales.length > 0) return;
+
+            if (KANBAN_FUNNELS.IMPRESION.stages.includes(p.etapaActual)) {
+                const title = ETAPAS[p.etapaActual]?.title;
+                if (title) printingMachines.add(title);
+            } else if (KANBAN_FUNNELS.POST_IMPRESION.stages.includes(p.etapaActual)) {
+                const title = ETAPAS[p.etapaActual]?.title;
+                if (title) postPrintingStages.add(title);
+            }
+        });
+    }
 
     const subtitleParts: string[] = [];
     if (printingMachines.size > 0) {
@@ -437,6 +460,11 @@ export const generatePedidosPDF = (pedidos: Pedido[], listasTemporalesMap?: Reco
                     if (content && typeof content === 'object') {
                         data.cell.text = [content.cliente, content.pedido];
                     }
+                }
+
+                // Highlight 'Des.' cell if estadoCliché is 'REPETICIÓN CON CAMBIO'
+                if (data.column.index === 0 && pedido.estadoCliché === 'REPETICIÓN CON CAMBIO') {
+                    data.cell.styles.fillColor = [254, 202, 202]; // light red (red-200)
                 }
 
                 // Highlight 'Capa' cell if layer is 3 or more

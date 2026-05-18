@@ -59,6 +59,7 @@ interface HeaderProps {
     customDateRange: { start: string; end: string };
     onCustomDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onAddPedido: () => void;
+    onAddPedidoPrueba?: () => void;
     onBulkImport: () => void; // Nueva prop para importación masiva
     onPdfImport: () => void; // Nueva prop para importación desde PDF
     onExportPDF: () => void;
@@ -135,6 +136,7 @@ const Header: React.FC<HeaderProps> = ({
     customDateRange,
     onCustomDateChange,
     onAddPedido,
+    onAddPedidoPrueba,
     onBulkImport,
     onPdfImport,
     onExportPDF,
@@ -432,14 +434,27 @@ const Header: React.FC<HeaderProps> = ({
 
                         {/* Botón Añadir Pedido */}
                         {canCreatePedidos() && (
-                            <button
-                                onClick={onAddPedido}
-                                className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 transition-colors"
-                                title="Añadir nuevo pedido"
-                            >
-                                <PlusIcon />
-                                <span className="hidden md:inline">Añadir</span>
-                            </button>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={onAddPedido}
+                                    className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 transition-colors"
+                                    title="Añadir nuevo pedido"
+                                >
+                                    <PlusIcon />
+                                    <span className="hidden md:inline">Añadir</span>
+                                </button>
+                                {/* Botón Añadir Muestra (solo en Producción) */}
+                                {currentView === 'kanban' && onAddPedidoPrueba && (
+                                    <button
+                                        onClick={onAddPedidoPrueba}
+                                        className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white rounded-md font-semibold hover:bg-purple-700 transition-colors"
+                                        title="Añadir Muestra"
+                                    >
+                                        <PlusIcon />
+                                        <span className="hidden md:inline">Muestra</span>
+                                    </button>
+                                )}
+                            </div>
                         )}
 
                         {/* Botón Importación Masiva - Dropdown */}

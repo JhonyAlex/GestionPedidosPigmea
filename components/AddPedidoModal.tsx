@@ -58,8 +58,10 @@ interface AddPedidoModalProps {
     onAdd: (data: {
         pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'subEtapaActual' | 'secuenciaTrabajo' | 'orden' | 'historial'>;
         secuenciaTrabajo: Etapa[];
+        initialStage?: Etapa;
     }) => Promise<Pedido | undefined>; // ✅ Cambiar para que devuelva el pedido creado
     clientePreseleccionado?: { id: string; nombre: string } | null; // ✅ Permitir cliente preseleccionado
+    isPedidoPrueba?: boolean; // ✅ Prop para indicar si es un pedido de prueba
 }
 
 const initialFormData = {
@@ -108,7 +110,7 @@ const initialFormData = {
     minColor: null,
 };
 
-const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, clientePreseleccionado }) => {
+const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, clientePreseleccionado, isPedidoPrueba }) => {
     const [formData, setFormData] = useState<any>(initialFormData);
     const [tiempoProduccionDecimalInput, setTiempoProduccionDecimalInput] = useState<string>(() => formatDecimalForInput(initialFormData.tiempoProduccionDecimal));
     const [secuenciaTrabajo, setSecuenciaTrabajo] = useState<Etapa[]>([]);
@@ -461,9 +463,24 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
         const metrosValue = Number(formData.metros);
         const normalizedSequence = normalizePostImpresionSequence(secuenciaTrabajo, formData.cliente);
 
+        let initialStage: Etapa | undefined = undefined;
+        if (isPedidoPrueba && formData.maquinaImpresion) {
+            if (formData.maquinaImpresion === 'Anónimo') {
+                alert('❌ No se puede crear un pedido de muestra anónimo. Debe seleccionar una máquina de impresión real.');
+                return;
+            }
+            // Encontrar la Etapa a partir del nombre de la máquina
+            const stageId = KANBAN_FUNNELS.IMPRESION.stages.find(stage => ETAPAS[stage]?.title === formData.maquinaImpresion) || formData.maquinaImpresion;
+            initialStage = stageId as Etapa;
+        }
+
         try {
             // ✅ Esperar respuesta de onAdd para obtener el pedido creado
-            const newPedido = await onAdd({ pedidoData: { ...formData, metros: metrosValue }, secuenciaTrabajo: normalizedSequence });
+            const newPedido = await onAdd({ 
+                pedidoData: { ...formData, metros: metrosValue }, 
+                secuenciaTrabajo: normalizedSequence,
+                initialStage 
+            });
 
             // ✅ Registrar acción CREATE en el historial
             if (newPedido) {
@@ -488,7 +505,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                             </svg>
                         </div>
-                        <h2 className="text-3xl font-bold">Crear Nuevo Pedido</h2>
+                        <h2 className="text-3xl font-bold">{isPedidoPrueba ? 'Crear Pedido Muestra' : 'Crear Nuevo Pedido'}</h2>
                     </div>
                     <button
                         onClick={onClose}
@@ -510,6 +527,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                 )}
 
                 {/* Tabs */}
+                {!isPedidoPrueba && (
                 <div className="flex border-b border-gray-200 dark:border-gray-700 px-8">
                     <button
                         onClick={() => setActiveTab('detalles')}
@@ -530,6 +548,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                         ⚙️ Gestión y Preparación
                     </button>
                 </div>
+                )}
 
                 {/* Content */}
                 <div className="overflow-y-auto flex-1 p-8">

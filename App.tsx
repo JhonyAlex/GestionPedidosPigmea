@@ -83,6 +83,7 @@ const AppContent: React.FC = () => {
     // Estados locales - siempre llamar antes de returns condicionales
     const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isAddPedidoPruebaModalOpen, setIsAddPedidoPruebaModalOpen] = useState(false);
     const [clientePreseleccionado, setClientePreseleccionado] = useState<{ id: string; nombre: string } | null>(null); // ✅ Estado para cliente preseleccionado
     
     // 💾 Persistir vista actual en localStorage para que al recargar vuelva donde estaba
@@ -700,7 +701,7 @@ const AppContent: React.FC = () => {
         // ✅ NO cerrar el modal - el usuario sigue editando (a menos que se abra el modal de antivaho)
     };
 
-    const handleAddPedido = async (data: { pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'subEtapasSecuencia' | 'etapaActual' | 'subEtapaActual' | 'secuenciaTrabajo' | 'orden' | 'historial'>; secuenciaTrabajo: Etapa[]; }) => {
+    const handleAddPedido = async (data: { pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'subEtapasSecuencia' | 'etapaActual' | 'subEtapaActual' | 'secuenciaTrabajo' | 'orden' | 'historial'>; secuenciaTrabajo: Etapa[]; initialStage?: Etapa }) => {
         const newPedido = await handleAddPedidoLogic(data);
         if (newPedido) {
             logAction(`Nuevo pedido ${newPedido.numeroPedidoCliente} creado.`, newPedido.id);
@@ -1195,7 +1196,7 @@ const AppContent: React.FC = () => {
     const handleExportPDF = () => {
         const pedidosToExport = view === 'list' ? activePedidos : (view === 'archived' ? archivedPedidos : []);
         if (pedidosToExport.length > 0) {
-            generatePedidosPDF(pedidosToExport, listasTemporalesMap);
+            generatePedidosPDF(pedidosToExport, listasTemporalesMap, { stage: filters.stage, selectedStages });
         } else {
             alert("No hay pedidos para exportar en la vista actual.");
         }
@@ -1486,9 +1487,10 @@ const AppContent: React.FC = () => {
                     onDateFilterChange={handleDateFilterChange}
                     activeDateFilter={dateFilter}
                     customDateRange={customDateRange}
-                    onCustomDateChange={handleCustomDateChange}
-                    onAddPedido={() => setIsAddModalOpen(true)}
-                    onBulkImport={() => setShowBulkImportModal(true)}
+                        onCustomDateChange={handleCustomDateChange}
+                        onAddPedido={() => setIsAddModalOpen(true)}
+                        onAddPedidoPrueba={() => setIsAddPedidoPruebaModalOpen(true)}
+                        onBulkImport={() => setShowBulkImportModal(true)}
                     onPdfImport={() => setShowPdfImportModal(true)}
                     onExportPDF={handleExportPDF}
                     onExportData={doExportData}
@@ -1534,6 +1536,19 @@ const AppContent: React.FC = () => {
                         }}
                         onAdd={handleAddPedido}
                         clientePreseleccionado={clientePreseleccionado} // ✅ Pasar cliente preseleccionado
+                    />
+                )}
+                {isAddPedidoPruebaModalOpen && (
+                    <AddPedidoModal
+                        onClose={() => setIsAddPedidoPruebaModalOpen(false)}
+                        onAdd={async (data) => {
+                            const result = await handleAddPedido(data);
+                            if (result) {
+                                setIsAddPedidoPruebaModalOpen(false);
+                            }
+                            return result;
+                        }}
+                        isPedidoPrueba={true}
                     />
                 )}
                 {pedidoToSend && (
