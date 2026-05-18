@@ -583,6 +583,20 @@ class MigrationManager {
                 END $$;
             `
         });
+
+        // Migración 022: Weekly Locks
+        this.migrations.push({
+            id: '022-weekly-locks',
+            name: 'Crear tabla weekly_locks para Centro de Planificación',
+            sql: `
+                CREATE TABLE IF NOT EXISTS limpio.weekly_locks (
+                    week_key VARCHAR(10) PRIMARY KEY,
+                    is_locked BOOLEAN DEFAULT false,
+                    updated_by UUID,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            `
+        });
     }
 
     /**

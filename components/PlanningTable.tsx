@@ -4,6 +4,7 @@ import InfoTooltip from './InfoTooltip';
 export interface WeeklyData {
     week: number;
     year: number;
+    weekKey: string;
     label: string;
     dateRange: string;
     weekStartDate: Date; // Fecha real de inicio de la semana (lunes) para ordenamiento cronológico
@@ -16,11 +17,13 @@ export interface WeeklyData {
     totalCapacity: number;
     totalLoad: number;
     freeCapacity: number;
+    isLocked?: boolean;
 }
 
 interface PlanningTableProps {
     data: WeeklyData[];
     machineKeys: string[]; // List of machine keys to display columns for
+    onToggleLock?: (weekKey: string, currentLockState: boolean) => void;
 }
 
 const MACHINE_COLUMN_HEADERS: Record<string, string> = {
@@ -49,7 +52,7 @@ const MACHINE_TOOLTIPS: Record<string, string> = {
     'VARIABLES': 'Pedidos con clichés nuevos o cambios pendientes (sin horas confirmadas, compra de cliché o disponibilidad). Estas horas NO restan de la capacidad libre.',
 };
 
-export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys }) => {
+export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys, onToggleLock }) => {
     // Sort machine keys to match desired order: WH-1, VARIABLES, WH-3, GIAVE, DNT
     const desiredOrder = ['Windmöller 1', 'VARIABLES', 'Windmöller 3', 'GIAVE', 'DNT'];
     const sortedKeys = [...machineKeys].sort((a, b) => {
@@ -77,7 +80,10 @@ export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys 
             <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                     <tr>
-                        <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6 border-r border-gray-200">
+                        <th scope="col" className="w-24 py-3.5 pl-4 pr-1 text-center border-r border-gray-200">
+                            {/* Actions */}
+                        </th>
+                        <th scope="col" className="py-3.5 pl-3 pr-3 text-left text-sm font-semibold text-gray-900 border-r border-gray-200">
                             Semana
                         </th>
                         <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 border-r border-gray-200">
@@ -113,8 +119,35 @@ export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys 
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
                     {data.map((row) => (
-                        <tr key={`${row.year}-${row.week}`} className={row.freeCapacity < 0 ? 'bg-red-50' : 'hover:bg-gray-50'}>
-                            <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-bold text-gray-900 sm:pl-6 border-r border-gray-200">
+                        <tr key={`${row.year}-${row.week}`} className={row.isLocked ? 'bg-amber-100/50 hover:bg-amber-100/70' : row.freeCapacity < 0 ? 'bg-red-50 hover:bg-red-100/70' : 'hover:bg-gray-50'}>
+                            <td className="whitespace-nowrap py-4 pl-4 pr-1 text-center border-r border-gray-200">
+                                <button
+                                    onClick={() => onToggleLock?.(row.weekKey, !!row.isLocked)}
+                                    className={`inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors border ${
+                                        row.isLocked 
+                                            ? 'text-amber-800 bg-amber-200 border-amber-300 hover:bg-amber-300' 
+                                            : 'text-gray-600 bg-white border-gray-300 hover:bg-gray-50'
+                                    }`}
+                                    title={row.isLocked ? 'Desbloquear semana' : 'Bloquear semana'}
+                                >
+                                    {row.isLocked ? (
+                                        <>
+                                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                            </svg>
+                                            Bloqueada
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                                            </svg>
+                                            Bloquear
+                                        </>
+                                    )}
+                                </button>
+                            </td>
+                            <td className="whitespace-nowrap py-4 pl-3 pr-3 text-sm font-bold text-gray-900 border-r border-gray-200">
                                 {row.label}
                             </td>
                             <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 border-r border-gray-200">
@@ -134,7 +167,7 @@ export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys 
                 </tbody>
                 <tfoot className="bg-gray-100 font-bold border-t-2 border-gray-300">
                     <tr>
-                        <td colSpan={2} className="py-4 pl-4 pr-3 text-right text-sm text-gray-900 sm:pl-6 border-r border-gray-200">
+                        <td colSpan={3} className="py-4 pl-4 pr-3 text-right text-sm text-gray-900 sm:pl-6 border-r border-gray-200">
                             TOTALES:
                         </td>
                         {sortedKeys.map(key => (

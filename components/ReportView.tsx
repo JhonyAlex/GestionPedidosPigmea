@@ -201,6 +201,54 @@ const ReportView: React.FC<ReportViewProps> = ({
     const [customInstructions, setCustomInstructions] = useState<string>('');
     const [isSavingInstructions, setIsSavingInstructions] = useState(false);
     const [socket, setSocket] = useState<Socket | null>(null);
+    
+    // Weekly Locks State
+    const [weeklyLocks, setWeeklyLocks] = useState<Record<string, boolean>>({});
+
+    // Fetch weekly locks
+    const loadWeeklyLocks = async () => {
+        try {
+            const response = await fetch('/api/planning/weekly-locks');
+            if (response.ok) {
+                const data = await response.json();
+                setWeeklyLocks(data);
+            }
+        } catch (error) {
+            console.error('Error fetching weekly locks:', error);
+        }
+    };
+
+    const handleToggleWeeklyLock = async (weekKey: string, currentLockState: boolean) => {
+        const newLockState = !currentLockState;
+        
+        // Optimistic update
+        setWeeklyLocks(prev => ({
+            ...prev,
+            [weekKey]: newLockState
+        }));
+
+        try {
+            const response = await fetch('/api/planning/weekly-locks', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ weekKey, isLocked: newLockState })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update weekly lock');
+            }
+        } catch (error) {
+            console.error('Error updating weekly lock:', error);
+            // Revert optimistic update
+            setWeeklyLocks(prev => ({
+                ...prev,
+                [weekKey]: currentLockState
+            }));
+            alert('Error al actualizar el estado de bloqueo.');
+        }
+    };
 
     // Detectar cambios en filtros y limpiar análisis automáticamente
     useEffect(() => {
@@ -262,6 +310,7 @@ const ReportView: React.FC<ReportViewProps> = ({
             }
         };
         loadInstructions();
+        loadWeeklyLocks();
 
         // Configurar Socket.IO para sincronización en tiempo real
         const API_BASE = window.location.origin; // Vite proxy maneja /socket.io en dev
@@ -282,6 +331,14 @@ const ReportView: React.FC<ReportViewProps> = ({
                 setShowAnalysis(false);
                 setAiAnalysis(null);
             }
+        });
+        
+        socketInstance.on('weekly-lock-updated', (data: { weekKey: string, isLocked: boolean }) => {
+            console.log('📡 Bloqueo semanal actualizado:', data);
+            setWeeklyLocks(prev => ({
+                ...prev,
+                [data.weekKey]: data.isLocked
+            }));
         });
 
         setSocket(socketInstance);
@@ -380,6 +437,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                 weeklyGroups[weekKey] = {
                     week: weekNum,
                     year: year,
+                    weekKey: weekKey,
                     label: `SEMANA ${weekNum} (${year})`,
                     dateRange: `${mondayStr} al ${fridayStr}`, // Mostrar lunes a viernes
                     weekStartDate: new Date(start), // Fecha real de inicio para ordenamiento cronológico
@@ -387,7 +445,8 @@ const ReportView: React.FC<ReportViewProps> = ({
                     machinePedidos: {},
                     totalCapacity: 0,
                     totalLoad: 0,
-                    freeCapacity: 0
+                    freeCapacity: 0,
+                    isLocked: weeklyLocks[weekKey] || false
                 };
                 // Initialize selected machines with 0
                 selectedMachines.forEach(key => {
@@ -503,7 +562,7 @@ const ReportView: React.FC<ReportViewProps> = ({
             ) // Filtrar solo máquinas permitidas, excluir ANON y Sin Asignar
         };
 
-    }, [enrichedPedidos, selectedStages, selectedMachines, dateFilter, dateField, customDateRange]);
+    }, [enrichedPedidos, selectedStages, selectedMachines, dateFilter, dateField, customDateRange, weeklyLocks]);
 
     // Derived state for details table with sorting
     const selectedPedidos = useMemo(() => {
@@ -1256,6 +1315,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                         <PlanningTable
                             data={processedData.weeklyData}
                             machineKeys={processedData.machineKeys}
+                            onToggleLock={handleToggleWeeklyLock}
                         />
                     </div>
 

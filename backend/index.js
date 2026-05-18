@@ -1,4 +1,4 @@
-﻿// Cargar variables de entorno
+// Cargar variables de entorno
 require('dotenv').config();
 
 const path = require('path');
@@ -446,6 +446,77 @@ app.post('/api/analysis/instructions', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('Error al guardar instrucciones personalizadas:', error);
         res.status(500).json({ error: 'Error al guardar instrucciones' });
+    }
+});
+
+// ============================================================================
+// Weekly Locks Endpoints
+// ============================================================================
+
+app.get('/api/planning/weekly-locks', requireAuth, async (req, res) => {
+    try {
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({ error: 'Base de datos no disponible' });
+        }
+        
+        // Verificar si la tabla existe primero para evitar errores si la migración no ha corrido
+        const checkTableQuery = `
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'limpio' AND table_name = 'weekly_locks'
+            );
+        `;
+        const checkResult = await dbClient.pool.query(checkTableQuery);
+        
+        if (!checkResult.rows[0].exists) {
+            return res.json({});
+        }
+
+        const query = 'SELECT week_key, is_locked FROM limpio.weekly_locks';
+        const result = await dbClient.pool.query(query);
+        const locks = {};
+        result.rows.forEach(row => {
+            locks[row.week_key] = row.is_locked;
+        });
+        res.json(locks);
+    } catch (error) {
+        console.error('Error al obtener weekly_locks:', error);
+        res.status(500).json({ error: 'Error al obtener bloqueos semanales' });
+    }
+});
+
+app.post('/api/planning/weekly-locks', requireAuth, async (req, res) => {
+    try {
+        const { weekKey, isLocked } = req.body;
+        const userId = req.headers['x-user-id'];
+
+        if (!weekKey || isLocked === undefined) {
+            return res.status(400).json({ error: 'weekKey y isLocked son requeridos' });
+        }
+
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({ error: 'Base de datos no disponible' });
+        }
+
+        const query = `
+            INSERT INTO limpio.weekly_locks (week_key, is_locked, updated_by)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (week_key) DO UPDATE 
+            SET is_locked = $2, updated_by = $3, updated_at = CURRENT_TIMESTAMP
+            RETURNING week_key, is_locked
+        `;
+        
+        const result = await dbClient.pool.query(query, [weekKey, isLocked, userId]);
+        
+        io.emit('weekly-lock-updated', {
+            weekKey: result.rows[0].week_key,
+            isLocked: result.rows[0].is_locked
+        });
+
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error('Error al actualizar weekly_lock:', error);
+        res.status(500).json({ error: 'Error al actualizar bloqueo semanal' });
     }
 });
 
