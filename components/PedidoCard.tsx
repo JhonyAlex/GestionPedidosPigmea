@@ -215,6 +215,8 @@ interface PedidoCardProps {
     onResetListaTemporal?: () => void;
     onMoveListaTemporal?: (etapa: Etapa) => Promise<void> | void;
     isTemporalDisplay?: boolean;          // true cuando la tarjeta se muestra FUERA de su etapa real (por override)
+    totalPedidosInSubEtapa?: number;
+    onReorderPedido?: (newIndex: number) => void;
 }
 
 // Todas las etapas disponibles en el funnel de Producción para el panel de Listas
@@ -241,6 +243,8 @@ const PedidoCard = React.memo<PedidoCardProps>(({
     onResetListaTemporal,
     onMoveListaTemporal,
     isTemporalDisplay = false,
+    totalPedidosInSubEtapa,
+    onReorderPedido,
 }) => {
     const { canMovePedidos, canArchivePedidos } = usePermissions();
     const { getMaterialesByPedidoId } = useMaterialesManager();
@@ -257,6 +261,12 @@ const PedidoCard = React.memo<PedidoCardProps>(({
     const listasButtonRef = useRef<HTMLButtonElement>(null);
     const [panelPosition, setPanelPosition] = useState<{ top: number; left: number } | null>(null);
     const [movingToEtapa, setMovingToEtapa] = useState<Etapa | null>(null);
+
+    // Estado para el panel de "Orden"
+    const [isOrdenPanelOpen, setIsOrdenPanelOpen] = useState(false);
+    const ordenPanelRef = useRef<HTMLDivElement>(null);
+    const ordenButtonRef = useRef<HTMLButtonElement>(null);
+    const [ordenPanelPosition, setOrdenPanelPosition] = useState<{ top: number; left: number } | null>(null);
 
     // 🆕 Estado para materiales de la nueva tabla
     const [materialesNuevos, setMaterialesNuevos] = useState<Material[]>([]);
@@ -422,6 +432,25 @@ const PedidoCard = React.memo<PedidoCardProps>(({
             document.removeEventListener('mousedown', handleClickOutsideListas);
         };
     }, [isListasPanelOpen]);
+
+    // Cerrar el panel de Orden al hacer click fuera
+    useEffect(() => {
+        const handleClickOutsideOrden = (event: MouseEvent) => {
+            const clickedPanel = ordenPanelRef.current && ordenPanelRef.current.contains(event.target as Node);
+            const clickedButton = ordenButtonRef.current && ordenButtonRef.current.contains(event.target as Node);
+            if (!clickedPanel && !clickedButton) {
+                setIsOrdenPanelOpen(false);
+            }
+        };
+        if (isOrdenPanelOpen) {
+            setTimeout(() => {
+                document.addEventListener('mousedown', handleClickOutsideOrden);
+            }, 100);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutsideOrden);
+        };
+    }, [isOrdenPanelOpen]);
 
     // Cerrar el editor al hacer click fuera del contenedor completo
     useEffect(() => {
@@ -910,6 +939,71 @@ const PedidoCard = React.memo<PedidoCardProps>(({
             </div>
 
             <div className="flex items-center justify-end gap-1">
+                {/* Botón Orden: solo en contexto Producción (si se pasa onReorderPedido y totalPedidosInSubEtapa > 1) */}
+                {onReorderPedido && typeof totalPedidosInSubEtapa === 'number' && totalPedidosInSubEtapa > 1 && (
+                    <>
+                        <button
+                            ref={ordenButtonRef}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (!isOrdenPanelOpen && ordenButtonRef.current) {
+                                    const rect = ordenButtonRef.current.getBoundingClientRect();
+                                    setOrdenPanelPosition({
+                                        top: rect.top,
+                                        left: Math.max(8, rect.right - 256),
+                                    });
+                                }
+                                setIsOrdenPanelOpen(prev => !prev);
+                            }}
+                            className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-md border transition-colors bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600"
+                            title="Reordenar manualmente"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 7.5L7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5" />
+                            </svg>
+                            Orden
+                        </button>
+
+                        {isOrdenPanelOpen && ordenPanelPosition && createPortal(
+                            <div
+                                ref={ordenPanelRef}
+                                style={{
+                                    position: 'fixed',
+                                    top: ordenPanelPosition.top,
+                                    left: ordenPanelPosition.left,
+                                    transform: 'translateY(calc(-100% - 4px))',
+                                    zIndex: 9999,
+                                }}
+                                className="w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 p-3"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide">Mover a posición</span>
+                                </div>
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-2">
+                                    Selecciona la posición deseada en esta etapa.
+                                </p>
+                                <div className="grid grid-cols-5 gap-1 max-h-52 overflow-y-auto pr-1">
+                                    {Array.from({ length: totalPedidosInSubEtapa }).map((_, idx) => (
+                                        <button
+                                            key={`pos-${idx}`}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onReorderPedido(idx);
+                                                setIsOrdenPanelOpen(false);
+                                            }}
+                                            className="text-xs font-medium bg-gray-50 dark:bg-gray-700 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-gray-700 dark:text-gray-300 hover:text-indigo-700 dark:hover:text-indigo-300 border border-gray-200 dark:border-gray-600 rounded py-1 transition-colors"
+                                        >
+                                            {idx + 1}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>,
+                            document.body
+                        )}
+                    </>
+                )}
+
                 {/* Botón Listas: solo en contexto Producción (si se pasa onSetListaTemporal) */}
                 {onSetListaTemporal && (
                     <>

@@ -62,6 +62,8 @@ import {
     pruneKanbanManualOrderMap,
     saveKanbanManualOrderMap,
     sortKanbanColumnPedidos,
+    mergeVisibleKanbanReorder,
+    getOrderedKanbanColumnPedidos
 } from './utils/kanbanManualOrder';
 
 
@@ -511,6 +513,62 @@ const AppContent: React.FC = () => {
             totalTiempo: formatMinutesToHHMM(totals.totalMinutos),
         };
     }, [activePedidos]);
+
+    const handleManualKanbanReorder = useCallback((stageId: Etapa, pedidoId: string, destinationIndex: number) => {
+        const visiblePedidos = kanbanVisiblePedidosByStage[stageId] || [];
+        const sourceIndex = visiblePedidos.findIndex(p => p.id === pedidoId);
+        
+        if (sourceIndex === -1 || sourceIndex === destinationIndex) return;
+
+        const allPedidosInStage = kanbanAllPedidosByStage[stageId] || [];
+        const finalOrderedIds = mergeVisibleKanbanReorder(
+            allPedidosInStage,
+            visiblePedidos,
+            sourceIndex,
+            destinationIndex
+        );
+
+        updateKanbanManualOrderForStage(stageId, finalOrderedIds);
+
+        // Calculate positions to maintain persistence
+        const fullColumnPedidos = kanbanAllPedidosByStage[stageId] || [];
+        const reordered = getOrderedKanbanColumnPedidos(fullColumnPedidos, finalOrderedIds);
+        
+        const updatedPositions = new Map<string, number>();
+        reordered
+            .filter(pedido => pedido.etapaActual === stageId)
+            .forEach((pedido, index) => {
+                updatedPositions.set(pedido.id, index + 1);
+            });
+
+        // Optimistic UI update
+        setPedidos(prev => prev.map(pedido => {
+            if (pedido.etapaActual === stageId) {
+                const newPos = updatedPositions.get(pedido.id);
+                if (newPos !== undefined && newPos !== pedido.posicionEnEtapa) {
+                    return { ...pedido, posicionEnEtapa: newPos };
+                }
+            }
+            return pedido;
+        }));
+
+        // Trigger persistence & log
+        const pedidoToUpdate = pedidos.find(p => p.id === pedidoId);
+        if (pedidoToUpdate) {
+            const entrada = generarEntradaHistorial(
+                currentUserRole,
+                'Reordenamiento Manual',
+                `Pedido movido a la posición ${destinationIndex + 1} en ${ETAPAS[stageId]?.title ?? stageId} (Botón Orden)`
+            );
+            const updatedPedido = {
+                ...pedidoToUpdate,
+                posicionEnEtapa: updatedPositions.get(pedidoToUpdate.id) ?? pedidoToUpdate.posicionEnEtapa,
+                historial: [...(pedidoToUpdate.historial || []), entrada]
+            };
+            handleSavePedidoLogic(updatedPedido).catch(console.error);
+            logAction(`Pedido ${pedidoToUpdate.numeroPedidoCliente} movido a la posición ${destinationIndex + 1} en ${ETAPAS[stageId]?.title ?? stageId}.`, pedidoToUpdate.id);
+        }
+    }, [kanbanVisiblePedidosByStage, kanbanAllPedidosByStage, updateKanbanManualOrderForStage, setPedidos, pedidos, currentUserRole, generarEntradaHistorial, handleSavePedidoLogic, logAction]);
 
     const handleDragEnd = useCallback(async (result: DropResult) => {
         await procesarDragEnd({
@@ -1323,6 +1381,7 @@ const AppContent: React.FC = () => {
                                         onSetListaTemporal={setListaTemporal}
                                         onResetListaTemporal={resetListaTemporal}
                                         onMoveListaTemporal={handleMoveToVisibleStage}
+                                        onManualReorder={handleManualKanbanReorder}
                                     />
                                     );
                                 })}
@@ -1355,9 +1414,10 @@ const AppContent: React.FC = () => {
                                                 onSelectAll={selectAll}
                                                 listasTemporalesMap={listasTemporalesMap}
                                                 onSetListaTemporal={setListaTemporal}
-                                                onResetListaTemporal={resetListaTemporal}
-                                                onMoveListaTemporal={handleMoveToVisibleStage}
-                                            />
+                                        onResetListaTemporal={resetListaTemporal}
+                                        onMoveListaTemporal={handleMoveToVisibleStage}
+                                        onManualReorder={handleManualKanbanReorder}
+                                    />
                                             );
                                         })}
                                     </div>
