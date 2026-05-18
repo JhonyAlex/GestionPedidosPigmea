@@ -355,6 +355,8 @@ const AppContent: React.FC = () => {
     }, [pedidos, limpiarHuerfanos]);
 
     useEffect(() => {
+        if (isLoading) return; // ✅ NO podar el mapa de ordenamiento si los pedidos aún se están cargando
+        
         const existingPedidoIds = new Set(pedidos.map(p => p.id));
 
         setKanbanManualOrderMap(prev => {
@@ -374,7 +376,7 @@ const AppContent: React.FC = () => {
             saveKanbanManualOrderMap(next);
             return next;
         });
-    }, [pedidos]);
+    }, [pedidos, isLoading]);
 
     // Si no quedan listas temporales, apagar el filtro para evitar pantalla en blanco.
     useEffect(() => {
