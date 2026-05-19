@@ -59,9 +59,10 @@ interface AddPedidoModalProps {
         pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'etapaActual' | 'subEtapaActual' | 'secuenciaTrabajo' | 'orden' | 'historial'>;
         secuenciaTrabajo: Etapa[];
         initialStage?: Etapa;
-    }) => Promise<Pedido | undefined>; // ✅ Cambiar para que devuelva el pedido creado
-    clientePreseleccionado?: { id: string; nombre: string } | null; // ✅ Permitir cliente preseleccionado
-    isPedidoPrueba?: boolean; // ✅ Prop para indicar si es un pedido de prueba
+        readyForProduction?: boolean;
+    }) => Promise<Pedido | undefined>;
+    clientePreseleccionado?: { id: string; nombre: string } | null;
+    isPedidoPrueba?: boolean;
 }
 
 const initialFormData = {
@@ -449,9 +450,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Validar formulario
         if (!validateForm()) {
-            // Mostrar errores en un alert
             alert(
                 '⚠️ No se puede crear el pedido\n\n' +
                 'Por favor, corrija los siguientes errores:\n\n' +
@@ -460,6 +459,25 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
             return;
         }
 
+        await createPedido(false);
+    };
+
+    const handleSubmitReadyForProduction = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!validateForm()) {
+            alert(
+                '⚠️ No se puede crear el pedido\n\n' +
+                'Por favor, corrija los siguientes errores:\n\n' +
+                validationErrors.join('\n')
+            );
+            return;
+        }
+
+        await createPedido(true);
+    };
+
+    const createPedido = async (readyForProduction: boolean) => {
         const metrosValue = Number(formData.metros);
         const normalizedSequence = normalizePostImpresionSequence(secuenciaTrabajo, formData.cliente);
 
@@ -469,20 +487,18 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                 alert('❌ No se puede crear un pedido de muestra anónimo. Debe seleccionar una máquina de impresión real.');
                 return;
             }
-            // Encontrar la Etapa a partir del nombre de la máquina
             const stageId = KANBAN_FUNNELS.IMPRESION.stages.find(stage => ETAPAS[stage]?.title === formData.maquinaImpresion) || formData.maquinaImpresion;
             initialStage = stageId as Etapa;
         }
 
         try {
-            // ✅ Esperar respuesta de onAdd para obtener el pedido creado
             const newPedido = await onAdd({ 
                 pedidoData: { ...formData, metros: metrosValue }, 
                 secuenciaTrabajo: normalizedSequence,
-                initialStage 
+                initialStage,
+                readyForProduction,
             });
 
-            // ✅ Registrar acción CREATE en el historial
             if (newPedido) {
                 recordPedidoCreate(newPedido);
             }
@@ -1098,7 +1114,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                     <div className="text-sm text-gray-500 dark:text-gray-400">
                         <span className="text-red-500">*</span> Campos obligatorios
                     </div>
-                    <div className="flex gap-4">
+                    <div className="flex gap-3">
                         <button
                             type="button"
                             onClick={onClose}
@@ -1106,6 +1122,19 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                         >
                             Cancelar
                         </button>
+                        {!isPedidoPrueba && (
+                            <button
+                                type="button"
+                                onClick={handleSubmitReadyForProduction}
+                                className="bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-6 rounded-lg transition-colors duration-200 flex items-center gap-2"
+                                title="Crea el pedido y lo envía directo a 'Listo para Producción' (requiere Material y Cliché disponibles)"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                                Listo a Producción
+                            </button>
+                        )}
                         <button
                             type="submit"
                             form="addPedidoForm"

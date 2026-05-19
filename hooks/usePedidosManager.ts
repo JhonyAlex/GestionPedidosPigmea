@@ -560,30 +560,31 @@ export const usePedidosManager = (
         }
     };
 
-    const handleAddPedido = async (data: { pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'subEtapasSecuencia' | 'etapaActual' | 'subEtapaActual' | 'secuenciaTrabajo' | 'orden' | 'historial'>; secuenciaTrabajo: Etapa[]; initialStage?: Etapa; }) => {
-        const { pedidoData, secuenciaTrabajo, initialStage: customInitialStage } = data;
+    const handleAddPedido = async (data: { pedidoData: Omit<Pedido, 'id' | 'secuenciaPedido' | 'numeroRegistro' | 'fechaCreacion' | 'etapasSecuencia' | 'subEtapasSecuencia' | 'etapaActual' | 'subEtapaActual' | 'secuenciaTrabajo' | 'orden' | 'historial'>; secuenciaTrabajo: Etapa[]; initialStage?: Etapa; readyForProduction?: boolean; }) => {
+        const { pedidoData, secuenciaTrabajo, initialStage: customInitialStage, readyForProduction } = data;
         const now = new Date();
         const newId = now.getTime().toString();
         const numeroRegistro = `REG-${now.toISOString().slice(0, 19).replace(/[-:T]/g, '')}-${newId.slice(-4)}`;
         
-        let initialStage = customInitialStage || Etapa.PREPARACION; // ✅ Los pedidos nuevos van a "Preparación" con sub-etapa "Sin Gestión Iniciada" por defecto
+        let initialStage = customInitialStage || Etapa.PREPARACION;
         
-        // Si el modal especificó una máquina de impresión y queremos que inicie ahí (Pedido Prueba)
         if (customInitialStage) {
             initialStage = customInitialStage;
         }
 
         const maxOrder = Math.max(...pedidos.map(p => p.orden), 0);
 
-        // ✅ Calcular posición al final de la etapa destino
         const maxPosInPrep = pedidos
             .filter(p => p.etapaActual === initialStage)
             .reduce((max, p) => Math.max(max, p.posicionEnEtapa || 0), 0);
 
-        // ✅ Determinar la sub-etapa inicial basándose en los datos del pedido
         let initialSubEtapa: string | undefined = undefined;
         if (initialStage === Etapa.PREPARACION) {
-            initialSubEtapa = PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA; // Por defecto, todos los pedidos nuevos van a "Sin Gestión Iniciada"
+            if (readyForProduction) {
+                initialSubEtapa = PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION;
+            } else {
+                initialSubEtapa = PREPARACION_SUB_ETAPAS_IDS.GESTION_NO_INICIADA;
+            }
         }
 
         const normalizedSequence = normalizePostImpresionSequence(secuenciaTrabajo, pedidoData.cliente);
@@ -599,7 +600,13 @@ export const usePedidosManager = (
             subEtapaActual: initialSubEtapa,
             etapasSecuencia: [{ etapa: initialStage, fecha: now.toISOString() }],
             subEtapasSecuencia: initialSubEtapa ? [{ subEtapa: initialSubEtapa, fecha: now.toISOString() }] : undefined,
-            historial: [generarEntradaHistorial(currentUserRole, 'Creación', initialStage === Etapa.PREPARACION ? 'Pedido creado en Preparación - Sin Gestión Iniciada.' : `Pedido Prueba creado directamente en ${ETAPAS[initialStage]?.title || initialStage}.`)],
+            historial: [generarEntradaHistorial(currentUserRole, 'Creación', 
+                readyForProduction 
+                    ? 'Pedido creado directo en Listo para Producción.' 
+                    : initialStage === Etapa.PREPARACION 
+                        ? 'Pedido creado en Preparación - Sin Gestión Iniciada.' 
+                        : `Pedido Prueba creado directamente en ${ETAPAS[initialStage]?.title || initialStage}.`
+            )],
             maquinaImpresion: pedidoData.maquinaImpresion || '',
             secuenciaTrabajo: normalizedSequence,
             antivaho: pedidoData.antivaho || false,
@@ -607,6 +614,11 @@ export const usePedidosManager = (
             anonimo: pedidoData.anonimo || false,
             posicionEnEtapa: maxPosInPrep + 1,
         };
+
+        if (readyForProduction) {
+            newPedido.materialDisponible = true;
+            newPedido.clicheDisponible = true;
+        }
 
         // ✅ Marcar este ID como "en proceso de creación" ANTES de llamar al backend
         creatingPedidoIds.add(newId);
