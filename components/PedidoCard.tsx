@@ -216,6 +216,7 @@ interface PedidoCardProps {
     onMoveListaTemporal?: (etapa: Etapa) => Promise<void> | void;
     isTemporalDisplay?: boolean;          // true cuando la tarjeta se muestra FUERA de su etapa real (por override)
     totalPedidosInSubEtapa?: number;
+    indexEnColumna?: number;
     onReorderPedido?: (newIndex: number) => void;
 }
 
@@ -244,6 +245,7 @@ const PedidoCard = React.memo<PedidoCardProps>(({
     onMoveListaTemporal,
     isTemporalDisplay = false,
     totalPedidosInSubEtapa,
+    indexEnColumna,
     onReorderPedido,
 }) => {
     const { canMovePedidos, canArchivePedidos } = usePermissions();
@@ -984,19 +986,26 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                                     Selecciona la posición deseada en esta etapa.
                                 </p>
                                 <div className="grid grid-cols-5 gap-1 max-h-52 overflow-y-auto pr-1">
-                                    {Array.from({ length: totalPedidosInSubEtapa }).map((_, idx) => (
-                                        <button
-                                            key={`pos-${idx}`}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                onReorderPedido(idx);
-                                                setIsOrdenPanelOpen(false);
-                                            }}
-                                            className="text-xs font-medium bg-gray-50 dark:bg-gray-700 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-gray-700 dark:text-gray-300 hover:text-indigo-700 dark:hover:text-indigo-300 border border-gray-200 dark:border-gray-600 rounded py-1 transition-colors"
-                                        >
-                                            {idx + 1}
-                                        </button>
-                                    ))}
+                                    {Array.from({ length: totalPedidosInSubEtapa }).map((_, idx) => {
+                                        const isCurrentPosition = indexEnColumna != null && idx === indexEnColumna;
+                                        return (
+                                            <button
+                                                key={`pos-${idx}`}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onReorderPedido(idx);
+                                                    setIsOrdenPanelOpen(false);
+                                                }}
+                                                className={`text-xs font-medium border rounded py-1 transition-colors ${
+                                                    isCurrentPosition
+                                                        ? 'bg-indigo-200/60 dark:bg-indigo-800/40 text-indigo-500 dark:text-indigo-400 border-indigo-300/50 dark:border-indigo-700/50 cursor-default'
+                                                        : 'bg-gray-50 dark:bg-gray-700 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-gray-700 dark:text-gray-300 hover:text-indigo-700 dark:hover:text-indigo-300 border-gray-200 dark:border-gray-600'
+                                                }`}
+                                            >
+                                                {idx + 1}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>,
                             document.body

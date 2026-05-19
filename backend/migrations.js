@@ -617,6 +617,28 @@ class MigrationManager {
                 CREATE INDEX IF NOT EXISTS idx_weekly_comments_created_at ON limpio.weekly_comments(created_at DESC);
             `
         });
+
+        // Migración 024: Shared Notes (bloc de notas colaborativo)
+        this.migrations.push({
+            id: '024-shared-notes',
+            name: 'Crear tabla shared_notes para bloc de notas colaborativo en tiempo real',
+            sql: `
+                CREATE TABLE IF NOT EXISTS limpio.shared_notes (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    title VARCHAR(255) NOT NULL DEFAULT 'Nueva nota',
+                    content BYTEA,
+                    state BYTEA,
+                    created_by UUID,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_by UUID,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    version INTEGER DEFAULT 1,
+                    is_active BOOLEAN DEFAULT true
+                );
+                CREATE INDEX IF NOT EXISTS idx_shared_notes_created_at ON limpio.shared_notes(created_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_shared_notes_is_active ON limpio.shared_notes(is_active);
+            `
+        });
     }
 
     /**

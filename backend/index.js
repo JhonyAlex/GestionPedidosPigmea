@@ -18,6 +18,7 @@ const { authenticateUser, requireAuth, extractUserFromRequest, setDbClient: setA
 const { setDbClient: setDbHealthClient, ensureDatabaseHealth } = require('./middleware/db-health');
 const { createImportBatchEndpoint } = require('./services/pedidosImportService');
 const { createPdfRouter } = require('./routes/pdfRoutes');
+const { setupNotesRoutes, addNoteSocketHandlers } = require('./notes');
 
 // Mapeo de roles entre frontend y base de datos
 const ROLE_MAPPING = {
@@ -1421,6 +1422,9 @@ io.on('connection', (socket) => {
             ...activityData
         });
     });
+
+    // Notas compartidas - colaboración en tiempo real
+    addNoteSocketHandlers(socket, io);
 });
 
 // Función para emitir eventos a todos los clientes conectados
@@ -6219,6 +6223,9 @@ async function startServer() {
                 console.error('⚠️ Error crítico en migraciones:', migrationError.message);
                 // No detener, intentar createTables como red de seguridad
             }
+
+            // Configurar rutas de notas compartidas
+            setupNotesRoutes(app, dbClient.pool, io);
 
             // 3. Crear resto de tablas e índices (ahora seguro porque 'pedidos' existe)
             console.log('🏗️ Verificando estructura de tablas complementarias...');

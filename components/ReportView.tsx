@@ -23,6 +23,7 @@ import InfoTooltip from './InfoTooltip';
 import ClientOrderFilter from './ClientOrderFilter';
 import BulkActionsToolbar from './BulkActionsToolbar';
 import ProductionTrackingTable from './ProductionTrackingTable';
+import NotesWidget from './NotesWidget';
 
 /**
  * =============================================================================
@@ -1216,114 +1217,124 @@ const ReportView: React.FC<ReportViewProps> = ({
                     />
 
                     {/* --- Toolbar --- */}
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow space-y-6">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                        <div className="flex flex-col xl:flex-row gap-6">
+                            {/* Filters Column */}
+                            <div className="flex-1 space-y-6 min-w-0">
 
-                        {/* Machine Filters */}
-                        <div>
-                            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-                                </svg>
-                                Máquinas / Categorías
-                                <InfoTooltip
-                                    content="Los pedidos se clasifican automáticamente según: 1) DNT (clientes/vendedores con 'DNT' en el nombre), 2) Máquina asignada (WM1, WM3, GIAVE), 3) VARIABLES (pedidos con clichés nuevos o cambios sin confirmar horas). Selecciona las categorías que deseas visualizar."
-                                    position="right"
-                                />
-                            </h3>
-                            <div className="flex flex-wrap gap-2">
-                                {allMachineOptions.map(machine => {
-                                    const machineColors: Record<string, { active: string; inactive: string }> = {
-                                        'Windmöller 1': { active: 'bg-blue-900 border-blue-950 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
-                                        'Windmöller 3': { active: 'bg-red-900 border-red-950 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
-                                        'GIAVE': { active: 'bg-orange-900 border-orange-950 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
-                                        'DNT': { active: 'bg-green-900 border-green-950 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
-                                        'VARIABLES': { active: 'bg-purple-900 border-purple-950 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
-                                    };
-                                    const colors = machineColors[machine] || { active: 'bg-gray-500 border-gray-600 text-white shadow-lg', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' };
-                                    return (
-                                        <button
-                                            key={machine}
-                                            onClick={() => toggleMachine(machine)}
-                                            className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all duration-200 ${selectedMachines.includes(machine) ? colors.active : colors.inactive
-                                                }`}
-                                        >
-                                            {machine}
-                                        </button>
-                                    );
-                                })}
+                                {/* Machine Filters */}
+                                <div>
+                                    <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                                        </svg>
+                                        Máquinas / Categorías
+                                        <InfoTooltip
+                                            content="Los pedidos se clasifican automáticamente según: 1) DNT (clientes/vendedores con 'DNT' en el nombre), 2) Máquina asignada (WM1, WM3, GIAVE), 3) VARIABLES (pedidos con clichés nuevos o cambios sin confirmar horas). Selecciona las categorías que deseas visualizar."
+                                            position="right"
+                                        />
+                                    </h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {allMachineOptions.map(machine => {
+                                            const machineColors: Record<string, { active: string; inactive: string }> = {
+                                                'Windmöller 1': { active: 'bg-blue-900 border-blue-950 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                                'Windmöller 3': { active: 'bg-red-900 border-red-950 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                                'GIAVE': { active: 'bg-orange-900 border-orange-950 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                                'DNT': { active: 'bg-green-900 border-green-950 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                                'VARIABLES': { active: 'bg-purple-900 border-purple-950 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                            };
+                                            const colors = machineColors[machine] || { active: 'bg-gray-500 border-gray-600 text-white shadow-lg', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' };
+                                            return (
+                                                <button
+                                                    key={machine}
+                                                    onClick={() => toggleMachine(machine)}
+                                                    className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all duration-200 ${selectedMachines.includes(machine) ? colors.active : colors.inactive
+                                                        }`}
+                                                >
+                                                    {machine}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Stage Filters */}
+                                <div>
+                                    <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                        </svg>
+                                        Etapas del Proceso
+                                        <InfoTooltip
+                                            content="Filtra los pedidos por su etapa actual en el flujo de producción. Los pedidos en 'Listo para Producción' son aquellos en Preparación que han completado todos los requisitos. Excluye automáticamente pedidos archivados."
+                                            position="right"
+                                        />
+                                    </h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {[
+                                            // Etapas Pre-Producción
+                                            { id: Etapa.PREPARACION, label: 'Preparación', color: 'amber' },
+                                            { id: STAGE_LISTO_PARA_PRODUCCION, label: 'Listo para Producción', color: 'emerald' },
+
+                                            // Etapas de Impresión
+                                            { id: Etapa.IMPRESION_WM1, label: 'Windmöller 1', color: 'cyan' },
+                                            { id: Etapa.IMPRESION_WM3, label: 'Windmöller 3', color: 'cyan' },
+                                            { id: Etapa.IMPRESION_GIAVE, label: 'GIAVE', color: 'cyan' },
+
+                                            // Etapa Post-Impresión DNT
+                                            { id: Etapa.POST_DNT, label: 'DNT', color: 'teal' },
+
+                                            // Etapas Post-Impresión - Laminación
+                                            { id: Etapa.POST_LAMINACION_SL2, label: 'SL2', color: 'indigo' },
+                                            { id: Etapa.POST_LAMINACION_NEXUS, label: 'NEXUS', color: 'indigo' },
+                                            { id: Etapa.POST_LAMINACION_SL2_EVO, label: 'SL2 EVO', color: 'indigo' },
+
+                                            // Etapas Post-Impresión - Ec-convert
+                                            { id: Etapa.POST_ECCONVERT_21, label: 'Ec-convert 21', color: 'gray' },
+                                            { id: Etapa.POST_ECCONVERT_22, label: 'Ec-convert 22', color: 'gray' },
+
+                                            // Etapas Post-Impresión - Rebobinado
+                                            { id: Etapa.POST_REBOBINADO_S2DT, label: 'S2DT', color: 'purple' },
+                                            { id: Etapa.POST_REBOBINADO_PROSLIT, label: 'PROSLIT', color: 'purple' },
+
+                                            // Etapas Post-Impresión - Perforación
+                                            { id: Etapa.POST_PERFORACION_MIC, label: 'Microperforadora', color: 'pink' },
+                                            { id: Etapa.POST_PERFORACION_MAC, label: 'Macroperforadora 1', color: 'pink' },
+                                            { id: Etapa.POST_PERFORACION_MAC2, label: 'Macroperforadora 2', color: 'pink' },
+
+                                            // Estado Final
+                                            { id: Etapa.COMPLETADO, label: 'Completados', color: 'green' },
+                                        ].map(stage => {
+                                            const stageColors: Record<string, { active: string; inactive: string }> = {
+                                                'amber': { active: 'bg-amber-500 border-amber-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                                'emerald': { active: 'bg-emerald-500 border-emerald-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                                'cyan': { active: 'bg-cyan-500 border-cyan-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                                'teal': { active: 'bg-teal-600 border-teal-700 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                                'indigo': { active: 'bg-indigo-500 border-indigo-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                                'purple': { active: 'bg-purple-500 border-purple-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                                'pink': { active: 'bg-pink-500 border-pink-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                                'gray': { active: 'bg-gray-600 border-gray-700 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                                'green': { active: 'bg-green-500 border-green-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
+                                            };
+                                            const colors = stageColors[stage.color] || stageColors['cyan'];
+                                            return (
+                                                <button
+                                                    key={stage.id}
+                                                    onClick={() => toggleStage(stage.id)}
+                                                    className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all duration-200 ${selectedStages.includes(stage.id) ? colors.active : colors.inactive
+                                                        }`}
+                                                >
+                                                    {stage.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Stage Filters */}
-                        <div>
-                            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                </svg>
-                                Etapas del Proceso
-                                <InfoTooltip
-                                    content="Filtra los pedidos por su etapa actual en el flujo de producción. Los pedidos en 'Listo para Producción' son aquellos en Preparación que han completado todos los requisitos. Excluye automáticamente pedidos archivados."
-                                    position="right"
-                                />
-                            </h3>
-                            <div className="flex flex-wrap gap-2">
-                                {[
-                                    // Etapas Pre-Producción
-                                    { id: Etapa.PREPARACION, label: 'Preparación', color: 'amber' },
-                                    { id: STAGE_LISTO_PARA_PRODUCCION, label: 'Listo para Producción', color: 'emerald' },
-
-                                    // Etapas de Impresión
-                                    { id: Etapa.IMPRESION_WM1, label: 'Windmöller 1', color: 'cyan' },
-                                    { id: Etapa.IMPRESION_WM3, label: 'Windmöller 3', color: 'cyan' },
-                                    { id: Etapa.IMPRESION_GIAVE, label: 'GIAVE', color: 'cyan' },
-
-                                    // Etapa Post-Impresión DNT
-                                    { id: Etapa.POST_DNT, label: 'DNT', color: 'teal' },
-
-                                    // Etapas Post-Impresión - Laminación
-                                    { id: Etapa.POST_LAMINACION_SL2, label: 'SL2', color: 'indigo' },
-                                    { id: Etapa.POST_LAMINACION_NEXUS, label: 'NEXUS', color: 'indigo' },
-                                    { id: Etapa.POST_LAMINACION_SL2_EVO, label: 'SL2 EVO', color: 'indigo' },
-
-                                    // Etapas Post-Impresión - Ec-convert
-                                    { id: Etapa.POST_ECCONVERT_21, label: 'Ec-convert 21', color: 'gray' },
-                                    { id: Etapa.POST_ECCONVERT_22, label: 'Ec-convert 22', color: 'gray' },
-
-                                    // Etapas Post-Impresión - Rebobinado
-                                    { id: Etapa.POST_REBOBINADO_S2DT, label: 'S2DT', color: 'purple' },
-                                    { id: Etapa.POST_REBOBINADO_PROSLIT, label: 'PROSLIT', color: 'purple' },
-
-                                    // Etapas Post-Impresión - Perforación
-                                    { id: Etapa.POST_PERFORACION_MIC, label: 'Microperforadora', color: 'pink' },
-                                    { id: Etapa.POST_PERFORACION_MAC, label: 'Macroperforadora 1', color: 'pink' },
-                                    { id: Etapa.POST_PERFORACION_MAC2, label: 'Macroperforadora 2', color: 'pink' },
-
-                                    // Estado Final
-                                    { id: Etapa.COMPLETADO, label: 'Completados', color: 'green' },
-                                ].map(stage => {
-                                    const stageColors: Record<string, { active: string; inactive: string }> = {
-                                        'amber': { active: 'bg-amber-500 border-amber-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
-                                        'emerald': { active: 'bg-emerald-500 border-emerald-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
-                                        'cyan': { active: 'bg-cyan-500 border-cyan-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
-                                        'teal': { active: 'bg-teal-600 border-teal-700 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
-                                        'indigo': { active: 'bg-indigo-500 border-indigo-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
-                                        'purple': { active: 'bg-purple-500 border-purple-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
-                                        'pink': { active: 'bg-pink-500 border-pink-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
-                                        'gray': { active: 'bg-gray-600 border-gray-700 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
-                                        'green': { active: 'bg-green-500 border-green-600 text-white shadow-lg scale-105', inactive: 'bg-gray-100 border-gray-300 text-gray-500 opacity-50 hover:opacity-75' },
-                                    };
-                                    const colors = stageColors[stage.color] || stageColors['cyan'];
-                                    return (
-                                        <button
-                                            key={stage.id}
-                                            onClick={() => toggleStage(stage.id)}
-                                            className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all duration-200 ${selectedStages.includes(stage.id) ? colors.active : colors.inactive
-                                                }`}
-                                        >
-                                            {stage.label}
-                                        </button>
-                                    );
-                                })}
+                            {/* Notes Widget Column */}
+                            <div className="xl:w-96 xl:flex-shrink-0">
+                                <NotesWidget embedded />
                             </div>
                         </div>
                     </div>

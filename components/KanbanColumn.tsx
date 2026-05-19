@@ -120,26 +120,27 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                                             {...provided.dragHandleProps}
                                             className={`mb-4 transition-transform duration-150 ease-in-out ${snapshot.isDragging ? 'scale-105 shadow-2xl rotate-1' : 'scale-100'}`}
                                         >
-                                            <PedidoCard 
-                                                pedido={pedido} 
-                                                onArchiveToggle={onArchiveToggle} 
-                                                onSelectPedido={onSelectPedido}
-                                                currentUserRole={currentUserRole} 
-                                                onAdvanceStage={onAdvanceStage}
-                                                highlightedPedidoId={highlightedPedidoId}
-                                                onUpdatePedido={onUpdatePedido}
-                                                isSelected={selectedIds.includes(pedido.id)}
-                                                isSelectionActive={isSelectionActive}
-                                                onToggleSelection={onToggleSelection}
-                                                lockInfo={getLockInfo(pedido.id, user?.id.toString())}
-                                                listasTemporales={listasTemporalesMap[pedido.id] || []}
-                                                onSetListaTemporal={onSetListaTemporal ? (etapa, checked) => onSetListaTemporal(pedido.id, etapa, checked) : undefined}
-                                                onResetListaTemporal={onResetListaTemporal ? () => onResetListaTemporal(pedido.id) : undefined}
-                                                onMoveListaTemporal={onMoveListaTemporal ? (etapa) => onMoveListaTemporal(pedido.id, etapa) : undefined}
-                                                isTemporalDisplay={pedido.etapaActual !== etapa.id}
-                                                totalPedidosInSubEtapa={pedidos.length}
-                                                onReorderPedido={onManualReorder ? (newIndex) => onManualReorder(etapa.id, pedido.id, newIndex) : undefined}
-                                            />
+                                                <PedidoCard 
+                                                    pedido={pedido} 
+                                                    onArchiveToggle={onArchiveToggle} 
+                                                    onSelectPedido={onSelectPedido}
+                                                    currentUserRole={currentUserRole} 
+                                                    onAdvanceStage={onAdvanceStage}
+                                                    highlightedPedidoId={highlightedPedidoId}
+                                                    onUpdatePedido={onUpdatePedido}
+                                                    isSelected={selectedIds.includes(pedido.id)}
+                                                    isSelectionActive={isSelectionActive}
+                                                    onToggleSelection={onToggleSelection}
+                                                    lockInfo={getLockInfo(pedido.id, user?.id.toString())}
+                                                    listasTemporales={listasTemporalesMap[pedido.id] || []}
+                                                    onSetListaTemporal={onSetListaTemporal ? (etapa, checked) => onSetListaTemporal(pedido.id, etapa, checked) : undefined}
+                                                    onResetListaTemporal={onResetListaTemporal ? () => onResetListaTemporal(pedido.id) : undefined}
+                                                    onMoveListaTemporal={onMoveListaTemporal ? (etapa) => onMoveListaTemporal(pedido.id, etapa) : undefined}
+                                                    isTemporalDisplay={pedido.etapaActual !== etapa.id}
+                                                    totalPedidosInSubEtapa={pedidos.length}
+                                                    indexEnColumna={index}
+                                                    onReorderPedido={onManualReorder ? (newIndex) => onManualReorder(etapa.id, pedido.id, newIndex) : undefined}
+                                                />
                                         </div>
                                     )}
                                 </Draggable>

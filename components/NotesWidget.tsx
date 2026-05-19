@@ -1,587 +1,217 @@
-import React, {
-  useState,
-  useRef,
-  useCallback,
-  useEffect,
-} from 'react';
-import { useNotesDB, Note } from '@/hooks/useNotesDB';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { EditorContent } from '@tiptap/react';
+import { useCollaborativeNotes } from '@/hooks/useCollaborativeNotes';
+import { webSocketService } from '@/services/websocket';
+import { useAuth } from '@/contexts/AuthContext';
 
 const WIDGET_KEY = 'notes-widget-collapsed';
-const MAX_TAB_CHARS = 22;
-const WORDS_FOR_TAB = 3;
 
-function stripHtml(html: string): string {
-  const temp = document.createElement('div');
-  temp.innerHTML = html;
-  return temp.textContent || temp.innerText || '';
+interface NotesWidgetProps {
+  embedded?: boolean;
 }
 
-function getTabName(content: string): string {
-  const text = stripHtml(content).trim();
-  if (!text) return 'Nueva nota';
-  const words = text.split(/\s+/).slice(0, WORDS_FOR_TAB).join(' ');
-  return words.length > MAX_TAB_CHARS
-    ? words.slice(0, MAX_TAB_CHARS - 3) + '...'
-    : words;
-}
+const NotesWidget: React.FC<NotesWidgetProps> = ({ embedded = false }) => {
+  const { user } = useAuth();
+  const socket = webSocketService.isSocketConnected() ? webSocketService.getSocket() : null;
 
-function generateId(): string {
-  return 'note_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
-}
-
-function createEmptyNote(): Note {
-  const now = Date.now();
-  return {
-    id: generateId(),
-    content: '',
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-function saveSelection(): Range | null {
-  const sel = window.getSelection();
-  if (sel && sel.rangeCount > 0) {
-    return sel.getRangeAt(0).cloneRange();
-  }
-  return null;
-}
-
-function restoreSelection(range: Range | null) {
-  if (range) {
-    const sel = window.getSelection();
-    sel?.removeAllRanges();
-    sel?.addRange(range);
-  }
-}
-
-type Notification = {
-  message: string;
-  type: 'success' | 'error' | 'info';
-};
-
-const NotesWidget: React.FC = () => {
-  const { notes, loading, error, scheduleSave, flushSave, createNote, deleteNote, importNotes, exportNotes } =
-    useNotesDB();
+  const { notes, activeNoteId, editor, loading, error, presence, createNote, deleteNote, setActiveNoteId } =
+    useCollaborativeNotes(socket, user?.id || '', user?.displayName || user?.username || '');
 
   const [isOpen, setIsOpen] = useState(() => {
-    try {
-      return localStorage.getItem(WIDGET_KEY) === 'open';
-    } catch {
-      return false;
-    }
+    try { return localStorage.getItem(WIDGET_KEY) === 'open'; } catch { return embedded; }
   });
-
-  const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
-  const [notification, setNotification] = useState<Notification | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-
-  const editorRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const widgetRef = useRef<HTMLDivElement>(null);
-  const skipContentSyncRef = useRef(false);
-
-  const activeNote = notes.find((n) => n.id === activeNoteId) || null;
-
-  const notify = useCallback((message: string, type: Notification['type'] = 'info') => {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
-  }, []);
-
-  const closeWidget = useCallback(() => {
-    flushSave();
-    setIsOpen(false);
-  }, [flushSave]);
 
   useEffect(() => {
-    if (!isOpen && notes.length > 0 && !activeNoteId) {
-      setActiveNoteId(notes[0].id);
-    }
-  }, [isOpen, notes, activeNoteId]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(WIDGET_KEY, isOpen ? 'open' : 'closed');
-    } catch {
-      /* noop */
-    }
+    try { localStorage.setItem(WIDGET_KEY, isOpen ? 'open' : 'closed'); } catch { /* noop */ }
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if ((!isOpen || embedded) && notes.length > 0 && !activeNoteId) setActiveNoteId(notes[0].id);
+  }, [isOpen, embedded, notes, activeNoteId, setActiveNoteId]);
 
+  useEffect(() => {
+    if (!isOpen || embedded) return;
     const handleClickOutside = (e: MouseEvent) => {
       const panel = panelRef.current;
       const toggle = widgetRef.current;
       if (panel && !panel.contains(e.target as Node) && toggle && !toggle.contains(e.target as Node)) {
-        closeWidget();
+        setIsOpen(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen, closeWidget]);
+  }, [isOpen, embedded]);
 
-  useEffect(() => {
-    if (!editorRef.current || !activeNote) return;
-    if (skipContentSyncRef.current) {
-      skipContentSyncRef.current = false;
-      return;
-    }
-    if (editorRef.current.innerHTML !== activeNote.content) {
-      editorRef.current.innerHTML = activeNote.content;
-    }
-  }, [activeNoteId, activeNote]);
-
-  const handleCreateNote = useCallback(() => {
-    flushSave();
-    const newNote = createEmptyNote();
-    createNote(newNote);
-    skipContentSyncRef.current = true;
-    setActiveNoteId(newNote.id);
-    setTimeout(() => {
-      if (editorRef.current) editorRef.current.innerHTML = '';
-      editorRef.current?.focus();
-    }, 50);
-  }, [flushSave, createNote]);
-
-  const handleSwitchNote = useCallback(
-    (id: string) => {
-      flushSave();
-      setActiveNoteId(id);
-    },
-    [flushSave]
-  );
-
-  const handleDeleteNote = useCallback(
-    (id: string) => {
-      flushSave();
-      deleteNote(id);
-      setConfirmDelete(null);
-
-      if (activeNoteId === id) {
-        const remaining = notes.filter((n) => n.id !== id);
-        setActiveNoteId(remaining.length > 0 ? remaining[0].id : null);
-      }
-
-      notify('Nota eliminada', 'success');
-    },
-    [flushSave, deleteNote, activeNoteId, notes, notify]
-  );
-
-  const handleEditorInput = useCallback(() => {
-    if (editorRef.current && activeNoteId) {
-      const content = editorRef.current.innerHTML;
-      scheduleSave(activeNoteId, content);
-    }
-  }, [activeNoteId, scheduleSave]);
-
-  const handleEditorBlur = useCallback(() => {
-    flushSave();
-  }, [flushSave]);
-
-  const handleEditorKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        document.execCommand('insertText', false, '  ');
-      }
-    },
-    []
-  );
-
-  const handleExport = useCallback(() => {
-    const data = exportNotes();
-    if (data.length === 0) {
-      notify('No hay notas para exportar', 'info');
-      return;
-    }
-    const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `notas_export_${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    notify(`${data.length} nota(s) exportada(s)`, 'success');
-  }, [exportNotes, notify]);
-
-  const handleImportClick = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
-
-  const handleImportFile = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const parsed = JSON.parse(event.target?.result as string);
-          if (!Array.isArray(parsed)) {
-            notify('Formato de archivo invalido', 'error');
-            return;
-          }
-
-          const validNotes = parsed
-            .filter((n: Record<string, unknown>) => n.id && typeof n.content === 'string')
-            .map((n: Record<string, unknown>) => ({
-              id: n.id as string,
-              content: n.content as string,
-              createdAt: (n.createdAt as number) || Date.now(),
-              updatedAt: (n.updatedAt as number) || Date.now(),
-            }));
-
-          if (validNotes.length === 0) {
-            notify('No se encontraron notas validas', 'error');
-            return;
-          }
-
-          importNotes(validNotes);
-          notify(`${validNotes.length} nota(s) importada(s)`, 'success');
-        } catch {
-          notify('Error al leer el archivo', 'error');
-        }
-      };
-      reader.readAsText(file);
-      e.target.value = '';
-    },
-    [importNotes, notify]
-  );
-
-  const handleToggle = useCallback(() => {
-    if (isOpen) {
-      closeWidget();
-    } else {
-      setIsOpen(true);
-    }
-  }, [isOpen, closeWidget]);
-
-  useEffect(() => {
-    return () => {
-      flushSave();
-    };
-  }, [flushSave]);
+  const handleCreateNote = useCallback(() => { createNote(); }, [createNote]);
+  const handleDeleteNote = useCallback((id: string) => { deleteNote(id); setConfirmDelete(null); }, [deleteNote]);
 
   if (loading) return null;
   if (error) return null;
 
-  return (
-    <div ref={widgetRef} className="contents">
-      {/* Toggle Button */}
-      <button
-        onClick={handleToggle}
-        className="fixed top-3 right-3 z-[10000] w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 opacity-60 hover:opacity-100"
-        aria-label={isOpen ? 'Cerrar notas' : 'Abrir notas'}
-        title="Notas"
-      >
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-          />
-        </svg>
-      </button>
+  const activeNote = notes.find(n => n.id === activeNoteId) || null;
+  const presenceCount = Object.keys(presence).length;
 
-      {/* Widget Panel */}
-      {isOpen && (
-        <div ref={panelRef} className="fixed top-14 right-4 z-[10000] w-96 max-h-[85vh] bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden transition-all duration-200">
-          {/* Notification */}
-          {notification && (
-            <div
-              className={`px-4 py-2 text-sm font-medium ${
-                notification.type === 'success'
-                  ? 'bg-green-50 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                  : notification.type === 'error'
-                    ? 'bg-red-50 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                    : 'bg-blue-50 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-              }`}
-            >
-              {notification.message}
-            </div>
+  const panelContent = (
+    <div ref={panelRef} className="w-full bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden" style={{ maxHeight: embedded ? '600px' : undefined, height: embedded ? '600px' : undefined }}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Notas compartidas</h2>
+          {presenceCount > 0 && (
+            <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              {presenceCount}
+            </span>
           )}
+        </div>
+        <button
+          onClick={handleCreateNote}
+          className="p-1.5 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 transition-colors"
+          aria-label="Nueva nota"
+          title="Nueva nota"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
+      </div>
 
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-              Notas
-            </h2>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={handleExport}
-                className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors"
-                aria-label="Exportar notas"
-                title="Exportar notas"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-              </button>
-              <button
-                onClick={handleImportClick}
-                className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors"
-                aria-label="Importar notas"
-                title="Importar notas"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                </svg>
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json,application/json"
-                className="hidden"
-                onChange={handleImportFile}
-              />
-            </div>
-          </div>
-
-          {/* Tabs */}
-          <div className="flex items-center gap-1 px-3 pt-3 border-b border-gray-100 dark:border-gray-700 overflow-x-auto scrollbar-thin">
-            {notes.map((note) => {
-              const isActive = note.id === activeNoteId;
-              return (
-                <div
-                  key={note.id}
-                  className={`group flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-t-lg cursor-pointer transition-colors whitespace-nowrap max-w-[140px] ${
-                    isActive
-                      ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border-b-2 border-indigo-600 dark:border-indigo-400'
-                      : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                  }`}
-                  onClick={() => handleSwitchNote(note.id)}
-                >
-                  <span className="truncate">{getTabName(note.content)}</span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (notes.length === 1) {
-                        handleDeleteNote(note.id);
-                      } else {
-                        setConfirmDelete(note.id);
-                      }
-                    }}
-                    className="ml-1 p-0.5 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-600 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
-                    aria-label={`Eliminar ${getTabName(note.content)}`}
-                  >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              );
-            })}
+      {/* Tabs */}
+      <div className="flex items-center gap-1 px-3 pt-2 border-b border-gray-100 dark:border-gray-700 overflow-x-auto">
+        {notes.map(note => (
+          <div
+            key={note.id}
+            className={`group flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-t-lg cursor-pointer transition-colors whitespace-nowrap max-w-[140px] ${
+              note.id === activeNoteId
+                ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border-b-2 border-indigo-600 dark:border-indigo-400'
+                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+            }`}
+            onClick={() => setActiveNoteId(note.id)}
+          >
+            <span className="truncate">{note.title}</span>
             <button
-              onClick={handleCreateNote}
-              className="flex-shrink-0 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-              aria-label="Nueva nota"
-              title="Nueva nota"
+              onClick={e => { e.stopPropagation(); notes.length === 1 ? handleDeleteNote(note.id) : setConfirmDelete(note.id); }}
+              className="ml-1 p-0.5 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-600 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+              aria-label={`Eliminar ${note.title}`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
+        ))}
+      </div>
 
-          {/* Delete Confirmation */}
-          {confirmDelete && (
-            <div className="px-4 py-3 bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800/50">
-              <p className="text-xs text-yellow-800 dark:text-yellow-200 mb-2">
-                ¿Eliminar esta nota permanentemente?
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleDeleteNote(confirmDelete)}
-                  className="px-3 py-1 text-xs font-medium rounded bg-red-500 text-white hover:bg-red-600 transition-colors"
-                >
-                  Eliminar
-                </button>
-                <button
-                  onClick={() => setConfirmDelete(null)}
-                  className="px-3 py-1 text-xs font-medium rounded bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 transition-colors"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          )}
+      {/* Delete Confirmation */}
+      {confirmDelete && (
+        <div className="px-4 py-3 bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800/50">
+          <p className="text-xs text-yellow-800 dark:text-yellow-200 mb-2">¿Eliminar esta nota permanentemente?</p>
+          <div className="flex gap-2">
+            <button onClick={() => handleDeleteNote(confirmDelete)} className="px-3 py-1 text-xs font-medium rounded bg-red-500 text-white hover:bg-red-600 transition-colors">Eliminar</button>
+            <button onClick={() => setConfirmDelete(null)} className="px-3 py-1 text-xs font-medium rounded bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 transition-colors">Cancelar</button>
+          </div>
+        </div>
+      )}
 
-          {/* Editor Area */}
-          {activeNote ? (
-            <div className="flex flex-col flex-1 min-h-0">
-              {/* Toolbar */}
-              <Toolbar editorRef={editorRef} />
-
-              {/* Content Editable */}
-              <div
-                ref={editorRef}
-                contentEditable
-                suppressContentEditableWarning
-                onInput={handleEditorInput}
-                onBlur={handleEditorBlur}
-                onKeyDown={handleEditorKeyDown}
-                className="flex-1 min-h-[300px] max-h-[50vh] overflow-y-auto px-4 py-3 text-sm text-gray-800 dark:text-gray-200 outline-none prose prose-sm dark:prose-invert max-w-none
-                  prose-headings:font-semibold prose-headings:text-gray-900 dark:prose-headings:text-gray-100
-                  prose-h2:text-base prose-h2:mb-1 prose-h2:mt-2
-                  prose-ul:my-1 prose-li:my-0.5
-                  placeholder-gray-400"
-                data-placeholder="Escribe tu nota aqui..."
-              />
-            </div>
-          ) : (
-            <div className="flex-1 flex items-center justify-center min-h-[300px]">
-              <p className="text-sm text-gray-400 dark:text-gray-500">
-                Crea una nueva nota para comenzar
-              </p>
-            </div>
-          )}
-
-          {/* Footer */}
-          {activeNote && (
-            <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-              <span className="text-xs text-gray-400 dark:text-gray-500">
-                {stripHtml(activeNote.content).trim().split(/\s+/).filter(Boolean).length} palabras
-              </span>
-              <span className="text-xs text-gray-400 dark:text-gray-500">
-                {new Date(activeNote.updatedAt).toLocaleString('es-ES', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </span>
-            </div>
-          )}
+      {/* Editor */}
+      {activeNote ? (
+        <div className="flex flex-col flex-1 min-h-0">
+          <EditorToolbar editor={editor} />
+          <div className="flex-1 min-h-[200px] overflow-y-auto">
+            <EditorContent editor={editor} className="prose prose-sm dark:prose-invert max-w-none px-4 py-3 text-sm text-gray-800 dark:text-gray-200 outline-none prose-headings:font-semibold prose-h2:text-base prose-h2:mb-1 prose-h2:mt-2 prose-ul:my-1 prose-li:my-0.5" />
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 flex items-center justify-center min-h-[200px]">
+          <p className="text-sm text-gray-400 dark:text-gray-500">Crea una nueva nota para comenzar</p>
         </div>
       )}
     </div>
   );
-};
 
-interface ToolbarProps {
-  editorRef: React.RefObject<HTMLDivElement | null>;
-}
-
-const Toolbar: React.FC<ToolbarProps> = ({ editorRef }) => {
-  const [boldActive, setBoldActive] = useState(false);
-  const [italicActive, setItalicActive] = useState(false);
-  const [headingActive, setHeadingActive] = useState(false);
-  const [listActive, setListActive] = useState(false);
-
-  const checkState = useCallback(() => {
-    if (!editorRef.current) return;
-    setBoldActive(document.queryCommandState('bold'));
-    setItalicActive(document.queryCommandState('italic'));
-    setListActive(document.queryCommandState('insertUnorderedList'));
-
-    const block = document.queryCommandValue('formatBlock');
-    const isHeading = block === 'h2' || block === 'H2' || block === '<h2>' || block === '<H2>';
-    setHeadingActive(isHeading);
-  }, [editorRef]);
-
-  useEffect(() => {
-    document.addEventListener('selectionchange', checkState);
-    return () => document.removeEventListener('selectionchange', checkState);
-  }, [checkState]);
-
-  const applyFormat = useCallback((cmd: string, value?: string) => {
-    if (cmd === 'formatBlock' && value === '<h2>') {
-      const block = document.queryCommandValue('formatBlock');
-      const isHeading = block === 'h2' || block === 'H2' || block === '<h2>' || block === '<H2>';
-      const actualCmd = isHeading ? 'formatBlock' : 'formatBlock';
-      const actualValue = isHeading ? '<p>' : '<h2>';
-      document.execCommand(actualCmd, false, actualValue);
-    } else {
-      document.execCommand(cmd, false, value);
-    }
-    editorRef.current?.focus();
-    setTimeout(checkState, 0);
-  }, [editorRef, checkState]);
-
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-  }, []);
+  if (embedded) {
+    return panelContent;
+  }
 
   return (
-    <div className="flex items-center gap-1 px-3 py-2 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-      <FmtButton
-        label="Negrita"
-        icon="B"
-        active={boldActive}
-        onMouseDown={handleMouseDown}
-        onClick={() => applyFormat('bold')}
-        className="font-bold"
-      />
-      <FmtButton
-        label="Cursiva"
-        icon="I"
-        active={italicActive}
-        onMouseDown={handleMouseDown}
-        onClick={() => applyFormat('italic')}
-        className="italic"
-      />
-      <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1" />
-      <FmtButton
-        label="Titulo"
-        icon="H"
-        active={headingActive}
-        onMouseDown={handleMouseDown}
-        onClick={() => applyFormat('formatBlock', '<h2>')}
-        className="font-bold text-[11px]"
-      />
-      <FmtButton
-        label="Lista"
-        icon="•"
-        active={listActive}
-        onMouseDown={handleMouseDown}
-        onClick={() => applyFormat('insertUnorderedList')}
-        className="text-lg leading-none"
-      />
+    <div ref={widgetRef} className="contents">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="fixed top-3 right-3 z-[10000] w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 opacity-60 hover:opacity-100"
+        aria-label={isOpen ? 'Cerrar notas' : 'Abrir notas'}
+        title="Notas compartidas"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        </svg>
+      </button>
+
+      {isOpen && panelContent}
     </div>
   );
 };
 
-interface FmtButtonProps {
-  label: string;
-  icon: string;
-  active: boolean;
-  onMouseDown: (e: React.MouseEvent) => void;
-  onClick: () => void;
-  className?: string;
-}
+interface EditorToolbarProps { editor: import('@tiptap/react').Editor | null; }
 
-const FmtButton: React.FC<FmtButtonProps> = ({
-  label,
-  icon,
-  active,
-  onMouseDown,
-  onClick,
-  className = '',
-}) => (
-  <button
-    type="button"
-    onMouseDown={onMouseDown}
-    onClick={onClick}
-    className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${
-      active
-        ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 ring-1 ring-indigo-300 dark:ring-indigo-700'
-        : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300'
-    } ${className}`}
-    aria-label={label}
-    title={label}
-  >
-    {icon}
-  </button>
-);
+const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor }) => {
+  if (!editor) return null;
+
+  return (
+    <div className="flex items-center gap-1 px-3 py-2 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+      <button
+        type="button"
+        onMouseDown={e => e.preventDefault()}
+        onClick={() => editor.chain().focus().toggleBold().run()}
+        className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors font-bold ${
+          editor.isActive('bold') ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 ring-1 ring-indigo-300 dark:ring-indigo-700' : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300'
+        }`}
+        aria-label="Negrita"
+        title="Negrita"
+      >
+        B
+      </button>
+      <button
+        type="button"
+        onMouseDown={e => e.preventDefault()}
+        onClick={() => editor.chain().focus().toggleItalic().run()}
+        className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors italic ${
+          editor.isActive('italic') ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 ring-1 ring-indigo-300 dark:ring-indigo-700' : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300'
+        }`}
+        aria-label="Cursiva"
+        title="Cursiva"
+      >
+        I
+      </button>
+      <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1" />
+      <button
+        type="button"
+        onMouseDown={e => e.preventDefault()}
+        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+        className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors font-bold text-[11px] ${
+          editor.isActive('heading', { level: 2 }) ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 ring-1 ring-indigo-300 dark:ring-indigo-700' : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300'
+        }`}
+        aria-label="Título"
+        title="Título"
+      >
+        H
+      </button>
+      <button
+        type="button"
+        onMouseDown={e => e.preventDefault()}
+        onClick={() => editor.chain().focus().toggleBulletList().run()}
+        className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors text-lg leading-none ${
+          editor.isActive('bulletList') ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 ring-1 ring-indigo-300 dark:ring-indigo-700' : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300'
+        }`}
+        aria-label="Lista"
+        title="Lista"
+      >
+        •
+      </button>
+    </div>
+  );
+};
 
 export default NotesWidget;
