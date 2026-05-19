@@ -11,6 +11,7 @@ import CustomAnalysisModal from './CustomAnalysisModal';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
 import { useClientesManager } from '../hooks/useClientesManager';
 import { useVendedoresManager } from '../hooks/useVendedoresManager';
+import { useWeeklyComments } from '../hooks/useWeeklyComments';
 // @ts-ignore - jspdf types might be tricky
 import { jsPDF } from 'jspdf';
 // @ts-ignore - jspdf-autotable types might be tricky
@@ -204,6 +205,17 @@ const ReportView: React.FC<ReportViewProps> = ({
     
     // Weekly Locks State
     const [weeklyLocks, setWeeklyLocks] = useState<Record<string, boolean>>({});
+
+    // Weekly Comments
+    const { comments: weeklyCommentsAll, saveComment, updateComment, deleteComment } = useWeeklyComments();
+    const commentsByWeek = useMemo(() => {
+        const grouped: Record<string, typeof weeklyCommentsAll> = {};
+        weeklyCommentsAll.forEach(c => {
+            if (!grouped[c.weekKey]) grouped[c.weekKey] = [];
+            grouped[c.weekKey].push(c);
+        });
+        return grouped;
+    }, [weeklyCommentsAll]);
 
     // Fetch weekly locks
     const loadWeeklyLocks = async () => {
@@ -1329,6 +1341,14 @@ const ReportView: React.FC<ReportViewProps> = ({
                             data={processedData.weeklyData}
                             machineKeys={processedData.machineKeys}
                             onToggleLock={handleToggleWeeklyLock}
+                            weeklyComments={commentsByWeek}
+                            onSaveComment={saveComment}
+                            onUpdateComment={updateComment}
+                            onDeleteComment={deleteComment}
+                            currentUserId={(() => {
+                                const saved = localStorage.getItem('pigmea_user');
+                                return saved ? JSON.parse(saved).id : undefined;
+                            })()}
                         />
                     </div>
 

@@ -1,5 +1,7 @@
 import { formatDateDDMMYYYY, formatDecimalHoursToHHMM } from '../utils/date';
 import InfoTooltip from './InfoTooltip';
+import { WeeklyComment } from '../types/weeklyComments';
+import { WeeklyCommentCell } from './WeeklyCommentCell';
 
 export interface WeeklyData {
     week: number;
@@ -22,8 +24,13 @@ export interface WeeklyData {
 
 interface PlanningTableProps {
     data: WeeklyData[];
-    machineKeys: string[]; // List of machine keys to display columns for
+    machineKeys: string[];
     onToggleLock?: (weekKey: string, currentLockState: boolean) => void;
+    weeklyComments?: Record<string, WeeklyComment[]>;
+    onSaveComment?: (weekKey: string, message: string) => Promise<void>;
+    onUpdateComment?: (commentId: string, message: string) => Promise<void>;
+    onDeleteComment?: (commentId: string) => Promise<void>;
+    currentUserId?: string;
 }
 
 const MACHINE_COLUMN_HEADERS: Record<string, string> = {
@@ -52,7 +59,10 @@ const MACHINE_TOOLTIPS: Record<string, string> = {
     'VARIABLES': 'Pedidos con clichés nuevos o cambios pendientes (sin horas confirmadas, compra de cliché o disponibilidad). Estas horas NO restan de la capacidad libre.',
 };
 
-export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys, onToggleLock }) => {
+export const PlanningTable: React.FC<PlanningTableProps> = ({
+    data, machineKeys, onToggleLock,
+    weeklyComments = {}, onSaveComment, onUpdateComment, onDeleteComment, currentUserId
+}) => {
     // Sort machine keys to match desired order: WH-1, VARIABLES, WH-3, GIAVE, DNT
     const desiredOrder = ['Windmöller 1', 'VARIABLES', 'Windmöller 3', 'GIAVE', 'DNT'];
     const sortedKeys = [...machineKeys].sort((a, b) => {
@@ -80,9 +90,6 @@ export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys,
             <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                     <tr>
-                        <th scope="col" className="w-24 py-3.5 pl-4 pr-1 text-center border-r border-gray-200">
-                            {/* Actions */}
-                        </th>
                         <th scope="col" className="py-3.5 pl-3 pr-3 text-left text-sm font-semibold text-gray-900 border-r border-gray-200">
                             Semana
                         </th>
@@ -115,12 +122,33 @@ export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys,
                                 />
                             </div>
                         </th>
+                        <th scope="col" className="w-28 py-3.5 pl-4 pr-1 text-center border-l-2 border-gray-300">
+                            Acciones
+                        </th>
+                        <th scope="col" className="w-36 py-3.5 px-2 text-center border-l border-gray-200">
+                            Notas
+                        </th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
                     {data.map((row) => (
                         <tr key={`${row.year}-${row.week}`} className={row.isLocked ? 'bg-amber-100/50 hover:bg-amber-100/70' : row.freeCapacity < 0 ? 'bg-red-50 hover:bg-red-100/70' : 'hover:bg-gray-50'}>
-                            <td className="whitespace-nowrap py-4 pl-4 pr-1 text-center border-r border-gray-200">
+                            <td className="whitespace-nowrap py-4 pl-3 pr-3 text-sm font-bold text-gray-900 border-r border-gray-200">
+                                {row.label}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 border-r border-gray-200">
+                                {row.dateRange}
+                            </td>
+                            {sortedKeys.map(key => (
+                                <td key={key} className="whitespace-nowrap px-3 py-4 text-sm text-center text-gray-900 border-r border-gray-200 font-mono">
+                                    {formatDecimalHoursToHHMM(row.machines[key])}
+                                </td>
+                            ))}
+                            <td className={`whitespace-nowrap px-3 py-4 text-sm text-center font-bold border-l-2 border-gray-300 font-mono ${row.freeCapacity < 0 ? 'text-red-600 bg-red-100' : 'text-green-600'
+                                }`}>
+                                {formatDecimalHoursToHHMM(row.freeCapacity)}
+                            </td>
+                            <td className="whitespace-nowrap py-4 pl-4 pr-1 text-center border-l-2 border-gray-300">
                                 <button
                                     onClick={() => onToggleLock?.(row.weekKey, !!row.isLocked)}
                                     className={`inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors border ${
@@ -147,27 +175,22 @@ export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys,
                                     )}
                                 </button>
                             </td>
-                            <td className="whitespace-nowrap py-4 pl-3 pr-3 text-sm font-bold text-gray-900 border-r border-gray-200">
-                                {row.label}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 border-r border-gray-200">
-                                {row.dateRange}
-                            </td>
-                            {sortedKeys.map(key => (
-                                <td key={key} className="whitespace-nowrap px-3 py-4 text-sm text-center text-gray-900 border-r border-gray-200 font-mono">
-                                    {formatDecimalHoursToHHMM(row.machines[key])}
-                                </td>
-                            ))}
-                            <td className={`whitespace-nowrap px-3 py-4 text-sm text-center font-bold border-l-2 border-gray-300 font-mono ${row.freeCapacity < 0 ? 'text-red-600 bg-red-100' : 'text-green-600'
-                                }`}>
-                                {formatDecimalHoursToHHMM(row.freeCapacity)}
+                            <td className="whitespace-nowrap py-4 px-2 text-center border-l border-gray-200">
+                                <WeeklyCommentCell
+                                    comments={weeklyComments[row.weekKey] || []}
+                                    onSave={onSaveComment || (() => Promise.resolve())}
+                                    onUpdate={onUpdateComment || (() => Promise.resolve())}
+                                    onDelete={onDeleteComment || (() => Promise.resolve())}
+                                    weekKey={row.weekKey}
+                                    currentUserId={currentUserId}
+                                />
                             </td>
                         </tr>
                     ))}
                 </tbody>
                 <tfoot className="bg-gray-100 font-bold border-t-2 border-gray-300">
                     <tr>
-                        <td colSpan={3} className="py-4 pl-4 pr-3 text-right text-sm text-gray-900 sm:pl-6 border-r border-gray-200">
+                        <td colSpan={2} className="py-4 pl-4 pr-3 text-right text-sm text-gray-900 sm:pl-6 border-r border-gray-200">
                             TOTALES:
                         </td>
                         {sortedKeys.map(key => (
@@ -178,6 +201,8 @@ export const PlanningTable: React.FC<PlanningTableProps> = ({ data, machineKeys,
                         <td className={`px-3 py-4 text-sm text-center border-l-2 border-gray-300 font-mono ${totalFree < 0 ? 'text-red-600' : 'text-green-600'}`}>
                             {formatDecimalHoursToHHMM(totalFree)}
                         </td>
+                        <td className="border-l-2 border-gray-300"></td>
+                        <td className="border-l border-gray-200"></td>
                     </tr>
                 </tfoot>
             </table>

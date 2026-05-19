@@ -98,3 +98,29 @@
     transform: scale(0.8);
   }
 }
+
+/* Placeholder para contentEditable en el widget de notas */
+[contentEditable][data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.dark [contentEditable][data-placeholder]:empty::before {
+  color: #6b7280;
+}
+
+/* Estilos de encabezados dentro del editor de notas */
+.notes-editor h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+  color: inherit;
+}
+
+.notes-editor ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin: 0.25rem 0;
+}

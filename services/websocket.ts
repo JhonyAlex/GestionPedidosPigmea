@@ -20,6 +20,9 @@ export interface WebSocketEvents {
   'user-activity-received': (data: { userId: string; userRole: UserRole; activity: string; data?: any }) => void;
   'comment:added': (comment: any) => void;
   'comment:deleted': (data: { commentId: string; pedidoId: string }) => void;
+  'weekly-comment:added': (comment: any) => void;
+  'weekly-comment:updated': (comment: any) => void;
+  'weekly-comment:deleted': (data: { commentId: string }) => void;
   'cliente-created': (data: { cliente: any; timestamp: string }) => void;
   'cliente-updated': (data: { cliente: any; timestamp: string }) => void;
   'cliente-deleted': (data: { clienteId: string; cliente?: any; timestamp: string }) => void;
@@ -129,6 +132,11 @@ class WebSocketService {
   // Callbacks para comentarios en tiempo real
   private commentAddedListeners: ((comment: any) => void)[] = [];
   private commentDeletedListeners: ((data: { commentId: string; pedidoId: string }) => void)[] = [];
+
+  // Callbacks para comentarios semanales en tiempo real
+  private weeklyCommentAddedListeners: ((comment: any) => void)[] = [];
+  private weeklyCommentUpdatedListeners: ((comment: any) => void)[] = [];
+  private weeklyCommentDeletedListeners: ((data: { commentId: string }) => void)[] = [];
 
   // Callbacks para clientes en tiempo real
   private clienteCreatedListeners: ((data: any) => void)[] = [];
@@ -615,6 +623,22 @@ class WebSocketService {
       this.notifyCommentDeletedListeners(data);
     });
 
+    // Eventos de comentarios semanales
+    this.socket.on('weekly-comment:added', (comment) => {
+      console.log('📝 Comentario semanal agregado:', comment);
+      this.notifyWeeklyCommentAddedListeners(comment);
+    });
+
+    this.socket.on('weekly-comment:updated', (comment) => {
+      console.log('✏️ Comentario semanal actualizado:', comment);
+      this.notifyWeeklyCommentUpdatedListeners(comment);
+    });
+
+    this.socket.on('weekly-comment:deleted', (data) => {
+      console.log('🗑️ Comentario semanal eliminado:', data);
+      this.notifyWeeklyCommentDeletedListeners(data);
+    });
+
     // Eventos de clientes
     this.socket.on('cliente-created', (data) => {
       console.log('👤 Nuevo cliente creado:', data);
@@ -801,6 +825,36 @@ class WebSocketService {
     };
   }
 
+  public subscribeToWeeklyCommentAdded(callback: (comment: any) => void): () => void {
+    this.weeklyCommentAddedListeners.push(callback);
+    return () => {
+      const index = this.weeklyCommentAddedListeners.indexOf(callback);
+      if (index > -1) {
+        this.weeklyCommentAddedListeners.splice(index, 1);
+      }
+    };
+  }
+
+  public subscribeToWeeklyCommentUpdated(callback: (comment: any) => void): () => void {
+    this.weeklyCommentUpdatedListeners.push(callback);
+    return () => {
+      const index = this.weeklyCommentUpdatedListeners.indexOf(callback);
+      if (index > -1) {
+        this.weeklyCommentUpdatedListeners.splice(index, 1);
+      }
+    };
+  }
+
+  public subscribeToWeeklyCommentDeleted(callback: (data: { commentId: string }) => void): () => void {
+    this.weeklyCommentDeletedListeners.push(callback);
+    return () => {
+      const index = this.weeklyCommentDeletedListeners.indexOf(callback);
+      if (index > -1) {
+        this.weeklyCommentDeletedListeners.splice(index, 1);
+      }
+    };
+  }
+
   // Métodos de suscripción para clientes
   public subscribeToClienteCreated(callback: (data: any) => void): () => void {
     this.clienteCreatedListeners.push(callback);
@@ -902,6 +956,18 @@ class WebSocketService {
 
   private notifyCommentDeletedListeners(data: { commentId: string; pedidoId: string }) {
     this.commentDeletedListeners.forEach(listener => listener(data));
+  }
+
+  private notifyWeeklyCommentAddedListeners(comment: any) {
+    this.weeklyCommentAddedListeners.forEach(listener => listener(comment));
+  }
+
+  private notifyWeeklyCommentUpdatedListeners(comment: any) {
+    this.weeklyCommentUpdatedListeners.forEach(listener => listener(comment));
+  }
+
+  private notifyWeeklyCommentDeletedListeners(data: { commentId: string }) {
+    this.weeklyCommentDeletedListeners.forEach(listener => listener(data));
   }
 
   private notifyClienteCreatedListeners(data: any) {

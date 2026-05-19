@@ -520,6 +520,126 @@ app.post('/api/planning/weekly-locks', requireAuth, async (req, res) => {
     }
 });
 
+// ============================================================================
+// Weekly Comments Endpoints
+// ============================================================================
+
+const weeklyCommentCheckTable = `
+    SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'limpio' AND table_name = 'weekly_comments'
+    );
+`;
+
+app.get('/api/planning/weekly-comments', requireAuth, async (req, res) => {
+    try {
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({ error: 'Base de datos no disponible' });
+        }
+        const checkResult = await dbClient.pool.query(weeklyCommentCheckTable);
+        if (!checkResult.rows[0].exists) return res.json({ comments: [] });
+
+        const { weekKey } = req.query;
+        const query = weekKey 
+            ? 'SELECT * FROM limpio.weekly_comments WHERE week_key = $1 ORDER BY created_at ASC'
+            : 'SELECT * FROM limpio.weekly_comments ORDER BY week_key, created_at ASC';
+        const result = await dbClient.pool.query(query, weekKey ? [weekKey] : []);
+        res.json({ comments: result.rows.map(rowToWeeklyComment) });
+    } catch (error) {
+        console.error('Error al obtener weekly_comments:', error);
+        res.status(500).json({ error: 'Error al obtener comentarios semanales' });
+    }
+});
+
+app.post('/api/planning/weekly-comments', requireAuth, async (req, res) => {
+    try {
+        const { weekKey, message, userId, username, userRole } = req.body;
+        if (!weekKey || !message?.trim()) {
+            return res.status(400).json({ error: 'weekKey y message son requeridos' });
+        }
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({ error: 'Base de datos no disponible' });
+        }
+
+        const query = `
+            INSERT INTO limpio.weekly_comments (week_key, user_id, username, user_role, message)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING *
+        `;
+        const result = await dbClient.pool.query(query, [weekKey, userId, username, userRole, message.trim()]);
+        const comment = rowToWeeklyComment(result.rows[0]);
+
+        io.emit('weekly-comment:added', comment);
+        res.json({ comment });
+    } catch (error) {
+        console.error('Error al crear weekly_comment:', error);
+        res.status(500).json({ error: 'Error al crear comentario semanal' });
+    }
+});
+
+app.put('/api/planning/weekly-comments/:id', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { message } = req.body;
+        if (!message?.trim()) {
+            return res.status(400).json({ error: 'message es requerido' });
+        }
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({ error: 'Base de datos no disponible' });
+        }
+
+        const query = `
+            UPDATE limpio.weekly_comments 
+            SET message = $1, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $2
+            RETURNING *
+        `;
+        const result = await dbClient.pool.query(query, [message.trim(), id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Comentario no encontrado' });
+        }
+        const comment = rowToWeeklyComment(result.rows[0]);
+        io.emit('weekly-comment:updated', comment);
+        res.json({ comment });
+    } catch (error) {
+        console.error('Error al actualizar weekly_comment:', error);
+        res.status(500).json({ error: 'Error al actualizar comentario semanal' });
+    }
+});
+
+app.delete('/api/planning/weekly-comments/:id', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({ error: 'Base de datos no disponible' });
+        }
+
+        const result = await dbClient.pool.query('DELETE FROM limpio.weekly_comments WHERE id = $1 RETURNING id', [id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Comentario no encontrado' });
+        }
+        io.emit('weekly-comment:deleted', { commentId: id });
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error al eliminar weekly_comment:', error);
+        res.status(500).json({ error: 'Error al eliminar comentario semanal' });
+    }
+});
+
+// Helper: convertir fila de BD a objeto WeeklyComment
+function rowToWeeklyComment(row) {
+    return {
+        id: row.id,
+        weekKey: row.week_key,
+        userId: row.user_id,
+        username: row.username || '',
+        userRole: row.user_role || '',
+        message: row.message,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+    };
+}
+
 // TEMPORAL: Debug endpoint para consultar usuarios
 app.get('/api/debug/users', async (req, res) => {
     try {

@@ -597,6 +597,26 @@ class MigrationManager {
                 );
             `
         });
+
+        // Migración 023: Weekly Comments
+        this.migrations.push({
+            id: '023-weekly-comments',
+            name: 'Crear tabla weekly_comments para notas semanales',
+            sql: `
+                CREATE TABLE IF NOT EXISTS limpio.weekly_comments (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    week_key VARCHAR(10) NOT NULL,
+                    user_id UUID,
+                    username VARCHAR(255),
+                    user_role VARCHAR(50),
+                    message TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE INDEX IF NOT EXISTS idx_weekly_comments_week_key ON limpio.weekly_comments(week_key);
+                CREATE INDEX IF NOT EXISTS idx_weekly_comments_created_at ON limpio.weekly_comments(created_at DESC);
+            `
+        });
     }
 
     /**
