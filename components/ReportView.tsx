@@ -208,7 +208,15 @@ const ReportView: React.FC<ReportViewProps> = ({
     // Fetch weekly locks
     const loadWeeklyLocks = async () => {
         try {
-            const response = await fetch('/api/planning/weekly-locks');
+            const savedUser = localStorage.getItem('pigmea_user');
+            const user = savedUser ? JSON.parse(savedUser) : null;
+
+            const response = await fetch('/api/planning/weekly-locks', {
+                headers: {
+                    'x-user-id': user?.id || '',
+                    'x-user-role': user?.role || 'OPERATOR'
+                }
+            });
             if (response.ok) {
                 const data = await response.json();
                 setWeeklyLocks(data);
@@ -228,10 +236,15 @@ const ReportView: React.FC<ReportViewProps> = ({
         }));
 
         try {
+            const savedUser = localStorage.getItem('pigmea_user');
+            const user = savedUser ? JSON.parse(savedUser) : null;
+
             const response = await fetch('/api/planning/weekly-locks', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'x-user-id': user?.id || '',
+                    'x-user-role': user?.role || 'OPERATOR'
                 },
                 body: JSON.stringify({ weekKey, isLocked: newLockState })
             });
