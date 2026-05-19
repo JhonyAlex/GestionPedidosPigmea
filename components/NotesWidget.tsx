@@ -50,9 +50,9 @@ const NotesWidget: React.FC = () => {
 
   const [isOpen, setIsOpen] = useState(() => {
     try {
-      return localStorage.getItem(WIDGET_KEY) !== 'true';
+      return localStorage.getItem(WIDGET_KEY) === 'open';
     } catch {
-      return true;
+      return false;
     }
   });
 
@@ -62,6 +62,8 @@ const NotesWidget: React.FC = () => {
 
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const widgetRef = useRef<HTMLDivElement>(null);
 
   const activeNote = notes.find((n) => n.id === activeNoteId) || null;
 
@@ -78,10 +80,25 @@ const NotesWidget: React.FC = () => {
 
   useEffect(() => {
     try {
-      localStorage.setItem(WIDGET_KEY, String(!isOpen));
+      localStorage.setItem(WIDGET_KEY, isOpen ? 'open' : 'closed');
     } catch {
       /* noop */
     }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const panel = panelRef.current;
+      const toggle = widgetRef.current;
+      if (panel && !panel.contains(e.target as Node) && toggle && !toggle.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
   useEffect(() => {
@@ -208,24 +225,20 @@ const NotesWidget: React.FC = () => {
   if (error) return null;
 
   return (
-    <>
+    <div ref={widgetRef} className="contents">
       {/* Toggle Button */}
       <button
         onClick={handleToggle}
-        className={`fixed z-[10000] w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105 ${
-          isOpen
-            ? 'bottom-4 right-4'
-            : 'top-4 right-4'
-        } bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600`}
+        className="fixed top-3 right-3 z-[10000] w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 opacity-60 hover:opacity-100"
         aria-label={isOpen ? 'Cerrar notas' : 'Abrir notas'}
         title="Notas"
       >
         <svg
-          className="w-5 h-5"
+          className="w-4 h-4"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
-          strokeWidth={2}
+          strokeWidth={1.5}
         >
           <path
             strokeLinecap="round"
@@ -237,7 +250,7 @@ const NotesWidget: React.FC = () => {
 
       {/* Widget Panel */}
       {isOpen && (
-        <div className="fixed top-14 right-4 z-[10000] w-96 max-h-[85vh] bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden transition-all duration-200">
+        <div ref={panelRef} className="fixed top-14 right-4 z-[10000] w-96 max-h-[85vh] bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden transition-all duration-200">
           {/* Notification */}
           {notification && (
             <div
@@ -366,26 +379,30 @@ const NotesWidget: React.FC = () => {
                 <ToolbarButton
                   label="Negrita"
                   icon="B"
-                  onClick={() => execCommand('bold')}
+                  command="bold"
+                  editorRef={editorRef}
                   className="font-bold"
                 />
                 <ToolbarButton
                   label="Cursiva"
                   icon="I"
-                  onClick={() => execCommand('italic')}
+                  command="italic"
+                  editorRef={editorRef}
                   className="italic"
                 />
                 <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1" />
                 <ToolbarButton
                   label="Titulo"
                   icon="H"
-                  onClick={() => execCommand('formatBlock', '<h2>')}
+                  command="heading"
+                  editorRef={editorRef}
                   className="font-bold text-[11px]"
                 />
                 <ToolbarButton
                   label="Lista"
                   icon="•"
-                  onClick={() => execCommand('insertUnorderedList')}
+                  command="insertUnorderedList"
+                  editorRef={editorRef}
                   className="text-sm"
                 />
               </div>
@@ -396,6 +413,8 @@ const NotesWidget: React.FC = () => {
                 contentEditable
                 suppressContentEditableWarning
                 onInput={handleEditorInput}
+                onMouseUp={handleEditorInput}
+                onKeyUp={handleEditorInput}
                 onKeyDown={handleEditorKeyDown}
                 className="flex-1 min-h-[300px] max-h-[50vh] overflow-y-auto px-4 py-3 text-sm text-gray-800 dark:text-gray-200 outline-none prose prose-sm dark:prose-invert max-w-none
                   prose-headings:font-semibold prose-headings:text-gray-900 dark:prose-headings:text-gray-100
@@ -431,32 +450,73 @@ const NotesWidget: React.FC = () => {
           )}
         </div>
       )}
-    </>
+    </div>
   );
 };
 
 interface ToolbarButtonProps {
   label: string;
   icon: string;
-  onClick: () => void;
+  command: 'bold' | 'italic' | 'heading' | 'insertUnorderedList';
+  editorRef: React.RefObject<HTMLDivElement | null>;
   className?: string;
 }
 
 const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   label,
   icon,
-  onClick,
+  command,
+  editorRef,
   className = '',
-}) => (
-  <button
-    onClick={onClick}
-    className={`w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition-colors ${className}`}
-    aria-label={label}
-    title={label}
-    tabIndex={-1}
-  >
-    {icon}
-  </button>
-);
+}) => {
+  const [isActive, setIsActive] = useState(false);
+
+  const checkState = useCallback(() => {
+    if (command === 'heading') {
+      const block = document.queryCommandValue('formatBlock');
+      setIsActive(block === 'h2' || block === '<h2>');
+    } else {
+      setIsActive(document.queryCommandState(command));
+    }
+  }, [command]);
+
+  const handleClick = useCallback(() => {
+    editorRef.current?.focus();
+    if (command === 'heading') {
+      const block = document.queryCommandValue('formatBlock');
+      if (block === 'h2' || block === '<h2>') {
+        document.execCommand('formatBlock', false, '<p>');
+      } else {
+        document.execCommand('formatBlock', false, '<h2>');
+      }
+    } else {
+      document.execCommand(command, false);
+    }
+    setTimeout(checkState, 10);
+  }, [command, editorRef, checkState]);
+
+  useEffect(() => {
+    checkState();
+    document.addEventListener('selectionchange', checkState);
+    return () => document.removeEventListener('selectionchange', checkState);
+  }, [checkState]);
+
+  return (
+    <button
+      type="button"
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={handleClick}
+      className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${
+        isActive
+          ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300'
+          : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300'
+      } ${className}`}
+      aria-label={label}
+      title={label}
+    >
+      {icon}
+    </button>
+  );
+};
 
 export default NotesWidget;
