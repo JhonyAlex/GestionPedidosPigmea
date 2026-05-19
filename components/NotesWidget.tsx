@@ -39,13 +39,29 @@ function createEmptyNote(): Note {
   };
 }
 
+function saveSelection(): Range | null {
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount > 0) {
+    return sel.getRangeAt(0).cloneRange();
+  }
+  return null;
+}
+
+function restoreSelection(range: Range | null) {
+  if (range) {
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  }
+}
+
 type Notification = {
   message: string;
   type: 'success' | 'error' | 'info';
 };
 
 const NotesWidget: React.FC = () => {
-  const { notes, loading, error, debouncedSave, deleteNote, importNotes, exportNotes } =
+  const { notes, loading, error, scheduleSave, flushSave, createNote, deleteNote, importNotes, exportNotes } =
     useNotesDB();
 
   const [isOpen, setIsOpen] = useState(() => {
@@ -64,6 +80,7 @@ const NotesWidget: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const widgetRef = useRef<HTMLDivElement>(null);
+  const skipContentSyncRef = useRef(false);
 
   const activeNote = notes.find((n) => n.id === activeNoteId) || null;
 
@@ -71,6 +88,11 @@ const NotesWidget: React.FC = () => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
   }, []);
+
+  const closeWidget = useCallback(() => {
+    flushSave();
+    setIsOpen(false);
+  }, [flushSave]);
 
   useEffect(() => {
     if (!isOpen && notes.length > 0 && !activeNoteId) {
@@ -93,30 +115,48 @@ const NotesWidget: React.FC = () => {
       const panel = panelRef.current;
       const toggle = widgetRef.current;
       if (panel && !panel.contains(e.target as Node) && toggle && !toggle.contains(e.target as Node)) {
-        setIsOpen(false);
+        closeWidget();
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
+  }, [isOpen, closeWidget]);
 
   useEffect(() => {
-    if (editorRef.current && activeNote) {
-      if (editorRef.current.innerHTML !== activeNote.content) {
-        editorRef.current.innerHTML = activeNote.content;
-      }
+    if (!editorRef.current || !activeNote) return;
+    if (skipContentSyncRef.current) {
+      skipContentSyncRef.current = false;
+      return;
     }
-  }, [activeNoteId]);
+    if (editorRef.current.innerHTML !== activeNote.content) {
+      editorRef.current.innerHTML = activeNote.content;
+    }
+  }, [activeNoteId, activeNote]);
 
   const handleCreateNote = useCallback(() => {
+    flushSave();
     const newNote = createEmptyNote();
-    debouncedSave(newNote);
+    createNote(newNote);
+    skipContentSyncRef.current = true;
     setActiveNoteId(newNote.id);
-  }, [debouncedSave]);
+    setTimeout(() => {
+      if (editorRef.current) editorRef.current.innerHTML = '';
+      editorRef.current?.focus();
+    }, 50);
+  }, [flushSave, createNote]);
+
+  const handleSwitchNote = useCallback(
+    (id: string) => {
+      flushSave();
+      setActiveNoteId(id);
+    },
+    [flushSave]
+  );
 
   const handleDeleteNote = useCallback(
     (id: string) => {
+      flushSave();
       deleteNote(id);
       setConfirmDelete(null);
 
@@ -127,16 +167,19 @@ const NotesWidget: React.FC = () => {
 
       notify('Nota eliminada', 'success');
     },
-    [deleteNote, activeNoteId, notes, debouncedSave, notify]
+    [flushSave, deleteNote, activeNoteId, notes, notify]
   );
 
   const handleEditorInput = useCallback(() => {
-    if (editorRef.current && activeNote) {
+    if (editorRef.current && activeNoteId) {
       const content = editorRef.current.innerHTML;
-      const updatedNote = { ...activeNote, content };
-      debouncedSave(updatedNote);
+      scheduleSave(activeNoteId, content);
     }
-  }, [activeNote, debouncedSave]);
+  }, [activeNoteId, scheduleSave]);
+
+  const handleEditorBlur = useCallback(() => {
+    flushSave();
+  }, [flushSave]);
 
   const handleEditorKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -147,11 +190,6 @@ const NotesWidget: React.FC = () => {
     },
     []
   );
-
-  const execCommand = useCallback((command: string, value?: string) => {
-    document.execCommand(command, false, value);
-    editorRef.current?.focus();
-  }, []);
 
   const handleExport = useCallback(() => {
     const data = exportNotes();
@@ -202,11 +240,8 @@ const NotesWidget: React.FC = () => {
             return;
           }
 
-          const result = importNotes(validNotes);
-          notify(
-            `${result.imported} nota(s) importada(s)${result.skipped > 0 ? `, ${result.skipped} duplicada(s) saltada(s)` : ''}`,
-            'success'
-          );
+          importNotes(validNotes);
+          notify(`${validNotes.length} nota(s) importada(s)`, 'success');
         } catch {
           notify('Error al leer el archivo', 'error');
         }
@@ -218,8 +253,18 @@ const NotesWidget: React.FC = () => {
   );
 
   const handleToggle = useCallback(() => {
-    setIsOpen((prev) => !prev);
-  }, []);
+    if (isOpen) {
+      closeWidget();
+    } else {
+      setIsOpen(true);
+    }
+  }, [isOpen, closeWidget]);
+
+  useEffect(() => {
+    return () => {
+      flushSave();
+    };
+  }, [flushSave]);
 
   if (loading) return null;
   if (error) return null;
@@ -314,7 +359,7 @@ const NotesWidget: React.FC = () => {
                       ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border-b-2 border-indigo-600 dark:border-indigo-400'
                       : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                   }`}
-                  onClick={() => setActiveNoteId(note.id)}
+                  onClick={() => handleSwitchNote(note.id)}
                 >
                   <span className="truncate">{getTabName(note.content)}</span>
                   <button
@@ -375,37 +420,7 @@ const NotesWidget: React.FC = () => {
           {activeNote ? (
             <div className="flex flex-col flex-1 min-h-0">
               {/* Toolbar */}
-              <div className="flex items-center gap-1 px-3 py-2 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                <ToolbarButton
-                  label="Negrita"
-                  icon="B"
-                  command="bold"
-                  editorRef={editorRef}
-                  className="font-bold"
-                />
-                <ToolbarButton
-                  label="Cursiva"
-                  icon="I"
-                  command="italic"
-                  editorRef={editorRef}
-                  className="italic"
-                />
-                <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1" />
-                <ToolbarButton
-                  label="Titulo"
-                  icon="H"
-                  command="heading"
-                  editorRef={editorRef}
-                  className="font-bold text-[11px]"
-                />
-                <ToolbarButton
-                  label="Lista"
-                  icon="•"
-                  command="insertUnorderedList"
-                  editorRef={editorRef}
-                  className="text-sm"
-                />
-              </div>
+              <Toolbar editorRef={editorRef} />
 
               {/* Content Editable */}
               <div
@@ -413,8 +428,7 @@ const NotesWidget: React.FC = () => {
                 contentEditable
                 suppressContentEditableWarning
                 onInput={handleEditorInput}
-                onMouseUp={handleEditorInput}
-                onKeyUp={handleEditorInput}
+                onBlur={handleEditorBlur}
                 onKeyDown={handleEditorKeyDown}
                 className="flex-1 min-h-[300px] max-h-[50vh] overflow-y-auto px-4 py-3 text-sm text-gray-800 dark:text-gray-200 outline-none prose prose-sm dark:prose-invert max-w-none
                   prose-headings:font-semibold prose-headings:text-gray-900 dark:prose-headings:text-gray-100
@@ -454,69 +468,120 @@ const NotesWidget: React.FC = () => {
   );
 };
 
-interface ToolbarButtonProps {
-  label: string;
-  icon: string;
-  command: 'bold' | 'italic' | 'heading' | 'insertUnorderedList';
+interface ToolbarProps {
   editorRef: React.RefObject<HTMLDivElement | null>;
-  className?: string;
 }
 
-const ToolbarButton: React.FC<ToolbarButtonProps> = ({
-  label,
-  icon,
-  command,
-  editorRef,
-  className = '',
-}) => {
-  const [isActive, setIsActive] = useState(false);
+const Toolbar: React.FC<ToolbarProps> = ({ editorRef }) => {
+  const [boldActive, setBoldActive] = useState(false);
+  const [italicActive, setItalicActive] = useState(false);
+  const [headingActive, setHeadingActive] = useState(false);
+  const [listActive, setListActive] = useState(false);
 
   const checkState = useCallback(() => {
-    if (command === 'heading') {
-      const block = document.queryCommandValue('formatBlock');
-      setIsActive(block === 'h2' || block === '<h2>');
-    } else {
-      setIsActive(document.queryCommandState(command));
-    }
-  }, [command]);
+    if (!editorRef.current) return;
+    setBoldActive(document.queryCommandState('bold'));
+    setItalicActive(document.queryCommandState('italic'));
+    setListActive(document.queryCommandState('insertUnorderedList'));
 
-  const handleClick = useCallback(() => {
-    editorRef.current?.focus();
-    if (command === 'heading') {
-      const block = document.queryCommandValue('formatBlock');
-      if (block === 'h2' || block === '<h2>') {
-        document.execCommand('formatBlock', false, '<p>');
-      } else {
-        document.execCommand('formatBlock', false, '<h2>');
-      }
-    } else {
-      document.execCommand(command, false);
-    }
-    setTimeout(checkState, 10);
-  }, [command, editorRef, checkState]);
+    const block = document.queryCommandValue('formatBlock');
+    const isHeading = block === 'h2' || block === 'H2' || block === '<h2>' || block === '<H2>';
+    setHeadingActive(isHeading);
+  }, [editorRef]);
 
   useEffect(() => {
-    checkState();
     document.addEventListener('selectionchange', checkState);
     return () => document.removeEventListener('selectionchange', checkState);
   }, [checkState]);
 
+  const applyFormat = useCallback((cmd: string, value?: string) => {
+    if (cmd === 'formatBlock' && value === '<h2>') {
+      const block = document.queryCommandValue('formatBlock');
+      const isHeading = block === 'h2' || block === 'H2' || block === '<h2>' || block === '<H2>';
+      const actualCmd = isHeading ? 'formatBlock' : 'formatBlock';
+      const actualValue = isHeading ? '<p>' : '<h2>';
+      document.execCommand(actualCmd, false, actualValue);
+    } else {
+      document.execCommand(cmd, false, value);
+    }
+    editorRef.current?.focus();
+    setTimeout(checkState, 0);
+  }, [editorRef, checkState]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+  }, []);
+
   return (
-    <button
-      type="button"
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={handleClick}
-      className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${
-        isActive
-          ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300'
-          : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300'
-      } ${className}`}
-      aria-label={label}
-      title={label}
-    >
-      {icon}
-    </button>
+    <div className="flex items-center gap-1 px-3 py-2 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+      <FmtButton
+        label="Negrita"
+        icon="B"
+        active={boldActive}
+        onMouseDown={handleMouseDown}
+        onClick={() => applyFormat('bold')}
+        className="font-bold"
+      />
+      <FmtButton
+        label="Cursiva"
+        icon="I"
+        active={italicActive}
+        onMouseDown={handleMouseDown}
+        onClick={() => applyFormat('italic')}
+        className="italic"
+      />
+      <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1" />
+      <FmtButton
+        label="Titulo"
+        icon="H"
+        active={headingActive}
+        onMouseDown={handleMouseDown}
+        onClick={() => applyFormat('formatBlock', '<h2>')}
+        className="font-bold text-[11px]"
+      />
+      <FmtButton
+        label="Lista"
+        icon="•"
+        active={listActive}
+        onMouseDown={handleMouseDown}
+        onClick={() => applyFormat('insertUnorderedList')}
+        className="text-lg leading-none"
+      />
+    </div>
   );
 };
+
+interface FmtButtonProps {
+  label: string;
+  icon: string;
+  active: boolean;
+  onMouseDown: (e: React.MouseEvent) => void;
+  onClick: () => void;
+  className?: string;
+}
+
+const FmtButton: React.FC<FmtButtonProps> = ({
+  label,
+  icon,
+  active,
+  onMouseDown,
+  onClick,
+  className = '',
+}) => (
+  <button
+    type="button"
+    onMouseDown={onMouseDown}
+    onClick={onClick}
+    className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${
+      active
+        ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 ring-1 ring-indigo-300 dark:ring-indigo-700'
+        : 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300'
+    } ${className}`}
+    aria-label={label}
+    title={label}
+  >
+    {icon}
+  </button>
+);
 
 export default NotesWidget;

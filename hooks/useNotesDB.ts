@@ -65,7 +65,8 @@ export function useNotesDB() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const dbRef = useRef<IDBDatabase | null>(null);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingContentRef = useRef<Map<string, string>>(new Map());
 
   useEffect(() => {
     openDB()
@@ -83,45 +84,71 @@ export function useNotesDB() {
       });
 
     return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (pendingSaveRef.current) clearTimeout(pendingSaveRef.current);
     };
   }, []);
 
-  const saveNote = useCallback(
-    (note: Note) => {
-      if (!dbRef.current) return;
-      const updatedNote = { ...note, updatedAt: Date.now() };
+  const flushSave = useCallback(() => {
+    if (!dbRef.current) return;
+    if (pendingSaveRef.current) {
+      clearTimeout(pendingSaveRef.current);
+      pendingSaveRef.current = null;
+    }
 
-      saveNoteToDB(dbRef.current, updatedNote)
-        .then(() => {
-          setNotes((prev) => {
-            const existing = prev.find((n) => n.id === updatedNote.id);
-            if (existing) {
-              return prev
-                .map((n) => (n.id === updatedNote.id ? updatedNote : n))
-                .sort((a, b) => b.updatedAt - a.updatedAt);
-            }
-            return [updatedNote, ...prev].sort(
-              (a, b) => b.updatedAt - a.updatedAt
-            );
-          });
-        })
-        .catch((err) => console.error('Error al guardar nota:', err));
+    const pending = pendingContentRef.current;
+    if (pending.size === 0) return;
+
+    setNotes((prev) => {
+      const notesMap = new Map(prev.map((n) => [n.id, n]));
+      let changed = false;
+
+      pending.forEach((content, id) => {
+        const existing = notesMap.get(id);
+        if (existing) {
+          const updated = { ...existing, content, updatedAt: Date.now() };
+          notesMap.set(id, updated);
+          saveNoteToDB(dbRef.current!, updated).catch((err) =>
+            console.error('Error al guardar nota:', err)
+          );
+          changed = true;
+        }
+      });
+
+      pending.clear();
+      return changed
+        ? Array.from(notesMap.values()).sort((a, b) => b.updatedAt - a.updatedAt)
+        : prev;
+    });
+  }, []);
+
+  const scheduleSave = useCallback(
+    (noteId: string, content: string) => {
+      pendingContentRef.current.set(noteId, content);
+
+      if (pendingSaveRef.current) clearTimeout(pendingSaveRef.current);
+      pendingSaveRef.current = setTimeout(() => {
+        pendingSaveRef.current = null;
+        flushSave();
+      }, 400);
     },
-    []
+    [flushSave]
   );
 
-  const debouncedSave = useCallback(
-    (note: Note) => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = setTimeout(() => saveNote(note), 500);
-    },
-    [saveNote]
-  );
+  const createNote = useCallback((note: Note) => {
+    if (!dbRef.current) return;
+    const tx = dbRef.current.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    store.put(note);
+
+    tx.oncomplete = () => {
+      setNotes((prev) => [note, ...prev].sort((a, b) => b.updatedAt - a.updatedAt));
+    };
+  }, []);
 
   const deleteNote = useCallback(
     (id: string) => {
       if (!dbRef.current) return;
+      pendingContentRef.current.delete(id);
 
       deleteNoteFromDB(dbRef.current, id)
         .then(() => {
@@ -133,51 +160,32 @@ export function useNotesDB() {
   );
 
   const importNotes = useCallback((importedNotes: Note[]) => {
-    if (!dbRef.current) return;
+    if (!dbRef.current) return { imported: 0, skipped: 0 };
     const db = dbRef.current;
 
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    let imported = 0;
-    let skipped = 0;
-
-    const existingIds = new Set(
-      tx.objectStoreNames.contains(STORE_NAME) ? [] : []
-    );
-
-    const loadExisting = new Promise<void>((resolve) => {
-      const req = store.getAll();
-      req.onsuccess = () => {
-        req.result.forEach((n: Note) => existingIds.add(n.id));
-        resolve();
-      };
-      req.onerror = () => resolve();
-    });
-
-    loadExisting.then(() => {
-      const notesToAdd = importedNotes.filter(
-        (n) => !existingIds.has(n.id)
-      );
-      skipped = importedNotes.length - notesToAdd.length;
+    getAllNotes(db).then((existingNotes) => {
+      const existingIds = new Set(existingNotes.map((n) => n.id));
+      const notesToAdd = importedNotes.filter((n) => !existingIds.has(n.id));
+      const skipped = importedNotes.length - notesToAdd.length;
 
       if (notesToAdd.length === 0) {
-        setNotes((prev) => prev.sort((a, b) => b.updatedAt - a.updatedAt));
         return { imported: 0, skipped };
       }
 
-      notesToAdd.forEach((note) => {
-        store.put(note);
-        imported++;
-      });
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      notesToAdd.forEach((note) => store.put(note));
 
       tx.oncomplete = () => {
         getAllNotes(db).then((all) => {
           setNotes(all.sort((a, b) => b.updatedAt - a.updatedAt));
         });
       };
+
+      return { imported: notesToAdd.length, skipped };
     });
 
-    return { imported, skipped };
+    return { imported: importedNotes.length, skipped: 0 };
   }, []);
 
   const exportNotes = useCallback((): Note[] => {
@@ -188,8 +196,9 @@ export function useNotesDB() {
     notes,
     loading,
     error,
-    saveNote,
-    debouncedSave,
+    scheduleSave,
+    flushSave,
+    createNote,
     deleteNote,
     importNotes,
     exportNotes,
