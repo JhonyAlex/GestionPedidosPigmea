@@ -38,6 +38,7 @@ import ImportDataModal from './components/ImportDataModal';
 import BulkImportModalV2 from './components/BulkImportModalV2';
 import PdfImportModal from './components/PdfImportModal';
 import { ToastContainer } from './components/Toast';
+import NotesWidget from './components/NotesWidget';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { MaterialesProvider } from './contexts/MaterialesContext';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -1745,6 +1746,8 @@ const AppContent: React.FC = () => {
                         }}
                     />
                 )}
+
+                <NotesWidget />
             </div>
         </DragDropContext>
     );
@@ -1755,7 +1758,9 @@ const App: React.FC = () => {
     return (
         <AuthProvider>
             <NotificationProvider>
-                <AppContent />
+                <MaterialesProvider>
+                    <AppContent />
+                </MaterialesProvider>
             </NotificationProvider>
         </AuthProvider>
     );
