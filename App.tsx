@@ -34,6 +34,7 @@ import BulkArchiveConfirmationModal from './components/BulkArchiveConfirmationMo
 import BulkDateUpdateModal from './components/BulkDateUpdateModal';
 import BulkMachineUpdateModal from './components/BulkMachineUpdateModal';
 import BulkStageUpdateModal from './components/BulkStageUpdateModal';
+import BulkClicheUpdateModal from './components/BulkClicheUpdateModal';
 import ImportDataModal from './components/ImportDataModal';
 import BulkImportModalV2 from './components/BulkImportModalV2';
 import PdfImportModal from './components/PdfImportModal';
@@ -115,6 +116,7 @@ const AppContent: React.FC = () => {
     const [showDateUpdateModal, setShowDateUpdateModal] = useState(false);
     const [showMachineUpdateModal, setShowMachineUpdateModal] = useState(false);
     const [showStageUpdateModal, setShowStageUpdateModal] = useState(false);
+    const [showClicheUpdateModal, setShowClicheUpdateModal] = useState(false);
 
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
         if (typeof window !== 'undefined' && localStorage.theme) {
@@ -1192,6 +1194,52 @@ const AppContent: React.FC = () => {
         }
     };
 
+    const handleBulkUpdateCliche = async (clicheDisponible: boolean, estadoCliche?: EstadoCliché) => {
+        const ids = [...selectedIds];
+        const pedidosSeleccionados = pedidos.filter(p => ids.includes(p.id));
+
+        const generarHistorialEntry = () => ({
+            timestamp: new Date().toISOString(),
+            usuario: user?.displayName || user?.username || currentUserRole,
+            accion: 'Actualización masiva de Cliché',
+            detalles: `Cliché disponible: ${clicheDisponible ? 'Sí' : 'No'}${estadoCliche ? `, Estado: ${estadoCliche}` : ''}`
+        });
+
+        try {
+            let updatedCount = 0;
+            for (const pedido of pedidosSeleccionados) {
+                if (pedido.clicheDisponible === clicheDisponible && (!estadoCliche || pedido.estadoCliché === estadoCliche)) continue;
+
+                const updatedPedido = {
+                    ...pedido,
+                    clicheDisponible,
+                    estadoCliché: estadoCliche ?? pedido.estadoCliché,
+                    historial: [...(pedido.historial || []), generarHistorialEntry()]
+                };
+
+                const result = await handleSavePedidoLogic(updatedPedido);
+                if (result?.hasChanges) updatedCount++;
+            }
+
+            if (updatedCount > 0) {
+                logAction(`${updatedCount} pedidos actualizados con estado de cliché en operación masiva.`);
+                emitActivity('bulk-cliche-update', {
+                    count: updatedCount,
+                    pedidoIds: ids,
+                    clicheDisponible,
+                    estadoCliché: estadoCliché || null
+                });
+            }
+
+            alert(`✅ ${updatedCount} ${updatedCount === 1 ? 'pedido actualizado' : 'pedidos actualizados'} con estado de cliché.`);
+        } catch (error) {
+            console.error('Error al actualizar cliché masivamente:', error);
+            alert('Error al actualizar cliché. Revisa la consola para más detalles.');
+        } finally {
+            setShowClicheUpdateModal(false);
+        }
+    };
+
     const handleBulkArchive = async () => {
         const ids = [...selectedIds];
         const result = await bulkArchive(ids, true);
@@ -1568,6 +1616,7 @@ const AppContent: React.FC = () => {
                             onUpdateDate={() => setShowDateUpdateModal(true)}
                             onUpdateMachine={() => setShowMachineUpdateModal(true)}
                             onUpdateStage={() => setShowStageUpdateModal(true)}
+                            onUpdateCliche={() => setShowClicheUpdateModal(true)}
                             onDelete={() => setShowDeleteModal(true)}
                             onArchive={() => setShowArchiveModal(true)}
                             onCancel={clearSelection}
@@ -1714,6 +1763,13 @@ const AppContent: React.FC = () => {
                     pedidos={pedidos.filter(p => selectedIds.includes(p.id))}
                     onConfirm={handleBulkUpdateStage}
                     onCancel={() => setShowStageUpdateModal(false)}
+                />
+
+                <BulkClicheUpdateModal
+                    isOpen={showClicheUpdateModal}
+                    pedidos={pedidos.filter(p => selectedIds.includes(p.id))}
+                    onConfirm={handleBulkUpdateCliche}
+                    onCancel={() => setShowClicheUpdateModal(false)}
                 />
 
                 <ImportDataModal

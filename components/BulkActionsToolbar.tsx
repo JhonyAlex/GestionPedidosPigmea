@@ -5,6 +5,7 @@ interface BulkActionsToolbarProps {
   onUpdateDate: () => void;
   onUpdateMachine: () => void;
   onUpdateStage: () => void;
+  onUpdateCliche: () => void;
   onDelete: () => void;
   onArchive: () => void;
   onCancel: () => void;
@@ -26,6 +27,13 @@ const MachineIcon = () => (
 const StageIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
     <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.5h5.25M3 6h5.25m-5.25 7.5v5.25A2.25 2.25 0 005.25 21h2.25a2.25 2.25 0 002.25-2.25V13.5M3 6V3.75A.75.75 0 013.75 3h3.75A.75.75 0 018.25 3.75V6M21 12l-4.5 4.5M21 12l-4.5-4.5M21 12H9" />
+  </svg>
+);
+
+const ClicheIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.384 1.526l-1.084.686c-.29.184-.478.495-.525.837a9.55 9.55 0 000 .563c.047.342.235.653.525.837l1.084.686a1.125 1.125 0 01.384 1.526l-1.296 2.247a1.125 1.125 0 01-1.37.49l-1.217-.456a1.075 1.075 0 00-.645.124 9.55 9.55 0 00-.22.127c-.332.184-.582.496-.645.87l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a9.553 9.553 0 00-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.37-.49l-1.297-2.247a1.125 1.125 0 01.384-1.526l1.084-.686c.29-.184.478-.495.525-.837a9.55 9.55 0 000-.563c-.047-.342-.235-.653-.525-.837l-1.084-.686a1.125 1.125 0 01-.384-1.526l1.297-2.247a1.125 1.125 0 011.37-.49l1.216.456a1.075 1.075 0 00.645-.124c.073-.044.146-.087.22-.127.332-.184.582-.496.645-.87l.213-1.281z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
   </svg>
 );
 
@@ -52,6 +60,7 @@ const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
   onUpdateDate,
   onUpdateMachine,
   onUpdateStage,
+  onUpdateCliche,
   onDelete,
   onArchive,
   onCancel,
@@ -104,6 +113,15 @@ const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
             >
               <StageIcon />
               <span>Etapa</span>
+            </button>
+
+            <button
+              onClick={onUpdateCliche}
+              className="flex items-center gap-2 rounded-xl border border-amber-100 bg-white px-3 py-2 text-sm font-medium text-amber-700 transition-colors duration-200 hover:bg-amber-50 dark:border-gray-600 dark:bg-gray-800 dark:text-amber-300 dark:hover:bg-gray-700"
+              title="Actualizar cliché de los pedidos"
+            >
+              <ClicheIcon />
+              <span>Cliché</span>
             </button>
 
             <button
