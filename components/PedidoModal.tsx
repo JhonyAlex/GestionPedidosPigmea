@@ -732,6 +732,15 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
         if (!formData.materialDisponible) {
             errors.push('❌ Material NO está disponible');
         }
+
+        const materialesPendientes = pedidoMateriales.filter(m => m.pendienteRecibir === true);
+        if (materialesPendientes.length > 0) {
+            errors.push(
+                `⏳ Hay ${materialesPendientes.length} material(es) pendiente(s) de recibir:\n` +
+                materialesPendientes.map(m => `   - ${m.numero}${m.descripcion ? ` (${m.descripcion})` : ''}`).join('\n')
+            );
+        }
+
         if (!formData.clicheDisponible) {
             errors.push(`⚠️ Cliché NO está disponible${formData.estadoCliché ? ` (Estado: ${formData.estadoCliché})` : ''}`);
         }
@@ -741,7 +750,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                 '🚫 No se puede marcar como "Listo para Producción"\n\n' +
                 'Problemas encontrados:\n' +
                 errors.join('\n') +
-                '\n\nPor favor, asegúrese de que tanto el material como el cliché estén disponibles antes de continuar.'
+                '\n\nPor favor, asegúrese de que todos los materiales y el cliché estén disponibles antes de continuar.'
             );
             return;
         }

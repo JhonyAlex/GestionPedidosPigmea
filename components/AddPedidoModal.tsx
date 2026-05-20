@@ -474,6 +474,41 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
             return;
         }
 
+        const errors: string[] = [];
+
+        if (!formData.materialDisponible) {
+            errors.push('❌ Material NO está disponible');
+        }
+
+        const materialConsumo = formData.materialConsumo || [];
+        const materialesPendientes: number[] = [];
+        for (let i = 0; i < (formData.materialConsumoCantidad || 0); i++) {
+            if (!materialConsumo[i]?.recibido) {
+                materialesPendientes.push(i + 1);
+            }
+        }
+        
+        if (materialesPendientes.length > 0) {
+            errors.push(
+                `⏳ Hay ${materialesPendientes.length} material(es) pendiente(s) de recibir:\n` +
+                materialesPendientes.map(n => `   - Material ${n}`).join('\n')
+            );
+        }
+
+        if (!formData.clicheDisponible) {
+            errors.push(`⚠️ Cliché NO está disponible${formData.estadoCliché ? ` (Estado: ${formData.estadoCliché})` : ''}`);
+        }
+
+        if (errors.length > 0) {
+            alert(
+                '🚫 No se puede crear el pedido como "Listo para Producción"\n\n' +
+                'Problemas encontrados:\n' +
+                errors.join('\n') +
+                '\n\nPor favor, asegúrese de que todos los materiales y el cliché estén disponibles antes de continuar.'
+            );
+            return;
+        }
+
         await createPedido(true);
     };
 
