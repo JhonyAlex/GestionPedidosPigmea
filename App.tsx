@@ -1194,26 +1194,54 @@ const AppContent: React.FC = () => {
         }
     };
 
-    const handleBulkUpdateCliche = async (clicheDisponible: boolean, estadoCliche?: EstadoCliché) => {
+    const handleBulkUpdateCliche = async (data: {
+        clicheDisponible?: boolean;
+        estadoCliche?: EstadoCliché;
+        clicheInfoAdicional?: string;
+        compraCliche?: string;
+        horasConfirmadas?: boolean;
+        recepcionCliche?: string;
+    }) => {
         const ids = [...selectedIds];
         const pedidosSeleccionados = pedidos.filter(p => ids.includes(p.id));
+
+        const detallesList: string[] = [];
+        if (data.clicheDisponible !== undefined) detallesList.push(`Disponible: ${data.clicheDisponible ? 'Sí' : 'No'}`);
+        if (data.estadoCliche) detallesList.push(`Estado: ${data.estadoCliche}`);
+        if (data.clicheInfoAdicional) detallesList.push(`Info: ${data.clicheInfoAdicional}`);
+        if (data.compraCliche) detallesList.push(`Compra: ${data.compraCliche}`);
+        if (data.horasConfirmadas !== undefined) detallesList.push(`Horas confirmadas: ${data.horasConfirmadas ? 'Sí' : 'No'}`);
+        if (data.recepcionCliche) detallesList.push(`Recepción: ${data.recepcionCliche}`);
 
         const generarHistorialEntry = () => ({
             timestamp: new Date().toISOString(),
             usuario: user?.displayName || user?.username || currentUserRole,
             accion: 'Actualización masiva de Cliché',
-            detalles: `Cliché disponible: ${clicheDisponible ? 'Sí' : 'No'}${estadoCliche ? `, Estado: ${estadoCliche}` : ''}`
+            detalles: detallesList.join(' | ')
         });
 
         try {
             let updatedCount = 0;
             for (const pedido of pedidosSeleccionados) {
-                if (pedido.clicheDisponible === clicheDisponible && (!estadoCliche || pedido.estadoCliché === estadoCliche)) continue;
+                const hasFieldChange = (
+                    (data.clicheDisponible !== undefined && pedido.clicheDisponible !== data.clicheDisponible) ||
+                    (data.estadoCliche && pedido.estadoCliché !== data.estadoCliche) ||
+                    (data.clicheInfoAdicional && pedido.clicheInfoAdicional !== data.clicheInfoAdicional) ||
+                    (data.compraCliche && pedido.compraCliche !== data.compraCliche) ||
+                    (data.horasConfirmadas !== undefined && pedido.horasConfirmadas !== data.horasConfirmadas) ||
+                    (data.recepcionCliche && pedido.recepcionCliche !== data.recepcionCliche)
+                );
+
+                if (!hasFieldChange) continue;
 
                 const updatedPedido = {
                     ...pedido,
-                    clicheDisponible,
-                    estadoCliché: estadoCliche ?? pedido.estadoCliché,
+                    ...(data.clicheDisponible !== undefined && { clicheDisponible: data.clicheDisponible }),
+                    ...(data.estadoCliche && { estadoCliché: data.estadoCliche }),
+                    ...(data.clicheInfoAdicional && { clicheInfoAdicional: data.clicheInfoAdicional }),
+                    ...(data.compraCliche && { compraCliche: data.compraCliche }),
+                    ...(data.horasConfirmadas !== undefined && { horasConfirmadas: data.horasConfirmadas }),
+                    ...(data.recepcionCliche && { recepcionCliche: data.recepcionCliche }),
                     historial: [...(pedido.historial || []), generarHistorialEntry()]
                 };
 
@@ -1226,8 +1254,7 @@ const AppContent: React.FC = () => {
                 emitActivity('bulk-cliche-update', {
                     count: updatedCount,
                     pedidoIds: ids,
-                    clicheDisponible,
-                    estadoCliché: estadoCliché || null
+                    ...data
                 });
             }
 
