@@ -1,4 +1,6 @@
 import React from 'react';
+import { PREPARACION_SUB_ETAPAS_IDS } from '../constants';
+import { Etapa } from '../types';
 
 interface AntivahoConfirmationModalProps {
     isOpen: boolean;
@@ -7,6 +9,8 @@ interface AntivahoConfirmationModalProps {
     pedido?: {
         numeroPedidoCliente: string;
         antivahoRealizado?: boolean;
+        etapaActual?: Etapa;
+        subEtapaActual?: string;
     } | null;
 }
 
@@ -14,6 +18,8 @@ const AntivahoConfirmationModal: React.FC<AntivahoConfirmationModalProps> = ({ i
     if (!isOpen) return null;
 
     const isRedo = pedido?.antivahoRealizado;
+    const isFromListoProduccion = pedido?.etapaActual === Etapa.PREPARACION &&
+        pedido?.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION;
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
@@ -32,7 +38,7 @@ const AntivahoConfirmationModal: React.FC<AntivahoConfirmationModalProps> = ({ i
                         onClick={onCancel}
                         className="px-4 py-2 rounded-md bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-white font-semibold transition-colors"
                     >
-                        Cancelar
+                        {isFromListoProduccion ? 'No, enviar a post-impresión' : 'Cancelar'}
                     </button>
                     <button
                         onClick={onConfirm}

@@ -972,8 +972,31 @@ export const usePedidosManager = (
         setAntivahoModalState({ isOpen: false, pedido: null, toEtapa: null });
     };
 
-    const handleCancelAntivaho = () => {
+    const handleCancelAntivaho = async () => {
+        const { pedido, toEtapa } = antivahoModalState;
+
+        const isFromListoProduccion = pedido?.etapaActual === Etapa.PREPARACION &&
+                                       pedido?.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION;
+
         setAntivahoModalState({ isOpen: false, pedido: null, toEtapa: null });
+
+        if (!pedido || !toEtapa || !isFromListoProduccion) return;
+
+        const normalizedSequence = normalizePostImpresionSequence(pedido.secuenciaTrabajo, pedido.cliente);
+        const firstPostImpresionStage = normalizedSequence[0];
+
+        if (!firstPostImpresionStage) return;
+
+        await handleUpdatePedidoEtapa(
+            {
+                ...pedido,
+                secuenciaTrabajo: normalizedSequence,
+                maquinaImpresion: KANBAN_FUNNELS.IMPRESION.stages.includes(toEtapa)
+                    ? ETAPAS[toEtapa]?.title
+                    : pedido.maquinaImpresion,
+            },
+            firstPostImpresionStage
+        );
     };
 
     const handleAntivahoDestinationImpresion = async () => {
