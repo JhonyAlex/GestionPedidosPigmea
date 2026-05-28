@@ -4075,6 +4075,69 @@ app.delete('/api/notifications/:id', async (req, res) => {
 // === ENDPOINTS DE OPERACIONES DE PRODUCCIÓN ===
 // ============================================
 
+// GET /api/produccion/listas-temporales - Obtener listas temporales de producción
+app.get('/api/produccion/listas-temporales', requireAuth, async (req, res) => {
+    try {
+        const listasTemporales = await dbClient.getProduccionListasTemporalesMap();
+        res.status(200).json(listasTemporales);
+    } catch (error) {
+        console.error('Error obteniendo listas temporales de producción:', error);
+        res.status(500).json({ message: 'Error interno del servidor al obtener listas temporales.' });
+    }
+});
+
+// PUT /api/produccion/listas-temporales/:pedidoId - Reemplazar listas temporales de un pedido
+app.put('/api/produccion/listas-temporales/:pedidoId', requireAuth, async (req, res) => {
+    try {
+        const { pedidoId } = req.params;
+        const { etapas } = req.body;
+
+        if (!Array.isArray(etapas)) {
+            return res.status(400).json({ message: 'El campo etapas debe ser un array.' });
+        }
+
+        const updatedEtapas = await dbClient.replaceProduccionListasTemporales(pedidoId, etapas, req.user?.id || null);
+        const payload = {
+            pedidoId,
+            etapas: updatedEtapas,
+            updatedBy: req.user?.id || null
+        };
+
+        broadcastToClients('listas-temporales-updated', payload);
+        res.status(200).json(payload);
+    } catch (error) {
+        if (error.message && error.message.includes('no encontrado')) {
+            return res.status(404).json({ message: error.message });
+        }
+
+        if (error.message && error.message.includes('Etapas inválidas')) {
+            return res.status(400).json({ message: error.message });
+        }
+
+        console.error(`Error actualizando listas temporales de pedido ${req.params.pedidoId}:`, error);
+        res.status(500).json({ message: 'Error interno del servidor al actualizar listas temporales.' });
+    }
+});
+
+// DELETE /api/produccion/listas-temporales/:pedidoId - Restablecer listas temporales de un pedido
+app.delete('/api/produccion/listas-temporales/:pedidoId', requireAuth, async (req, res) => {
+    try {
+        const { pedidoId } = req.params;
+        const etapas = await dbClient.resetProduccionListasTemporales(pedidoId);
+        const payload = {
+            pedidoId,
+            etapas,
+            updatedBy: req.user?.id || null
+        };
+
+        broadcastToClients('listas-temporales-updated', payload);
+        res.status(200).json(payload);
+    } catch (error) {
+        console.error(`Error restableciendo listas temporales de pedido ${req.params.pedidoId}:`, error);
+        res.status(500).json({ message: 'Error interno del servidor al restablecer listas temporales.' });
+    }
+});
+
 // POST /api/produccion/iniciar - Iniciar una nueva operación de producción
 app.post('/api/produccion/iniciar', requireAuth, async (req, res) => {
     try {

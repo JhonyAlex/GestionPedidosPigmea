@@ -639,6 +639,25 @@ class MigrationManager {
                 CREATE INDEX IF NOT EXISTS idx_shared_notes_is_active ON limpio.shared_notes(is_active);
             `
         });
+
+        // Migración 025: Listas temporales de producción
+        this.migrations.push({
+            id: '025-produccion-listas-temporales',
+            name: 'Crear tabla produccion_listas_temporales',
+            sql: `
+                CREATE TABLE IF NOT EXISTS limpio.produccion_listas_temporales (
+                    pedido_id VARCHAR(255) NOT NULL REFERENCES limpio.pedidos(id) ON DELETE CASCADE,
+                    etapa VARCHAR(50) NOT NULL,
+                    created_by UUID,
+                    updated_by UUID,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (pedido_id, etapa)
+                );
+                CREATE INDEX IF NOT EXISTS idx_produccion_listas_temporales_pedido ON limpio.produccion_listas_temporales(pedido_id);
+                CREATE INDEX IF NOT EXISTS idx_produccion_listas_temporales_etapa ON limpio.produccion_listas_temporales(etapa);
+            `
+        });
     }
 
     /**

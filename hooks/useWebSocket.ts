@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { UserRole, Pedido } from '../types';
-import webSocketService, { NotificationData, ConnectedUser } from '../services/websocket';
+import webSocketService, { NotificationData, ConnectedUser, ListasTemporalesUpdatedData } from '../services/websocket';
 
 export interface UseWebSocketReturn {
   isConnected: boolean;
@@ -14,6 +14,7 @@ export interface UseWebSocketReturn {
   subscribeToPedidoDeleted: (callback: (pedidoId: string) => void) => () => void;
   subscribeToPedidosByVendedorUpdated: (callback: (data: any) => void) => () => void;
   subscribeToPedidosByClienteUpdated: (callback: (data: any) => void) => () => void;
+  subscribeToListasTemporalesUpdated: (callback: (data: ListasTemporalesUpdatedData) => void) => () => void;
   subscribeToPageReturn: (callback: () => void) => () => void;
 }
 
@@ -89,6 +90,7 @@ export const useWebSocket = (userId: string, userRole: UserRole, displayName?: s
     subscribeToPedidoDeleted: webSocketService.subscribeToPedidoDeleted.bind(webSocketService),
     subscribeToPedidosByVendedorUpdated: webSocketService.subscribeToPedidosByVendedorUpdated.bind(webSocketService),
     subscribeToPedidosByClienteUpdated: webSocketService.subscribeToPedidosByClienteUpdated.bind(webSocketService),
+    subscribeToListasTemporalesUpdated: webSocketService.subscribeToListasTemporalesUpdated.bind(webSocketService),
     subscribeToPageReturn
   };
 };

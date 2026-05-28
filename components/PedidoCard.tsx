@@ -211,8 +211,8 @@ interface PedidoCardProps {
     };
     // Vista Lista Temporal: solo se pasa en la vista Producción (kanban)
     listasTemporales?: Etapa[];           // Etapas temporales adicionales del pedido
-    onSetListaTemporal?: (etapa: Etapa, checked: boolean) => void;
-    onResetListaTemporal?: () => void;
+    onSetListaTemporal?: (etapa: Etapa, checked: boolean) => Promise<void> | void;
+    onResetListaTemporal?: () => Promise<void> | void;
     onMoveListaTemporal?: (etapa: Etapa) => Promise<void> | void;
     isTemporalDisplay?: boolean;          // true cuando la tarjeta se muestra FUERA de su etapa real (por override)
     totalPedidosInSubEtapa?: number;
@@ -551,8 +551,6 @@ const PedidoCard = React.memo<PedidoCardProps>(({
 
     const handleAdvanceClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        // Al avanzar etapa, limpiar siempre las listas temporales del pedido
-        onResetListaTemporal?.();
         if (pedido.etapaActual === Etapa.PREPARACION && onSendToPrint) {
             onSendToPrint(pedido);
         } else if (pedido.antivaho && !pedido.antivahoRealizado && KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedido.etapaActual)) {
@@ -1064,7 +1062,12 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                                     <span className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide">Visibilidad en Listas</span>
                                     {listasTemporales.length > 0 && onResetListaTemporal && (
                                         <button
-                                            onClick={(e) => { e.stopPropagation(); onResetListaTemporal(); setIsListasPanelOpen(false); }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                Promise.resolve(onResetListaTemporal())
+                                                    .catch(error => console.error('Error restableciendo listas temporales:', error));
+                                                setIsListasPanelOpen(false);
+                                            }}
                                             className="text-[10px] font-semibold px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-red-100 dark:hover:bg-red-900/40 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                                         >
                                             Restablecer
@@ -1097,7 +1100,8 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                                                         disabled={esEtapaActual}
                                                         onChange={(ev) => {
                                                             ev.stopPropagation();
-                                                            onSetListaTemporal(etapa, ev.target.checked);
+                                                            Promise.resolve(onSetListaTemporal(etapa, ev.target.checked))
+                                                                .catch(error => console.error('Error actualizando listas temporales:', error));
                                                         }}
                                                         className="w-3.5 h-3.5 text-amber-500 rounded border-gray-300 dark:border-gray-600 cursor-pointer disabled:cursor-default disabled:opacity-60"
                                                     />

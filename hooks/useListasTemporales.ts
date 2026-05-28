@@ -1,66 +1,192 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Etapa } from '../types';
-
-const STORAGE_KEY = 'gestionPedidos_listasTemporales';
 
 // Mapa: pedidoId → lista de etapas adicionales temporales (no incluye la etapa real del pedido, que siempre se deriva de etapaActual)
 type ListasTemporalesMap = Record<string, Etapa[]>;
+type ListasTemporalesUpdatedPayload = { pedidoId: string; etapas: Etapa[] };
+type SubscribeToListasTemporales = (callback: (data: ListasTemporalesUpdatedPayload) => void) => () => void;
 
-function loadFromStorage(): ListasTemporalesMap {
+function getAuthHeaders(): Record<string, string> {
+    if (typeof window === 'undefined') return {};
+
+    const savedUser = localStorage.getItem('pigmea_user');
+    if (!savedUser) return {};
+
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        return raw ? JSON.parse(raw) : {};
+        const user = JSON.parse(savedUser);
+        const headers: Record<string, string> = {
+            'x-user-id': String(user.id),
+            'x-user-role': user.role || 'OPERATOR',
+        };
+
+        if (user.permissions && Array.isArray(user.permissions)) {
+            headers['x-user-permissions'] = JSON.stringify(user.permissions);
+        }
+
+        return headers;
     } catch {
         return {};
     }
 }
 
-function saveToStorage(map: ListasTemporalesMap) {
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
-    } catch {
-        // Ignorar errores de localStorage (modo privado, cuota excedida)
+async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const response = await fetch(`/api${endpoint}`, {
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders(),
+            ...options.headers,
+        },
+        cache: 'no-cache',
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Error desconocido en la API' }));
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
     }
+
+    return response.json();
 }
 
-export function useListasTemporales() {
-    const [map, setMap] = useState<ListasTemporalesMap>(() => loadFromStorage());
+export function useListasTemporales(
+    subscribeToListasTemporalesUpdated?: SubscribeToListasTemporales,
+    enabled = true
+) {
+    const [map, setMap] = useState<ListasTemporalesMap>({});
+
+    const replacePedidoInMap = useCallback((pedidoId: string, etapas: Etapa[]) => {
+        setMap(prev => {
+            const next = { ...prev };
+            if (etapas.length === 0) {
+                delete next[pedidoId];
+            } else {
+                next[pedidoId] = etapas;
+            }
+            return next;
+        });
+    }, []);
+
+    useEffect(() => {
+        if (!enabled) return;
+
+        let cancelled = false;
+
+        apiFetch<ListasTemporalesMap>('/produccion/listas-temporales')
+            .then(data => {
+                if (!cancelled) setMap(data || {});
+            })
+            .catch(error => {
+                if (!cancelled) console.error('Error cargando listas temporales:', error);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [enabled]);
+
+    useEffect(() => {
+        if (!subscribeToListasTemporalesUpdated) return;
+
+        return subscribeToListasTemporalesUpdated(({ pedidoId, etapas }) => {
+            replacePedidoInMap(pedidoId, etapas);
+        });
+    }, [subscribeToListasTemporalesUpdated, replacePedidoInMap]);
 
     /**
      * Marca o desmarca una etapa temporal para un pedido.
      * La etapa real del pedido (etapaActual) NUNCA se almacena aquí; es siempre implícita.
      */
-    const setListaTemporal = useCallback((pedidoId: string, etapa: Etapa, checked: boolean) => {
+    const setListaTemporal = useCallback(async (pedidoId: string, etapa: Etapa, checked: boolean) => {
+        let previousMap: ListasTemporalesMap = {};
+        let nextEtapas: Etapa[] = [];
+
         setMap(prev => {
+            previousMap = prev;
             const current = prev[pedidoId] || [];
-            let updated: Etapa[];
             if (checked) {
-                updated = current.includes(etapa) ? current : [...current, etapa];
+                nextEtapas = current.includes(etapa) ? current : [...current, etapa];
             } else {
-                updated = current.filter(e => e !== etapa);
+                nextEtapas = current.filter(e => e !== etapa);
             }
             const next = { ...prev };
-            if (updated.length === 0) {
+            if (nextEtapas.length === 0) {
                 delete next[pedidoId];
             } else {
-                next[pedidoId] = updated;
+                next[pedidoId] = nextEtapas;
             }
-            saveToStorage(next);
             return next;
         });
-    }, []);
 
-    /**
-     * Elimina todos los overrides temporales de un pedido,
-     * dejando solo su etapa real como lista activa.
-     */
-    const resetListaTemporal = useCallback((pedidoId: string) => {
+        try {
+            const response = await apiFetch<ListasTemporalesUpdatedPayload>(`/produccion/listas-temporales/${pedidoId}`, {
+                method: 'PUT',
+                body: JSON.stringify({ etapas: nextEtapas }),
+            });
+            replacePedidoInMap(pedidoId, response.etapas || []);
+        } catch (error) {
+            setMap(previousMap);
+            throw error;
+        }
+    }, [replacePedidoInMap]);
+
+    const replaceListaTemporal = useCallback(async (pedidoId: string, etapas: Etapa[]) => {
+        let previousMap: ListasTemporalesMap = {};
         setMap(prev => {
-            if (!prev[pedidoId]) return prev;
+            previousMap = prev;
+            const next = { ...prev };
+            if (etapas.length === 0) {
+                delete next[pedidoId];
+            } else {
+                next[pedidoId] = etapas;
+            }
+            return next;
+        });
+
+        try {
+            const response = await apiFetch<ListasTemporalesUpdatedPayload>(`/produccion/listas-temporales/${pedidoId}`, {
+                method: 'PUT',
+                body: JSON.stringify({ etapas }),
+            });
+            replacePedidoInMap(pedidoId, response.etapas || []);
+        } catch (error) {
+            setMap(previousMap);
+            throw error;
+        }
+    }, [replacePedidoInMap]);
+
+    const resetListaTemporal = useCallback(async (pedidoId: string) => {
+        let previousMap: ListasTemporalesMap = {};
+        setMap(prev => {
+            previousMap = prev;
             const next = { ...prev };
             delete next[pedidoId];
-            saveToStorage(next);
             return next;
+        });
+
+        try {
+            const response = await apiFetch<ListasTemporalesUpdatedPayload>(`/produccion/listas-temporales/${pedidoId}`, {
+                method: 'DELETE',
+            });
+            replacePedidoInMap(pedidoId, response.etapas || []);
+        } catch (error) {
+            setMap(previousMap);
+            throw error;
+        }
+    }, [replacePedidoInMap]);
+
+    const limpiarHuerfanos = useCallback((pedidoIds: string[]) => {
+        setMap(prev => {
+            const pidSet = new Set(pedidoIds);
+            const next: ListasTemporalesMap = {};
+            let changed = false;
+            for (const [k, v] of Object.entries(prev)) {
+                if (pidSet.has(k)) {
+                    next[k] = v;
+                } else {
+                    changed = true;
+                }
+            }
+            return changed ? next : prev;
         });
     }, []);
 
@@ -78,29 +204,10 @@ export function useListasTemporales() {
         return (map[pedidoId]?.length ?? 0) > 0;
     }, [map]);
 
-    /**
-     * Elimina del mapa los pedidos que ya no existen, para evitar datos huérfanos.
-     */
-    const limpiarHuerfanos = useCallback((pedidoIds: string[]) => {
-        setMap(prev => {
-            const pidSet = new Set(pedidoIds);
-            const next: ListasTemporalesMap = {};
-            let changed = false;
-            for (const [k, v] of Object.entries(prev)) {
-                if (pidSet.has(k)) {
-                    next[k] = v;
-                } else {
-                    changed = true;
-                }
-            }
-            if (changed) saveToStorage(next);
-            return changed ? next : prev;
-        });
-    }, []);
-
     return {
         listasTemporalesMap: map,
         setListaTemporal,
+        replaceListaTemporal,
         resetListaTemporal,
         getListasTemporales,
         tieneListaTemporal,

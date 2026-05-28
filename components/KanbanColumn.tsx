@@ -23,8 +23,8 @@ interface KanbanColumnProps {
     onSelectAll?: (ids: string[]) => void;
     // Vista Lista Temporal
     listasTemporalesMap?: Record<string, Etapa[]>;
-    onSetListaTemporal?: (pedidoId: string, etapa: Etapa, checked: boolean) => void;
-    onResetListaTemporal?: (pedidoId: string) => void;
+    onSetListaTemporal?: (pedidoId: string, etapa: Etapa, checked: boolean) => Promise<void> | void;
+    onResetListaTemporal?: (pedidoId: string) => Promise<void> | void;
     onMoveListaTemporal?: (pedidoId: string, etapa: Etapa) => Promise<void> | void;
     onManualReorder?: (etapaId: Etapa, pedidoId: string, destinationIndex: number) => void;
 }

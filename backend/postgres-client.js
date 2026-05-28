@@ -20,6 +20,10 @@ const ETAPAS_PRODUCCION_ACTIVA = [
     'POST_PERFORACION_MAC2'
 ];
 const ETAPAS_PRODUCCION_ACTIVA_SQL = ETAPAS_PRODUCCION_ACTIVA.map((etapa) => `'${etapa}'`).join(', ');
+const ETAPAS_LISTAS_TEMPORALES = ETAPAS_PRODUCCION_ACTIVA.filter(
+    (etapa) => !['PREPARACION', 'PENDIENTE'].includes(etapa)
+);
+const ETAPAS_LISTAS_TEMPORALES_SET = new Set(ETAPAS_LISTAS_TEMPORALES);
 
 class PostgreSQLClient {
     constructor() {
@@ -1478,6 +1482,104 @@ class PostgreSQLClient {
 
             return result.rows[0].data;
 
+        } finally {
+            client.release();
+        }
+    }
+
+    normalizeTemporaryProductionStages(etapas, etapaActual) {
+        if (!Array.isArray(etapas)) {
+            throw new Error('Las etapas deben enviarse como array');
+        }
+
+        const invalidEtapas = etapas.filter((etapa) => !ETAPAS_LISTAS_TEMPORALES_SET.has(etapa));
+        if (invalidEtapas.length > 0) {
+            throw new Error(`Etapas inválidas para listas temporales: ${invalidEtapas.join(', ')}`);
+        }
+
+        return Array.from(new Set(etapas))
+            .filter((etapa) => etapa !== etapaActual);
+    }
+
+    async getProduccionListasTemporalesMap() {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+
+        try {
+            const result = await client.query(`
+                SELECT lt.pedido_id, lt.etapa
+                FROM limpio.produccion_listas_temporales lt
+                INNER JOIN limpio.pedidos p ON p.id = lt.pedido_id
+                WHERE lt.etapa <> COALESCE(p.etapa_actual, p.data->>'etapaActual')
+                ORDER BY lt.created_at ASC
+            `);
+
+            return result.rows.reduce((acc, row) => {
+                if (!acc[row.pedido_id]) acc[row.pedido_id] = [];
+                acc[row.pedido_id].push(row.etapa);
+                return acc;
+            }, {});
+        } finally {
+            client.release();
+        }
+    }
+
+    async replaceProduccionListasTemporales(pedidoId, etapas, userId = null) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+
+        try {
+            await client.query('BEGIN');
+
+            const pedidoResult = await client.query(
+                `SELECT COALESCE(etapa_actual, data->>'etapaActual') AS etapa_actual
+                 FROM limpio.pedidos
+                 WHERE id = $1`,
+                [pedidoId]
+            );
+
+            if (pedidoResult.rowCount === 0) {
+                throw new Error(`Pedido ${pedidoId} no encontrado`);
+            }
+
+            const sanitizedEtapas = this.normalizeTemporaryProductionStages(
+                etapas,
+                pedidoResult.rows[0].etapa_actual
+            );
+
+            await client.query(
+                'DELETE FROM limpio.produccion_listas_temporales WHERE pedido_id = $1',
+                [pedidoId]
+            );
+
+            for (const etapa of sanitizedEtapas) {
+                await client.query(
+                    `INSERT INTO limpio.produccion_listas_temporales (pedido_id, etapa, created_by, updated_by)
+                     VALUES ($1, $2, $3, $3)`,
+                    [pedidoId, etapa, userId]
+                );
+            }
+
+            await client.query('COMMIT');
+            return sanitizedEtapas;
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    async resetProduccionListasTemporales(pedidoId) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+
+        try {
+            await client.query(
+                'DELETE FROM limpio.produccion_listas_temporales WHERE pedido_id = $1',
+                [pedidoId]
+            );
+            return [];
         } finally {
             client.release();
         }

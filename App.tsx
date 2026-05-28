@@ -145,6 +145,7 @@ const AppContent: React.FC = () => {
         subscribeToPedidoDeleted,
         subscribeToPedidosByVendedorUpdated,
         subscribeToPedidosByClienteUpdated,
+        subscribeToListasTemporalesUpdated,
         subscribeToPageReturn
     } = useWebSocket(currentUserId, currentUserRole, currentUserDisplayName);
 
@@ -202,9 +203,10 @@ const AppContent: React.FC = () => {
     const {
         listasTemporalesMap,
         setListaTemporal,
+        replaceListaTemporal,
         resetListaTemporal,
         limpiarHuerfanos,
-    } = useListasTemporales();
+    } = useListasTemporales(subscribeToListasTemporalesUpdated, Boolean(user));
 
     // Estado para filtro de "Solo con lista temporal" en la vista Producción (kanban)
     const [filtrarSoloTemporales, setFiltrarSoloTemporales] = useState(false);
@@ -639,7 +641,14 @@ const AppContent: React.FC = () => {
             // Highlight effect
             setHighlightedPedidoId(pedidoToAdvance.id);
 
-            await handleUpdatePedidoEtapa(pedidoToAdvance, newEtapa);
+            const updateResult = await handleUpdatePedidoEtapa(pedidoToAdvance, newEtapa);
+            if (!updateResult) return;
+
+            try {
+                await resetListaTemporal(pedidoToAdvance.id);
+            } catch (error) {
+                console.error('Error restableciendo listas temporales tras avanzar etapa:', error);
+            }
 
             logAction(`Pedido ${pedidoToAdvance.numeroPedidoCliente} avanzado de ${ETAPAS[etapaActual].title} a ${ETAPAS[newEtapa].title}.`, pedidoToAdvance.id);
 
@@ -691,18 +700,24 @@ const AppContent: React.FC = () => {
             && (fromPostImpresion || fromListoProduccion)
             && toImpresion;
 
-        await handleUpdatePedidoEtapa(pedido, targetEtapa);
+        const updateResult = await handleUpdatePedidoEtapa(pedido, targetEtapa);
+        if (!updateResult) return;
+
         if (requiresAntivahoConfirmation) return;
 
         // Intercambio de lugar: la etapa de destino pasa a ser real y la anterior queda como temporal.
-        setListaTemporal(pedidoId, targetEtapa, false);
-        setListaTemporal(pedidoId, etapaOrigen, true);
+        const currentTemporales = listasTemporalesMap[pedidoId] || [];
+        const nextTemporales = Array.from(new Set([
+            ...currentTemporales.filter(etapa => etapa !== targetEtapa),
+            etapaOrigen,
+        ]));
+        await replaceListaTemporal(pedidoId, nextTemporales);
 
         logAction(
             `Pedido ${pedido.numeroPedidoCliente} movido desde "${ETAPAS[etapaOrigen].title}" a "${ETAPAS[targetEtapa].title}" desde Visibilidad en Listas.`,
             pedido.id
         );
-    }, [pedidos, handleUpdatePedidoEtapa, setListaTemporal, logAction]);
+    }, [pedidos, handleUpdatePedidoEtapa, listasTemporalesMap, replaceListaTemporal, logAction]);
 
     const handleSavePedido = async (updatedPedido: Pedido) => {
         const originalPedido = pedidos.find(p => p.id === updatedPedido.id);

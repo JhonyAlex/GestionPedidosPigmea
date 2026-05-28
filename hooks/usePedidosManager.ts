@@ -906,7 +906,7 @@ export const usePedidosManager = (
             .filter(p => p.etapaActual === newEtapa && p.id !== pedido.id)
             .reduce((max, p) => Math.max(max, p.posicionEnEtapa || 0), 0);
         updatedPedido.posicionEnEtapa = maxPosInNewEtapa + 1;
-        await handleSavePedido(updatedPedido);
+        return await handleSavePedido(updatedPedido);
     };
 
     const handleConfirmAntivaho = async () => {

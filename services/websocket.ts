@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { Pedido, UserRole, Notification } from '../types';
+import { Pedido, UserRole, Notification, Etapa } from '../types';
 import { logger } from '../utils/logger';
 
 // Tipos para los eventos WebSocket
@@ -37,6 +37,7 @@ export interface WebSocketEvents {
   'material-deleted': (data: { materialId: number; pedidoId?: string; material?: any }) => void;
   'material-assigned': (data: { pedidoId: string; materialId: number; material: any }) => void;
   'material-unassigned': (data: { pedidoId: string; materialId: number; material: any }) => void;
+  'listas-temporales-updated': (data: ListasTemporalesUpdatedData) => void;
 
   // Eventos de templates de observaciones
   'observacion-template-updated': (template: { id: number; text: string; usageCount: number; lastUsed: string; createdAt: string }) => void;
@@ -112,6 +113,13 @@ export interface NotificationData {
   duration?: number;
 }
 
+export interface ListasTemporalesUpdatedData {
+  pedidoId: string;
+  etapas: Etapa[];
+  updatedBy?: string | null;
+  timestamp?: string;
+}
+
 class WebSocketService {
   private socket: Socket<WebSocketEvents> | null = null;
   private isConnected = false;
@@ -150,6 +158,7 @@ class WebSocketService {
   private pedidosByVendedorUpdatedListeners: ((data: any) => void)[] = [];
   // Callbacks para clientes cuando cambian pedidos por nombre
   private pedidosByClienteUpdatedListeners: ((data: any) => void)[] = [];
+  private listasTemporalesUpdatedListeners: ((data: ListasTemporalesUpdatedData) => void)[] = [];
 
   // Callbacks para actualizaciones del historial de acciones en tiempo real
   private actionHistoryUpdatedListeners: ((data: { contextId: string; contextType: string; userId: string; actionType: string }) => void)[] = [];
@@ -686,6 +695,11 @@ class WebSocketService {
       this.notifyPedidosByClienteUpdatedListeners(data);
     });
 
+    this.socket.on('listas-temporales-updated', (data) => {
+      console.log('📋 Listas temporales actualizadas:', data);
+      this.notifyListasTemporalesUpdatedListeners(data);
+    });
+
     this.socket.on('action-history-update', (data) => {
       this.notifyActionHistoryUpdatedListeners(data);
     });
@@ -801,6 +815,16 @@ class WebSocketService {
       const index = this.pedidoDeletedListeners.indexOf(callback);
       if (index > -1) {
         this.pedidoDeletedListeners.splice(index, 1);
+      }
+    };
+  }
+
+  public subscribeToListasTemporalesUpdated(callback: (data: ListasTemporalesUpdatedData) => void): () => void {
+    this.listasTemporalesUpdatedListeners.push(callback);
+    return () => {
+      const index = this.listasTemporalesUpdatedListeners.indexOf(callback);
+      if (index > -1) {
+        this.listasTemporalesUpdatedListeners.splice(index, 1);
       }
     };
   }
@@ -1000,6 +1024,10 @@ class WebSocketService {
 
   private notifyPedidosByClienteUpdatedListeners(data: any) {
     this.pedidosByClienteUpdatedListeners.forEach(listener => listener(data));
+  }
+
+  private notifyListasTemporalesUpdatedListeners(data: ListasTemporalesUpdatedData) {
+    this.listasTemporalesUpdatedListeners.forEach(listener => listener(data));
   }
 
   private notifyActionHistoryUpdatedListeners(data: { contextId: string; contextType: string; userId: string; actionType: string }) {
