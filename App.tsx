@@ -588,14 +588,15 @@ const AppContent: React.FC = () => {
             allPedidosInStage,
             visiblePedidos,
             sourceIndex,
-            destinationIndex
+            destinationIndex,
+            stageId
         );
 
         updateKanbanManualOrderForStage(stageId, finalOrderedIds);
 
         // Calculate positions to maintain persistence
         const fullColumnPedidos = kanbanAllPedidosByStage[stageId] || [];
-        const reordered = getOrderedKanbanColumnPedidos(fullColumnPedidos, finalOrderedIds);
+        const reordered = getOrderedKanbanColumnPedidos(fullColumnPedidos, finalOrderedIds, stageId);
         
         const updatedPositions = new Map<string, number>();
         reordered

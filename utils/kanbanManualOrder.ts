@@ -44,6 +44,10 @@ export const buildKanbanDraggableId = (pedidoId: string, stageId: Etapa): string
     return `${pedidoId}${DRAGGABLE_ID_SEPARATOR}${stageId}`;
 };
 
+const getKanbanOrderKey = (pedido: Pedido, stageId: Etapa): string => {
+    return buildKanbanDraggableId(pedido.id, stageId);
+};
+
 export const parseKanbanDraggableId = (draggableId: string): { pedidoId: string; visualStageId: Etapa | null } => {
     const separatorIndex = draggableId.indexOf(DRAGGABLE_ID_SEPARATOR);
 
@@ -156,7 +160,11 @@ export const pruneKanbanManualOrderMap = (
             continue;
         }
 
-        const filteredIds = dedupeIds(ids.filter(id => existingPedidoIds.has(id)));
+        const filteredIds = dedupeIds(ids.filter(id => {
+            const parsed = parseKanbanDraggableId(id);
+            return existingPedidoIds.has(parsed.pedidoId)
+                && (parsed.visualStageId == null || parsed.visualStageId === stageId);
+        }));
         if (filteredIds.length > 0) {
             next[stageId] = filteredIds;
         }
@@ -183,10 +191,13 @@ export const sortKanbanColumnPedidos = (
     }
 
     const orderIndex = new Map(orderedIds.map((id, index) => [id, index]));
+    const getOrderIndex = (pedido: Pedido): number | undefined => {
+        return orderIndex.get(getKanbanOrderKey(pedido, stageId)) ?? orderIndex.get(pedido.id);
+    };
 
     return [...pedidos].sort((a, b) => {
-        const indexA = orderIndex.get(a.id);
-        const indexB = orderIndex.get(b.id);
+        const indexA = getOrderIndex(a);
+        const indexB = getOrderIndex(b);
 
         if (indexA != null && indexB != null) {
             return indexA - indexB;
@@ -214,10 +225,12 @@ export const mergeVisibleKanbanReorder = (
     fullColumnPedidos: Pedido[],
     visibleColumnPedidos: Pedido[],
     sourceIndex: number,
-    destinationIndex: number
+    destinationIndex: number,
+    stageId?: Etapa
 ): string[] => {
-    const fullIds = fullColumnPedidos.map(pedido => pedido.id);
-    const visibleIds = visibleColumnPedidos.map(pedido => pedido.id);
+    const getOrderId = (pedido: Pedido) => stageId ? getKanbanOrderKey(pedido, stageId) : pedido.id;
+    const fullIds = fullColumnPedidos.map(getOrderId);
+    const visibleIds = visibleColumnPedidos.map(getOrderId);
     const reorderedVisibleIds = Array.from(visibleIds);
     const [movedId] = reorderedVisibleIds.splice(sourceIndex, 1);
 
@@ -243,9 +256,16 @@ export const mergeVisibleKanbanReorder = (
 
 export const getOrderedKanbanColumnPedidos = (
     columnPedidos: Pedido[],
-    orderedIds: string[]
+    orderedIds: string[],
+    stageId?: Etapa
 ): Pedido[] => {
-    const pedidosById = new Map(columnPedidos.map(pedido => [pedido.id, pedido]));
+    const pedidosById = new Map<string, Pedido>();
+    columnPedidos.forEach(pedido => {
+        pedidosById.set(pedido.id, pedido);
+        if (stageId) {
+            pedidosById.set(getKanbanOrderKey(pedido, stageId), pedido);
+        }
+    });
     const orderedPedidos = orderedIds
         .map(id => pedidosById.get(id))
         .filter((pedido): pedido is Pedido => Boolean(pedido));
@@ -255,6 +275,9 @@ export const getOrderedKanbanColumnPedidos = (
     }
 
     const orderedIdSet = new Set(orderedIds);
-    const missingPedidos = columnPedidos.filter(pedido => !orderedIdSet.has(pedido.id));
+    const missingPedidos = columnPedidos.filter(pedido => {
+        return !orderedIdSet.has(pedido.id)
+            && (!stageId || !orderedIdSet.has(getKanbanOrderKey(pedido, stageId)));
+    });
     return [...orderedPedidos, ...missingPedidos];
 };

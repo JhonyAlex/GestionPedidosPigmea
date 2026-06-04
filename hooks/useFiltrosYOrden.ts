@@ -5,6 +5,7 @@ import { getDateRange, DateFilterOption } from '../utils/date';
 import { getCurrentWeek, isDateInWeek } from '../utils/weekUtils';
 import { useDebounce } from './useDebounce';
 import { normalizeSearchValue, pedidoMatchesSearch } from '../utils/search';
+import { buildKanbanDraggableId } from '../utils/kanbanManualOrder';
 
 // Clave para localStorage
 const FILTERS_STORAGE_KEY = 'gestionPedidos_userFilters';
@@ -446,8 +447,8 @@ export const useFiltrosYOrden = (pedidos: Pedido[], listasTemporalesMap: Record<
 
                         if (orderedIds.length > 0) {
                             const orderIndex = new Map(orderedIds.map((id: string, index: number) => [id, index]));
-                            const indexA = orderIndex.get(a.id);
-                            const indexB = orderIndex.get(b.id);
+                            const indexA = orderIndex.get(buildKanbanDraggableId(a.id, visualStageId)) ?? orderIndex.get(a.id);
+                            const indexB = orderIndex.get(buildKanbanDraggableId(b.id, visualStageId)) ?? orderIndex.get(b.id);
 
                             if (indexA != null && indexB != null) {
                                 comparison = indexA - indexB;

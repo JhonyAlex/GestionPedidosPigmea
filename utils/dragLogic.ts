@@ -208,9 +208,10 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
             fullColumnPedidos,
             visibleColumnPedidos,
             source.index,
-            destination.index
+            destination.index,
+            etapaId
         );
-        const reordered = getOrderedKanbanColumnPedidos(fullColumnPedidos, orderedIds);
+        const reordered = getOrderedKanbanColumnPedidos(fullColumnPedidos, orderedIds, etapaId);
         const moved = visibleColumnPedidos[source.index] || movedPedido;
 
         setKanbanManualOrderForStage(etapaId, orderedIds);
