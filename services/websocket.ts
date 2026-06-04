@@ -39,6 +39,9 @@ export interface WebSocketEvents {
   'material-unassigned': (data: { pedidoId: string; materialId: number; material: any }) => void;
   'listas-temporales-updated': (data: ListasTemporalesUpdatedData) => void;
 
+  // Eventos de orden del kanban en tiempo real
+  'kanban-order-updated': (data: { etapa: string; pedidoIds: string[]; updatedBy: string }) => void;
+
   // Eventos de templates de observaciones
   'observacion-template-updated': (template: { id: number; text: string; usageCount: number; lastUsed: string; createdAt: string }) => void;
   'observacion-template-deleted': (data: { id: number }) => void;
@@ -159,6 +162,9 @@ class WebSocketService {
   // Callbacks para clientes cuando cambian pedidos por nombre
   private pedidosByClienteUpdatedListeners: ((data: any) => void)[] = [];
   private listasTemporalesUpdatedListeners: ((data: ListasTemporalesUpdatedData) => void)[] = [];
+
+  // Callbacks para orden del kanban en tiempo real
+  private kanbanOrderUpdatedListeners: ((data: { etapa: string; pedidoIds: string[]; updatedBy: string }) => void)[] = [];
 
   // Callbacks para actualizaciones del historial de acciones en tiempo real
   private actionHistoryUpdatedListeners: ((data: { contextId: string; contextType: string; userId: string; actionType: string }) => void)[] = [];
@@ -700,6 +706,11 @@ class WebSocketService {
       this.notifyListasTemporalesUpdatedListeners(data);
     });
 
+    this.socket.on('kanban-order-updated', (data) => {
+      console.log('📋 Orden kanban actualizado:', data.etapa, data.pedidoIds?.length, 'pedidos');
+      this.notifyKanbanOrderUpdatedListeners(data);
+    });
+
     this.socket.on('action-history-update', (data) => {
       this.notifyActionHistoryUpdatedListeners(data);
     });
@@ -825,6 +836,16 @@ class WebSocketService {
       const index = this.listasTemporalesUpdatedListeners.indexOf(callback);
       if (index > -1) {
         this.listasTemporalesUpdatedListeners.splice(index, 1);
+      }
+    };
+  }
+
+  public subscribeToKanbanOrderUpdated(callback: (data: { etapa: string; pedidoIds: string[]; updatedBy: string }) => void): () => void {
+    this.kanbanOrderUpdatedListeners.push(callback);
+    return () => {
+      const index = this.kanbanOrderUpdatedListeners.indexOf(callback);
+      if (index > -1) {
+        this.kanbanOrderUpdatedListeners.splice(index, 1);
       }
     };
   }
@@ -1028,6 +1049,10 @@ class WebSocketService {
 
   private notifyListasTemporalesUpdatedListeners(data: ListasTemporalesUpdatedData) {
     this.listasTemporalesUpdatedListeners.forEach(listener => listener(data));
+  }
+
+  private notifyKanbanOrderUpdatedListeners(data: { etapa: string; pedidoIds: string[]; updatedBy: string }) {
+    this.kanbanOrderUpdatedListeners.forEach(listener => listener(data));
   }
 
   private notifyActionHistoryUpdatedListeners(data: { contextId: string; contextType: string; userId: string; actionType: string }) {

@@ -15,6 +15,7 @@ export interface UseWebSocketReturn {
   subscribeToPedidosByVendedorUpdated: (callback: (data: any) => void) => () => void;
   subscribeToPedidosByClienteUpdated: (callback: (data: any) => void) => () => void;
   subscribeToListasTemporalesUpdated: (callback: (data: ListasTemporalesUpdatedData) => void) => () => void;
+  subscribeToKanbanOrderUpdated: (callback: (data: { etapa: string; pedidoIds: string[]; updatedBy: string }) => void) => () => void;
   subscribeToPageReturn: (callback: () => void) => () => void;
 }
 
@@ -91,6 +92,7 @@ export const useWebSocket = (userId: string, userRole: UserRole, displayName?: s
     subscribeToPedidosByVendedorUpdated: webSocketService.subscribeToPedidosByVendedorUpdated.bind(webSocketService),
     subscribeToPedidosByClienteUpdated: webSocketService.subscribeToPedidosByClienteUpdated.bind(webSocketService),
     subscribeToListasTemporalesUpdated: webSocketService.subscribeToListasTemporalesUpdated.bind(webSocketService),
+    subscribeToKanbanOrderUpdated: webSocketService.subscribeToKanbanOrderUpdated.bind(webSocketService),
     subscribeToPageReturn
   };
 };

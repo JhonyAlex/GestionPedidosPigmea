@@ -13,6 +13,29 @@ const PRODUCCION_STAGE_SET = new Set<Etapa>([
 
 const dedupeIds = (ids: string[]): string[] => Array.from(new Set(ids.filter(Boolean)));
 
+function getAuthHeaders(): Record<string, string> {
+    if (typeof window === 'undefined') return {};
+
+    const savedUser = localStorage.getItem('pigmea_user');
+    if (!savedUser) return {};
+
+    try {
+        const user = JSON.parse(savedUser);
+        const headers: Record<string, string> = {
+            'x-user-id': String(user.id),
+            'x-user-role': user.role || 'OPERATOR',
+        };
+
+        if (user.permissions && Array.isArray(user.permissions)) {
+            headers['x-user-permissions'] = JSON.stringify(user.permissions);
+        }
+
+        return headers;
+    } catch {
+        return {};
+    }
+}
+
 export const isProduccionKanbanStage = (stageId: string): stageId is Etapa => {
     return PRODUCCION_STAGE_SET.has(stageId as Etapa);
 };
@@ -34,46 +57,87 @@ export const parseKanbanDraggableId = (draggableId: string): { pedidoId: string;
     };
 };
 
-export const loadKanbanManualOrderMap = (): KanbanManualOrderMap => {
+/**
+ * Carga el orden manual del kanban desde el servidor (API REST).
+ * Fallback: localStorage legacy para migración y modo offline.
+ */
+export const loadKanbanManualOrderMap = async (): Promise<KanbanManualOrderMap> => {
+    try {
+        const response = await fetch('/api/kanban/orders', {
+            headers: getAuthHeaders(),
+        });
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch {
+        // Silencioso: intentar fallback legacy
+    }
+
+    // Fallback: localStorage legacy (migración y modo offline)
     if (typeof window === 'undefined') {
         return {};
     }
 
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) {
-            return {};
-        }
+        if (!raw) return {};
 
         const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed !== 'object') {
-            return {};
-        }
+        if (!parsed || typeof parsed !== 'object') return {};
 
         const next: KanbanManualOrderMap = {};
-
         for (const [stageId, ids] of Object.entries(parsed)) {
-            if (!isProduccionKanbanStage(stageId) || !Array.isArray(ids)) {
-                continue;
-            }
-
+            if (!isProduccionKanbanStage(stageId) || !Array.isArray(ids)) continue;
             const normalizedIds = dedupeIds(ids.filter((id): id is string => typeof id === 'string'));
-            if (normalizedIds.length > 0) {
-                next[stageId] = normalizedIds;
-            }
+            if (normalizedIds.length > 0) next[stageId] = normalizedIds;
         }
-
         return next;
     } catch {
         return {};
     }
 };
 
-export const saveKanbanManualOrderMap = (map: KanbanManualOrderMap): void => {
-    if (typeof window === 'undefined') {
-        return;
+/**
+ * Guarda el orden manual de UNA etapa en el servidor (API REST).
+ * El backend se encarga del broadcast vía WebSocket a todos los clientes.
+ * También guarda en localStorage como fallback offline.
+ */
+export const saveKanbanManualOrderForStage = async (
+    etapa: Etapa,
+    pedidoIds: string[]
+): Promise<void> => {
+    // Guardar en el servidor (el broadcast lo hace el backend)
+    try {
+        await fetch(`/api/kanban/order/${encodeURIComponent(etapa)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            body: JSON.stringify({ pedidoIds }),
+        });
+    } catch (error) {
+        console.error('Error saving kanban order to server:', error);
     }
 
+    // Fallback local (modo offline temporal)
+    if (typeof window === 'undefined') return;
+    try {
+        const current = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        if (pedidoIds.length > 0) {
+            current[etapa] = pedidoIds;
+        } else {
+            delete current[etapa];
+        }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+    } catch {
+        // Ignorar errores de localStorage.
+    }
+};
+
+/**
+ * @deprecated Usar saveKanbanManualOrderForStage por etapa individual.
+ * Se mantiene por compatibilidad con código existente que llama a esta función.
+ */
+export const saveKanbanManualOrderMap = (map: KanbanManualOrderMap): void => {
+    if (typeof window === 'undefined') return;
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
     } catch {

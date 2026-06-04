@@ -29,6 +29,9 @@ backend/.env.local
 *.sln
 *.sw?
 
+# Agent/tooling local cache
+.atl/
+
 # Database backups
 backup_pigmea_real.sql
 *.sql

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { Pedido, Etapa, ViewType, UserRole, AuditEntry, Prioridad, EstadoCliché, HistorialEntry, DateField } from './types';
 import { KANBAN_FUNNELS, KANBAN_VISUAL_LAYOUT, ETAPAS, PREPARACION_SUB_ETAPAS_IDS } from './constants';
@@ -62,7 +62,7 @@ import {
     KanbanManualOrderMap,
     loadKanbanManualOrderMap,
     pruneKanbanManualOrderMap,
-    saveKanbanManualOrderMap,
+    saveKanbanManualOrderForStage,
     sortKanbanColumnPedidos,
     mergeVisibleKanbanReorder,
     getOrderedKanbanColumnPedidos
@@ -108,7 +108,8 @@ const AppContent: React.FC = () => {
     const [showImportModal, setShowImportModal] = useState(false);
     const [showBulkImportModal, setShowBulkImportModal] = useState(false);
     const [showPdfImportModal, setShowPdfImportModal] = useState(false);
-    const [kanbanManualOrderMap, setKanbanManualOrderMap] = useState<KanbanManualOrderMap>(() => loadKanbanManualOrderMap());
+    const [kanbanManualOrderMap, setKanbanManualOrderMap] = useState<KanbanManualOrderMap>({});
+    const kanbanManualOrderChangedRef = useRef(false);
 
     // Estados para operaciones masivas
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -146,6 +147,7 @@ const AppContent: React.FC = () => {
         subscribeToPedidosByVendedorUpdated,
         subscribeToPedidosByClienteUpdated,
         subscribeToListasTemporalesUpdated,
+        subscribeToKanbanOrderUpdated,
         subscribeToPageReturn
     } = useWebSocket(currentUserId, currentUserRole, currentUserDisplayName);
 
@@ -296,6 +298,42 @@ const AppContent: React.FC = () => {
         localStorage.setItem('lastView', view);
     }, [view]);
 
+    // 🔄 Cargar orden manual del kanban desde API al iniciar
+    useEffect(() => {
+        let cancelled = false;
+        loadKanbanManualOrderMap().then(map => {
+            if (!cancelled && !kanbanManualOrderChangedRef.current) {
+                setKanbanManualOrderMap(map);
+            }
+        }).catch(() => {
+            // Silencioso: el fallback de localStorage ya está cubierto en la función
+        });
+        return () => { cancelled = true; };
+    }, []);
+
+    // 🔄 Sincronizar orden del kanban en tiempo real vía WebSocket
+    useEffect(() => {
+        if (!subscribeToKanbanOrderUpdated) return;
+
+        const unsubscribe = subscribeToKanbanOrderUpdated(({ etapa, pedidoIds }) => {
+            console.log('🔄 Sincronizando orden kanban desde WebSocket:', etapa, pedidoIds.length, 'pedidos');
+
+            setKanbanManualOrderMap(prev => {
+                // Evitar sobrescritura si el orden no cambió (incluye nuestro propio broadcast)
+                const currentIds = prev[etapa as Etapa] || [];
+                const isEqual = currentIds.length === pedidoIds.length
+                    && currentIds.every((id, i) => id === pedidoIds[i]);
+                if (isEqual) return prev;
+
+                kanbanManualOrderChangedRef.current = true;
+                const next = { ...prev, [etapa as Etapa]: pedidoIds };
+                return next;
+            });
+        });
+
+        return unsubscribe;
+    }, [subscribeToKanbanOrderUpdated]);
+
     useEffect(() => {
         const root = window.document.documentElement;
         if (theme === 'dark') {
@@ -380,7 +418,23 @@ const AppContent: React.FC = () => {
                 return prev;
             }
 
-            saveKanbanManualOrderMap(next);
+            const affectedStageIds = new Set<Etapa>([
+                ...Object.keys(prev).map(stageId => stageId as Etapa),
+                ...Object.keys(next).map(stageId => stageId as Etapa),
+            ]);
+
+            affectedStageIds.forEach(stageId => {
+                const previousIds = prev[stageId] || [];
+                const nextIds = next[stageId] || [];
+                const stageIsEqual = previousIds.length === nextIds.length
+                    && previousIds.every((id, index) => id === nextIds[index]);
+
+                if (!stageIsEqual) {
+                    saveKanbanManualOrderForStage(stageId, nextIds);
+                }
+            });
+
+            kanbanManualOrderChangedRef.current = true;
             return next;
         });
     }, [pedidos, isLoading]);
@@ -393,8 +447,9 @@ const AppContent: React.FC = () => {
     }, [filtrarSoloTemporales, listasTemporalesMap]);
 
     const updateKanbanManualOrderForStage = useCallback((stageId: Etapa, orderedIds: string[]) => {
+        const normalizedIds = Array.from(new Set(orderedIds.filter(Boolean)));
+
         setKanbanManualOrderMap(prev => {
-            const normalizedIds = Array.from(new Set(orderedIds.filter(Boolean)));
             const previousIds = prev[stageId] || [];
             const isEqual = previousIds.length === normalizedIds.length
                 && previousIds.every((id, index) => id === normalizedIds[index]);
@@ -403,6 +458,7 @@ const AppContent: React.FC = () => {
                 return prev;
             }
 
+            kanbanManualOrderChangedRef.current = true;
             const next: KanbanManualOrderMap = { ...prev };
 
             if (normalizedIds.length > 0) {
@@ -411,9 +467,11 @@ const AppContent: React.FC = () => {
                 delete next[stageId];
             }
 
-            saveKanbanManualOrderMap(next);
             return next;
         });
+
+        // 🔥 Guardar en servidor (broadcast a todos los clientes)
+        saveKanbanManualOrderForStage(stageId, normalizedIds);
     }, []);
 
     const productionKanbanStages = useMemo(

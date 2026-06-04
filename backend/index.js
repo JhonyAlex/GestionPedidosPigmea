@@ -1512,6 +1512,11 @@ function detectChanges(previousPedido, updatedPedido) {
         changes.push(`Horas Confirmadas: ${previousPedido.horasConfirmadas ? 'Sí' : 'No'} → ${updatedPedido.horasConfirmadas ? 'Sí' : 'No'}`);
     }
 
+    // Cambios en posición dentro de la etapa (reordenamiento)
+    if (previousPedido.posicionEnEtapa !== updatedPedido.posicionEnEtapa) {
+        changes.push(`Posición en etapa: ${previousPedido.posicionEnEtapa || 'N/A'} → ${updatedPedido.posicionEnEtapa || 'N/A'}`);
+    }
+
     return changes;
 }
 
@@ -4135,6 +4140,57 @@ app.delete('/api/produccion/listas-temporales/:pedidoId', requireAuth, async (re
     } catch (error) {
         console.error(`Error restableciendo listas temporales de pedido ${req.params.pedidoId}:`, error);
         res.status(500).json({ message: 'Error interno del servidor al restablecer listas temporales.' });
+    }
+});
+
+// ===== KANBAN MANUAL ORDER (sincronización en tiempo real del orden visual) =====
+
+// GET /api/kanban/orders - Obtener TODOS los órdenes manuales del kanban
+app.get('/api/kanban/orders', requireAuth, async (req, res) => {
+    try {
+        const result = await dbClient.pool.query(
+            'SELECT etapa, pedido_ids FROM kanban_manual_order'
+        );
+        const orders = {};
+        for (const row of result.rows) {
+            orders[row.etapa] = row.pedido_ids;
+        }
+        res.json(orders);
+    } catch (error) {
+        console.error('Error fetching kanban orders:', error);
+        res.status(500).json({ message: 'Error al obtener órdenes del kanban.' });
+    }
+});
+
+// PUT /api/kanban/order/:etapa - Guardar y transmitir el orden manual de una etapa
+app.put('/api/kanban/order/:etapa', requirePermission('pedidos.edit'), async (req, res) => {
+    try {
+        const { etapa } = req.params;
+        const { pedidoIds } = req.body;
+
+        if (!Array.isArray(pedidoIds)) {
+            return res.status(400).json({ message: 'pedidoIds debe ser un array.' });
+        }
+
+        await dbClient.pool.query(
+            `INSERT INTO kanban_manual_order (etapa, pedido_ids, updated_by)
+             VALUES ($1, $2::jsonb, $3)
+             ON CONFLICT (etapa)
+             DO UPDATE SET pedido_ids = $2::jsonb, updated_at = CURRENT_TIMESTAMP, updated_by = $3`,
+            [etapa, JSON.stringify(pedidoIds), req.user?.id || 'unknown']
+        );
+
+        // 🔥 Transmitir a TODOS los clientes conectados en tiempo real
+        broadcastToClients('kanban-order-updated', {
+            etapa,
+            pedidoIds,
+            updatedBy: req.user?.id || 'unknown'
+        });
+
+        res.json({ success: true, etapa, pedidoIds });
+    } catch (error) {
+        console.error(`Error saving kanban order for etapa ${req.params.etapa}:`, error);
+        res.status(500).json({ message: 'Error al guardar orden del kanban.' });
     }
 });
 
