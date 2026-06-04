@@ -112,11 +112,16 @@ export const saveKanbanManualOrderForStage = async (
 ): Promise<void> => {
     // Guardar en el servidor (el broadcast lo hace el backend)
     try {
-        await fetch(`/api/kanban/order/${encodeURIComponent(etapa)}`, {
+        const response = await fetch(`/api/kanban/order/${encodeURIComponent(etapa)}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({ pedidoIds }),
         });
+
+        if (!response.ok) {
+            const message = await response.text().catch(() => '');
+            throw new Error(`HTTP ${response.status} saving kanban order: ${message}`);
+        }
     } catch (error) {
         console.error('Error saving kanban order to server:', error);
     }

@@ -658,6 +658,28 @@ class MigrationManager {
                 CREATE INDEX IF NOT EXISTS idx_produccion_listas_temporales_etapa ON limpio.produccion_listas_temporales(etapa);
             `
         });
+
+        // Migración 026: Orden manual visual del Kanban
+        this.migrations.push({
+            id: '026-kanban-manual-order',
+            name: 'Crear tabla kanban_manual_order para orden visual del Kanban',
+            sql: `
+                CREATE TABLE IF NOT EXISTS limpio.kanban_manual_order (
+                    etapa VARCHAR(100) NOT NULL,
+                    pedido_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_by VARCHAR(255),
+                    PRIMARY KEY (etapa)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_kanban_order_updated
+                    ON limpio.kanban_manual_order(updated_at);
+
+                COMMENT ON TABLE limpio.kanban_manual_order IS 'Orden manual de pedidos en el tablero Kanban de producción. Sincronizado en tiempo real entre todos los usuarios.';
+                COMMENT ON COLUMN limpio.kanban_manual_order.etapa IS 'Identificador de la etapa de producción';
+                COMMENT ON COLUMN limpio.kanban_manual_order.pedido_ids IS 'Array ordenado de IDs visuales de pedidos que define el orden en esa etapa';
+            `
+        });
     }
 
     /**

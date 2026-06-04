@@ -3,10 +3,8 @@ import { DropResult } from '@hello-pangea/dnd';
 import { Pedido, Etapa, UserRole, HistorialEntry } from '../types';
 import { Material } from '../types/material';
 import { ETAPAS, PREPARACION_SUB_ETAPAS_IDS, KANBAN_FUNNELS } from '../constants';
-import { store } from '../services/storage';
 import { calculateTotalProductionTime } from './kpi';
 import {
-    getOrderedKanbanColumnPedidos,
     isProduccionKanbanStage,
     mergeVisibleKanbanReorder,
     parseKanbanDraggableId,
@@ -211,60 +209,15 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
             destination.index,
             etapaId
         );
-        const reordered = getOrderedKanbanColumnPedidos(fullColumnPedidos, orderedIds, etapaId);
         const moved = visibleColumnPedidos[source.index] || movedPedido;
 
+        // El orden visual del Kanban vive en kanban_manual_order.
+        // Do not update pedido.posicionEnEtapa here: it triggers pedido-updated notifications
+        // and it does not model temporary mirror cards correctly.
         setKanbanManualOrderForStage(etapaId, orderedIds);
-
-        // Mantener la persistencia actual del orden real de la etapa y combinarla con el orden visual manual.
-        const updatedPositions = new Map<string, number>();
-        reordered
-            .filter(pedido => pedido.etapaActual === etapaId)
-            .forEach((pedido, index) => {
-            updatedPositions.set(pedido.id, index + 1);
-            });
-
-        // Identificar pedidos que realmente cambiaron de posición
-        const newPedidosList = pedidos.map(pedido => {
-            const newPos = updatedPositions.get(pedido.id);
-            if (newPos !== undefined && newPos !== pedido.posicionEnEtapa) {
-                const historialEntry = generarEntradaHistorial(
-                    currentUserRole,
-                    'Reordenamiento Manual en Kanban',
-                    `Posición en ${ETAPAS[etapaId]?.title ?? etapaId} cambiada de ${pedido.posicionEnEtapa || 'sin posición'} a ${newPos}.`
-                );
-                return {
-                    ...pedido,
-                    posicionEnEtapa: newPos,
-                    historial: [...pedido.historial, historialEntry]
-                };
-            }
-            if (newPos !== undefined) {
-                return { ...pedido, posicionEnEtapa: newPos };
-            }
-            return pedido;
-        });
-
-        // Actualización optimista inmediata
-        setPedidos(newPedidosList);
-
-        // Asegurar que el sort está en posicionEnEtapa para mantener el orden manual
         setSortConfig('posicionEnEtapa', 'ascending');
 
-        logAction(`Pedido ${moved.numeroPedidoCliente} reordenado manualmente en ${ETAPAS[etapaId]?.title ?? etapaId}.`, moved.id);
-
-        // Persistir en background solo los pedidos que cambiaron
-        const changedPedidos = newPedidosList.filter(p => {
-            const originalPedido = pedidos.find(op => op.id === p.id);
-            return originalPedido && originalPedido.posicionEnEtapa !== p.posicionEnEtapa;
-        });
-
-        if (changedPedidos.length > 0) {
-            Promise.all(changedPedidos.map(p => store.update(p))).catch(error => {
-                console.error("Error al actualizar pedidos reordenados en Kanban:", error);
-            });
-        }
-
+        logAction(`Pedido ${moved.numeroPedidoCliente} reordenado visualmente en ${ETAPAS[etapaId]?.title ?? etapaId}.`, moved.id);
         return;
     }
 

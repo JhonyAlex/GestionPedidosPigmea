@@ -64,8 +64,7 @@ import {
     pruneKanbanManualOrderMap,
     saveKanbanManualOrderForStage,
     sortKanbanColumnPedidos,
-    mergeVisibleKanbanReorder,
-    getOrderedKanbanColumnPedidos
+    mergeVisibleKanbanReorder
 } from './utils/kanbanManualOrder';
 
 
@@ -594,45 +593,11 @@ const AppContent: React.FC = () => {
 
         updateKanbanManualOrderForStage(stageId, finalOrderedIds);
 
-        // Calculate positions to maintain persistence
-        const fullColumnPedidos = kanbanAllPedidosByStage[stageId] || [];
-        const reordered = getOrderedKanbanColumnPedidos(fullColumnPedidos, finalOrderedIds, stageId);
-        
-        const updatedPositions = new Map<string, number>();
-        reordered
-            .filter(pedido => pedido.etapaActual === stageId)
-            .forEach((pedido, index) => {
-                updatedPositions.set(pedido.id, index + 1);
-            });
-
-        // Optimistic UI update
-        setPedidos(prev => prev.map(pedido => {
-            if (pedido.etapaActual === stageId) {
-                const newPos = updatedPositions.get(pedido.id);
-                if (newPos !== undefined && newPos !== pedido.posicionEnEtapa) {
-                    return { ...pedido, posicionEnEtapa: newPos };
-                }
-            }
-            return pedido;
-        }));
-
-        // Trigger persistence & log
         const pedidoToUpdate = pedidos.find(p => p.id === pedidoId);
         if (pedidoToUpdate) {
-            const entrada = generarEntradaHistorial(
-                currentUserRole,
-                'Reordenamiento Manual',
-                `Pedido movido a la posición ${destinationIndex + 1} en ${ETAPAS[stageId]?.title ?? stageId} (Botón Orden)`
-            );
-            const updatedPedido = {
-                ...pedidoToUpdate,
-                posicionEnEtapa: updatedPositions.get(pedidoToUpdate.id) ?? pedidoToUpdate.posicionEnEtapa,
-                historial: [...(pedidoToUpdate.historial || []), entrada]
-            };
-            handleSavePedidoLogic(updatedPedido).catch(console.error);
             logAction(`Pedido ${pedidoToUpdate.numeroPedidoCliente} movido a la posición ${destinationIndex + 1} en ${ETAPAS[stageId]?.title ?? stageId}.`, pedidoToUpdate.id);
         }
-    }, [kanbanVisiblePedidosByStage, kanbanAllPedidosByStage, updateKanbanManualOrderForStage, setPedidos, pedidos, currentUserRole, generarEntradaHistorial, handleSavePedidoLogic, logAction]);
+    }, [kanbanVisiblePedidosByStage, kanbanAllPedidosByStage, updateKanbanManualOrderForStage, pedidos, logAction]);
 
     const handleDragEnd = useCallback(async (result: DropResult) => {
         await procesarDragEnd({

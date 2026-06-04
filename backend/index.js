@@ -4149,7 +4149,7 @@ app.delete('/api/produccion/listas-temporales/:pedidoId', requireAuth, async (re
 app.get('/api/kanban/orders', requireAuth, async (req, res) => {
     try {
         const result = await dbClient.pool.query(
-            'SELECT etapa, pedido_ids FROM kanban_manual_order'
+            'SELECT etapa, pedido_ids FROM limpio.kanban_manual_order'
         );
         const orders = {};
         for (const row of result.rows) {
@@ -4173,7 +4173,7 @@ app.put('/api/kanban/order/:etapa', requirePermission('pedidos.edit'), async (re
         }
 
         await dbClient.pool.query(
-            `INSERT INTO kanban_manual_order (etapa, pedido_ids, updated_by)
+            `INSERT INTO limpio.kanban_manual_order (etapa, pedido_ids, updated_by)
              VALUES ($1, $2::jsonb, $3)
              ON CONFLICT (etapa)
              DO UPDATE SET pedido_ids = $2::jsonb, updated_at = CURRENT_TIMESTAMP, updated_by = $3`,
