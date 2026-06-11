@@ -16,7 +16,6 @@ import { usePedidoLock } from '../hooks/usePedidoLock';
 import { useMaterialesManager } from '../hooks/useMaterialesManager';
 import type { Material } from '../types/material';
 import ClienteModalMejorado from './ClienteModalMejorado';
-import { useActionRecorder } from '../hooks/useActionRecorder';
 import { formatStageTitle } from '../utils/formatStageTitle';
 import { useActionHistory } from '../hooks/useActionHistory';
 import { checkNumeroPedidoClienteExists } from '../services/storage';
@@ -186,7 +185,6 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
     const { vendedores, addVendedor, fetchVendedores } = useVendedoresManager();
     const { clientes, addCliente, fetchClientes, isLoading: isLoadingClientes } = useClientesManager();
     const { materiales, updateMaterial, getMaterialesByPedidoId } = useMaterialesManager();
-    const { recordPedidoUpdate } = useActionRecorder();
     const { getContextHistory } = useActionHistory();
     // const permissions = usePermissions();
 
@@ -644,17 +642,6 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
     const savePedidoAndClose = useCallback(async (pedidoActualizado: Pedido) => {
         console.log('🔓 [MODAL] Desbloqueando antes de guardar pedido:', pedidoActualizado.id);
 
-        // 📝 Registrar acción en el historial ANTES de guardar
-        try {
-            await recordPedidoUpdate(pedido, pedidoActualizado);
-
-            const updatedHistory = await getContextHistory(pedido.id);
-            setPedidoHistory(updatedHistory);
-        } catch (error) {
-            console.error('Error al registrar acción en historial:', error);
-            // No bloqueamos el guardado por errores de historial
-        }
-
         setIsProcessingAction(true);
         try {
             await Promise.resolve(onSave(pedidoActualizado));
@@ -670,7 +657,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
         } finally {
             setIsProcessingAction(false);
         }
-    }, [isLockedByMe, unlockPedido, onSave, onClose, pedido, recordPedidoUpdate, activeTab, getContextHistory]);
+    }, [isLockedByMe, unlockPedido, onSave, onClose]);
 
     // ✅ NUEVO: Guardar automáticamente SIN cerrar el modal (para cambios de material)
     const handleAutoSave = useCallback(() => {
