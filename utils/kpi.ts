@@ -240,8 +240,11 @@ export const generatePedidosPDF = (
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'pt', 'a4'); // 'p' for portrait (vertical orientation) - A4 portrait = 595x842 pt
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
     const tableWidth = 525;
     const tableHorizontalMargin = (pageWidth - tableWidth) / 2;
+    const footerRevision = 'Versión 1.2 · Rev. 11/06/2026';
+    const footerConfidentiality = 'Uso interno exclusivo · Pigmea S.L.';
 
     // --- HEADER ---
     doc.setFontSize(18);
@@ -368,7 +371,7 @@ export const generatePedidosPDF = (
         body: tableRows,
         theme: 'grid',
         tableWidth,
-        margin: { left: tableHorizontalMargin, right: tableHorizontalMargin, top: 14, bottom: 14 },
+        margin: { left: tableHorizontalMargin, right: tableHorizontalMargin, top: 14, bottom: 28 },
         styles: {
             fontSize: 8, // Increased from 6
             cellPadding: { top: 2, right: 2, bottom: 2, left: 2 },
@@ -510,6 +513,21 @@ export const generatePedidosPDF = (
             }
         },
     });
+
+    const totalPages = doc.getNumberOfPages();
+    for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
+        doc.setPage(pageNumber);
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.5);
+        doc.line(tableHorizontalMargin, pageHeight - 20, pageWidth - tableHorizontalMargin, pageHeight - 20);
+
+        doc.setFontSize(6.5);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(120);
+        doc.text(footerRevision, tableHorizontalMargin, pageHeight - 11);
+        doc.text(`Página ${pageNumber} de ${totalPages}`, pageWidth / 2, pageHeight - 11, { align: 'center' });
+        doc.text(footerConfidentiality, pageWidth - tableHorizontalMargin, pageHeight - 11, { align: 'right' });
+    }
 
     // Save
     const dateStr = today.toISOString().split('T')[0];
