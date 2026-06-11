@@ -239,6 +239,9 @@ export const generatePedidosPDF = (
 ) => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'pt', 'a4'); // 'p' for portrait (vertical orientation) - A4 portrait = 595x842 pt
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const tableWidth = 525;
+    const tableHorizontalMargin = (pageWidth - tableWidth) / 2;
 
     // --- HEADER ---
     doc.setFontSize(18);
@@ -364,7 +367,8 @@ export const generatePedidosPDF = (
         head: [tableColumn],
         body: tableRows,
         theme: 'grid',
-        margin: { left: 10, right: 10, top: 14, bottom: 14 }, // Margins reduced to ~3.5mm
+        tableWidth,
+        margin: { left: tableHorizontalMargin, right: tableHorizontalMargin, top: 14, bottom: 14 },
         styles: {
             fontSize: 8, // Increased from 6
             cellPadding: { top: 2, right: 2, bottom: 2, left: 2 },
@@ -383,13 +387,13 @@ export const generatePedidosPDF = (
         },
         columnStyles: {
             0: { cellWidth: 30 }, // Des.
-            1: { cellWidth: 92, halign: 'left', fontSize: 6.8 }, // Cliente y # Pedido
+            1: { cellWidth: 92, halign: 'center', fontSize: 6.8 }, // Cliente y # Pedido
             2: { cellWidth: 40 }, // Metros
             3: { cellWidth: 24, fontSize: 5.5 }, // Tipo
             4: { cellWidth: 28, fontSize: 5.5 }, // Colores
             5: { cellWidth: 22, fontSize: 8 }, // Hecho (checkbox)
             6: { cellWidth: 22, fontSize: 5.2 }, // Capa
-            7: { cellWidth: 29 }, // Camisa
+            7: { cellWidth: 29, fontSize: 6 }, // Camisa
             8: { cellWidth: 22 }, // Antiv.
             9: { cellWidth: 22 }, // Láser
             10: { cellWidth: 50, fontSize: 6.8 }, // Sig. Etapa
@@ -444,12 +448,14 @@ export const generatePedidosPDF = (
                 // But accessing cell.styles inside didDrawCell is reliable.
                 // Default padding we set is 2.
                 const padding = 2;
-                const textX = x + padding;
+                const centerX = x + (width / 2);
                 const textY = y + padding + fontSize; // Approx baseline for first line
 
                 // Use splitTextToSize to handle wrapping if client name is too long
                 const clientLines = doc.splitTextToSize(content.cliente || '', width - (padding * 2));
-                doc.text(clientLines, textX, textY);
+                clientLines.forEach((line: string, index: number) => {
+                    doc.text(line, centerX, textY + (index * (fontSize * 1.15)), { align: 'center' });
+                });
 
                 // Draw Pedido (Bold) below client
                 doc.setFont(undefined, 'bold');
@@ -457,12 +463,20 @@ export const generatePedidosPDF = (
                 const lineHeight = fontSize * 1.15;
                 const clientBlockHeight = clientLines.length * lineHeight;
 
-                doc.text(content.pedido || '', textX, textY + clientBlockHeight);
+                doc.text(content.pedido || '', centerX, textY + clientBlockHeight, { align: 'center' });
             }
         },
         didParseCell: (data) => {
             const pedido = pedidos[data.row.index];
+            if (data.section === 'head' && data.column.index === 5) {
+                data.cell.styles.fontSize = 5;
+            }
+
             if (pedido && data.section === 'body') {
+                if (data.row.index % 2 === 1) {
+                    data.cell.styles.fillColor = [248, 250, 252];
+                }
+
                 // "Cliente / # Pedido" column: Ensure text property reflects content size for row height calculation
                 if (data.column.index === 1) {
                     const content = data.cell.raw as { cliente: string, pedido: string };
