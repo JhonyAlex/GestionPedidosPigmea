@@ -1,12 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { UserRole, Pedido } from '../types';
-import webSocketService, { NotificationData, ConnectedUser, ListasTemporalesUpdatedData } from '../services/websocket';
+import webSocketService, { ConnectedUser, ListasTemporalesUpdatedData } from '../services/websocket';
 
 export interface UseWebSocketReturn {
   isConnected: boolean;
-  notifications: NotificationData[];
   connectedUsers: ConnectedUser[];
-  removeNotification: (id: string) => void;
   emitActivity: (activity: string, data?: any) => void;
   // Callbacks para sincronización de datos
   subscribeToPedidoCreated: (callback: (pedido: Pedido) => void) => () => void;
@@ -21,19 +19,12 @@ export interface UseWebSocketReturn {
 
 export const useWebSocket = (userId: string, userRole: UserRole, displayName?: string): UseWebSocketReturn => {
   const [isConnected, setIsConnected] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [connectedUsers, setConnectedUsers] = useState<ConnectedUser[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     // Obtener datos iniciales
-    setNotifications(webSocketService.getNotifications());
     setConnectedUsers(webSocketService.getConnectedUsers());
-
-    // Suscribirse a notificaciones
-    const unsubscribeNotifications = webSocketService.subscribeToNotifications((newNotifications) => {
-      setNotifications(newNotifications);
-    });
 
     // Suscribirse a usuarios conectados
     const unsubscribeUsers = webSocketService.subscribeToConnectedUsers((users) => {
@@ -41,7 +32,6 @@ export const useWebSocket = (userId: string, userRole: UserRole, displayName?: s
     });
 
     return () => {
-      unsubscribeNotifications();
       unsubscribeUsers();
     };
   }, []);
@@ -67,10 +57,6 @@ export const useWebSocket = (userId: string, userRole: UserRole, displayName?: s
     };
   }, [userId, userRole, displayName, isAuthenticated]);
 
-  const removeNotification = useCallback((id: string) => {
-    webSocketService.removeNotification(id);
-  }, []);
-
   const emitActivity = useCallback((activity: string, data?: any) => {
     webSocketService.emitActivity(activity, data);
   }, []);
@@ -81,9 +67,7 @@ export const useWebSocket = (userId: string, userRole: UserRole, displayName?: s
 
   return {
     isConnected,
-    notifications,
     connectedUsers,
-    removeNotification,
     emitActivity,
     // Callbacks para sincronización de datos
     subscribeToPedidoCreated: webSocketService.subscribeToPedidoCreated.bind(webSocketService),

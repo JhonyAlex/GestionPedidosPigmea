@@ -1637,62 +1637,6 @@ async function recordAuditAction(pool, opts) {
 }
 
 
-/**
- * Crear y persistir una notificación en la base de datos
- * @param {string} type - Tipo de notificación: success, info, warning, error
- * @param {string} title - Título de la notificación
- * @param {string} message - Mensaje descriptivo
- * @param {Object} options - Opciones adicionales
- * @param {string} [options.pedidoId] - ID del pedido relacionado
- * @param {Object} [options.metadata] - Metadata adicional
- * @param {string} [options.userId] - ID del usuario destinatario (null = global)
- * @returns {Promise<Object>} - Notificación creada
- */
-async function createAndBroadcastNotification(type, title, message, options = {}) {
-    const notificationId = `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const timestamp = new Date().toISOString();
-
-    const notification = {
-        id: notificationId,
-        type,
-        title,
-        message,
-        timestamp,
-        pedidoId: options.pedidoId || null,
-        metadata: options.metadata || null,
-        userId: options.userId || null
-    };
-
-    // Intentar guardar en base de datos
-    if (dbClient.isInitialized) {
-        try {
-            await dbClient.createNotification(notification);
-            console.log(`✅ Notificación guardada en BD: ${notificationId}`);
-        } catch (error) {
-            console.error(`❌ Error al guardar notificación en BD:`, error);
-            // Continuar aunque falle la BD (la notificación se enviará por WebSocket)
-        }
-    }
-
-    // Emitir notificación por WebSocket (Selectivo o Global)
-    if (options.userId) {
-        // Emitir solo a las sesiones del usuario específico
-        const targetSockets = Array.from(io.sockets.sockets.values())
-            .filter(socket => socket.userId === options.userId);
-
-        targetSockets.forEach(socket => {
-            socket.emit('notification', notification);
-        });
-        console.log(`📧 Notificación WebSocket enviada selectivamente a usuario ${options.userId} (${targetSockets.length} sesiones activas)`);
-    } else {
-        // Emitir a todos los clientes conectados
-        broadcastToClients('notification', notification);
-        console.log(`📢 Notificación WebSocket global enviada a todos los clientes`);
-    }
-
-    return notification;
-}
-
 // --- API ROUTES ---
 
 // Health Check Endpoint - Para Docker y Dokploy
@@ -3391,22 +3335,6 @@ app.post('/api/pedidos', requirePermission('pedidos.create'), async (req, res) =
             message: `Nuevo pedido creado: ${newPedido.numeroPedidoCliente}`
         });
 
-        // 📢 NOTIFICACIÓN PERSISTENTE
-        await createAndBroadcastNotification(
-            'success',
-            'Nuevo pedido',
-            `Pedido ${newPedido.numeroPedidoCliente} creado para ${newPedido.cliente}`,
-            {
-                pedidoId: newPedido.id,
-                metadata: {
-                    cliente: newPedido.cliente,
-                    prioridad: newPedido.prioridad,
-                    etapaActual: newPedido.etapaActual,
-                    categoria: 'pedido'
-                }
-            }
-        );
-
         // Auditoria server-side
         await recordAuditAction(dbClient.pool, {
             contextId: newPedido.id, contextType: 'pedido', actionType: 'CREATE',
@@ -3520,26 +3448,6 @@ app.put('/api/pedidos/:id', requirePermission('pedidos.edit'), async (req, res) 
             message: `Pedido actualizado: ${updatedPedido.numeroPedidoCliente}${changes.length > 0 ? ` (${changes.join(', ')})` : ''}`
         });
 
-        // 📢 NOTIFICACIÓN PERSISTENTE (solo si hay cambios significativos)
-        if (changes.length > 0) {
-            await createAndBroadcastNotification(
-                'info',
-                'Pedido actualizado',
-                `${updatedPedido.numeroPedidoCliente}: ${changes.slice(0, 2).join(', ')}${changes.length > 2 ? ` +${changes.length - 2} más` : ''}`,
-                {
-                    pedidoId: updatedPedido.id,
-                    metadata: {
-                        cliente: updatedPedido.cliente,
-                        prioridad: updatedPedido.prioridad,
-                        etapaActual: updatedPedido.etapaActual,
-                        etapaAnterior: previousPedido?.etapaActual,
-                        cambios: changes,
-                        categoria: 'pedido'
-                    }
-                }
-            );
-        }
-
         // Auditoría server-side como respaldo (el frontend también registra con más detalle)
         try {
             await recordAuditAction(dbClient.pool, {
@@ -3589,22 +3497,6 @@ app.delete('/api/pedidos/:id', requirePermission('pedidos.delete'), async (req, 
             deletedPedido,
             message: `Pedido eliminado: ${deletedPedido?.numeroPedidoCliente || pedidoId}`
         });
-
-        // 📢 NOTIFICACIÓN PERSISTENTE
-        await createAndBroadcastNotification(
-            'warning',
-            'Pedido eliminado',
-            `Pedido ${deletedPedido?.numeroPedidoCliente || pedidoId} de ${deletedPedido?.cliente || 'cliente desconocido'} ha sido eliminado`,
-            {
-                pedidoId: pedidoId,
-                metadata: {
-                    cliente: deletedPedido?.cliente,
-                    prioridad: deletedPedido?.prioridad,
-                    etapaActual: deletedPedido?.etapaActual,
-                    categoria: 'pedido'
-                }
-            }
-        );
 
         // Auditoria server-side
         await recordAuditAction(dbClient.pool, {
@@ -3934,144 +3826,6 @@ app.post('/api/admin/migrate', requirePermission('usuarios.admin'), async (req, 
         res.status(500).json({
             message: 'Error aplicando migraciones',
             error: error.message
-        });
-    }
-});
-
-// === RUTAS DE NOTIFICACIONES ===
-
-// ✅ Rate limiter específico para notificaciones
-const notificationLimiter = rateLimit({
-    windowMs: 60 * 1000, // 1 minuto
-    max: 60, // 60 requests por ventana
-    message: {
-        message: 'Demasiadas solicitudes de notificaciones. Intenta de nuevo en un minuto.',
-        retryAfter: 60
-    },
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-    keyGenerator: (req) => req.headers['x-user-id'] || req.ip,
-    skip: (req) => {
-        // Skip rate limiting en desarrollo si se desea
-        return process.env.NODE_ENV === 'development' && process.env.SKIP_RATE_LIMIT === 'true';
-    }
-});
-
-
-// GET /api/notifications - Obtener notificaciones del usuario (últimas 50)
-app.get('/api/notifications', async (req, res) => {
-    try {
-        const userId = req.headers['x-user-id'];
-
-        if (!userId) {
-            return res.status(400).json({ message: 'ID de usuario requerido (x-user-id header)' });
-        }
-
-        if (!dbClient.isInitialized) {
-            console.log('⚠️ BD no disponible - devolviendo array vacío');
-            return res.status(200).json([]);
-        }
-
-        const notifications = await dbClient.getNotifications(userId, 50);
-        res.status(200).json(notifications);
-
-    } catch (error) {
-        console.error('Error obteniendo notificaciones:', error);
-        res.status(500).json({
-            message: 'Error al obtener notificaciones',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
-    }
-});
-
-// POST /api/notifications/:id/read - Marcar una notificación como leída
-app.post('/api/notifications/:id/read', async (req, res) => {
-    try {
-        const notificationId = req.params.id;
-        const userId = req.headers['x-user-id'];
-
-        if (!userId) {
-            return res.status(400).json({ message: 'ID de usuario requerido (x-user-id header)' });
-        }
-
-        if (!dbClient.isInitialized) {
-            return res.status(503).json({ message: 'Base de datos no disponible' });
-        }
-
-        const updatedNotification = await dbClient.markNotificationAsRead(notificationId, userId);
-
-        // Emitir evento WebSocket para sincronizar con otros clientes del mismo usuario
-        io.emit('notification-read', { notificationId, userId });
-
-        res.status(200).json(updatedNotification);
-
-    } catch (error) {
-        console.error('Error marcando notificación como leída:', error);
-        res.status(500).json({
-            message: 'Error al marcar notificación como leída',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
-    }
-});
-
-// POST /api/notifications/read-all - Marcar todas las notificaciones como leídas
-app.post('/api/notifications/read-all', async (req, res) => {
-    try {
-        const userId = req.headers['x-user-id'];
-
-        if (!userId) {
-            return res.status(400).json({ message: 'ID de usuario requerido (x-user-id header)' });
-        }
-
-        if (!dbClient.isInitialized) {
-            return res.status(503).json({ message: 'Base de datos no disponible' });
-        }
-
-        const updatedCount = await dbClient.markAllNotificationsAsRead(userId);
-
-        // Emitir evento WebSocket para sincronizar con otros clientes del mismo usuario
-        io.emit('notifications-read-all', { userId });
-
-        res.status(200).json({
-            message: `${updatedCount} notificaciones marcadas como leídas`,
-            count: updatedCount
-        });
-
-    } catch (error) {
-        console.error('Error marcando todas las notificaciones como leídas:', error);
-        res.status(500).json({
-            message: 'Error al marcar todas las notificaciones como leídas',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
-    }
-});
-
-// DELETE /api/notifications/:id - Eliminar una notificación
-app.delete('/api/notifications/:id', async (req, res) => {
-    try {
-        const notificationId = req.params.id;
-        const userId = req.headers['x-user-id'];
-
-        if (!userId) {
-            return res.status(400).json({ message: 'ID de usuario requerido (x-user-id header)' });
-        }
-
-        if (!dbClient.isInitialized) {
-            return res.status(503).json({ message: 'Base de datos no disponible' });
-        }
-
-        await dbClient.deleteNotification(notificationId, userId);
-
-        // Emitir evento WebSocket para sincronizar con otros clientes del mismo usuario
-        io.emit('notification-deleted', { notificationId, userId });
-
-        res.status(204).send();
-
-    } catch (error) {
-        console.error('Error eliminando notificación:', error);
-        res.status(500).json({
-            message: 'Error al eliminar notificación',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 });
@@ -4643,6 +4397,151 @@ app.post('/api/action-history', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('Error al guardar historial:', error);
         res.status(500).json({ message: 'Error al guardar historial de actividad' });
+    }
+});
+
+// GET /api/action-history/global - Obtener historial global de acciones con paginación por cursor
+// DEBE ir antes de /:contextId para evitar que Express capture "global" como contextId
+// Soporta filtro de búsqueda por número de pedido (search param)
+app.get('/api/action-history/global', requireAuth, async (req, res) => {
+    try {
+        // Normalize query params — Express can return arrays for duplicate keys
+        const rawSearch = Array.isArray(req.query.search) ? req.query.search[0] : (req.query.search || '');
+        const searchTerm = rawSearch.trim();
+        const rawCursor = Array.isArray(req.query.cursor) ? req.query.cursor[0] : (req.query.cursor || null);
+        const cursor = rawCursor;
+        const rawLimit = Array.isArray(req.query.limit) ? req.query.limit[0] : (req.query.limit || '50');
+        const parsedLimit = Math.min(parseInt(rawLimit, 10) || 50, 100);
+
+        // ── SEARCH MODE: server-side filtering by order number with cursor pagination ──
+        if (searchTerm) {
+            let query;
+            let values;
+
+            if (cursor) {
+                let cursorData;
+                try {
+                    cursorData = JSON.parse(Buffer.from(cursor, 'base64').toString('utf-8'));
+                } catch (e) {
+                    return res.status(400).json({ error: 'Invalid cursor' });
+                }
+
+                query = `
+                    SELECT
+                        ah.id, ah.context_id as "contextId", ah.context_type as "contextType",
+                        ah.action_type as "type", ah.payload, ah.timestamp,
+                        ah.user_id as "userId", ah.user_name as "userName", ah.description, ah.source
+                    FROM action_history ah
+                    LEFT JOIN limpio.pedidos p ON ah.context_id = p.id AND ah.context_type = 'pedido'
+                    WHERE (
+                        ah.description ILIKE '%' || $1 || '%'
+                        OR p.numero_pedido_cliente ILIKE '%' || $1 || '%'
+                        OR p.data->>'orden' = $1
+                        OR p.data->>'numeroPedidoCliente' ILIKE '%' || $1 || '%'
+                        OR ah.context_id::text ILIKE '%' || $1 || '%'
+                    )
+                    AND (ah.timestamp, ah.id) < ($2, $3)
+                    ORDER BY ah.timestamp DESC, ah.id DESC
+                    LIMIT $4
+                `;
+                values = [searchTerm, cursorData.timestamp, cursorData.id, parsedLimit + 1];
+            } else {
+                query = `
+                    SELECT
+                        ah.id, ah.context_id as "contextId", ah.context_type as "contextType",
+                        ah.action_type as "type", ah.payload, ah.timestamp,
+                        ah.user_id as "userId", ah.user_name as "userName", ah.description, ah.source
+                    FROM action_history ah
+                    LEFT JOIN limpio.pedidos p ON ah.context_id = p.id AND ah.context_type = 'pedido'
+                    WHERE (
+                        ah.description ILIKE '%' || $1 || '%'
+                        OR p.numero_pedido_cliente ILIKE '%' || $1 || '%'
+                        OR p.data->>'orden' = $1
+                        OR p.data->>'numeroPedidoCliente' ILIKE '%' || $1 || '%'
+                        OR ah.context_id::text ILIKE '%' || $1 || '%'
+                    )
+                    ORDER BY ah.timestamp DESC, ah.id DESC
+                    LIMIT $2
+                `;
+                values = [searchTerm, parsedLimit + 1];
+            }
+
+            const result = await dbClient.pool.query(query, values);
+            const rows = result.rows;
+            const hasMore = rows.length > parsedLimit;
+            const actions = hasMore ? rows.slice(0, parsedLimit) : rows;
+
+            const nextCursor = hasMore && actions.length > 0
+                ? Buffer.from(JSON.stringify({
+                    timestamp: actions[actions.length - 1].timestamp,
+                    id: actions[actions.length - 1].id
+                })).toString('base64')
+                : null;
+
+            return res.status(200).json({
+                actions,
+                nextCursor,
+                hasMore
+            });
+        }
+
+        // ── NORMAL MODE: cursor-based pagination ──
+        let query;
+        let values;
+
+        if (cursor) {
+            let cursorData;
+            try {
+                cursorData = JSON.parse(Buffer.from(cursor, 'base64').toString('utf-8'));
+            } catch (e) {
+                return res.status(400).json({ error: 'Invalid cursor' });
+            }
+
+            query = `
+                SELECT
+                    id, context_id as "contextId", context_type as "contextType",
+                    action_type as "type", payload, timestamp,
+                    user_id as "userId", user_name as "userName", description, source
+                FROM action_history
+                WHERE (timestamp, id) < ($1, $2)
+                ORDER BY timestamp DESC, id DESC
+                LIMIT $3
+            `;
+            values = [cursorData.timestamp, cursorData.id, parsedLimit + 1];
+        } else {
+            query = `
+                SELECT
+                    id, context_id as "contextId", context_type as "contextType",
+                    action_type as "type", payload, timestamp,
+                    user_id as "userId", user_name as "userName", description, source
+                FROM action_history
+                ORDER BY timestamp DESC, id DESC
+                LIMIT $1
+            `;
+            values = [parsedLimit + 1];
+        }
+
+        const result = await dbClient.pool.query(query, values);
+        const rows = result.rows;
+        const hasMore = rows.length > parsedLimit;
+        const actions = hasMore ? rows.slice(0, parsedLimit) : rows;
+
+        const nextCursor = hasMore && actions.length > 0
+            ? Buffer.from(JSON.stringify({
+                timestamp: actions[actions.length - 1].timestamp,
+                id: actions[actions.length - 1].id
+            })).toString('base64')
+            : null;
+
+        res.status(200).json({
+            actions,
+            nextCursor,
+            hasMore
+        });
+
+    } catch (error) {
+        console.error('Error al obtener historial global:', error);
+        res.status(500).json({ message: 'Error al obtener historial global' });
     }
 });
 
@@ -6111,78 +6010,6 @@ app.post('/api/comments', requireAuth, async (req, res) => {
         }
 
         const newComment = result.rows[0];
-
-        // Crear notificaciones para usuarios mencionados (solo si la columna existe y hay menciones)
-        if (hasMentionedUsersColumn && mentionedUsers && mentionedUsers.length > 0) {
-            for (const mentionedUser of mentionedUsers) {
-                try {
-                    // No crear notificación si el usuario se menciona a sí mismo
-                    // (aunque permitimos auto-menciones, no hace falta notificar)
-                    if (mentionedUser.id === validUserId) {
-                        continue;
-                    }
-
-                    const notificationId = `mention-${newComment.id}-${mentionedUser.id}-${Date.now()}`;
-
-                    await dbClient.pool.query(`
-                        INSERT INTO notifications (
-                            id, type, title, message, timestamp, read, 
-                            pedido_id, user_id, metadata
-                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                    `, [
-                        notificationId,
-                        'mention',
-                        `${finalUsername} te mencionó`,
-                        `"${message.trim().substring(0, 100)}${message.trim().length > 100 ? '...' : ''}"`,
-                        new Date(),
-                        false,
-                        pedidoId,
-                        mentionedUser.id,
-                        JSON.stringify({
-                            commentId: newComment.id,
-                            mentionedBy: {
-                                id: validUserId,
-                                username: finalUsername
-                            },
-                            comment: message.trim()
-                        })
-                    ]);
-
-                    // Emitir evento WebSocket de nueva notificación SOLO al usuario mencionado
-                    const notificationPayload = {
-                        id: notificationId,
-                        type: 'mention',
-                        title: `${finalUsername} te mencionó`,
-                        message: `"${message.trim().substring(0, 100)}${message.trim().length > 100 ? '...' : ''}"`,
-                        timestamp: new Date(),
-                        read: false,
-                        pedidoId: pedidoId,
-                        userId: mentionedUser.id,
-                        metadata: {
-                            commentId: newComment.id,
-                            mentionedBy: {
-                                id: validUserId,
-                                username: finalUsername
-                            },
-                            comment: message.trim()
-                        }
-                    };
-
-                    // Emitir solo a las sesiones del usuario mencionado
-                    const targetSockets = Array.from(io.sockets.sockets.values())
-                        .filter(socket => socket.userId === mentionedUser.id);
-
-                    targetSockets.forEach(socket => {
-                        socket.emit('notification', notificationPayload);
-                    });
-
-                    console.log(`📧 Notificación de mención enviada a ${mentionedUser.username} (${targetSockets.length} sesiones activas)`);
-                } catch (notifError) {
-                    console.error(`Error creando notificación de mención para ${mentionedUser.username}:`, notifError);
-                    // Continuar aunque falle la notificación
-                }
-            }
-        }
 
         // Emitir evento WebSocket del comentario
         io.emit('comment:added', newComment);

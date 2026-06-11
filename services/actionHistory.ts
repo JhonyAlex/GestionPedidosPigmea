@@ -69,4 +69,35 @@ async function getActionsByUser(userId: string, limit: number = 50): Promise<Act
     return response.json();
 }
 
-export const actionHistoryDB = { addAction, getActionsByContext, getActionsByUser };
+export interface GlobalActionsResponse {
+    actions: ActionHistoryEntry[];
+    nextCursor: string | null;
+    hasMore: boolean;
+}
+
+async function getGlobalActions(
+    cursor?: string | null,
+    limit: number = 50,
+    signal?: AbortSignal,
+    search?: string
+): Promise<GlobalActionsResponse> {
+    const params = new URLSearchParams();
+    params.set('limit', String(limit));
+    if (cursor) params.set('cursor', cursor);
+    if (search) params.set('search', search);
+
+    const url = `/api/action-history/global?${params.toString()}`;
+
+    const response = await fetch(url, {
+        headers: getAuthHeaders(),
+        signal
+    });
+
+    if (!response.ok) {
+        throw new Error(`Error al obtener historial global: ${response.status}`);
+    }
+
+    return response.json();
+}
+
+export const actionHistoryDB = { addAction, getActionsByContext, getActionsByUser, getGlobalActions };

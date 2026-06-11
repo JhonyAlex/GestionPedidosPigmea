@@ -1,15 +1,9 @@
 import { io, Socket } from 'socket.io-client';
-import { Pedido, UserRole, Notification, Etapa } from '../types';
+import { Pedido, UserRole, Etapa } from '../types';
 import { logger } from '../utils/logger';
 
 // Tipos para los eventos WebSocket
 export interface WebSocketEvents {
-  // Eventos de notificaciones
-  'notification': (notification: Notification) => void;
-  'notification-read': (data: { notificationId: string }) => void;
-  'notifications-read-all': () => void;
-  'notification-deleted': (data: { notificationId: string }) => void;
-
   // Eventos del servidor
   'pedido-created': (data: { pedido: Pedido; message: string; timestamp: string }) => void;
   'pedido-updated': (data: { pedido: Pedido; previousPedido?: Pedido; changes: string[]; message: string; timestamp: string }) => void;
@@ -106,16 +100,6 @@ export interface ConnectedUser {
   joinedAt: string;
 }
 
-export interface NotificationData {
-  id: string;
-  type: 'success' | 'info' | 'warning' | 'error';
-  title: string;
-  message: string;
-  timestamp: string;
-  autoClose?: boolean;
-  duration?: number;
-}
-
 export interface ListasTemporalesUpdatedData {
   pedidoId: string;
   etapas: Etapa[];
@@ -130,8 +114,6 @@ class WebSocketService {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private connectionTestInterval: NodeJS.Timeout | null = null;
-  private notifications: NotificationData[] = [];
-  private notificationListeners: ((notifications: NotificationData[]) => void)[] = [];
   private connectedUsers: ConnectedUser[] = [];
   private connectedUsersListeners: ((users: ConnectedUser[]) => void)[] = [];
 
@@ -277,15 +259,6 @@ class WebSocketService {
   }
 
   private handlePageReturn() {
-    // Notificar a los componentes que deben refrescar sus datos
-    this.addNotification({
-      type: 'info',
-      title: 'Actualizando datos',
-      message: 'Sincronizando información reciente...',
-      autoClose: true,
-      duration: 3000
-    });
-
     // Llamar a todos los callbacks registrados para refrescar
     this.pageRefreshCallbacks.forEach(callback => {
       try {
@@ -335,12 +308,6 @@ class WebSocketService {
       this.setupReconnectionLogic();
     } catch (error) {
       console.error('❌ Error inicializando WebSocket:', error);
-      this.addNotification({
-        type: 'error',
-        title: 'Error de inicialización',
-        message: 'No se pudo inicializar la conexión en tiempo real',
-        autoClose: false
-      });
     }
   }
 
@@ -358,12 +325,6 @@ class WebSocketService {
         this.isOnline = false;
         this.isConnected = false;
         this.stopConnectionTest();
-        this.addNotification({
-          type: 'warning',
-          title: 'Sin conexión',
-          message: 'Se perdió la conexión a internet. Las modificaciones están bloqueadas.',
-          autoClose: false
-        });
       });
 
       // Verificar conectividad periódicamente cuando está desconectado
@@ -452,53 +413,19 @@ class WebSocketService {
       this.isOnline = true;
       this.reconnectAttempts = 0;
       this.stopConnectionTest(); // Detener pruebas cuando ya estamos conectados
-
-      // Limpiar notificaciones de desconexión anteriores
-      this.notifications = this.notifications.filter(n =>
-        n.type !== 'warning' && n.type !== 'error' ||
-        !n.message.includes('conexión') && !n.message.includes('internet')
-      );
-      this.notificationListeners.forEach(callback => callback(this.notifications));
-
-      this.addNotification({
-        type: 'success',
-        title: 'Conectado',
-        message: 'Sistema online - Modificaciones habilitadas',
-        autoClose: true,
-        duration: 4000
-      });
     });
 
     this.socket.on('disconnect', (reason) => {
       this.isConnected = false;
 
-      // Solo mostrar mensaje si no es por pérdida de internet
+      // Comenzar pruebas de conectividad si no es por pérdida de internet
       if (this.isOnline) {
-        this.addNotification({
-          type: 'warning',
-          title: 'Desconectado',
-          message: 'Conexión en tiempo real perdida. Reintentando...',
-          autoClose: true, // ✅ Cambiar a true para auto-cerrar después de 5 segundos
-          duration: 5000 // ✅ Cerrar después de 5 segundos
-        });
-        // Comenzar pruebas de conectividad
         this.startConnectionTest();
       }
     });
 
     this.socket.on('connect_error', (error) => {
       this.reconnectAttempts++;
-
-      // Solo mostrar error después de varios intentos fallidos
-      if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-        this.addNotification({
-          type: 'error',
-          title: 'Error de conexión',
-          message: 'No se pudo restablecer la conexión en tiempo real',
-          autoClose: true, // ✅ Auto-cerrar después de 8 segundos
-          duration: 8000
-        });
-      }
     });
 
     // Usar el IO manager para eventos de reconexión
@@ -508,23 +435,6 @@ class WebSocketService {
       this.isOnline = true;
       this.reconnectAttempts = 0;
       this.stopConnectionTest(); // Detener pruebas cuando ya estamos conectados
-
-      // ✅ Limpiar TODAS las notificaciones de desconexión inmediatamente
-      this.notifications = this.notifications.filter(n =>
-        !(n.type === 'warning' && (n.title === 'Desconectado' || n.message.includes('Conexión en tiempo real perdida'))) &&
-        !(n.type === 'error' && n.message.includes('conexión')) &&
-        !(n.type === 'info' && n.message.includes('internet'))
-      );
-      this.notificationListeners.forEach(callback => callback(this.notifications));
-
-      // Mostrar mensaje de éxito
-      this.addNotification({
-        type: 'success',
-        title: 'Sistema restablecido',
-        message: 'Conexión restaurada - Modificaciones habilitadas',
-        autoClose: true,
-        duration: 4000
-      });
     });
 
     this.socket.io.on('reconnect_error', (error: Error) => {
@@ -532,25 +442,12 @@ class WebSocketService {
     });
 
     this.socket.io.on('reconnect_failed', () => {
-      this.addNotification({
-        type: 'error',
-        title: 'Reconexión fallida',
-        message: 'No se pudo restablecer la conexión automáticamente',
-        autoClose: true, // ✅ Auto-cerrar después de 10 segundos
-        duration: 10000
-      });
+      // Reconexión agotada - el socket.IO maneja el reintento automático
     });
 
     // Eventos de datos
     this.socket.on('pedido-created', (data) => {
       console.log('📦 Nuevo pedido creado:', data);
-      this.addNotification({
-        type: 'info',
-        title: 'Nuevo pedido',
-        message: data.message,
-        autoClose: true,
-        duration: 5000
-      });
 
       // Notificar a los listeners para sincronización automática
       this.notifyPedidoCreatedListeners(data.pedido);
@@ -558,15 +455,6 @@ class WebSocketService {
 
     this.socket.on('pedido-updated', (data) => {
       console.log('📝 Pedido actualizado:', data);
-      if (data.changes.length > 0) {
-        this.addNotification({
-          type: 'info',
-          title: 'Pedido actualizado',
-          message: data.message,
-          autoClose: true,
-          duration: 4000
-        });
-      }
 
       // Notificar a los listeners para sincronización automática
       this.notifyPedidoUpdatedListeners(data.pedido);
@@ -574,13 +462,6 @@ class WebSocketService {
 
     this.socket.on('pedido-deleted', (data) => {
       console.log('🗑️ Pedido eliminado:', data);
-      this.addNotification({
-        type: 'warning',
-        title: 'Pedido eliminado',
-        message: data.message,
-        autoClose: true,
-        duration: 4000
-      });
 
       // Notificar a los listeners para sincronización automática
       this.notifyPedidoDeletedListeners(data.pedidoId);
@@ -592,14 +473,6 @@ class WebSocketService {
       logger.debug('📋 Lista de usuarios actualizada:', data.connectedUsers);
       this.connectedUsers = data.connectedUsers;
       this.notifyConnectedUsersListeners();
-
-      this.addNotification({
-        type: 'info',
-        title: 'Usuario conectado',
-        message: `${data.displayName || data.userId} (${data.userRole}) se conectó`,
-        autoClose: true,
-        duration: 3000
-      });
     });
 
     this.socket.on('user-disconnected', (data) => {
@@ -607,14 +480,6 @@ class WebSocketService {
       logger.debug('📋 Lista de usuarios actualizada:', data.connectedUsers);
       this.connectedUsers = data.connectedUsers;
       this.notifyConnectedUsersListeners();
-
-      this.addNotification({
-        type: 'info',
-        title: 'Usuario desconectado',
-        message: `${data.userId} se desconectó`,
-        autoClose: true,
-        duration: 3000
-      });
     });
 
     this.socket.on('users-list', (data) => {
@@ -737,49 +602,6 @@ class WebSocketService {
     return [...this.connectedUsers];
   }
 
-  // Sistema de notificaciones
-  private addNotification(notification: Omit<NotificationData, 'id' | 'timestamp'>) {
-    const newNotification: NotificationData = {
-      ...notification,
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      timestamp: new Date().toISOString()
-    };
-
-    this.notifications.unshift(newNotification);
-
-    // Limitar a las últimas 50 notificaciones
-    if (this.notifications.length > 50) {
-      this.notifications = this.notifications.slice(0, 50);
-    }
-
-    this.notifyNotificationListeners();
-
-    // Auto-eliminar notificación si está configurado
-    if (newNotification.autoClose) {
-      setTimeout(() => {
-        this.removeNotification(newNotification.id);
-      }, newNotification.duration || 5000);
-    }
-  }
-
-  public removeNotification(id: string) {
-    this.notifications = this.notifications.filter(n => n.id !== id);
-    this.notifyNotificationListeners();
-  }
-
-  public getNotifications(): NotificationData[] {
-    return [...this.notifications];
-  }
-
-  public subscribeToNotifications(listener: (notifications: NotificationData[]) => void) {
-    this.notificationListeners.push(listener);
-
-    // Cleanup function
-    return () => {
-      this.notificationListeners = this.notificationListeners.filter(l => l !== listener);
-    };
-  }
-
   public subscribeToConnectedUsers(listener: (users: ConnectedUser[]) => void) {
     this.connectedUsersListeners.push(listener);
 
@@ -787,10 +609,6 @@ class WebSocketService {
     return () => {
       this.connectedUsersListeners = this.connectedUsersListeners.filter(l => l !== listener);
     };
-  }
-
-  private notifyNotificationListeners() {
-    this.notificationListeners.forEach(listener => listener([...this.notifications]));
   }
 
   private notifyConnectedUsersListeners() {
@@ -1082,7 +900,6 @@ class WebSocketService {
   // Método para limpiar recursos cuando el componente se desmonta
   public cleanup() {
     this.disconnect();
-    this.notifications = [];
     this.connectedUsers = [];
     this.pedidoCreatedListeners = [];
     this.pedidoUpdatedListeners = [];
@@ -1097,7 +914,6 @@ class WebSocketService {
     this.vendedorDeletedListeners = [];
     this.pedidosByVendedorUpdatedListeners = [];
     this.pedidosByClienteUpdatedListeners = [];
-    this.notificationListeners = [];
     this.connectedUsersListeners = [];
     this.pageRefreshCallbacks = [];
 

@@ -22,7 +22,6 @@ import ListoProduccionView from './components/ListoProduccionView';
 
 import EnviarAImpresionModal from './components/EnviarAImpresionModal';
 import SequenceReorderModal from './components/SequenceReorderModal';
-import NotificationCenter from './components/NotificationCenter';
 import ConnectedUsers from './components/ConnectedUsers';
 import LoginModal from './components/LoginModal';
 import UserInfo from './components/UserInfo';
@@ -42,7 +41,7 @@ import { ToastContainer } from './components/Toast';
 import NotesWidget from './components/NotesWidget';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { MaterialesProvider } from './contexts/MaterialesContext';
-import { NotificationProvider } from './contexts/NotificationContext';
+
 import { calcularSiguienteEtapa, estaFueraDeSecuencia } from './utils/etapaLogic';
 import { procesarDragEnd } from './utils/dragLogic';
 import { usePedidosManager } from './hooks/usePedidosManager';
@@ -136,9 +135,7 @@ const AppContent: React.FC = () => {
     // Hooks personalizados - siempre llamar antes de returns condicionales
     const {
         isConnected,
-        notifications,
         connectedUsers,
-        removeNotification,
         emitActivity,
         subscribeToPedidoCreated,
         subscribeToPedidoUpdated,
@@ -1778,11 +1775,6 @@ const AppContent: React.FC = () => {
                 <ToastContainer messages={toastMessages} onClose={removeToast} />
 
                 {/* 🚀 WebSocket Components */}
-                <NotificationCenter
-                    notifications={notifications}
-                    onRemoveNotification={removeNotification}
-                    isConnected={isConnected}
-                />
                 <ConnectedUsers
                     users={connectedUsers}
                     currentUser={currentUserId}
@@ -1879,11 +1871,9 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
     return (
         <AuthProvider>
-            <NotificationProvider>
-                <MaterialesProvider>
-                    <AppContent />
-                </MaterialesProvider>
-            </NotificationProvider>
+            <MaterialesProvider>
+                <AppContent />
+            </MaterialesProvider>
         </AuthProvider>
     );
 };

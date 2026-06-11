@@ -11,7 +11,6 @@ import GlobalSearchDropdown from './GlobalSearchDropdown';
 import SearchableMultiSelect from './SearchableMultiSelect';
 import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
-import { useNotifications } from '../contexts/NotificationContext';
 import ActivityPanel from './ActivityPanel';
 import { normalizeSearchValue, pedidoMatchesSearch } from '../utils/search';
 import { useVendedoresManager } from '../hooks/useVendedoresManager';
@@ -67,7 +66,7 @@ interface HeaderProps {
     onImportData: () => void;
     onUserManagement?: () => void;
     onResetAllFilters?: () => void; // Nueva prop para resetear filtros
-    onToggleNotificationPanel?: () => void; // Nueva prop para abrir/cerrar panel de notificaciones
+
 }
 
 const PlusIcon = () => (
@@ -413,7 +412,7 @@ const Header: React.FC<HeaderProps> = ({
                             )}
                         </div>
 
-                        {/* Notificaciones y Actividad */}
+                        {/* Activity Log */}
                         <div className="flex items-center gap-1">
                             <button
                                 onClick={() => {
@@ -423,8 +422,8 @@ const Header: React.FC<HeaderProps> = ({
                                     ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                                     : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                                     }`}
-                                title="Notificaciones y Actividad"
-                                aria-label="Notificaciones y Actividad"
+                                title="Activity Log"
+                                aria-label="Activity Log"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
@@ -1034,11 +1033,11 @@ const Header: React.FC<HeaderProps> = ({
                 )}
             </div>
 
-            {/* Panel de Notificaciones y Actividad */}
+            {/* Activity panel — global action history feed */}
             <ActivityPanel
                 isOpen={showActivityPanel}
                 onClose={() => setShowActivityPanel(false)}
-                onNavigateToPedido={(pedidoId, commentId) => {
+                onNavigateToPedido={(pedidoId) => {
                     const pedido = allPedidos.find(p => p.id === pedidoId);
                     if (pedido && onNavigateToPedido) {
                         setShowActivityPanel(false);
