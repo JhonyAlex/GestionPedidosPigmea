@@ -218,9 +218,17 @@ const formatMetrosForPdf = (metros: Pedido['metros']): string => {
         return String(metros);
     }
 
-    return new Intl.NumberFormat('es-ES', {
-        maximumFractionDigits: 2
-    }).format(numericValue);
+    const [integerPart, decimalPart] = numericValue.toFixed(2).split('.');
+    const formattedIntegerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    const normalizedDecimalPart = decimalPart === '00' ? '' : `,${decimalPart.replace(/0+$/, '')}`;
+
+    return `${formattedIntegerPart}${normalizedDecimalPart}`;
+};
+
+const formatTipoImpresionForPdf = (tipoImpresion: Pedido['tipoImpresion']): string => {
+    if (tipoImpresion.includes('Transparencia')) return 'TTE';
+    if (tipoImpresion.includes('Superficie')) return 'SUP';
+    return tipoImpresion;
 };
 
 
@@ -313,6 +321,7 @@ export const generatePedidosPDF = (
         "Cliente / # Pedido",
         "Metros",
         "Tipo",
+        "Colores",
         "Hecho",
         "Capa",
         "Camisa",
@@ -337,7 +346,8 @@ export const generatePedidosPDF = (
             // We pass the raw data; rendering is handled in didDrawCell to allow mixed styles (bold/normal)
             { cliente: p.cliente, pedido: p.numeroPedidoCliente },
             formattedMetros,
-            p.tipoImpresion.replace(' (SUP)', '').replace(' (TTE)', ''),
+            formatTipoImpresionForPdf(p.tipoImpresion),
+            p.colores ?? '-',
             '',
             p.capa,
             p.camisa || '-',
@@ -372,18 +382,19 @@ export const generatePedidosPDF = (
             cellPadding: { top: 2, right: 2, bottom: 2, left: 2 },
         },
         columnStyles: {
-            0: { cellWidth: 32 }, // Des.
-            1: { cellWidth: 94, halign: 'left', fontSize: 6.8 }, // Cliente y # Pedido (-15%)
-            2: { cellWidth: 43 }, // Metros
-            3: { cellWidth: 41, fontSize: 5.5 }, // Tipo (+15%)
-            4: { cellWidth: 24, fontSize: 8 }, // Hecho (checkbox)
-            5: { cellWidth: 24, fontSize: 5.2 }, // Capa
-            6: { cellWidth: 31 }, // Camisa
-            7: { cellWidth: 24 }, // Antiv.
-            8: { cellWidth: 24 }, // Láser
-            9: { cellWidth: 52, fontSize: 6.8 }, // Sig. Etapa (-15%)
-            10: { cellWidth: 125, halign: 'left', fontSize: 6.8 }, // Observaciones (-15%)
-            11: { cellWidth: 36, fontSize: 5.5 }, // Nva. Entrega
+            0: { cellWidth: 30 }, // Des.
+            1: { cellWidth: 92, halign: 'left', fontSize: 6.8 }, // Cliente y # Pedido
+            2: { cellWidth: 40 }, // Metros
+            3: { cellWidth: 24, fontSize: 5.5 }, // Tipo
+            4: { cellWidth: 28, fontSize: 5.5 }, // Colores
+            5: { cellWidth: 22, fontSize: 8 }, // Hecho (checkbox)
+            6: { cellWidth: 22, fontSize: 5.2 }, // Capa
+            7: { cellWidth: 29 }, // Camisa
+            8: { cellWidth: 22 }, // Antiv.
+            9: { cellWidth: 22 }, // Láser
+            10: { cellWidth: 50, fontSize: 6.8 }, // Sig. Etapa
+            11: { cellWidth: 110, halign: 'left', fontSize: 6.8 }, // Observaciones
+            12: { cellWidth: 34, fontSize: 5.5 }, // Nva. Entrega
         },
         willDrawCell: (data) => {
             // Prevent standard text drawing for the custom rendered column by clearing text JUST BEFORE drawing
@@ -394,7 +405,7 @@ export const generatePedidosPDF = (
         },
         didDrawCell: (data) => {
             const pedido = pedidos[data.row.index];
-            if (data.section === 'body' && data.column.index === 4) {
+            if (data.section === 'body' && data.column.index === 5) {
                 // Draw a real checkbox square to avoid font/symbol rendering issues in PDF viewers.
                 const { x, y, width, height } = data.cell;
                 const boxSize = Math.min(8, width - 6, height - 4);
@@ -468,7 +479,7 @@ export const generatePedidosPDF = (
                 }
 
                 // Highlight 'Capa' cell if layer is 3 or more
-                if (data.column.index === 5) { // "Capa" column
+                if (data.column.index === 6) { // "Capa" column
                     const capaValue = pedido.capa;
                     const numericCapa = parseInt(capaValue, 10);
                     if (!isNaN(numericCapa) && numericCapa >= 3) {
@@ -477,7 +488,7 @@ export const generatePedidosPDF = (
                 }
 
                 // Highlight 'Láser' cell if microperforado is active
-                if (data.column.index === 8 && pedido.microperforado) { // "Láser" column
+                if (data.column.index === 9 && pedido.microperforado) { // "Láser" column
                     data.cell.styles.fillColor = [196, 181, 253]; // light purple (purple-300)
                     data.cell.styles.fontStyle = 'bold';
                     data.cell.styles.textColor = [76, 29, 149]; // dark purple (purple-900)
