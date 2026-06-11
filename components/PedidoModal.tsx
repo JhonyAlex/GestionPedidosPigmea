@@ -180,6 +180,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
     const numeroPedidoValidationId = useRef(0);
     const [pedidoHistory, setPedidoHistory] = useState<any[]>([]);
     const sequenceSectionRef = useRef<HTMLDivElement>(null);
+    const formRef = useRef<HTMLFormElement>(null);
 
     const { user } = useAuth();
     const { vendedores, addVendedor, fetchVendedores } = useVendedoresManager();
@@ -757,7 +758,15 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
 
         setIsProcessingAction(true);
         try {
-            await Promise.resolve(onSetReadyForProduction(formData));
+            const pedidoActualizado = hasUnsavedChanges
+                ? await persistCurrentPedido()
+                : getValidatedPedidoForPersistence();
+
+            if (!pedidoActualizado) {
+                return;
+            }
+
+            await Promise.resolve(onSetReadyForProduction(pedidoActualizado));
             closeModalAndUnlock();
         } finally {
             setIsProcessingAction(false);
@@ -767,9 +776,8 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
     // Guardar cambios y cerrar usando el mismo flujo de validación que el botón Guardar
     const handleSaveAndClose = (e?: React.MouseEvent<HTMLButtonElement>) => {
         e?.preventDefault();
-        const form = document.querySelector('form') as HTMLFormElement | null;
-        if (form) {
-            form.requestSubmit();
+        if (formRef.current) {
+            formRef.current.requestSubmit();
         }
     };
 
@@ -1249,8 +1257,37 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
         savePedidoAndClose(pedidoActualizado);
     };
 
-    const handleArchiveClick = () => {
-        onArchiveToggle(pedido);
+    const persistCurrentPedido = async (): Promise<Pedido | null> => {
+        const pedidoActualizado = getValidatedPedidoForPersistence();
+        if (!pedidoActualizado) {
+            return null;
+        }
+
+        const persistFn = onAutoSave || onSave;
+        await Promise.resolve(persistFn(pedidoActualizado));
+        return pedidoActualizado;
+    };
+
+    const handleArchiveClick = async () => {
+        if (isProcessingAction) {
+            return;
+        }
+
+        setIsProcessingAction(true);
+        try {
+            const pedidoActualizado = hasUnsavedChanges
+                ? await persistCurrentPedido()
+                : getValidatedPedidoForPersistence();
+
+            if (!pedidoActualizado) {
+                return;
+            }
+
+            await Promise.resolve(onArchiveToggle(pedidoActualizado));
+            closeModalAndUnlock();
+        } finally {
+            setIsProcessingAction(false);
+        }
     };
 
     const handleAdvanceClick = async () => {
@@ -1270,7 +1307,11 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
         }
     };
 
-    const handleSendToPrintClick = () => {
+    const handleSendToPrintClick = async () => {
+        if (isProcessingAction) {
+            return;
+        }
+
         // Validaciones
         if (!formData.materialDisponible) {
             alert('⚠️ No se puede enviar a impresión\n\nEl material NO está disponible. Por favor, marque el material como disponible antes de continuar.');
@@ -1282,14 +1323,21 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
             return;
         }
 
-        // Asegurar que se guarden los cambios antes de enviar a impresión
-        const updatedPedido = {
-            ...pedido,
-            ...formData,
-            secuenciaTrabajo: normalizePostImpresionSequence(formData.secuenciaTrabajo, formData.cliente)
-        };
-        onSendToPrint(updatedPedido);
-        closeModalAndUnlock();
+        setIsProcessingAction(true);
+        try {
+            const pedidoActualizado = hasUnsavedChanges
+                ? await persistCurrentPedido()
+                : getValidatedPedidoForPersistence();
+
+            if (!pedidoActualizado) {
+                return;
+            }
+
+            onSendToPrint(pedidoActualizado);
+            closeModalAndUnlock();
+        } finally {
+            setIsProcessingAction(false);
+        }
     }
 
     const handleDuplicateClick = () => {
@@ -1731,7 +1779,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                             </div>
                                         </div>
                                     )}
-                                    <form onSubmit={handleSubmit}>
+                                    <form ref={formRef} onSubmit={handleSubmit}>
                                         <fieldset disabled={isReadOnly}>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 {/* Columna Izquierda */}
@@ -2167,7 +2215,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                         </>
                             )}
                         {activeTab === 'gestion' && (
-                            <form onSubmit={handleSubmit}>
+                            <form ref={formRef} onSubmit={handleSubmit}>
                                 <fieldset disabled={isReadOnly}>
                                     {/* Resumen del estado */}
                                     <div className={`rounded-lg p-4 mb-6 border-2 ${formData.materialDisponible && formData.clicheDisponible
@@ -2496,8 +2544,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                             )}
                             <button type="button" onClick={(e) => {
                                 e.preventDefault();
-                                const form = document.querySelector('form') as HTMLFormElement;
-                                if (form) form.requestSubmit();
+                                if (formRef.current) formRef.current.requestSubmit();
                             }} className={`font-bold py-2 px-4 rounded transition-colors duration-200 ${hasUnsavedChanges
                                 ? 'bg-orange-600 hover:bg-orange-700 text-white'
                                 : 'bg-blue-600 hover:bg-blue-700 text-white'
