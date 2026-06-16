@@ -19,7 +19,7 @@ type ProcessDragEndArgs = {
     logAction: (action: string, pedidoId?: string) => void;
     setPedidos: React.Dispatch<React.SetStateAction<Pedido[]>>;
     handleSavePedido: (pedido: Pedido) => Promise<any>;
-    handleUpdatePedidoEtapa: (pedido: Pedido, newEtapa: Etapa, newSubEtapa?: string | null) => Promise<void>;
+    handleUpdatePedidoEtapa: (pedido: Pedido, newEtapa: Etapa, newSubEtapa?: string | null) => Promise<any>;
     setSortConfig: (key: keyof Pedido, direction?: 'ascending' | 'descending') => void;
     getMaterialesByPedidoId: (pedidoId: string) => Promise<Material[]>;
     kanbanAllPedidosByStage: Partial<Record<Etapa, Pedido[]>>;
@@ -221,11 +221,11 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
         return;
     }
 
-    // Movimiento entre columnas de producción o etapas diferentes
+    // Movimiento entre columnas de producciï¿½n o etapas diferentes
     const newEtapa = destination.droppableId as Etapa;
     const oldEtapa = source.droppableId as Etapa;
 
-    // Calcular posición final en la columna destino
+    // Calcular posiciï¿½n final en la columna destino
     const destColumnPedidos = kanbanAllPedidosByStage[newEtapa] || [];
     const existingRealPedidos = destColumnPedidos.filter(p => p.etapaActual === newEtapa);
     const maxPosicion = existingRealPedidos.length > 0
@@ -233,13 +233,13 @@ export const procesarDragEnd = async (args: ProcessDragEndArgs): Promise<void> =
         : 0;
     const nuevaPosicion = maxPosicion + 1;
 
-    // Crear pedido actualizado con posición al final
+    // Crear pedido actualizado con posiciï¿½n al final
     const pedidoCrossColumn = {
         ...movedPedido,
         posicionEnEtapa: nuevaPosicion,
     };
 
-    // Actualización optimista
+    // Actualizaciï¿½n optimista
     setPedidos(prev => prev.map(p => p.id === pedidoId ? pedidoCrossColumn : p));
 
     // Aplicar cambio de etapa

@@ -5,7 +5,7 @@ interface BulkActionsToolbarProps {
   onUpdateDate: () => void;
   onUpdateMachine: () => void;
   onUpdateStage: () => void;
-  onUpdateCliche: () => void;
+  onUpdateCliche?: () => void;
   onDelete: () => void;
   onArchive: () => void;
   onCancel: () => void;
@@ -115,6 +115,7 @@ const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
               <span>Etapa</span>
             </button>
 
+            {onUpdateCliche && (
             <button
               onClick={onUpdateCliche}
               className="flex items-center gap-2 rounded-xl border border-amber-100 bg-white px-3 py-2 text-sm font-medium text-amber-700 transition-colors duration-200 hover:bg-amber-50 dark:border-gray-600 dark:bg-gray-800 dark:text-amber-300 dark:hover:bg-gray-700"
@@ -123,6 +124,7 @@ const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
               <ClicheIcon />
               <span>Cliché</span>
             </button>
+            )}
 
             <button
               onClick={onArchive}

@@ -104,7 +104,7 @@ interface PedidoModalProps {
     onAdvanceStage: (pedido: Pedido) => Promise<void> | void;
     onSendToPrint: (pedido: Pedido) => void;
     onSetReadyForProduction: (pedido: Pedido) => Promise<void> | void;
-    onUpdateEtapa: (pedido: Pedido, newEtapa: Etapa) => void;
+    onUpdateEtapa: (pedido: Pedido, newEtapa: Etapa, newSubEtapa?: string | null) => Promise<any>;
     isConnected?: boolean;
 }
 

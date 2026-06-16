@@ -1911,7 +1911,12 @@ class PostgreSQLClient {
             }
 
             if (machine) {
-                conditions.push(`LOWER(BTRIM(COALESCE(NULLIF(p.data->>'maquinaImpresion', ''), ''))) = LOWER(BTRIM($${paramIndex}))`);
+                conditions.push(`(
+                    LOWER(BTRIM(COALESCE(NULLIF(p.data->>'maquinaImpresion', ''), ''))) = LOWER(BTRIM($${paramIndex}))
+                    OR LOWER(BTRIM(COALESCE(NULLIF(ah.payload->'after'->>'maquinaImpresion', ''), ''))) = LOWER(BTRIM($${paramIndex}))
+                    OR LOWER(BTRIM(COALESCE(NULLIF(ah.payload->'before'->>'maquinaImpresion', ''), ''))) = LOWER(BTRIM($${paramIndex}))
+                    OR LOWER(BTRIM(COALESCE(NULLIF(ah.payload->>'maquinaImpresion', ''), ''))) = LOWER(BTRIM($${paramIndex}))
+                )`);
                 params.push(machine);
                 paramIndex++;
             }

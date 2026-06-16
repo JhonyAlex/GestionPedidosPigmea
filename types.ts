@@ -152,7 +152,7 @@ export interface KanbanEtapa {
 
 export type ViewType = 'preparacion' | 'listoProduccion' | 'clientes' | 'vendedores' | 'kanban' | 'list' | 'archived' | 'report' | 'permissions-debug';
 
-export type UserRole = 'Administrador' | 'Supervisor' | 'Visualizador';
+export type UserRole = 'Administrador' | 'Supervisor' | 'Visualizador' | 'Operador';
 
 export interface AuditEntry {
     id?: number;

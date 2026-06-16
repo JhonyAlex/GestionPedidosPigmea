@@ -31,6 +31,7 @@ const TrackingAuditSection: React.FC<TrackingAuditSectionProps> = ({ onExport })
 
     const abortControllerRef = useRef<AbortController | null>(null);
     const requestInFlightRef = useRef(false);
+    const pendingRefreshRef = useRef(false);
 
     useEffect(() => {
         const timeout = window.setTimeout(() => {
@@ -113,6 +114,11 @@ const TrackingAuditSection: React.FC<TrackingAuditSectionProps> = ({ onExport })
                     requestInFlightRef.current = false;
                     setIsLoading(false);
                     setIsLoadingMore(false);
+
+                    if (pendingRefreshRef.current) {
+                        pendingRefreshRef.current = false;
+                        fetchAudit('replace');
+                    }
                 }
             }
         },
@@ -134,7 +140,12 @@ const TrackingAuditSection: React.FC<TrackingAuditSectionProps> = ({ onExport })
 
         let cooldown = false;
         const unsubscribe = webSocketService.subscribeToActionHistoryUpdate(() => {
-            if (cooldown || requestInFlightRef.current) {
+            if (cooldown) {
+                return;
+            }
+
+            if (requestInFlightRef.current) {
+                pendingRefreshRef.current = true;
                 return;
             }
 
