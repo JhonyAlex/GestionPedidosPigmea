@@ -188,7 +188,7 @@ const PDF_FOOTER_CONFIDENTIALITY = 'Uso interno exclusivo · Pigmea S.L.';
 
 export interface TrackingAuditPDFOptions {
     search?: string;
-    machine?: string;
+    stage?: string;
     dateField?: 'timestamp';
     dateFilter?: DateFilterOption;
     dateFrom?: string;
@@ -231,10 +231,10 @@ const buildPdfFooter = (doc: any, pageWidth: number, pageHeight: number, horizon
 const buildTrackingAuditSubtitleLines = (filters?: TrackingAuditPDFOptions): string[] => {
     const subtitleLines: string[] = [];
     const trimmedSearch = filters?.search?.trim();
-    const trimmedMachine = filters?.machine?.trim();
+    const trimmedStage = filters?.stage?.trim();
 
-    if (trimmedMachine) {
-        subtitleLines.push(`Máquina: ${trimmedMachine}`);
+    if (trimmedStage) {
+        subtitleLines.push(`Etapa: ${trimmedStage}`);
     }
 
     if (trimmedSearch) {
@@ -258,9 +258,18 @@ const buildTrackingAuditSubtitleLines = (filters?: TrackingAuditPDFOptions): str
     return subtitleLines;
 };
 
+const decodeHtmlEntities = (text: string): string => {
+    return text
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'");
+};
+
 const buildTrackingAuditRowSummary = (action: TrackingAuditEntry): string => {
     const summaryParts = [action.title, action.details].filter(Boolean);
-    return summaryParts.join('\n');
+    return decodeHtmlEntities(summaryParts.join('\n'));
 };
 
 const buildTrackingAuditRowChanges = (action: TrackingAuditEntry): string => {
@@ -268,7 +277,7 @@ const buildTrackingAuditRowChanges = (action: TrackingAuditEntry): string => {
         return '—';
     }
 
-    return action.changes.map((change) => `• ${change}`).join('\n');
+    return decodeHtmlEntities(action.changes.map((change) => `• ${change}`).join('\n'));
 };
 
 const getNextStageTitle = (pedido: Pedido): string => {

@@ -306,7 +306,7 @@ export interface TrackingAuditEntry {
 
 export interface TrackingAuditFilters {
     search?: string;
-    machine?: string;
+    stage?: string;
     dateField?: 'timestamp';
     dateFrom?: string;
     dateTo?: string;

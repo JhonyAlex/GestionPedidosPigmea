@@ -23,6 +23,9 @@ import InfoTooltip from './InfoTooltip';
 import ClientOrderFilter from './ClientOrderFilter';
 import BulkActionsToolbar from './BulkActionsToolbar';
 import ProductionTrackingTable from './ProductionTrackingTable';
+import TrackingAuditSection from './production-tracking/TrackingAuditSection';
+import type { TrackingAuditPDFPayload } from '../utils/kpi';
+import { generateTrackingAuditPDF } from '../utils/kpi';
 import NotesWidget from './NotesWidget';
 
 /**
@@ -103,7 +106,7 @@ const ReportView: React.FC<ReportViewProps> = ({
     onClearSelection
 }) => {
     // --- Tab State ---
-    const [activeTab, setActiveTab] = useState<'planning' | 'analytics' | 'tracking'>('planning');
+    const [activeTab, setActiveTab] = useState<'planning' | 'analytics' | 'tracking' | 'audit'>('planning');
 
     // 🔥 NUEVA FUNCIONALIDAD: Sincronización en tiempo real de clientes y vendedores
     const { clientes } = useClientesManager();
@@ -1074,6 +1077,18 @@ const ReportView: React.FC<ReportViewProps> = ({
                         </svg>
                         Seguimiento de Producción
                     </button>
+                    <button
+                        onClick={() => setActiveTab('audit')}
+                        className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-md font-medium text-sm transition-all ${activeTab === 'audit'
+                            ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            }`}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Historial y Auditoría
+                    </button>
                 </div>
             </div>
 
@@ -1082,6 +1097,11 @@ const ReportView: React.FC<ReportViewProps> = ({
                 <AnalyticsDashboard />
             ) : activeTab === 'tracking' ? (
                 <ProductionTrackingTable
+                    onNavigateToPedido={onSelectPedido}
+                />
+            ) : activeTab === 'audit' ? (
+                <TrackingAuditSection
+                    onExport={(payload: TrackingAuditPDFPayload) => generateTrackingAuditPDF(payload.actions, payload.filters)}
                     onNavigateToPedido={onSelectPedido}
                 />
             ) : (

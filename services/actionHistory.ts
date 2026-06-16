@@ -123,7 +123,7 @@ async function getTrackingAudit(
 
     params.set('dateField', TRACKING_AUDIT_DATE_FIELD);
     appendQueryParam(params, 'search', filters.search?.trim());
-    appendQueryParam(params, 'machine', filters.machine?.trim());
+    appendQueryParam(params, 'stage', filters.stage?.trim());
     appendQueryParam(params, 'dateFrom', filters.dateFrom);
     appendQueryParam(params, 'dateTo', filters.dateTo);
     appendQueryParam(params, 'cursor', filters.cursor);

@@ -2711,7 +2711,7 @@ app.get('/api/pedidos/tracking/audit', requireAuth, requireAnyPermission(['vista
         }
 
         const rawSearch = Array.isArray(req.query.search) ? req.query.search[0] : (req.query.search || '');
-        const rawMachine = Array.isArray(req.query.machine) ? req.query.machine[0] : (req.query.machine || '');
+        const rawStage = Array.isArray(req.query.stage) ? req.query.stage[0] : (req.query.stage || '');
         const rawDateField = Array.isArray(req.query.dateField) ? req.query.dateField[0] : (req.query.dateField || 'timestamp');
         const rawDateFrom = Array.isArray(req.query.dateFrom) ? req.query.dateFrom[0] : (req.query.dateFrom || '');
         const rawDateTo = Array.isArray(req.query.dateTo) ? req.query.dateTo[0] : (req.query.dateTo || '');
@@ -2747,7 +2747,7 @@ app.get('/api/pedidos/tracking/audit', requireAuth, requireAnyPermission(['vista
 
         const result = await dbClient.getTrackingAuditPaginated({
             search: rawSearch.toString().trim(),
-            machine: rawMachine.toString().trim(),
+            stage: rawStage.toString().trim(),
             dateField,
             dateFrom: rawDateFrom.toString().trim(),
             dateTo: rawDateTo.toString().trim(),

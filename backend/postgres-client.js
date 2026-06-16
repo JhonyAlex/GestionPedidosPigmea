@@ -1871,7 +1871,7 @@ class PostgreSQLClient {
 
         const {
             search = '',
-            machine = '',
+            stage = '',
             dateField = 'timestamp',
             dateFrom = '',
             dateTo = '',
@@ -1887,7 +1887,7 @@ class PostgreSQLClient {
             const conditions = [
                 `ah.context_type = 'pedido'`,
                 `p.id IS NOT NULL`,
-                `COALESCE(p.data->>'etapaActual', '') IN ('COMPLETADO', 'ARCHIVADO')`
+                `COALESCE(p.data->>'etapaActual', '') IN ('IMPRESION_WM1', 'IMPRESION_GIAVE', 'IMPRESION_WM3', 'POST_DNT', 'POST_LAMINACION_SL2', 'POST_LAMINACION_NEXUS', 'POST_LAMINACION_SL2_EVO', 'POST_ECCONVERT_21', 'POST_ECCONVERT_22', 'POST_REBOBINADO_S2DT', 'POST_REBOBINADO_PROSLIT', 'POST_PERFORACION_MIC', 'POST_PERFORACION_MAC', 'POST_PERFORACION_MAC2', 'COMPLETADO', 'ARCHIVADO')`
             ];
             const params = [];
             let paramIndex = 1;
@@ -1910,14 +1910,9 @@ class PostgreSQLClient {
                 paramIndex++;
             }
 
-            if (machine) {
-                conditions.push(`(
-                    LOWER(BTRIM(COALESCE(NULLIF(p.data->>'maquinaImpresion', ''), ''))) = LOWER(BTRIM($${paramIndex}))
-                    OR LOWER(BTRIM(COALESCE(NULLIF(ah.payload->'after'->>'maquinaImpresion', ''), ''))) = LOWER(BTRIM($${paramIndex}))
-                    OR LOWER(BTRIM(COALESCE(NULLIF(ah.payload->'before'->>'maquinaImpresion', ''), ''))) = LOWER(BTRIM($${paramIndex}))
-                    OR LOWER(BTRIM(COALESCE(NULLIF(ah.payload->>'maquinaImpresion', ''), ''))) = LOWER(BTRIM($${paramIndex}))
-                )`);
-                params.push(machine);
+            if (stage) {
+                conditions.push(`COALESCE(p.data->>'etapaActual', '') = $${paramIndex}`);
+                params.push(stage);
                 paramIndex++;
             }
 

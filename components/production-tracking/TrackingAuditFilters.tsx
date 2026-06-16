@@ -1,13 +1,14 @@
 import React from 'react';
 import DateFilterCombined, { DateFieldOption } from '../DateFilterCombined';
 import { DateFilterOption } from '../../utils/date';
-import { MAQUINAS_IMPRESION } from '../../constants';
+import { ETAPAS } from '../../constants';
+import { Etapa } from '../../types';
 
 interface TrackingAuditFiltersProps {
     searchValue: string;
     onSearchValueChange: (value: string) => void;
-    machineValue: string;
-    onMachineValueChange: (value: string) => void;
+    stageValue: string;
+    onStageValueChange: (value: string) => void;
     dateField: 'timestamp';
     dateFilter: DateFilterOption;
     customDateRange: { start: string; end: string };
@@ -22,6 +23,25 @@ interface TrackingAuditFiltersProps {
     isLoading: boolean;
 }
 
+const PRODUCTION_STAGES: Etapa[] = [
+    Etapa.IMPRESION_WM1,
+    Etapa.IMPRESION_GIAVE,
+    Etapa.IMPRESION_WM3,
+    Etapa.POST_DNT,
+    Etapa.POST_LAMINACION_SL2,
+    Etapa.POST_LAMINACION_NEXUS,
+    Etapa.POST_LAMINACION_SL2_EVO,
+    Etapa.POST_ECCONVERT_21,
+    Etapa.POST_ECCONVERT_22,
+    Etapa.POST_REBOBINADO_S2DT,
+    Etapa.POST_REBOBINADO_PROSLIT,
+    Etapa.POST_PERFORACION_MIC,
+    Etapa.POST_PERFORACION_MAC,
+    Etapa.POST_PERFORACION_MAC2,
+    Etapa.COMPLETADO,
+    Etapa.ARCHIVADO,
+];
+
 const SearchIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
         <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
@@ -35,8 +55,8 @@ const DATE_FIELD_OPTIONS: readonly DateFieldOption<'timestamp'>[] = [
 const TrackingAuditFilters: React.FC<TrackingAuditFiltersProps> = ({
     searchValue,
     onSearchValueChange,
-    machineValue,
-    onMachineValueChange,
+    stageValue,
+    onStageValueChange,
     dateField,
     dateFilter,
     customDateRange,
@@ -82,17 +102,17 @@ const TrackingAuditFilters: React.FC<TrackingAuditFiltersProps> = ({
 
                         <label className="block">
                             <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                Máquina
+                                Etapa de producción
                             </span>
                             <select
-                                value={machineValue}
-                                onChange={(event) => onMachineValueChange(event.target.value)}
+                                value={stageValue}
+                                onChange={(event) => onStageValueChange(event.target.value)}
                                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                             >
-                                <option value="">Todas las máquinas</option>
-                                {MAQUINAS_IMPRESION.map((machine) => (
-                                    <option key={machine.id} value={machine.nombre}>
-                                        {machine.nombre}
+                                <option value="">Todas las etapas</option>
+                                {PRODUCTION_STAGES.map((stage) => (
+                                    <option key={stage} value={stage}>
+                                        {ETAPAS[stage]?.title ?? stage}
                                     </option>
                                 ))}
                             </select>

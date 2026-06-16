@@ -1,5 +1,5 @@
 import React from 'react';
-import type { TrackingAuditEntry } from '../../types';
+import type { Pedido, TrackingAuditEntry } from '../../types';
 import { formatDateTimeDDMMYYYY } from '../../utils/date';
 
 interface TrackingAuditTimelineProps {
@@ -11,6 +11,7 @@ interface TrackingAuditTimelineProps {
     error: string | null;
     onLoadMore: () => void;
     onRetry: () => void;
+    onNavigateToPedido?: (pedido: Pedido) => void;
 }
 
 const TrackingAuditTimeline: React.FC<TrackingAuditTimelineProps> = ({
@@ -22,6 +23,7 @@ const TrackingAuditTimeline: React.FC<TrackingAuditTimelineProps> = ({
     error,
     onLoadMore,
     onRetry,
+    onNavigateToPedido,
 }) => {
     if (isLoading && actions.length === 0) {
         return (
@@ -67,7 +69,14 @@ const TrackingAuditTimeline: React.FC<TrackingAuditTimelineProps> = ({
                 {actions.map((action) => (
                     <article
                         key={action.id}
-                        className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900"
+                        onClick={() => {
+                            if (onNavigateToPedido) {
+                                const scrollY = window.scrollY;
+                                onNavigateToPedido({ id: action.pedidoId } as Pedido);
+                                requestAnimationFrame(() => window.scrollTo(0, scrollY));
+                            }
+                        }}
+                        className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm cursor-pointer hover:border-indigo-300 hover:shadow-md transition-all dark:border-gray-700 dark:bg-gray-900 dark:hover:border-indigo-700"
                     >
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div className="space-y-2">

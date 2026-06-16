@@ -2,11 +2,8 @@ import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { Pedido, Etapa, EtapaInfo } from '../types';
 import { ETAPAS, PREPARACION_COLUMNS, STAGE_GROUPS } from '../constants';
 import { DateFilterOption, getDateRange } from '../utils/date';
-import { generateTrackingAuditPDF, type TrackingAuditPDFPayload } from '../utils/kpi';
 import DateFilterCombined from './DateFilterCombined';
 import { store } from '../services/storage';
-import { usePermissions } from '../hooks/usePermissions';
-import TrackingAuditSection from './production-tracking/TrackingAuditSection';
 
 // --- Stage sets for exit date computation ---
 const IMPRESION_STAGES = new Set<Etapa>(STAGE_GROUPS.IMPRESION.stages);
@@ -169,8 +166,6 @@ interface ProductionTrackingTableProps {
 // --- Component ---
 
 const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ onNavigateToPedido }) => {
-    const { canViewAuditoria } = usePermissions();
-
     // --- Pagination state ---
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(50);
@@ -316,10 +311,6 @@ const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ onNav
     const handlePageSizeChange = useCallback((newSize: number) => {
         setPageSize(newSize);
         setCurrentPage(1);
-    }, []);
-
-    const handleExportTrackingAudit = useCallback(({ actions, filters }: TrackingAuditPDFPayload) => {
-        generateTrackingAuditPDF(actions, filters);
     }, []);
 
     // --- Column definitions ---
@@ -540,10 +531,6 @@ const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ onNav
                         </button>
                     </div>
                 </div>
-            )}
-
-            {canViewAuditoria() && (
-                <TrackingAuditSection onExport={handleExportTrackingAudit} />
             )}
         </div>
     );

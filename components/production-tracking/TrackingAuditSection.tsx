@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { TrackingAuditEntry } from '../../types';
+import type { Pedido, TrackingAuditEntry } from '../../types';
 import { DateFilterOption, getDateRange } from '../../utils/date';
 import type { TrackingAuditPDFOptions, TrackingAuditPDFPayload } from '../../utils/kpi';
 import { actionHistoryDB } from '../../services/actionHistory';
@@ -9,16 +9,17 @@ import TrackingAuditTimeline from './TrackingAuditTimeline';
 
 interface TrackingAuditSectionProps {
     onExport?: (payload: TrackingAuditPDFPayload) => void;
+    onNavigateToPedido?: (pedido: Pedido) => void;
 }
 
 const AUDIT_PAGE_SIZE = 20;
 const SOCKET_REFRESH_COOLDOWN_MS = 3000;
 
-const TrackingAuditSection: React.FC<TrackingAuditSectionProps> = ({ onExport }) => {
+const TrackingAuditSection: React.FC<TrackingAuditSectionProps> = ({ onExport, onNavigateToPedido }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchValue, setSearchValue] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
-    const [machineValue, setMachineValue] = useState('');
+    const [stageValue, setStageValue] = useState('');
     const [dateField, setDateField] = useState<'timestamp'>('timestamp');
     const [dateFilter, setDateFilter] = useState<DateFilterOption>('all');
     const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
@@ -60,8 +61,8 @@ const TrackingAuditSection: React.FC<TrackingAuditSectionProps> = ({ onExport })
     }, [customDateRange.end, customDateRange.start, dateFilter]);
 
     const hasActiveFilters = useMemo(
-        () => Boolean(debouncedSearch || machineValue || dateFilter !== 'all' || customDateRange.start || customDateRange.end),
-        [customDateRange.end, customDateRange.start, dateFilter, debouncedSearch, machineValue],
+        () => Boolean(debouncedSearch || stageValue || dateFilter !== 'all' || customDateRange.start || customDateRange.end),
+        [customDateRange.end, customDateRange.start, dateFilter, debouncedSearch, stageValue],
     );
 
     const fetchAudit = useCallback(
@@ -85,7 +86,7 @@ const TrackingAuditSection: React.FC<TrackingAuditSectionProps> = ({ onExport })
                 const response = await actionHistoryDB.getTrackingAudit(
                     {
                         search: debouncedSearch || undefined,
-                        machine: machineValue || undefined,
+                        stage: stageValue || undefined,
                         dateField,
                         dateFrom: apiDateRange.dateFrom || undefined,
                         dateTo: apiDateRange.dateTo || undefined,
@@ -122,7 +123,7 @@ const TrackingAuditSection: React.FC<TrackingAuditSectionProps> = ({ onExport })
                 }
             }
         },
-        [apiDateRange.dateFrom, apiDateRange.dateTo, dateField, debouncedSearch, machineValue],
+        [apiDateRange.dateFrom, apiDateRange.dateTo, dateField, debouncedSearch, stageValue],
     );
 
     useEffect(() => {
@@ -184,7 +185,7 @@ const TrackingAuditSection: React.FC<TrackingAuditSectionProps> = ({ onExport })
     const handleClearFilters = useCallback(() => {
         setSearchValue('');
         setDebouncedSearch('');
-        setMachineValue('');
+        setStageValue('');
         setDateField('timestamp');
         setDateFilter('all');
         setCustomDateRange({ start: '', end: '' });
@@ -200,7 +201,7 @@ const TrackingAuditSection: React.FC<TrackingAuditSectionProps> = ({ onExport })
                 actions,
                 filters: {
                     search: debouncedSearch || undefined,
-                    machine: machineValue || undefined,
+                    stage: stageValue || undefined,
                     dateField,
                     dateFilter,
                     dateFrom: apiDateRange.dateFrom || undefined,
@@ -211,7 +212,7 @@ const TrackingAuditSection: React.FC<TrackingAuditSectionProps> = ({ onExport })
             const message = error instanceof Error ? error.message : 'No se pudo exportar el historial visible.';
             window.alert(message);
         }
-    }, [actions, apiDateRange.dateFrom, apiDateRange.dateTo, dateField, dateFilter, debouncedSearch, machineValue, onExport]);
+    }, [actions, apiDateRange.dateFrom, apiDateRange.dateTo, dateField, dateFilter, debouncedSearch, stageValue, onExport]);
 
     const exportDisabledReason = !onExport
         ? 'La exportación PDF se habilita en el siguiente slice.'
@@ -242,8 +243,8 @@ const TrackingAuditSection: React.FC<TrackingAuditSectionProps> = ({ onExport })
                     <TrackingAuditFilters
                         searchValue={searchValue}
                         onSearchValueChange={setSearchValue}
-                        machineValue={machineValue}
-                        onMachineValueChange={setMachineValue}
+                        stageValue={stageValue}
+                        onStageValueChange={setStageValue}
                         dateField={dateField}
                         dateFilter={dateFilter}
                         customDateRange={customDateRange}
@@ -267,6 +268,7 @@ const TrackingAuditSection: React.FC<TrackingAuditSectionProps> = ({ onExport })
                         error={error}
                         onLoadMore={handleLoadMore}
                         onRetry={() => fetchAudit('replace')}
+                        onNavigateToPedido={onNavigateToPedido}
                     />
                 </div>
             )}
