@@ -82,7 +82,7 @@ export const formatMinutesToDaysAndMinutes = (totalMinutes: number): string => {
  */
 export const calcularTiempoRealProduccion = (pedido: Pedido): number => {
     let totalMinutes = 0;
-    const sortedTimeline = [...pedido.etapasSecuencia].sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
+    const sortedTimeline = [...(pedido.etapasSecuencia ?? [])].sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
 
     for (let i = 0; i < sortedTimeline.length; i++) {
         const currentStageInfo = sortedTimeline[i];

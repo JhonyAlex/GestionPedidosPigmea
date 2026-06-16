@@ -1454,7 +1454,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
             }
         }
 
-        const lastPrintingStageInHistory = formData.etapasSecuencia
+        const lastPrintingStageInHistory = (formData.etapasSecuencia ?? [])
             .slice()
             .reverse()
             .find(e => printingStages.includes(e.etapa))?.etapa;

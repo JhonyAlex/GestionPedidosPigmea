@@ -49,7 +49,7 @@ interface TrackingRow {
 }
 
 function buildTrackingRow(pedido: Pedido): TrackingRow {
-    const seq = pedido.etapasSecuencia;
+    const seq = pedido.etapasSecuencia ?? [];
     return {
         pedido,
         fechaImpreso: getStageExitDate(seq, IMPRESION_STAGES),
