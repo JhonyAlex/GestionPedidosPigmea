@@ -290,6 +290,36 @@ export interface ActionHistoryEntry {
     source?: 'frontend' | 'backend'; // Origen del registro
 }
 
+export interface TrackingAuditEntry {
+    id: string;
+    pedidoId: string;
+    numeroPedidoCliente: string;
+    cliente: string;
+    maquinaImpresion?: string;
+    timestamp: string;
+    userName: string;
+    source?: 'frontend' | 'backend';
+    title: string;
+    details: string;
+    changes?: string[];
+}
+
+export interface TrackingAuditFilters {
+    search?: string;
+    machine?: string;
+    dateField?: 'timestamp';
+    dateFrom?: string;
+    dateTo?: string;
+    cursor?: string | null;
+    limit?: number;
+}
+
+export interface TrackingAuditResponse {
+    actions: TrackingAuditEntry[];
+    nextCursor: string | null;
+    hasMore: boolean;
+}
+
 // ============== TIPOS PARA IMPORTACIÓN MASIVA ==============
 
 export interface ImportRow {

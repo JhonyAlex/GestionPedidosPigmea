@@ -1,4 +1,19 @@
-import { ActionHistoryEntry } from '../types';
+import type {
+    ActionHistoryEntry,
+    TrackingAuditFilters,
+    TrackingAuditResponse,
+} from '../types';
+
+const TRACKING_AUDIT_ENDPOINT = '/api/pedidos/tracking/audit';
+const TRACKING_AUDIT_DATE_FIELD = 'timestamp';
+
+const appendQueryParam = (params: URLSearchParams, key: string, value?: string | number | null) => {
+    if (value === undefined || value === null || value === '') {
+        return;
+    }
+
+    params.set(key, String(value));
+};
 
 // Helper para obtener headers de autenticación desde localStorage
 const getAuthHeaders = (): Record<string, string> => {
@@ -100,4 +115,31 @@ async function getGlobalActions(
     return response.json();
 }
 
-export const actionHistoryDB = { addAction, getActionsByContext, getActionsByUser, getGlobalActions };
+async function getTrackingAudit(
+    filters: TrackingAuditFilters = {},
+    signal?: AbortSignal
+): Promise<TrackingAuditResponse> {
+    const params = new URLSearchParams();
+
+    params.set('dateField', TRACKING_AUDIT_DATE_FIELD);
+    appendQueryParam(params, 'search', filters.search?.trim());
+    appendQueryParam(params, 'machine', filters.machine?.trim());
+    appendQueryParam(params, 'dateFrom', filters.dateFrom);
+    appendQueryParam(params, 'dateTo', filters.dateTo);
+    appendQueryParam(params, 'cursor', filters.cursor);
+    appendQueryParam(params, 'limit', filters.limit);
+
+    const response = await fetch(`${TRACKING_AUDIT_ENDPOINT}?${params.toString()}`, {
+        headers: getAuthHeaders(),
+        signal
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error fetching tracking audit: ${response.status}`);
+    }
+
+    return response.json();
+}
+
+export const actionHistoryDB = { addAction, getActionsByContext, getActionsByUser, getGlobalActions, getTrackingAudit };

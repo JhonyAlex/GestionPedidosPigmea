@@ -2700,6 +2700,72 @@ app.get('/api/pedidos/tracking', async (req, res) => {
     }
 });
 
+// GET /api/pedidos/tracking/audit - Historial legible de seguimiento de producción con filtros server-driven
+app.get('/api/pedidos/tracking/audit', requireAuth, requireAnyPermission(['vista.auditoria', 'admin.auditoria']), async (req, res) => {
+    try {
+        if (!dbClient.isInitialized) {
+            return res.status(503).json({
+                error: 'Service Unavailable',
+                message: 'El sistema no está disponible.'
+            });
+        }
+
+        const rawSearch = Array.isArray(req.query.search) ? req.query.search[0] : (req.query.search || '');
+        const rawMachine = Array.isArray(req.query.machine) ? req.query.machine[0] : (req.query.machine || '');
+        const rawDateField = Array.isArray(req.query.dateField) ? req.query.dateField[0] : (req.query.dateField || 'timestamp');
+        const rawDateFrom = Array.isArray(req.query.dateFrom) ? req.query.dateFrom[0] : (req.query.dateFrom || '');
+        const rawDateTo = Array.isArray(req.query.dateTo) ? req.query.dateTo[0] : (req.query.dateTo || '');
+        const rawCursor = Array.isArray(req.query.cursor) ? req.query.cursor[0] : (req.query.cursor || null);
+        const rawLimit = Array.isArray(req.query.limit) ? req.query.limit[0] : (req.query.limit || '30');
+
+        const dateField = rawDateField.toString().trim() || 'timestamp';
+        if (dateField !== 'timestamp') {
+            return res.status(400).json({
+                error: 'Invalid date field',
+                message: 'Only timestamp is supported for tracking audit filtering.'
+            });
+        }
+
+        let cursor = null;
+        if (rawCursor) {
+            try {
+                const parsedCursor = JSON.parse(Buffer.from(rawCursor.toString(), 'base64').toString('utf-8'));
+                if (!parsedCursor?.timestamp || !parsedCursor?.id) {
+                    throw new Error('Cursor payload is incomplete');
+                }
+                cursor = {
+                    timestamp: parsedCursor.timestamp,
+                    id: parsedCursor.id
+                };
+            } catch (error) {
+                return res.status(400).json({
+                    error: 'Invalid cursor',
+                    message: 'Cursor must be a valid base64-encoded timestamp/id pair.'
+                });
+            }
+        }
+
+        const result = await dbClient.getTrackingAuditPaginated({
+            search: rawSearch.toString().trim(),
+            machine: rawMachine.toString().trim(),
+            dateField,
+            dateFrom: rawDateFrom.toString().trim(),
+            dateTo: rawDateTo.toString().trim(),
+            cursor,
+            limit: Math.min(parseInt(rawLimit, 10) || 30, 100)
+        });
+
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('Error in GET /api/pedidos/tracking/audit:', error);
+        res.status(500).json({
+            message: 'Error interno del servidor al obtener el historial de auditoría de seguimiento.',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
 // GET /api/pedidos/archived - Obtener solo pedidos archivados (carga diferida, paginado)
 app.get('/api/pedidos/archived', async (req, res) => {
     try {

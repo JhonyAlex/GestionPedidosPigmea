@@ -380,7 +380,7 @@ export const AnalyticsDashboard: React.FC = () => {
                         dateField={dateField as any}
                         dateFilter={dateFilter}
                         customDateRange={customDateRange}
-                        onDateFieldChange={setDateField}
+                        onDateFieldChange={(field) => setDateField(field as any)}
                         onDateFilterChange={setDateFilter}
                         onCustomDateChange={(e) => setCustomDateRange({ ...customDateRange, [e.target.name]: e.target.value })}
                         align="right"

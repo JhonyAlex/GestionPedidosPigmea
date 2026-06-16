@@ -36,6 +36,7 @@ export const pedidoMatchesSearch = (pedido: Pedido, normalizedTerm: string): boo
         matches(pedido.clienteId) ||
         matches(pedido.vendedorNombre) ||
         matches(pedido.vendedorId) ||
+        matches(pedido.producto) ||
         matchesAnyNumeroCompra
     );
 };

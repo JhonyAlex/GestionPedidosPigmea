@@ -1148,7 +1148,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                                 dateField={dateField}
                                 dateFilter={dateFilter}
                                 customDateRange={customDateRange}
-                                onDateFieldChange={setDateField}
+                                onDateFieldChange={(field) => setDateField(field as keyof Pedido)}
                                 onDateFilterChange={setDateFilter}
                                 onCustomDateChange={(e) => setCustomDateRange({ ...customDateRange, [e.target.name]: e.target.value })}
                                 align="right"

@@ -2,21 +2,35 @@ import React, { useState, useRef, useEffect } from 'react';
 import { DateFilterOption } from '../utils/date';
 import type { Pedido } from '../types';
 
-interface DateFilterCombinedProps {
-    dateField: keyof Pedido;
-    dateFilter: DateFilterOption;
-    customDateRange: { start: string; end: string };
-    onDateFieldChange: (field: keyof Pedido) => void;
-    onDateFilterChange: (value: DateFilterOption) => void;
-    onCustomDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    align?: 'left' | 'right';
-}
-
-interface DateFieldOption {
-    value: keyof Pedido;
+export interface DateFieldOption<T extends string = keyof Pedido> {
+    value: T;
     label: string;
     icon: string;
 }
+
+type BivariantCallback<T> = {
+    bivarianceHack: (value: T) => void;
+}['bivarianceHack'];
+
+interface DateFilterCombinedProps<T extends string = keyof Pedido> {
+    dateField: T;
+    dateFilter: DateFilterOption;
+    customDateRange: { start: string; end: string };
+    onDateFieldChange: BivariantCallback<T>;
+    onDateFilterChange: (value: DateFilterOption) => void;
+    onCustomDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    align?: 'left' | 'right';
+    fieldOptions?: readonly DateFieldOption<T>[];
+}
+
+const DEFAULT_DATE_FIELD_OPTIONS = [
+    { value: 'fechaCreacion', label: 'Fecha Creación', icon: '📅' },
+    { value: 'fechaEntrega', label: 'Fecha Entrega', icon: '🚚' },
+    { value: 'nuevaFechaEntrega', label: 'Nueva F. Entrega', icon: '🔄' },
+    { value: 'fechaFinalizacion', label: 'Fecha Finalización', icon: '✅' },
+    { value: 'compraCliche', label: 'Compra Cliché', icon: '💰' },
+    { value: 'recepcionCliche', label: 'Recepción Cliché', icon: '📦' },
+] satisfies readonly DateFieldOption<keyof Pedido>[];
 
 const CalendarIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -30,26 +44,20 @@ const ChevronDownIcon = () => (
     </svg>
 );
 
-const DateFilterCombined: React.FC<DateFilterCombinedProps> = ({
+const DateFilterCombined = <T extends string = keyof Pedido>({
     dateField,
     dateFilter,
     customDateRange,
     onDateFieldChange,
     onDateFilterChange,
     onCustomDateChange,
-    align = 'left'
-}) => {
+    align = 'left',
+    fieldOptions,
+}: DateFilterCombinedProps<T>) => {
     const [isOpen, setIsOpen] = useState(false);
     const panelRef = useRef<HTMLDivElement>(null);
 
-    const dateFieldOptions: DateFieldOption[] = [
-        { value: 'fechaCreacion', label: 'Fecha Creación', icon: '📅' },
-        { value: 'fechaEntrega', label: 'Fecha Entrega', icon: '🚚' },
-        { value: 'nuevaFechaEntrega', label: 'Nueva F. Entrega', icon: '🔄' },
-        { value: 'fechaFinalizacion', label: 'Fecha Finalización', icon: '✅' },
-        { value: 'compraCliche', label: 'Compra Cliché', icon: '💰' },
-        { value: 'recepcionCliche', label: 'Recepción Cliché', icon: '📦' },
-    ];
+    const dateFieldOptions = (fieldOptions ?? DEFAULT_DATE_FIELD_OPTIONS) as readonly DateFieldOption<T>[];
 
     const dateFilterShortcuts: { value: DateFilterOption, label: string, icon: string }[] = [
         { value: 'all', label: 'Todas las Fechas', icon: '📊' },
@@ -85,7 +93,7 @@ const DateFilterCombined: React.FC<DateFilterCombinedProps> = ({
 
     const isActive = dateFilter !== 'all';
 
-    const handleFieldSelect = (field: keyof Pedido) => {
+    const handleFieldSelect = (field: T) => {
         onDateFieldChange(field);
         // No cerrar el panel, permitir seleccionar el atajo inmediatamente
     };

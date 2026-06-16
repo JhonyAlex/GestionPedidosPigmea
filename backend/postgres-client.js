@@ -24,6 +24,114 @@ const ETAPAS_LISTAS_TEMPORALES = ETAPAS_PRODUCCION_ACTIVA.filter(
     (etapa) => !['PREPARACION', 'PENDIENTE'].includes(etapa)
 );
 const ETAPAS_LISTAS_TEMPORALES_SET = new Set(ETAPAS_LISTAS_TEMPORALES);
+const TRACKING_AUDIT_ALLOWED_DATE_FIELDS = ['timestamp'];
+
+const TRACKING_AUDIT_ACTION_TITLES = {
+    CREATE: 'Order created',
+    UPDATE: 'Order updated',
+    DELETE: 'Order deleted',
+    BULK_UPDATE: 'Bulk order update',
+    BULK_DELETE: 'Bulk order delete'
+};
+
+function buildTrackingAuditCursor(timestamp, id) {
+    if (!timestamp || !id) {
+        return null;
+    }
+
+    return Buffer.from(JSON.stringify({ timestamp, id })).toString('base64');
+}
+
+function safeTrackingAuditText(value) {
+    return typeof value === 'string' ? value.trim() : '';
+}
+
+function formatTrackingAuditTimestamp(timestamp) {
+    const date = new Date(timestamp);
+
+    if (Number.isNaN(date.getTime())) {
+        return safeTrackingAuditText(timestamp) || 'unknown time';
+    }
+
+    return date.toISOString().replace('T', ' ').slice(0, 16);
+}
+
+function formatTrackingAuditAction(actionType) {
+    const normalized = safeTrackingAuditText(actionType).toUpperCase();
+    return TRACKING_AUDIT_ACTION_TITLES[normalized] || 'Order activity';
+}
+
+function extractTrackingAuditMachine(row = {}, payload = {}) {
+    const machineCandidates = [
+        row.maquinaImpresion,
+        payload?.after?.maquinaImpresion,
+        payload?.before?.maquinaImpresion,
+        payload?.maquinaImpresion
+    ];
+
+    return machineCandidates
+        .map((value) => safeTrackingAuditText(value))
+        .find(Boolean) || undefined;
+}
+
+function buildTrackingAuditFallbackChanges(payload = {}) {
+    const before = payload?.before && typeof payload.before === 'object' ? payload.before : null;
+    const after = payload?.after && typeof payload.after === 'object' ? payload.after : null;
+
+    if (!before || !after) {
+        return [];
+    }
+
+    const candidateKeys = [
+        ['etapaActual', 'Stage'],
+        ['subEtapaActual', 'Substage'],
+        ['maquinaImpresion', 'Machine'],
+        ['fechaEntrega', 'Delivery date'],
+        ['nuevaFechaEntrega', 'Updated delivery date'],
+        ['prioridad', 'Priority'],
+        ['metros', 'Meters']
+    ];
+
+    return candidateKeys
+        .filter(([key]) => (before?.[key] ?? null) !== (after?.[key] ?? null))
+        .map(([key, label]) => `${label}: ${before?.[key] ?? '—'} → ${after?.[key] ?? '—'}`);
+}
+
+function normalizeTrackingAuditEntry(row) {
+    const payload = row.payload && typeof row.payload === 'object' ? row.payload : {};
+    const payloadSummary = payload.summary && typeof payload.summary === 'object' ? payload.summary : null;
+    const numeroPedidoCliente = safeTrackingAuditText(row.numeroPedidoCliente) || safeTrackingAuditText(row.pedidoId);
+    const cliente = safeTrackingAuditText(row.cliente) || 'Unknown client';
+    const userName = safeTrackingAuditText(row.userName) || 'System';
+    const machine = extractTrackingAuditMachine(row, payload);
+    const fallbackTitle = `${formatTrackingAuditAction(row.type)}${numeroPedidoCliente ? `: ${numeroPedidoCliente}` : ''}`;
+    const fallbackDetailsParts = [
+        `${userName} recorded ${formatTrackingAuditAction(row.type).toLowerCase()}`,
+        `at ${formatTrackingAuditTimestamp(row.timestamp)}`,
+        numeroPedidoCliente ? `for order ${numeroPedidoCliente}` : '',
+        cliente ? `(${cliente})` : '',
+        machine ? `on ${machine}` : '',
+        safeTrackingAuditText(row.description) ? `— ${safeTrackingAuditText(row.description)}` : ''
+    ].filter(Boolean);
+
+    const changes = Array.isArray(payloadSummary?.changes) && payloadSummary.changes.length > 0
+        ? payloadSummary.changes
+        : buildTrackingAuditFallbackChanges(payload);
+
+    return {
+        id: String(row.id),
+        pedidoId: String(row.pedidoId),
+        numeroPedidoCliente,
+        cliente,
+        maquinaImpresion: machine,
+        timestamp: row.timestamp instanceof Date ? row.timestamp.toISOString() : row.timestamp,
+        userName,
+        source: safeTrackingAuditText(row.source) || undefined,
+        title: safeTrackingAuditText(payloadSummary?.title) || fallbackTitle,
+        details: safeTrackingAuditText(payloadSummary?.details) || fallbackDetailsParts.join(' '),
+        changes
+    };
+}
 
 class PostgreSQLClient {
     constructor() {
@@ -1756,6 +1864,114 @@ class PostgreSQLClient {
         }
     }
 
+    async getTrackingAuditPaginated(options = {}) {
+        if (!this.isInitialized) {
+            throw new Error('Database not initialized');
+        }
+
+        const {
+            search = '',
+            machine = '',
+            dateField = 'timestamp',
+            dateFrom = '',
+            dateTo = '',
+            cursor = null,
+            limit = 30
+        } = options;
+
+        const safeDateField = TRACKING_AUDIT_ALLOWED_DATE_FIELDS.includes(dateField) ? dateField : 'timestamp';
+        const safeLimit = Math.min(Math.max(Number(limit) || 30, 1), 100);
+        const client = await this.pool.connect();
+
+        try {
+            const conditions = [
+                `ah.context_type = 'pedido'`,
+                `p.id IS NOT NULL`,
+                `COALESCE(p.data->>'etapaActual', '') IN ('COMPLETADO', 'ARCHIVADO')`
+            ];
+            const params = [];
+            let paramIndex = 1;
+
+            if (search) {
+                const searchParam = `%${search}%`;
+                conditions.push(`(
+                    ah.description ILIKE $${paramIndex}
+                    OR ah.user_name ILIKE $${paramIndex}
+                    OR ah.action_type ILIKE $${paramIndex}
+                    OR COALESCE(ah.payload->'summary'->>'title', '') ILIKE $${paramIndex}
+                    OR COALESCE(ah.payload->'summary'->>'details', '') ILIKE $${paramIndex}
+                    OR COALESCE(p.numero_pedido_cliente, '') ILIKE $${paramIndex}
+                    OR COALESCE(p.data->>'numeroPedidoCliente', '') ILIKE $${paramIndex}
+                    OR COALESCE(p.cliente, '') ILIKE $${paramIndex}
+                    OR COALESCE(p.data->>'cliente', '') ILIKE $${paramIndex}
+                    OR COALESCE(p.data->>'maquinaImpresion', '') ILIKE $${paramIndex}
+                )`);
+                params.push(searchParam);
+                paramIndex++;
+            }
+
+            if (machine) {
+                conditions.push(`LOWER(BTRIM(COALESCE(NULLIF(p.data->>'maquinaImpresion', ''), ''))) = LOWER(BTRIM($${paramIndex}))`);
+                params.push(machine);
+                paramIndex++;
+            }
+
+            if (dateFrom) {
+                conditions.push(`ah.${safeDateField} >= $${paramIndex}::timestamp`);
+                params.push(`${dateFrom} 00:00:00`);
+                paramIndex++;
+            }
+
+            if (dateTo) {
+                conditions.push(`ah.${safeDateField} <= $${paramIndex}::timestamp`);
+                params.push(`${dateTo} 23:59:59.999`);
+                paramIndex++;
+            }
+
+            if (cursor?.timestamp && cursor?.id) {
+                conditions.push(`(ah.timestamp, ah.id) < ($${paramIndex}::timestamp, $${paramIndex + 1})`);
+                params.push(cursor.timestamp, cursor.id);
+                paramIndex += 2;
+            }
+
+            const whereClause = conditions.join(' AND ');
+            const query = `
+                SELECT
+                    ah.id,
+                    ah.context_id as "pedidoId",
+                    ah.action_type as "type",
+                    ah.payload,
+                    ah.timestamp,
+                    ah.user_name as "userName",
+                    ah.description,
+                    ah.source,
+                    COALESCE(NULLIF(p.numero_pedido_cliente, ''), p.data->>'numeroPedidoCliente', ah.context_id) as "numeroPedidoCliente",
+                    COALESCE(NULLIF(p.cliente, ''), p.data->>'cliente', '') as "cliente",
+                    COALESCE(NULLIF(p.data->>'maquinaImpresion', ''), '') as "maquinaImpresion"
+                FROM action_history ah
+                INNER JOIN limpio.pedidos p ON p.id = ah.context_id
+                WHERE ${whereClause}
+                ORDER BY ah.timestamp DESC, ah.id DESC
+                LIMIT $${paramIndex}
+            `;
+
+            const result = await client.query(query, [...params, safeLimit + 1]);
+            const rows = result.rows;
+            const hasMore = rows.length > safeLimit;
+            const visibleRows = hasMore ? rows.slice(0, safeLimit) : rows;
+            const actions = visibleRows.map(normalizeTrackingAuditEntry);
+            const lastRow = actions[actions.length - 1];
+
+            return {
+                actions,
+                nextCursor: hasMore && lastRow ? buildTrackingAuditCursor(lastRow.timestamp, lastRow.id) : null,
+                hasMore
+            };
+        } finally {
+            client.release();
+        }
+    }
+
     /**
      * Obtener pedidos con paginación y filtros
      * @param {Object} options - Opciones de filtrado y paginación
@@ -1956,6 +2172,7 @@ class PostgreSQLClient {
                     numero_pedido_cliente ILIKE $1 OR
                     cliente ILIKE $1 OR
                     COALESCE(data->>'vendedorNombre', vendedor) ILIKE $1 OR
+                    data->>'producto' ILIKE $1 OR
                     EXISTS (
                         SELECT 1
                         FROM jsonb_array_elements_text(COALESCE(numeros_compra, '[]'::jsonb)) AS numero

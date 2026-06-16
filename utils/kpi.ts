@@ -1,8 +1,8 @@
 
 
-import { Pedido, EtapaInfo, Etapa } from '../types';
+import { Pedido, EtapaInfo, Etapa, TrackingAuditEntry } from '../types';
 import { ETAPAS, KANBAN_FUNNELS } from '../constants';
-import { formatDateDDMMYYYY } from './date';
+import { DateFilterOption, formatDateDDMMYYYY, formatDateTimeDDMMYYYY } from './date';
 import { normalizePostImpresionSequence } from './dntWorkflow';
 
 // To satisfy TypeScript since jspdf and jspdf-autotable are loaded from script tags
@@ -182,6 +182,95 @@ const CLIENT_COLOR_PALETTE: number[][] = [
     [229, 231, 235], // gray-200
 ];
 
+const PDF_TABLE_WIDTH = 525;
+const PDF_FOOTER_REVISION = 'Versión 1.2 · Rev. 11/06/2026';
+const PDF_FOOTER_CONFIDENTIALITY = 'Uso interno exclusivo · Pigmea S.L.';
+
+export interface TrackingAuditPDFOptions {
+    search?: string;
+    machine?: string;
+    dateField?: 'timestamp';
+    dateFilter?: DateFilterOption;
+    dateFrom?: string;
+    dateTo?: string;
+}
+
+export interface TrackingAuditPDFPayload {
+    actions: TrackingAuditEntry[];
+    filters: TrackingAuditPDFOptions;
+}
+
+const TRACKING_AUDIT_DATE_FILTER_LABELS: Record<DateFilterOption, string> = {
+    all: 'Todo el historial visible',
+    'this-week': 'Esta semana',
+    'last-week': 'Semana pasada',
+    'next-week': 'Próxima semana',
+    'this-month': 'Este mes',
+    'last-month': 'Mes pasado',
+    'next-month': 'Próximo mes',
+    custom: 'Rango personalizado',
+};
+
+const buildPdfFooter = (doc: any, pageWidth: number, pageHeight: number, horizontalMargin: number) => {
+    const totalPages = doc.getNumberOfPages();
+    for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
+        doc.setPage(pageNumber);
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.5);
+        doc.line(horizontalMargin, pageHeight - 20, pageWidth - horizontalMargin, pageHeight - 20);
+
+        doc.setFontSize(6.5);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(120);
+        doc.text(PDF_FOOTER_REVISION, horizontalMargin, pageHeight - 11);
+        doc.text(`Página ${pageNumber} de ${totalPages}`, pageWidth / 2, pageHeight - 11, { align: 'center' });
+        doc.text(PDF_FOOTER_CONFIDENTIALITY, pageWidth - horizontalMargin, pageHeight - 11, { align: 'right' });
+    }
+};
+
+const buildTrackingAuditSubtitleLines = (filters?: TrackingAuditPDFOptions): string[] => {
+    const subtitleLines: string[] = [];
+    const trimmedSearch = filters?.search?.trim();
+    const trimmedMachine = filters?.machine?.trim();
+
+    if (trimmedMachine) {
+        subtitleLines.push(`Máquina: ${trimmedMachine}`);
+    }
+
+    if (trimmedSearch) {
+        subtitleLines.push(`Búsqueda: ${trimmedSearch}`);
+    }
+
+    if (filters?.dateFilter && filters.dateFilter !== 'all') {
+        if (filters.dateFilter === 'custom' && (filters.dateFrom || filters.dateTo)) {
+            const fromLabel = filters.dateFrom ? formatDateDDMMYYYY(filters.dateFrom) : 'Inicio abierto';
+            const toLabel = filters.dateTo ? formatDateDDMMYYYY(filters.dateTo) : 'Fin abierto';
+            subtitleLines.push(`Registro: ${fromLabel} → ${toLabel}`);
+        } else {
+            subtitleLines.push(`Registro: ${TRACKING_AUDIT_DATE_FILTER_LABELS[filters.dateFilter]}`);
+        }
+    }
+
+    if (subtitleLines.length === 0) {
+        subtitleLines.push('Vista visible exportada desde Seguimiento de Producción');
+    }
+
+    return subtitleLines;
+};
+
+const buildTrackingAuditRowSummary = (action: TrackingAuditEntry): string => {
+    const summaryParts = [action.title, action.details].filter(Boolean);
+    return summaryParts.join('\n');
+};
+
+const buildTrackingAuditRowChanges = (action: TrackingAuditEntry): string => {
+    if (!action.changes || action.changes.length === 0) {
+        return '—';
+    }
+
+    return action.changes.map((change) => `• ${change}`).join('\n');
+};
+
 const getNextStageTitle = (pedido: Pedido): string => {
     const { etapaActual } = pedido;
     const secuenciaTrabajo = normalizePostImpresionSequence(pedido.secuenciaTrabajo, pedido.cliente);
@@ -241,10 +330,8 @@ export const generatePedidosPDF = (
     const doc = new jsPDF('p', 'pt', 'a4'); // 'p' for portrait (vertical orientation) - A4 portrait = 595x842 pt
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const tableWidth = 525;
+    const tableWidth = PDF_TABLE_WIDTH;
     const tableHorizontalMargin = (pageWidth - tableWidth) / 2;
-    const footerRevision = 'Versión 1.2 · Rev. 11/06/2026';
-    const footerConfidentiality = 'Uso interno exclusivo · Pigmea S.L.';
 
     // --- HEADER ---
     doc.setFontSize(18);
@@ -514,22 +601,103 @@ export const generatePedidosPDF = (
         },
     });
 
-    const totalPages = doc.getNumberOfPages();
-    for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
-        doc.setPage(pageNumber);
-        doc.setDrawColor(226, 232, 240);
-        doc.setLineWidth(0.5);
-        doc.line(tableHorizontalMargin, pageHeight - 20, pageWidth - tableHorizontalMargin, pageHeight - 20);
-
-        doc.setFontSize(6.5);
-        doc.setFont(undefined, 'normal');
-        doc.setTextColor(120);
-        doc.text(footerRevision, tableHorizontalMargin, pageHeight - 11);
-        doc.text(`Página ${pageNumber} de ${totalPages}`, pageWidth / 2, pageHeight - 11, { align: 'center' });
-        doc.text(footerConfidentiality, pageWidth - tableHorizontalMargin, pageHeight - 11, { align: 'right' });
-    }
+    buildPdfFooter(doc, pageWidth, pageHeight, tableHorizontalMargin);
 
     // Save
     const dateStr = today.toISOString().split('T')[0];
     doc.save(`planificacion_semanal_${dateStr}.pdf`);
-}
+};
+
+export const generateTrackingAuditPDF = (
+    actions: TrackingAuditEntry[],
+    filters?: TrackingAuditPDFOptions,
+) => {
+    if (!actions || actions.length === 0) {
+        throw new Error('No hay resultados visibles para exportar.');
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l', 'pt', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const tableWidth = 760;
+    const tableHorizontalMargin = (pageWidth - tableWidth) / 2;
+    const today = new Date();
+
+    doc.setFontSize(18);
+    doc.setFont(undefined, 'bold');
+    doc.text('PIGMEA S.L.', 20, 28);
+
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(100);
+    doc.text('Historial y auditoría de producción', 20, 42);
+
+    const subtitleLines = buildTrackingAuditSubtitleLines(filters);
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    subtitleLines.forEach((line, index) => {
+        doc.text(line, 20, 55 + (index * 11), { maxWidth: pageWidth - 40 });
+    });
+
+    doc.setFontSize(8);
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(0);
+    doc.text(formatDateDDMMYYYY(today), pageWidth - 20, 28, { align: 'right' });
+
+    const tableRows = actions.map((action) => [
+        formatDateTimeDDMMYYYY(action.timestamp),
+        [action.numeroPedidoCliente, action.cliente, action.maquinaImpresion || 'Sin máquina'].join('\n'),
+        [action.userName || 'Sistema', action.source ? `Origen: ${action.source}` : 'Origen: —'].join('\n'),
+        buildTrackingAuditRowSummary(action),
+        buildTrackingAuditRowChanges(action),
+    ]);
+
+    doc.autoTable({
+        startY: 70 + (subtitleLines.length * 11),
+        head: [[
+            'Registro',
+            'Pedido / Contexto',
+            'Actor',
+            'Resumen legible',
+            'Cambios destacados',
+        ]],
+        body: tableRows,
+        theme: 'grid',
+        tableWidth,
+        margin: { left: tableHorizontalMargin, right: tableHorizontalMargin, top: 14, bottom: 28 },
+        styles: {
+            fontSize: 8,
+            cellPadding: { top: 4, right: 4, bottom: 4, left: 4 },
+            valign: 'top',
+            textColor: [31, 41, 55],
+            overflow: 'linebreak',
+            halign: 'left',
+            lineColor: [226, 232, 240],
+            lineWidth: 0.5,
+        },
+        headStyles: {
+            fillColor: [45, 55, 72],
+            textColor: 255,
+            fontStyle: 'bold',
+            halign: 'left',
+            fontSize: 8,
+            cellPadding: { top: 4, right: 4, bottom: 4, left: 4 },
+        },
+        alternateRowStyles: {
+            fillColor: [248, 250, 252],
+        },
+        columnStyles: {
+            0: { cellWidth: 82 },
+            1: { cellWidth: 120 },
+            2: { cellWidth: 95 },
+            3: { cellWidth: 288 },
+            4: { cellWidth: 175 },
+        },
+    });
+
+    buildPdfFooter(doc, pageWidth, pageHeight, tableHorizontalMargin);
+
+    const dateStr = today.toISOString().split('T')[0];
+    doc.save(`tracking_audit_${dateStr}.pdf`);
+};

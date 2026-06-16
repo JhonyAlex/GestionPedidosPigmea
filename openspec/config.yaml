@@ -1,0 +1,68 @@
+schema: spec-driven
+
+context: |
+  Tech stack: React 18 + TypeScript + Vite frontend; Node.js 18+ + Express backend; PostgreSQL database.
+  Architecture: SPA at repo root with components/hooks/services/utils; monolithic Express API in backend/ with middleware/services/routes; SQL migrations in database/migrations/.
+  Testing: No automated test runner detected; only ad hoc backend scripts for manual verification.
+  Style: Frontend uses relative /api calls, auth headers on protected fetches, idempotent SQL migrations, and WebSocket broadcasts for realtime UI sync.
+
+strict_tdd: false
+
+testing:
+  strict_tdd: false
+  detected_on: 2026-06-16
+  test_runner:
+    available: false
+    framework: "—"
+    command: "—"
+  test_layers:
+    unit:
+      available: false
+      tool: "—"
+    integration:
+      available: false
+      tool: "—"
+    e2e:
+      available: false
+      tool: "—"
+  coverage:
+    available: false
+    command: "—"
+  quality_tools:
+    linter:
+      available: false
+      command: "—"
+    type_checker:
+      available: true
+      command: "npx tsc --noEmit"
+    formatter:
+      available: false
+      command: "—"
+  manual_checks:
+    - backend/test-bcrypt.js
+    - backend/test-sql.sh
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes.
+    - Reference API, database, and realtime impact when applicable.
+  specs:
+    - Use Given/When/Then scenarios.
+    - Use RFC 2119 keywords (MUST, SHOULD, MAY).
+  design:
+    - Document affected frontend, backend, database, and WebSocket boundaries.
+    - Reuse existing hooks, services, and migration patterns before introducing new abstractions.
+  tasks:
+    - Group tasks by frontend, backend, database, and verification phases.
+    - Keep tasks scoped to reviewable work units.
+  apply:
+    guardrails:
+      - Follow existing /api relative routing, auth header, and WebSocket emission conventions.
+    tdd: false
+    test_command: "Manual verification only; no automated runner detected."
+  verify:
+    test_command: "Manual verification only; no automated runner detected."
+    build_command: "npm run build"
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas.
