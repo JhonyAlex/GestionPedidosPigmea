@@ -27,6 +27,7 @@ export interface UseCollaborativeNotesReturn {
   activeNoteId: string | null;
   editor: Editor | null;
   loading: boolean;
+  notesLoaded: boolean;
   error: string | null;
   presence: Record<string, PresenceInfo>;
   createNote: (title?: string) => Promise<void>;
@@ -40,6 +41,7 @@ export function useCollaborativeNotes(socket: Socket | null, userId: string, use
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [loading, setLoading] = useState(false);
+  const [notesLoaded, setNotesLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [presence, setPresence] = useState<Record<string, PresenceInfo>>({});
 
@@ -62,6 +64,8 @@ export function useCollaborativeNotes(socket: Socket | null, userId: string, use
       setNotes(data);
     } catch {
       setError('Error cargando notas');
+    } finally {
+      setNotesLoaded(true);
     }
   }, []);
 
@@ -243,5 +247,5 @@ export function useCollaborativeNotes(socket: Socket | null, userId: string, use
     }
   }, []);
 
-  return { notes, activeNoteId, editor, loading, error, presence, createNote: handleCreateNote, deleteNote: handleDeleteNote, setActiveNoteId, updateTitle: handleUpdateTitle };
+  return { notes, activeNoteId, editor, loading, notesLoaded, error, presence, createNote: handleCreateNote, deleteNote: handleDeleteNote, setActiveNoteId, updateTitle: handleUpdateTitle };
 }

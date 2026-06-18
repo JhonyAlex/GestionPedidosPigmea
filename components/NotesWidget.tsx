@@ -1,6 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { EditorContent } from '@tiptap/react';
-import { BubbleMenu } from '@tiptap/react/menus';
 import { useCollaborativeNotes } from '@/hooks/useCollaborativeNotes';
 import { webSocketService } from '@/services/websocket';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,7 +14,7 @@ const NotesWidget: React.FC<NotesWidgetProps> = ({ embedded = false }) => {
   const { user } = useAuth();
   const socket = webSocketService.isSocketConnected() ? webSocketService.getSocket() : null;
 
-  const { notes, activeNoteId, editor, loading, error, presence, createNote, setActiveNoteId } =
+  const { notes, activeNoteId, editor, loading, notesLoaded, error, presence, createNote, setActiveNoteId } =
     useCollaborativeNotes(socket, user?.id || '', user?.displayName || user?.username || '');
 
   const [isOpen, setIsOpen] = useState(() => {
@@ -30,13 +29,13 @@ const NotesWidget: React.FC<NotesWidgetProps> = ({ embedded = false }) => {
     try { localStorage.setItem(WIDGET_KEY, isOpen ? 'open' : 'closed'); } catch { /* noop */ }
   }, [isOpen]);
 
-  // Auto-create single shared note if none exists
+  // Auto-create single shared note if none exists — only after initial fetch completes
   useEffect(() => {
-    if (!loading && notes.length === 0 && !autoCreatedRef.current && createNote) {
+    if (notesLoaded && notes.length === 0 && !autoCreatedRef.current && createNote) {
       autoCreatedRef.current = true;
       createNote('Shared Notes');
     }
-  }, [loading, notes.length, createNote]);
+  }, [notesLoaded, notes.length, createNote]);
 
   // Set active note when notes load
   useEffect(() => {
@@ -61,12 +60,6 @@ const NotesWidget: React.FC<NotesWidgetProps> = ({ embedded = false }) => {
 
   const presenceCount = Object.keys(presence).length;
 
-  // Bubble menu format handlers — use useCallback to avoid recreation on each render
-  const toggleBold = useCallback(() => editor?.chain().focus().toggleBold().run(), [editor]);
-  const toggleItalic = useCallback(() => editor?.chain().focus().toggleItalic().run(), [editor]);
-  const toggleHeading = useCallback(() => editor?.chain().focus().toggleHeading({ level: 2 }).run(), [editor]);
-  const toggleBulletList = useCallback(() => editor?.chain().focus().toggleBulletList().run(), [editor]);
-
   const panelContent = (
     <div ref={panelRef} className={`w-full flex flex-col overflow-hidden ${embedded ? 'flex-1 min-h-0' : 'bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700'}`}>
       {loading ? (
@@ -82,75 +75,57 @@ const NotesWidget: React.FC<NotesWidgetProps> = ({ embedded = false }) => {
         </div>
       ) : (
         <>
-          {/* Header with presence — hidden in embedded mode (parent provides section title) */}
-          {!embedded && (
-            <div className="flex items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700 shrink-0">
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Shared Notes</h2>
-                {presenceCount > 0 && (
-                  <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
-                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    {presenceCount}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Header bar: title + presence + formatting toolbar */}
+          <div className={`flex items-center gap-2 px-3 py-1.5 border-b border-gray-200 dark:border-gray-700 shrink-0 bg-gray-50/80 dark:bg-gray-800/50 ${embedded ? 'rounded-t-lg' : ''}`}>
+            {/* Title — always visible */}
+            <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mr-auto">Notas / Comentarios</h2>
 
-          {/* Embedded presence indicator — minimal, no toolbar */}
-          {embedded && presenceCount > 0 && (
-            <div className="flex items-center px-3 py-1.5 shrink-0">
-              <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+            {/* Presence indicator */}
+            {presenceCount > 0 && (
+              <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 shrink-0">
                 <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                {presenceCount} {presenceCount === 1 ? 'connected' : 'connected'}
+                {presenceCount}
               </span>
-            </div>
-          )}
+            )}
 
-          {/* Single editor: fills available space, always-visible soft border */}
-          <div className={`flex-1 flex flex-col min-h-0 ${embedded ? 'border border-gray-200 dark:border-gray-700 rounded-lg' : 'border-t border-gray-200 dark:border-gray-700'}`}>
+            {/* Formatting toolbar — fixed next to title */}
             {editor && (
-              <BubbleMenu
-                editor={editor}
-                shouldShow={({ view }) => view.hasFocus()}
-                className="flex items-center gap-0.5 px-1.5 py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50"
-              >
-                {!editor.state.selection.empty && (
-                  <>
-                    <BubbleButton
-                      isActive={editor.isActive('bold')}
-                      onClick={toggleBold}
-                      label="B"
-                      title="Bold (Ctrl+B)"
-                      className="font-bold"
-                    />
-                    <BubbleButton
-                      isActive={editor.isActive('italic')}
-                      onClick={toggleItalic}
-                      label="I"
-                      title="Italic (Ctrl+I)"
-                      className="italic"
-                    />
-                    <div className="w-px h-4 bg-gray-200 dark:bg-gray-600 mx-0.5" />
-                    <BubbleButton
-                      isActive={editor.isActive('heading', { level: 2 })}
-                      onClick={toggleHeading}
-                      label="H"
-                      title="Heading"
-                      className="font-bold text-[11px]"
-                    />
-                  </>
-                )}
-                <BubbleButton
+              <div className="flex items-center gap-0.5 ml-2 pl-2 border-l border-gray-200 dark:border-gray-600">
+                <ToolbarButton
+                  isActive={editor.isActive('bold')}
+                  onClick={() => editor.chain().focus().toggleBold().run()}
+                  label="B"
+                  title="Bold (Ctrl+B)"
+                  className="font-bold"
+                />
+                <ToolbarButton
+                  isActive={editor.isActive('italic')}
+                  onClick={() => editor.chain().focus().toggleItalic().run()}
+                  label="I"
+                  title="Italic (Ctrl+I)"
+                  className="italic"
+                />
+                <div className="w-px h-4 bg-gray-200 dark:bg-gray-600 mx-0.5" />
+                <ToolbarButton
+                  isActive={editor.isActive('heading', { level: 2 })}
+                  onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                  label="H"
+                  title="Heading"
+                  className="font-bold text-[11px]"
+                />
+                <ToolbarButton
                   isActive={editor.isActive('bulletList')}
-                  onClick={toggleBulletList}
+                  onClick={() => editor.chain().focus().toggleBulletList().run()}
                   label="•"
                   title="Bullet list"
                   className="text-base leading-none"
                 />
-              </BubbleMenu>
+              </div>
             )}
+          </div>
 
+          {/* Editor area */}
+          <div className="flex-1 flex flex-col min-h-0">
             <div className="flex-1 overflow-y-auto">
               <EditorContent
                 editor={editor}
@@ -192,8 +167,8 @@ const NotesWidget: React.FC<NotesWidgetProps> = ({ embedded = false }) => {
   );
 };
 
-// ---- Bubble menu button component ----
-interface BubbleButtonProps {
+// ---- Static toolbar button component ----
+interface ToolbarButtonProps {
   isActive: boolean;
   onClick: () => void;
   label: string;
@@ -201,7 +176,7 @@ interface BubbleButtonProps {
   className?: string;
 }
 
-const BubbleButton: React.FC<BubbleButtonProps> = ({ isActive, onClick, label, title, className = '' }) => (
+const ToolbarButton: React.FC<ToolbarButtonProps> = ({ isActive, onClick, label, title, className = '' }) => (
   <button
     type="button"
     onMouseDown={e => e.preventDefault()}
@@ -209,7 +184,7 @@ const BubbleButton: React.FC<BubbleButtonProps> = ({ isActive, onClick, label, t
     className={`w-7 h-7 flex items-center justify-center rounded transition-colors ${className} ${
       isActive
         ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300'
-        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-200'
     }`}
     aria-label={title}
     title={title}

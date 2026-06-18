@@ -38,7 +38,6 @@ import ImportDataModal from './components/ImportDataModal';
 import BulkImportModalV2 from './components/BulkImportModalV2';
 import PdfImportModal from './components/PdfImportModal';
 import { ToastContainer } from './components/Toast';
-import NotesWidget from './components/NotesWidget';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { MaterialesProvider } from './contexts/MaterialesContext';
 
@@ -108,10 +107,6 @@ const AppContent: React.FC = () => {
     const [showPdfImportModal, setShowPdfImportModal] = useState(false);
     const [kanbanManualOrderMap, setKanbanManualOrderMap] = useState<KanbanManualOrderMap>({});
     const kanbanManualOrderChangedRef = useRef(false);
-
-    // Track whether the embedded NotesWidget is active (planning sub-tab in ReportView)
-    // to suppress the global floating widget and avoid duplication.
-    const [embeddedNotesActive, setEmbeddedNotesActive] = useState(false);
 
     // Estados para operaciones masivas
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -1612,7 +1607,6 @@ const AppContent: React.FC = () => {
                     onBulkDelete={() => setShowDeleteModal(true)}
                     onBulkArchive={() => setShowArchiveModal(true)}
                     onClearSelection={clearSelection}
-                    onEmbeddedNotesActive={setEmbeddedNotesActive}
                 />;
 
             case 'permissions-debug':
@@ -1866,8 +1860,7 @@ const AppContent: React.FC = () => {
                     />
                 )}
 
-                {/* Floating notes widget — suppressed when embedded version is active in the planning tab */}
-                {(view !== 'report' || !embeddedNotesActive) && <NotesWidget />}
+                {/* Notes now embedded exclusively in ReportView planning tab — no floating widget */}
             </div>
         </DragDropContext>
     );
