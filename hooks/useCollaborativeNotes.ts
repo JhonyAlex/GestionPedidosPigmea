@@ -160,10 +160,15 @@ export function useCollaborativeNotes(socket: Socket | null, userId: string, use
 
         const newEditor = new Editor({
           extensions: [
-            StarterKit.configure({ history: false } as any),
+            StarterKit.configure({
+              undoRedo: false,
+              heading: {
+                levels: [1, 2, 3],
+              },
+            }),
             Collaboration.configure({ document: ydoc }),
             CollaborationCaret.configure({
-              provider: { awareness } as any,
+              provider: { awareness },
               user: { name: userName, color: getColor(userId) },
             }),
           ],
