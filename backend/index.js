@@ -6197,11 +6197,6 @@ app.delete('/api/comments/:commentId', requireAuth, async (req, res) => {
 // --- SERVER START ---
 const PORT = process.env.PORT || 3000;
 
-// Catch-all handler for frontend routing (aplicación principal) - DEBE IR AL FINAL
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'));
-});
-
 // Initialize and start server
 async function startServer() {
     try {
@@ -6255,6 +6250,12 @@ async function startServer() {
         console.error('🚨 El servidor no puede continuar sin base de datos');
         process.exit(1);
     }
+
+    // Catch-all SPA handler — MUST be registered LAST after ALL API routes
+    // to prevent /api/* requests from returning index.html instead of JSON.
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'));
+    });
 
     // Iniciar el servidor HTTP
     server.listen(PORT, '0.0.0.0', () => {
