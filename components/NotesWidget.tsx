@@ -48,15 +48,25 @@ const NotesWidget: React.FC<NotesWidgetProps> = ({ embedded = false }) => {
   const handleCreateNote = useCallback(() => { createNote(); }, [createNote]);
   const handleDeleteNote = useCallback((id: string) => { deleteNote(id); setConfirmDelete(null); }, [deleteNote]);
 
-  if (loading) return null;
-  if (error) return null;
-
   const activeNote = notes.find(n => n.id === activeNoteId) || null;
   const presenceCount = Object.keys(presence).length;
 
   const panelContent = (
     <div ref={panelRef} className={`w-full flex flex-col overflow-hidden ${embedded ? 'min-h-[400px] max-h-[500px]' : 'bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700'}`}>
-      {/* Header — hidden in embedded mode (parent provides section title) */}
+      {loading ? (
+        <div className="flex-1 flex items-center justify-center min-h-[200px]">
+          <p className="text-sm text-gray-400 dark:text-gray-500">Cargando notas...</p>
+        </div>
+      ) : error ? (
+        <div className="flex-1 flex items-center justify-center min-h-[200px]">
+          <div className="flex flex-col items-center gap-2 px-4 text-center">
+            <p className="text-sm text-amber-600 dark:text-amber-400">{error}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">Verifica tu conexión e intenta recargar la página.</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Header — hidden in embedded mode (parent provides section title) */}
       {!embedded && (
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2">
@@ -155,6 +165,8 @@ const NotesWidget: React.FC<NotesWidgetProps> = ({ embedded = false }) => {
         <div className="flex-1 flex items-center justify-center min-h-[200px]">
           <p className="text-sm text-gray-400 dark:text-gray-500">Crea una nueva nota para comenzar</p>
         </div>
+      )}
+        </>
       )}
     </div>
   );

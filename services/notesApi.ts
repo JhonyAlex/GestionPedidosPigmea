@@ -14,7 +14,7 @@ export interface NoteStateResponse {
 }
 
 async function headers(): Promise<HeadersInit> {
-  const raw = localStorage.getItem('auth_user');
+  const raw = localStorage.getItem('pigmea_user');
   let userId = '';
   if (raw) {
     try { userId = JSON.parse(raw).id || ''; } catch { /* noop */ }
