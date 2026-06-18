@@ -45,8 +45,16 @@ export function useCollaborativeNotes(socket: Socket | null, userId: string, use
 
   const ydocRef = useRef<Y.Doc | null>(null);
   const awarenessRef = useRef<Awareness | null>(null);
-  const saveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const cancelledRef = useRef(false);
+
+  // Autosave guards
+  const dirtyRef = useRef(false);
+  const savingRef = useRef(false);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const DEBOUNCE_MS = 2500;
+  const MAX_INTERVAL_MS = 15000;
 
   const loadNotes = useCallback(async () => {
     try {
@@ -93,8 +101,47 @@ export function useCollaborativeNotes(socket: Socket | null, userId: string, use
     };
     socket.on('notes:yjs-update', handleSync);
 
+    const scheduleSave = () => {
+      if (cancelledRef.current) return;
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = setTimeout(() => trySave(), DEBOUNCE_MS);
+      if (!maxTimerRef.current) {
+        maxTimerRef.current = setTimeout(() => trySave(), MAX_INTERVAL_MS);
+      }
+    };
+
+    const trySave = async () => {
+      if (savingRef.current || cancelledRef.current || !activeNoteId || !ydocRef.current) return;
+      if (!dirtyRef.current) return;
+
+      savingRef.current = true;
+      try {
+        const state = Y.encodeStateAsUpdate(ydocRef.current);
+        // encodeStateAsUpdate returns empty when nothing changed since last encode
+        if (state.length === 0) {
+          dirtyRef.current = false;
+          return;
+        }
+        const b64 = btoa(String.fromCharCode(...state));
+        await saveNoteState(activeNoteId, b64);
+        dirtyRef.current = false;
+      } catch {
+        // keep dirty on failure so we retry on next schedule
+      } finally {
+        savingRef.current = false;
+        if (maxTimerRef.current) {
+          clearTimeout(maxTimerRef.current);
+          maxTimerRef.current = null;
+        }
+        // changes arrived during the save → reschedule
+        if (dirtyRef.current) scheduleSave();
+      }
+    };
+
     const handleUpdate = (update: Uint8Array) => {
       socket.emit('notes:yjs-update', { noteId: activeNoteId, update: Array.from(update) });
+      dirtyRef.current = true;
+      scheduleSave();
     };
     ydoc.on('update', handleUpdate);
 
@@ -108,6 +155,8 @@ export function useCollaborativeNotes(socket: Socket | null, userId: string, use
           const binary = Uint8Array.from(atob(stateBase64), c => c.charCodeAt(0));
           Y.applyUpdate(ydoc, binary);
         }
+        // Reset dirty flag after initial load — we don't need to save state we just loaded
+        dirtyRef.current = false;
 
         const newEditor = new Editor({
           extensions: [
@@ -130,19 +179,22 @@ export function useCollaborativeNotes(socket: Socket | null, userId: string, use
       }
     }
 
-    saveTimerRef.current = setInterval(async () => {
-      if (ydocRef.current && activeNoteId) {
-        const state = Y.encodeStateAsUpdate(ydocRef.current);
-        const b64 = btoa(String.fromCharCode(...state));
-        try { await saveNoteState(activeNoteId, b64); } catch { /* silent */ }
-      }
-    }, 5000);
-
     setup();
 
     return () => {
       cancelledRef.current = true;
-      if (saveTimerRef.current) clearInterval(saveTimerRef.current);
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      if (maxTimerRef.current) clearTimeout(maxTimerRef.current);
+
+      // Flush final save before teardown (fire-and-forget, must not await in cleanup)
+      if (dirtyRef.current && ydocRef.current && activeNoteId) {
+        const state = Y.encodeStateAsUpdate(ydocRef.current);
+        if (state.length > 0) {
+          const b64 = btoa(String.fromCharCode(...state));
+          saveNoteState(activeNoteId, b64).catch(() => {});
+        }
+      }
+
       socket.emit('notes:leave', activeNoteId);
       socket.off('notes:presence', handlePresence);
       socket.off('notes:presence-remove', handlePresenceRemove);
