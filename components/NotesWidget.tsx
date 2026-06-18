@@ -55,29 +55,56 @@ const NotesWidget: React.FC<NotesWidgetProps> = ({ embedded = false }) => {
   const presenceCount = Object.keys(presence).length;
 
   const panelContent = (
-    <div ref={panelRef} className="w-full bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden" style={{ maxHeight: embedded ? '600px' : undefined, height: embedded ? '600px' : undefined }}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Notas compartidas</h2>
-          {presenceCount > 0 && (
-            <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              {presenceCount}
-            </span>
-          )}
+    <div ref={panelRef} className={`w-full flex flex-col overflow-hidden ${embedded ? 'min-h-[400px] max-h-[500px]' : 'bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700'}`}>
+      {/* Header — hidden in embedded mode (parent provides section title) */}
+      {!embedded && (
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Notas compartidas</h2>
+            {presenceCount > 0 && (
+              <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                {presenceCount}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={handleCreateNote}
+            className="p-1.5 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 transition-colors"
+            aria-label="Nueva nota"
+            title="Nueva nota"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
         </div>
-        <button
-          onClick={handleCreateNote}
-          className="p-1.5 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 transition-colors"
-          aria-label="Nueva nota"
-          title="Nueva nota"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-        </button>
-      </div>
+      )}
+
+      {/* Embedded toolbar: row with presence + new note button */}
+      {embedded && (
+        <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-t-xl">
+          <div className="flex items-center gap-2">
+            {presenceCount > 0 && (
+              <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                {presenceCount} {presenceCount === 1 ? 'conectado' : 'conectados'}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={handleCreateNote}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
+            aria-label="Nueva nota"
+            title="Nueva nota"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Nueva
+          </button>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex items-center gap-1 px-3 pt-2 border-b border-gray-100 dark:border-gray-700 overflow-x-auto">

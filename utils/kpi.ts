@@ -443,10 +443,15 @@ export const generatePedidosPDF = (
         // Formatear metros con separador de miles consistente desde 1.000
         const formattedMetros = formatMetrosForPdf(p.metros);
 
+        // Format cliente for display: if DNT, show producto (DNT) instead
+        const displayCliente = p.cliente === 'DNT'
+            ? `${p.producto ? `${p.producto} ` : ''}(DNT)`
+            : p.cliente;
+
         return [
             p.desarrollo || '-',
             // We pass the raw data; rendering is handled in didDrawCell to allow mixed styles (bold/normal)
-            { cliente: p.cliente, pedido: p.numeroPedidoCliente },
+            { cliente: displayCliente, pedido: p.numeroPedidoCliente },
             formattedMetros,
             formatTipoImpresionForPdf(p.tipoImpresion),
             p.colores ?? '-',
@@ -536,16 +541,16 @@ export const generatePedidosPDF = (
                     doc.setTextColor(31, 41, 55); // Default dark gray
                 }
 
-                const fontSize = cell.styles.fontSize;
+                const baseFontSize = cell.styles.fontSize;
+                // Reduce font size slightly for DNT to fit producto name when long
+                const isDNT = pedido.cliente === 'DNT';
+                const fontSize = isDNT ? Math.max(baseFontSize - 1, 5.5) : baseFontSize;
                 doc.setFontSize(fontSize);
 
                 // Draw Cliente (Normal)
                 doc.setFont(undefined, 'normal');
 
                 // We calculate Y position based on cell top + padding
-                // Note: jspdf-autotable cells have padding. top padding is cell.styles.cellPadding.top
-                // But accessing cell.styles inside didDrawCell is reliable.
-                // Default padding we set is 2.
                 const padding = 2;
                 const centerX = x + (width / 2);
                 const textY = y + padding + fontSize; // Approx baseline for first line

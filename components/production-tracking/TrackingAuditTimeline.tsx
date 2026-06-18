@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Pedido, TrackingAuditEntry } from '../../types';
+import type { TrackingAuditEntry } from '../../types';
 import { formatDateTimeDDMMYYYY } from '../../utils/date';
 
 interface TrackingAuditTimelineProps {
@@ -11,7 +11,7 @@ interface TrackingAuditTimelineProps {
     error: string | null;
     onLoadMore: () => void;
     onRetry: () => void;
-    onNavigateToPedido?: (pedido: Pedido) => void;
+    onNavigateToPedido?: (pedidoId: string) => void;
 }
 
 const TrackingAuditTimeline: React.FC<TrackingAuditTimelineProps> = ({
@@ -57,7 +57,7 @@ const TrackingAuditTimeline: React.FC<TrackingAuditTimelineProps> = ({
                     {hasActiveFilters ? 'No hay movimientos que coincidan con los filtros aplicados.' : 'Todavía no hay movimientos de auditoría para mostrar.'}
                 </p>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    {hasActiveFilters ? 'Probá ajustando la búsqueda, la máquina o el rango de registro.' : 'Abrí esta sección más tarde para revisar cambios recientes en producción.'}
+                    {hasActiveFilters ? 'Probá ajustando la búsqueda, la etapa o el rango de registro.' : 'Abrí esta sección más tarde para revisar cambios recientes en producción.'}
                 </p>
             </div>
         );
@@ -72,7 +72,7 @@ const TrackingAuditTimeline: React.FC<TrackingAuditTimelineProps> = ({
                         onClick={() => {
                             if (onNavigateToPedido) {
                                 const scrollY = window.scrollY;
-                                onNavigateToPedido({ id: action.pedidoId } as Pedido);
+                                onNavigateToPedido(action.pedidoId);
                                 requestAnimationFrame(() => window.scrollTo(0, scrollY));
                             }
                         }}

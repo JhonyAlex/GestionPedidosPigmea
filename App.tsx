@@ -109,6 +109,10 @@ const AppContent: React.FC = () => {
     const [kanbanManualOrderMap, setKanbanManualOrderMap] = useState<KanbanManualOrderMap>({});
     const kanbanManualOrderChangedRef = useRef(false);
 
+    // Track whether the embedded NotesWidget is active (planning sub-tab in ReportView)
+    // to suppress the global floating widget and avoid duplication.
+    const [embeddedNotesActive, setEmbeddedNotesActive] = useState(false);
+
     // Estados para operaciones masivas
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showArchiveModal, setShowArchiveModal] = useState(false);
@@ -1608,6 +1612,7 @@ const AppContent: React.FC = () => {
                     onBulkDelete={() => setShowDeleteModal(true)}
                     onBulkArchive={() => setShowArchiveModal(true)}
                     onClearSelection={clearSelection}
+                    onEmbeddedNotesActive={setEmbeddedNotesActive}
                 />;
 
             case 'permissions-debug':
@@ -1861,7 +1866,8 @@ const AppContent: React.FC = () => {
                     />
                 )}
 
-                <NotesWidget />
+                {/* Floating notes widget — suppressed when embedded version is active in the planning tab */}
+                {(view !== 'report' || !embeddedNotesActive) && <NotesWidget />}
             </div>
         </DragDropContext>
     );

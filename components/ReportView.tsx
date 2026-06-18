@@ -27,6 +27,7 @@ import TrackingAuditSection from './production-tracking/TrackingAuditSection';
 import type { TrackingAuditPDFPayload } from '../utils/kpi';
 import { generateTrackingAuditPDF } from '../utils/kpi';
 import NotesWidget from './NotesWidget';
+import { store } from '../services/storage';
 
 /**
  * =============================================================================
@@ -76,6 +77,7 @@ interface ReportViewProps {
     onBulkDelete?: () => void;
     onBulkArchive?: () => void;
     onClearSelection?: () => void;
+    onEmbeddedNotesActive?: (active: boolean) => void;
 }
 
 // Special filter constants
@@ -103,10 +105,17 @@ const ReportView: React.FC<ReportViewProps> = ({
     onBulkUpdateStage,
     onBulkDelete,
     onBulkArchive,
-    onClearSelection
+    onClearSelection,
+    onEmbeddedNotesActive
 }) => {
     // --- Tab State ---
     const [activeTab, setActiveTab] = useState<'planning' | 'analytics' | 'tracking' | 'audit'>('planning');
+
+    // Notify parent when embedded notes widget is active (planning tab) so the
+    // global floating widget can be suppressed to avoid duplication.
+    useEffect(() => {
+        onEmbeddedNotesActive?.(activeTab === 'planning');
+    }, [activeTab, onEmbeddedNotesActive]);
 
     // 🔥 NUEVA FUNCIONALIDAD: Sincronización en tiempo real de clientes y vendedores
     const { clientes } = useClientesManager();
@@ -1102,7 +1111,22 @@ const ReportView: React.FC<ReportViewProps> = ({
             ) : activeTab === 'audit' ? (
                 <TrackingAuditSection
                     onExport={(payload: TrackingAuditPDFPayload) => generateTrackingAuditPDF(payload.actions, payload.filters)}
-                    onNavigateToPedido={onSelectPedido}
+                    onNavigateToPedido={onSelectPedido ? (pedidoId: string) => {
+                        const found = pedidos.find(p => p.id === pedidoId);
+                        if (found) {
+                            onSelectPedido(found);
+                            return;
+                        }
+                        // Fallback: audit entries may reference archived or removed
+                        // orders that are not in the active pedidos list.
+                        store.findById(pedidoId).then(pedido => {
+                            if (pedido) {
+                                onSelectPedido(pedido);
+                            }
+                        }).catch(() => {
+                            // Order does not exist — nothing to open.
+                        });
+                    } : undefined}
                 />
             ) : (
                 <>
@@ -1236,11 +1260,12 @@ const ReportView: React.FC<ReportViewProps> = ({
                         onNavigateToPedido={onNavigateToPedido}
                     />
 
-                    {/* --- Toolbar --- */}
+                    {/* --- Toolbar: Filtros (izquierda) + Notas (derecha) --- */}
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-                        <div className="flex flex-col xl:flex-row gap-6">
-                            {/* Filters Column */}
-                            <div className="flex-1 space-y-6 min-w-0">
+                        <div className="flex flex-col lg:flex-row gap-6">
+
+                            {/* Left Column: Filters */}
+                            <div className="flex-1 min-w-0 space-y-6">
 
                                 {/* Machine Filters */}
                                 <div>
@@ -1352,8 +1377,14 @@ const ReportView: React.FC<ReportViewProps> = ({
                                 </div>
                             </div>
 
-                            {/* Notes Widget Column */}
-                            <div className="xl:w-96 xl:flex-shrink-0">
+                            {/* Right Column: Collaborative Notes */}
+                            <div className="flex-1 min-w-0 flex flex-col min-h-0">
+                                <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    Notas / Comentarios
+                                </h3>
                                 <NotesWidget embedded />
                             </div>
                         </div>
@@ -1609,6 +1640,7 @@ const ReportView: React.FC<ReportViewProps> = ({
                     />
                 </>
             )}
+
         </main>
     );
 };

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Pedido, TrackingAuditEntry } from '../../types';
+import type { TrackingAuditEntry } from '../../types';
 import { DateFilterOption, getDateRange } from '../../utils/date';
 import type { TrackingAuditPDFOptions, TrackingAuditPDFPayload } from '../../utils/kpi';
 import { actionHistoryDB } from '../../services/actionHistory';
@@ -9,14 +9,13 @@ import TrackingAuditTimeline from './TrackingAuditTimeline';
 
 interface TrackingAuditSectionProps {
     onExport?: (payload: TrackingAuditPDFPayload) => void;
-    onNavigateToPedido?: (pedido: Pedido) => void;
+    onNavigateToPedido?: (pedidoId: string) => void;
 }
 
 const AUDIT_PAGE_SIZE = 20;
 const SOCKET_REFRESH_COOLDOWN_MS = 3000;
 
 const TrackingAuditSection: React.FC<TrackingAuditSectionProps> = ({ onExport, onNavigateToPedido }) => {
-    const [isOpen, setIsOpen] = useState(false);
     const [searchValue, setSearchValue] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [stageValue, setStageValue] = useState('');
@@ -127,18 +126,10 @@ const TrackingAuditSection: React.FC<TrackingAuditSectionProps> = ({ onExport, o
     );
 
     useEffect(() => {
-        if (!isOpen) {
-            return;
-        }
-
         fetchAudit('replace');
-    }, [fetchAudit, isOpen]);
+    }, [fetchAudit]);
 
     useEffect(() => {
-        if (!isOpen) {
-            return;
-        }
-
         let cooldown = false;
         const unsubscribe = webSocketService.subscribeToActionHistoryUpdate(() => {
             if (cooldown) {
@@ -159,7 +150,7 @@ const TrackingAuditSection: React.FC<TrackingAuditSectionProps> = ({ onExport, o
         });
 
         return unsubscribe;
-    }, [fetchAudit, isOpen]);
+    }, [fetchAudit]);
 
     useEffect(() => {
         return () => {
@@ -221,57 +212,37 @@ const TrackingAuditSection: React.FC<TrackingAuditSectionProps> = ({ onExport, o
             : undefined;
 
     return (
-        <section className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
-            <button
-                type="button"
-                onClick={() => setIsOpen((current) => !current)}
-                className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition hover:bg-gray-50 dark:hover:bg-gray-800/80"
-            >
-                <div>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Historial y Auditoría</p>
-                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        Revisá movimientos de producción con filtros server-driven y resúmenes legibles.
-                    </p>
-                </div>
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-300">
-                    {isOpen ? '−' : '+'}
-                </span>
-            </button>
+        <section className="space-y-4">
+            <TrackingAuditFilters
+                searchValue={searchValue}
+                onSearchValueChange={setSearchValue}
+                stageValue={stageValue}
+                onStageValueChange={setStageValue}
+                dateField={dateField}
+                dateFilter={dateFilter}
+                customDateRange={customDateRange}
+                onDateFieldChange={setDateField}
+                onDateFilterChange={setDateFilter}
+                onCustomDateChange={handleCustomDateChange}
+                onClearFilters={handleClearFilters}
+                hasActiveFilters={hasActiveFilters}
+                canExport={actions.length > 0 && !isLoading && !isLoadingMore}
+                onExport={onExport ? handleExport : undefined}
+                exportDisabledReason={exportDisabledReason}
+                isLoading={isLoading || isLoadingMore}
+            />
 
-            {isOpen && (
-                <div className="space-y-4 border-t border-gray-200 px-4 py-4 dark:border-gray-700">
-                    <TrackingAuditFilters
-                        searchValue={searchValue}
-                        onSearchValueChange={setSearchValue}
-                        stageValue={stageValue}
-                        onStageValueChange={setStageValue}
-                        dateField={dateField}
-                        dateFilter={dateFilter}
-                        customDateRange={customDateRange}
-                        onDateFieldChange={setDateField}
-                        onDateFilterChange={setDateFilter}
-                        onCustomDateChange={handleCustomDateChange}
-                        onClearFilters={handleClearFilters}
-                        hasActiveFilters={hasActiveFilters}
-                        canExport={actions.length > 0 && !isLoading && !isLoadingMore}
-                        onExport={onExport ? handleExport : undefined}
-                        exportDisabledReason={exportDisabledReason}
-                        isLoading={isLoading || isLoadingMore}
-                    />
-
-                    <TrackingAuditTimeline
-                        actions={actions}
-                        isLoading={isLoading}
-                        isLoadingMore={isLoadingMore}
-                        hasMore={hasMore}
-                        hasActiveFilters={hasActiveFilters}
-                        error={error}
-                        onLoadMore={handleLoadMore}
-                        onRetry={() => fetchAudit('replace')}
-                        onNavigateToPedido={onNavigateToPedido}
-                    />
-                </div>
-            )}
+            <TrackingAuditTimeline
+                actions={actions}
+                isLoading={isLoading}
+                isLoadingMore={isLoadingMore}
+                hasMore={hasMore}
+                hasActiveFilters={hasActiveFilters}
+                error={error}
+                onLoadMore={handleLoadMore}
+                onRetry={() => fetchAudit('replace')}
+                onNavigateToPedido={onNavigateToPedido}
+            />
         </section>
     );
 };
