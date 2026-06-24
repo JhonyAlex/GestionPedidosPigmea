@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { Pedido, Etapa, ViewType, UserRole, AuditEntry, Prioridad, EstadoCliché, HistorialEntry, DateField } from './types';
-import { KANBAN_FUNNELS, KANBAN_VISUAL_LAYOUT, ETAPAS, PREPARACION_SUB_ETAPAS_IDS } from './constants';
+import { KANBAN_FUNNELS, KANBAN_VISUAL_LAYOUT, ETAPAS, PREPARACION_SUB_ETAPAS_IDS, PROCESS_GROUP_FOR_STAGE, PROCESS_GROUP_STAGES } from './constants';
 import { DateFilterOption } from './utils/date';
 import { calculateTotalProductionTime, generatePedidosPDF, parseTimeToMinutes, formatMinutesToHHMM } from './utils/kpi';
 import { scrollToPedido } from './utils/scroll';
@@ -42,6 +42,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { MaterialesProvider } from './contexts/MaterialesContext';
 
 import { calcularSiguienteEtapa, estaFueraDeSecuencia } from './utils/etapaLogic';
+import { normalizePostImpresionSequence } from './utils/dntWorkflow';
 import { procesarDragEnd } from './utils/dragLogic';
 import { usePedidosManager } from './hooks/usePedidosManager';
 import { useMaterialesManager } from './hooks/useMaterialesManager';
@@ -62,7 +63,9 @@ import {
     pruneKanbanManualOrderMap,
     saveKanbanManualOrderForStage,
     sortKanbanColumnPedidos,
-    mergeVisibleKanbanReorder
+    mergeVisibleKanbanReorder,
+    buildKanbanDraggableId,
+    parseKanbanDraggableId
 } from './utils/kanbanManualOrder';
 
 
@@ -107,6 +110,11 @@ const AppContent: React.FC = () => {
     const [showPdfImportModal, setShowPdfImportModal] = useState(false);
     const [kanbanManualOrderMap, setKanbanManualOrderMap] = useState<KanbanManualOrderMap>({});
     const kanbanManualOrderChangedRef = useRef(false);
+
+    // Track original stage replaced in secuenciaTrabajo per pedido+processGroup
+    // Used for revert-on-uncheck behavior (Defect 3).
+    const sequenceReplacementRef = useRef<Map<string, Etapa>>(new Map());
+    const sequenceReplacementKey = (pedidoId: string, processGroup: string) => `${pedidoId}::${processGroup}`;
 
     // Estados para operaciones masivas
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -204,6 +212,146 @@ const AppContent: React.FC = () => {
         resetListaTemporal,
         limpiarHuerfanos,
     } = useListasTemporales(subscribeToListasTemporalesUpdated, Boolean(user));
+
+    /**
+     * Wraps setListaTemporal to synchronize secuenciaTrabajo when the checked stage
+     * belongs to the same process group as an existing stage in the sequence.
+     *
+     * BASELINE RULE: The first same-group CHECK saves the current process-group stage
+     * as the immutable baseline. Subsequent same-group toggles do NOT overwrite it.
+     * The baseline is only restored when ALL same-group temps are unchecked.
+     *
+     * ROLLBACK: If sequence-save fails on CHECK or UNCHECK, the temp-list toggle is aborted.
+     */
+    const handleSetListaTemporal = useCallback(async (pedidoId: string, etapa: Etapa, checked: boolean) => {
+        const pedido = pedidos.find(p => p.id === pedidoId);
+        if (!pedido) {
+            await setListaTemporal(pedidoId, etapa, checked);
+            return;
+        }
+
+        const processGroup = PROCESS_GROUP_FOR_STAGE[etapa];
+        if (!processGroup) {
+            await setListaTemporal(pedidoId, etapa, checked);
+            return;
+        }
+
+        const groupStages = PROCESS_GROUP_STAGES[processGroup];
+        if (!groupStages) {
+            await setListaTemporal(pedidoId, etapa, checked);
+            return;
+        }
+
+        const normalizedSequence = pedido.cliente
+            ? normalizePostImpresionSequence(pedido.secuenciaTrabajo, pedido.cliente)
+            : [...(pedido.secuenciaTrabajo || [])];
+
+        const currentGroupStage = normalizedSequence.find(s => groupStages.includes(s));
+        const baselineKey = sequenceReplacementKey(pedidoId, processGroup);
+        const hadBaseline = sequenceReplacementRef.current.has(baselineKey);
+        const previousBaseline = sequenceReplacementRef.current.get(baselineKey);
+        let sequenceChanged = false;
+
+        if (checked) {
+            // ----- CHECK -----
+            if (!currentGroupStage || currentGroupStage === etapa) {
+                // No process-group stage in sequence, or already the checked stage.
+                // Still allow the temp toggle, no sequence update needed.
+                await setListaTemporal(pedidoId, etapa, checked);
+                return;
+            }
+
+            // Save immutable baseline only the first time we enter this process group
+            if (!sequenceReplacementRef.current.has(baselineKey)) {
+                sequenceReplacementRef.current.set(baselineKey, currentGroupStage);
+            }
+
+            const newSequence = normalizedSequence.map(s =>
+                s === currentGroupStage ? etapa : s
+            );
+
+            try {
+                const saveResult = await handleSavePedidoLogic({ ...pedido, secuenciaTrabajo: newSequence });
+                if (!saveResult) {
+                    sequenceReplacementRef.current.delete(baselineKey);
+                    return;
+                }
+                sequenceChanged = true;
+            } catch (error) {
+                console.error('Error updating secuenciaTrabajo from temp list sync:', error);
+                // ROLLBACK: don't save temp list if sequence update failed
+                sequenceReplacementRef.current.delete(baselineKey);
+                return;
+            }
+        } else {
+            // ----- UNCHECK -----
+            // Count remaining same-group temps AFTER this uncheck
+            const currentTemps = listasTemporalesMap[pedidoId] || [];
+            const remainingSameGroupTemps = currentTemps.filter(
+                t => t !== etapa && groupStages.includes(t)
+            );
+
+            if (remainingSameGroupTemps.length > 0) {
+                // Still have same-group temps — align sequence to the first remaining one
+                const alignTarget = remainingSameGroupTemps[0];
+                if (currentGroupStage && currentGroupStage !== alignTarget) {
+                    const alignedSequence = normalizedSequence.map(s =>
+                        s === currentGroupStage ? alignTarget : s
+                    );
+                    try {
+                        const saveResult = await handleSavePedidoLogic({ ...pedido, secuenciaTrabajo: alignedSequence });
+                        if (!saveResult) {
+                            return;
+                        }
+                        sequenceChanged = true;
+                    } catch (error) {
+                        console.error('Error aligning secuenciaTrabajo to remaining temp:', error);
+                        return;
+                    }
+                }
+            } else {
+                // No same-group temps left — restore baseline
+                const baseline = sequenceReplacementRef.current.get(baselineKey);
+                if (baseline && currentGroupStage && currentGroupStage !== baseline) {
+                    const revertedSequence = normalizedSequence.map(s =>
+                        s === currentGroupStage ? baseline : s
+                    );
+                    try {
+                        const saveResult = await handleSavePedidoLogic({ ...pedido, secuenciaTrabajo: revertedSequence });
+                        if (!saveResult) {
+                            return;
+                        }
+                        sequenceChanged = true;
+                    } catch (error) {
+                        console.error('Error reverting secuenciaTrabajo to baseline:', error);
+                        return;
+                    }
+                }
+                sequenceReplacementRef.current.delete(baselineKey);
+            }
+        }
+
+        try {
+            await setListaTemporal(pedidoId, etapa, checked);
+        } catch (error) {
+            if (sequenceChanged) {
+                const rollbackResult = await handleSavePedidoLogic({ ...pedido, secuenciaTrabajo: normalizedSequence });
+                if (!rollbackResult) {
+                    console.error('Error rolling back secuenciaTrabajo after temp-list save failure');
+                }
+            }
+
+            if (hadBaseline) {
+                if (previousBaseline) {
+                    sequenceReplacementRef.current.set(baselineKey, previousBaseline);
+                }
+            } else {
+                sequenceReplacementRef.current.delete(baselineKey);
+            }
+
+            throw error;
+        }
+    }, [pedidos, setListaTemporal, handleSavePedidoLogic, listasTemporalesMap]);
 
     // Estado para filtro de "Solo con lista temporal" en la vista Producción (kanban)
     const [filtrarSoloTemporales, setFiltrarSoloTemporales] = useState(false);
@@ -441,7 +589,7 @@ const AppContent: React.FC = () => {
         }
     }, [filtrarSoloTemporales, listasTemporalesMap]);
 
-    const updateKanbanManualOrderForStage = useCallback((stageId: Etapa, orderedIds: string[]) => {
+    const updateKanbanManualOrderForStage = useCallback(async (stageId: Etapa, orderedIds: string[], options?: { strict?: boolean }) => {
         const normalizedIds = Array.from(new Set(orderedIds.filter(Boolean)));
 
         setKanbanManualOrderMap(prev => {
@@ -466,7 +614,7 @@ const AppContent: React.FC = () => {
         });
 
         // 🔥 Guardar en servidor (broadcast a todos los clientes)
-        saveKanbanManualOrderForStage(stageId, normalizedIds);
+        await saveKanbanManualOrderForStage(stageId, normalizedIds, options);
     }, []);
 
     const productionKanbanStages = useMemo(
@@ -630,80 +778,174 @@ const AppContent: React.FC = () => {
     ]);
 
     const handleAdvanceStage = async (pedidoToAdvance: Pedido) => {
-        // Para pedidos con antivaho no realizado en post-impresión, primero decidir si vuelve a impresión
-        // o si pasa a listo para producción.
-        const isInPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(pedidoToAdvance.etapaActual);
-        const isInPostLaminacionNexus = pedidoToAdvance.etapaActual === Etapa.POST_LAMINACION_NEXUS;
-        const isInListoProduccion = pedidoToAdvance.etapaActual === Etapa.PREPARACION && 
-                                     pedidoToAdvance.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION;
-        
-        // Para antivaho pendiente, la decisión de destino solo se toma al salir de Laminación NEXUS.
-        if (pedidoToAdvance.antivaho && !pedidoToAdvance.antivahoRealizado && isInPostLaminacionNexus) {
+        // --- STEP 0: Determine the effective stage for all downstream logic. ---
+        // If the pedido's actual stage was replaced in secuenciaTrabajo via a
+        // temporary-list sync, use the process-group equivalent from the sequence.
+        // This ensures antivaho, out-of-sequence, and next-stage checks all see
+        // the logically-current stage rather than the outdated physical stage.
+        let effectiveEtapa: Etapa = pedidoToAdvance.etapaActual;
+
+        {
+            const normalizedSequence = pedidoToAdvance.cliente
+                ? normalizePostImpresionSequence(pedidoToAdvance.secuenciaTrabajo, pedidoToAdvance.cliente)
+                : [...(pedidoToAdvance.secuenciaTrabajo || [])];
+
+            if (!normalizedSequence.includes(effectiveEtapa) && normalizedSequence.length > 0) {
+                const currentGroup = PROCESS_GROUP_FOR_STAGE[effectiveEtapa];
+                if (currentGroup) {
+                    const groupStages = PROCESS_GROUP_STAGES[currentGroup];
+                    if (groupStages) {
+                        const groupStageInSequence = normalizedSequence.find(s => groupStages.includes(s));
+                        if (groupStageInSequence) {
+                            effectiveEtapa = groupStageInSequence;
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- STEP 1: Determine whether this is a temp-promotion or normal advance. ---
+        const tempStages = listasTemporalesMap[pedidoToAdvance.id] || [];
+        const isTempPromotion = effectiveEtapa !== pedidoToAdvance.etapaActual
+            && tempStages.includes(effectiveEtapa);
+
+        // --- STEP 2: Special-case antivaho checks (use effectiveEtapa — Defect 2). ---
+        const isInPostLaminacionNexus = effectiveEtapa === Etapa.POST_LAMINACION_NEXUS;
+        const isInListoProduccion = effectiveEtapa === Etapa.PREPARACION
+            && pedidoToAdvance.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION;
+
+        if (pedidoToAdvance.antivaho && !pedidoToAdvance.antivahoRealizado && isInPostLaminacionNexus && !isTempPromotion) {
             setAntivahoDestinationModalState({ isOpen: true, pedido: pedidoToAdvance });
             return;
         }
 
-        if (pedidoToAdvance.antivaho && !pedidoToAdvance.antivahoRealizado && isInListoProduccion) {
+        if (pedidoToAdvance.antivaho && !pedidoToAdvance.antivahoRealizado && isInListoProduccion && !isTempPromotion) {
             setPedidoToSend(pedidoToAdvance);
             return;
         }
 
-        // Si el pedido está fuera de secuencia, abrir modal de reordenamiento
-        if (estaFueraDeSecuencia(pedidoToAdvance.etapaActual, pedidoToAdvance.secuenciaTrabajo, pedidoToAdvance.cliente)) {
+        // --- STEP 3: Out-of-sequence check (uses effectiveEtapa). ---
+        if (estaFueraDeSecuencia(effectiveEtapa, pedidoToAdvance.secuenciaTrabajo, pedidoToAdvance.cliente)) {
             setPedidoToReorder(pedidoToAdvance);
             return;
         }
 
-        const { etapaActual, secuenciaTrabajo } = pedidoToAdvance;
-        const newEtapa = calcularSiguienteEtapa(etapaActual, secuenciaTrabajo, pedidoToAdvance.cliente);
+        // --- STEP 4: Compute target. ---
+        // Temp promotion: promote to the temp stage itself (in-place).
+        // Normal advance: compute next stage after effectiveEtapa.
+        const targetEtapa = isTempPromotion
+            ? effectiveEtapa
+            : calcularSiguienteEtapa(effectiveEtapa, pedidoToAdvance.secuenciaTrabajo, pedidoToAdvance.cliente);
 
-        if (newEtapa) {
-            // Highlight effect
-            setHighlightedPedidoId(pedidoToAdvance.id);
+        if (!targetEtapa) return;
 
-            const updateResult = await handleUpdatePedidoEtapa(pedidoToAdvance, newEtapa);
-            if (!updateResult) return;
+        // --- STEP 5: Visual slot preservation for temp promotion (Defect 1). ---
+        // Capture the pedido's current index in the target column BEFORE the stage
+        // update so we can write it into the kanban manual order afterwards.
+        // Save the previous order for rollback if the stage update fails.
+        let previousKanbanOrder: string[] | undefined;
 
-            try {
-                await resetListaTemporal(pedidoToAdvance.id);
-            } catch (error) {
-                console.error('Error restableciendo listas temporales tras avanzar etapa:', error);
+        if (isTempPromotion) {
+            const allPedidosInTarget = kanbanAllPedidosByStage[targetEtapa] || [];
+            const currentIndex = allPedidosInTarget.findIndex(p => p.id === pedidoToAdvance.id);
+            if (currentIndex !== -1) {
+                const draggableId = buildKanbanDraggableId(pedidoToAdvance.id, targetEtapa);
+                const existingOrder = kanbanManualOrderMap[targetEtapa]
+                    || allPedidosInTarget.map(p => buildKanbanDraggableId(p.id, targetEtapa));
+                // Snapshot before mutation for potential rollback
+                previousKanbanOrder = [...existingOrder];
+                const filteredOrder = existingOrder.filter(id => parseKanbanDraggableId(id).pedidoId !== pedidoToAdvance.id);
+                filteredOrder.splice(currentIndex, 0, draggableId);
+                await updateKanbanManualOrderForStage(targetEtapa, filteredOrder, { strict: true });
             }
-
-            logAction(`Pedido ${pedidoToAdvance.numeroPedidoCliente} avanzado de ${ETAPAS[etapaActual].title} a ${ETAPAS[newEtapa].title}.`, pedidoToAdvance.id);
-
-            // 🎉 Notificación toast con opción de navegar
-            const etapaAnterior = ETAPAS[etapaActual]?.title || etapaActual;
-            const etapaNueva = ETAPAS[newEtapa]?.title || newEtapa;
-
-            addToast(
-                `✅ Pedido ${pedidoToAdvance.numeroPedidoCliente} movido de "${etapaAnterior}" a "${etapaNueva}"`,
-                'success',
-                {
-                    duration: 6000,
-                    pedidoId: pedidoToAdvance.id,
-                    onNavigate: () => {
-                        // Cambiar a la vista apropiada según la etapa
-                        if (newEtapa === Etapa.PREPARACION) {
-                            setView('preparacion');
-                        } else if (newEtapa === Etapa.COMPLETADO) {
-                            setView('archived');
-                        } else {
-                            setView('kanban');
-                        }
-                        // Scroll automático al pedido
-                        scrollToPedido(pedidoToAdvance.id);
-                    }
-                }
-            );
-
-            // Scroll automático al pedido después de un pequeño delay
-            // scrollToPedido(pedidoToAdvance.id, 120);
-
-            setTimeout(() => {
-                setHighlightedPedidoId(null);
-            }, 6000); // 6 segundos (sincronizado con la animación)
         }
+
+        // --- STEP 6: Execute stage change. ---
+        setHighlightedPedidoId(pedidoToAdvance.id);
+
+        const updateResult = await handleUpdatePedidoEtapa(pedidoToAdvance, targetEtapa);
+        if (!updateResult) {
+            // ROLLBACK: restore previous kanban order if promotion mutated it
+            if (previousKanbanOrder) {
+                await updateKanbanManualOrderForStage(targetEtapa, previousKanbanOrder, { strict: true });
+            }
+            setHighlightedPedidoId(null);
+            return;
+        }
+
+        // --- STEP 7: Clean up temporary-list state. ---
+        // Temp promotion: only remove the promoted stage (it became real).
+        // Normal advance: remove all temp stages from the process group we left.
+        try {
+            const currentTemporales = listasTemporalesMap[pedidoToAdvance.id] || [];
+            if (isTempPromotion) {
+                const filtered = currentTemporales.filter(e => e !== targetEtapa);
+                if (filtered.length !== currentTemporales.length) {
+                    await replaceListaTemporal(pedidoToAdvance.id, filtered);
+                }
+            } else {
+                const originGroup = PROCESS_GROUP_FOR_STAGE[pedidoToAdvance.etapaActual];
+                if (originGroup) {
+                    const groupStages = PROCESS_GROUP_STAGES[originGroup];
+                    if (groupStages) {
+                        const filtered = currentTemporales.filter(e => !groupStages.includes(e));
+                        if (filtered.length !== currentTemporales.length) {
+                            await replaceListaTemporal(pedidoToAdvance.id, filtered);
+                        }
+                    } else {
+                        await resetListaTemporal(pedidoToAdvance.id);
+                    }
+                } else {
+                    await resetListaTemporal(pedidoToAdvance.id);
+                }
+            }
+        } catch (error) {
+            console.error('Error cleaning temp lists after stage advance:', error);
+        }
+
+        if (isTempPromotion) {
+            const promotedGroup = PROCESS_GROUP_FOR_STAGE[targetEtapa];
+            if (promotedGroup) {
+                const promotedGroupStages = PROCESS_GROUP_STAGES[promotedGroup] || [];
+                const currentTemporales = listasTemporalesMap[pedidoToAdvance.id] || [];
+                const remainingSameGroupTemps = currentTemporales.filter(
+                    etapa => etapa !== targetEtapa && promotedGroupStages.includes(etapa)
+                );
+
+                if (remainingSameGroupTemps.length === 0) {
+                    sequenceReplacementRef.current.delete(sequenceReplacementKey(pedidoToAdvance.id, promotedGroup));
+                }
+            }
+        }
+
+        logAction(`Pedido ${pedidoToAdvance.numeroPedidoCliente} avanzado de ${ETAPAS[pedidoToAdvance.etapaActual].title} a ${ETAPAS[targetEtapa].title}.`, pedidoToAdvance.id);
+
+        // 🎉 Notificación toast con opción de navegar
+        const etapaAnterior = ETAPAS[pedidoToAdvance.etapaActual]?.title || pedidoToAdvance.etapaActual;
+        const etapaNueva = ETAPAS[targetEtapa]?.title || targetEtapa;
+
+        addToast(
+            `✅ Pedido ${pedidoToAdvance.numeroPedidoCliente} movido de "${etapaAnterior}" a "${etapaNueva}"`,
+            'success',
+            {
+                duration: 6000,
+                pedidoId: pedidoToAdvance.id,
+                onNavigate: () => {
+                    if (targetEtapa === Etapa.PREPARACION) {
+                        setView('preparacion');
+                    } else if (targetEtapa === Etapa.COMPLETADO) {
+                        setView('archived');
+                    } else {
+                        setView('kanban');
+                    }
+                    scrollToPedido(pedidoToAdvance.id);
+                }
+            }
+        );
+
+        setTimeout(() => {
+            setHighlightedPedidoId(null);
+        }, 6000);
     };
 
     const handleMoveToVisibleStage = useCallback(async (pedidoId: string, targetEtapa: Etapa) => {
@@ -1489,7 +1731,7 @@ const AppContent: React.FC = () => {
                                         onToggleSelection={toggleSelection}
                                         onSelectAll={selectAll}
                                         listasTemporalesMap={listasTemporalesMap}
-                                        onSetListaTemporal={setListaTemporal}
+                                        onSetListaTemporal={handleSetListaTemporal}
                                         onResetListaTemporal={resetListaTemporal}
                                         onMoveListaTemporal={handleMoveToVisibleStage}
                                         onManualReorder={handleManualKanbanReorder}
@@ -1524,7 +1766,7 @@ const AppContent: React.FC = () => {
                                                 onToggleSelection={toggleSelection}
                                                 onSelectAll={selectAll}
                                                 listasTemporalesMap={listasTemporalesMap}
-                                                onSetListaTemporal={setListaTemporal}
+                                                onSetListaTemporal={handleSetListaTemporal}
                                         onResetListaTemporal={resetListaTemporal}
                                         onMoveListaTemporal={handleMoveToVisibleStage}
                                         onManualReorder={handleManualKanbanReorder}

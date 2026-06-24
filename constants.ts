@@ -159,6 +159,36 @@ export const PRIORIDAD_COLORS: Record<Prioridad, string> = {
     [Prioridad.BAJA]: 'border-gray-500',
 }
 
+// --- Process-group mapping for production-flow synchronization ---
+// Maps each production kanban stage to its process group key.
+// Used to synchronize temporary-list stage selections with secuenciaTrabajo.
+export const PROCESS_GROUP_FOR_STAGE: Partial<Record<Etapa, string>> = {
+    [Etapa.IMPRESION_WM1]: 'IMPRESION',
+    [Etapa.IMPRESION_GIAVE]: 'IMPRESION',
+    [Etapa.IMPRESION_WM3]: 'IMPRESION',
+    [Etapa.POST_DNT]: 'DNT',
+    [Etapa.POST_LAMINACION_SL2]: 'LAMINACION',
+    [Etapa.POST_LAMINACION_NEXUS]: 'LAMINACION',
+    [Etapa.POST_LAMINACION_SL2_EVO]: 'LAMINACION',
+    [Etapa.POST_ECCONVERT_21]: 'REBOBINADO',
+    [Etapa.POST_ECCONVERT_22]: 'REBOBINADO',
+    [Etapa.POST_REBOBINADO_S2DT]: 'REBOBINADO',
+    [Etapa.POST_REBOBINADO_PROSLIT]: 'REBOBINADO',
+    [Etapa.POST_PERFORACION_MIC]: 'PERFORACION',
+    [Etapa.POST_PERFORACION_MAC]: 'PERFORACION',
+    [Etapa.POST_PERFORACION_MAC2]: 'PERFORACION',
+};
+
+// Reverse lookup: process group → stages in that group
+export const PROCESS_GROUP_STAGES: Record<string, Etapa[]> = {
+    IMPRESION: KANBAN_FUNNELS.IMPRESION.stages,
+    DNT: [Etapa.POST_DNT],
+    LAMINACION: [Etapa.POST_LAMINACION_SL2, Etapa.POST_LAMINACION_NEXUS, Etapa.POST_LAMINACION_SL2_EVO],
+    REBOBINADO: [Etapa.POST_REBOBINADO_S2DT, Etapa.POST_REBOBINADO_PROSLIT, Etapa.POST_ECCONVERT_21, Etapa.POST_ECCONVERT_22],
+    PERFORACION: [Etapa.POST_PERFORACION_MIC, Etapa.POST_PERFORACION_MAC, Etapa.POST_PERFORACION_MAC2],
+};
+// --------------------------------------------------------------------
+
 // Máquinas de impresión disponibles (usando los títulos tal como se guardan en maquinaImpresion)
 export const MAQUINAS_IMPRESION = [
     { id: 'Windmöller 1', nombre: 'Windmöller 1' },

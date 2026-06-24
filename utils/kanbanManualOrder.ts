@@ -108,7 +108,8 @@ export const loadKanbanManualOrderMap = async (): Promise<KanbanManualOrderMap> 
  */
 export const saveKanbanManualOrderForStage = async (
     etapa: Etapa,
-    pedidoIds: string[]
+    pedidoIds: string[],
+    options?: { strict?: boolean }
 ): Promise<void> => {
     // Guardar en el servidor (el broadcast lo hace el backend)
     try {
@@ -124,6 +125,9 @@ export const saveKanbanManualOrderForStage = async (
         }
     } catch (error) {
         console.error('Error saving kanban order to server:', error);
+        if (options?.strict) {
+            throw error;
+        }
     }
 
     // Fallback local (modo offline temporal)

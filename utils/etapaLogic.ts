@@ -50,6 +50,32 @@ export const estaFueraDeSecuencia = (etapaActual: Etapa, secuenciaTrabajo: Etapa
 /**
  * Determina si un pedido puede avanzar en su secuencia (incluso si está fuera de secuencia)
  */
+/**
+ * Replaces the first stage in `sequence` that belongs to the same process group
+ * as `newStage` with `newStage`. Returns a new array (does not mutate input).
+ * If no matching stage is found, returns the original sequence.
+ */
+export const replaceFirstStageInProcessGroup = (
+    sequence: Etapa[],
+    newStage: Etapa,
+    processGroupForStage: Partial<Record<Etapa, string>>,
+    processGroupStages: Record<string, Etapa[]>
+): Etapa[] => {
+    const group = processGroupForStage[newStage];
+    if (!group) return sequence;
+
+    const groupStages = processGroupStages[group];
+    if (!groupStages || groupStages.length === 0) return sequence;
+
+    const replaceIndex = sequence.findIndex(s => groupStages.includes(s));
+    if (replaceIndex === -1) return sequence;
+    if (sequence[replaceIndex] === newStage) return sequence; // Already the correct stage
+
+    const updated = [...sequence];
+    updated[replaceIndex] = newStage;
+    return updated;
+};
+
 export const puedeAvanzarSecuencia = (etapaActual: Etapa, secuenciaTrabajo: Etapa[] | undefined, antivaho: boolean = false, antivahoRealizado: boolean = false, cliente?: string): boolean => {
   const normalizedSequence = cliente
     ? normalizePostImpresionSequence(secuenciaTrabajo, cliente)
