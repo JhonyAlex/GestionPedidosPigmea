@@ -680,6 +680,54 @@ class MigrationManager {
                 COMMENT ON COLUMN limpio.kanban_manual_order.pedido_ids IS 'Array ordenado de IDs visuales de pedidos que define el orden en esa etapa';
             `
         });
+
+        // Migración 027: Reemplazar composite PK con surrogate PK en produccion_listas_temporales
+        this.migrations.push({
+            id: '027-listas-temporales-surrogate-pk',
+            name: 'Agregar id serial PK a produccion_listas_temporales para permitir duplicados (pedido_id, etapa)',
+            sql: `
+                DO $$
+                BEGIN
+                    -- Drop the composite primary key constraint if it still exists
+                    IF EXISTS (
+                        SELECT 1 FROM pg_constraint
+                        WHERE conname = 'produccion_listas_temporales_pkey'
+                        AND conrelid = 'limpio.produccion_listas_temporales'::regclass
+                    ) THEN
+                        ALTER TABLE limpio.produccion_listas_temporales DROP CONSTRAINT produccion_listas_temporales_pkey;
+                        RAISE NOTICE 'Composite PK dropped from produccion_listas_temporales';
+                    END IF;
+
+                    -- Add id column if it does not exist
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_schema = 'limpio'
+                        AND table_name = 'produccion_listas_temporales'
+                        AND column_name = 'id'
+                    ) THEN
+                        ALTER TABLE limpio.produccion_listas_temporales
+                        ADD COLUMN id SERIAL;
+                        RAISE NOTICE 'id column added to produccion_listas_temporales';
+                    END IF;
+
+                    -- Make id the new primary key
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_constraint
+                        WHERE conname = 'produccion_listas_temporales_pkey'
+                        AND conrelid = 'limpio.produccion_listas_temporales'::regclass
+                    ) THEN
+                        ALTER TABLE limpio.produccion_listas_temporales
+                        ADD PRIMARY KEY (id);
+                        RAISE NOTICE 'Surrogate PK set on produccion_listas_temporales.id';
+                    END IF;
+
+                    -- Ensure created_at has a default for existing rows
+                    UPDATE limpio.produccion_listas_temporales
+                    SET created_at = CURRENT_TIMESTAMP
+                    WHERE created_at IS NULL;
+                END $$;
+            `
+        });
     }
 
     /**

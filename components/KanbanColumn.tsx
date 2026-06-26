@@ -26,6 +26,7 @@ interface KanbanColumnProps {
     onSetListaTemporal?: (pedidoId: string, etapa: Etapa, checked: boolean) => Promise<void> | void;
     onResetListaTemporal?: (pedidoId: string) => Promise<void> | void;
     onMoveListaTemporal?: (pedidoId: string, etapa: Etapa) => Promise<void> | void;
+    onRemoveOneListaTemporal?: (pedidoId: string, etapa: Etapa) => Promise<void> | void;
     onManualReorder?: (etapaId: Etapa, pedidoId: string, destinationIndex: number) => void;
 }
 
@@ -46,6 +47,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
     onSetListaTemporal,
     onResetListaTemporal,
     onMoveListaTemporal,
+    onRemoveOneListaTemporal,
     onManualReorder,
 }) => {
     const { user } = useAuth();
@@ -136,6 +138,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                                                     onSetListaTemporal={onSetListaTemporal ? (etapa, checked) => onSetListaTemporal(pedido.id, etapa, checked) : undefined}
                                                     onResetListaTemporal={onResetListaTemporal ? () => onResetListaTemporal(pedido.id) : undefined}
                                                     onMoveListaTemporal={onMoveListaTemporal ? (etapa) => onMoveListaTemporal(pedido.id, etapa) : undefined}
+                                                    onRemoveOneListaTemporal={onRemoveOneListaTemporal ? (etapa) => onRemoveOneListaTemporal(pedido.id, etapa) : undefined}
                                                     isTemporalDisplay={pedido.etapaActual !== etapa.id}
                                                     totalPedidosInSubEtapa={pedidos.length}
                                                     indexEnColumna={index}

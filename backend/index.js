@@ -3944,6 +3944,58 @@ app.put('/api/produccion/listas-temporales/:pedidoId', requireAuth, async (req, 
     }
 });
 
+// POST /api/produccion/listas-temporales/:pedidoId - Agregar una etapa temporal (permite duplicados)
+app.post('/api/produccion/listas-temporales/:pedidoId', requireAuth, async (req, res) => {
+    try {
+        const { pedidoId } = req.params;
+        const { etapa } = req.body;
+
+        if (!etapa) {
+            return res.status(400).json({ message: 'El campo etapa es requerido.' });
+        }
+
+        const updatedEtapas = await dbClient.addProduccionListaTemporal(pedidoId, etapa, req.user?.id || null);
+        const payload = {
+            pedidoId,
+            etapas: updatedEtapas,
+            updatedBy: req.user?.id || null
+        };
+
+        broadcastToClients('listas-temporales-updated', payload);
+        res.status(200).json(payload);
+    } catch (error) {
+        if (error.message && error.message.includes('no encontrado')) {
+            return res.status(404).json({ message: error.message });
+        }
+
+        if (error.message && error.message.includes('inválida')) {
+            return res.status(400).json({ message: error.message });
+        }
+
+        console.error(`Error agregando lista temporal a pedido ${req.params.pedidoId}:`, error);
+        res.status(500).json({ message: 'Error interno del servidor al agregar lista temporal.' });
+    }
+});
+
+// DELETE /api/produccion/listas-temporales/:pedidoId/:etapa - Eliminar la última instancia temporal de una etapa
+app.delete('/api/produccion/listas-temporales/:pedidoId/:etapa', requireAuth, async (req, res) => {
+    try {
+        const { pedidoId, etapa } = req.params;
+        const updatedEtapas = await dbClient.removeLastProduccionListaTemporal(pedidoId, etapa);
+        const payload = {
+            pedidoId,
+            etapas: updatedEtapas,
+            updatedBy: req.user?.id || null
+        };
+
+        broadcastToClients('listas-temporales-updated', payload);
+        res.status(200).json(payload);
+    } catch (error) {
+        console.error(`Error eliminando lista temporal de pedido ${req.params.pedidoId}/${req.params.etapa}:`, error);
+        res.status(500).json({ message: 'Error interno del servidor al eliminar lista temporal.' });
+    }
+});
+
 // DELETE /api/produccion/listas-temporales/:pedidoId - Restablecer listas temporales de un pedido
 app.delete('/api/produccion/listas-temporales/:pedidoId', requireAuth, async (req, res) => {
     try {

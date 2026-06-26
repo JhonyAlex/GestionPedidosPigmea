@@ -214,6 +214,7 @@ interface PedidoCardProps {
     onSetListaTemporal?: (etapa: Etapa, checked: boolean) => Promise<void> | void;
     onResetListaTemporal?: () => Promise<void> | void;
     onMoveListaTemporal?: (etapa: Etapa) => Promise<void> | void;
+    onRemoveOneListaTemporal?: (etapa: Etapa) => Promise<void> | void;
     isTemporalDisplay?: boolean;          // true cuando la tarjeta se muestra FUERA de su etapa real (por override)
     totalPedidosInSubEtapa?: number;
     indexEnColumna?: number;
@@ -243,6 +244,7 @@ const PedidoCard = React.memo<PedidoCardProps>(({
     onSetListaTemporal,
     onResetListaTemporal,
     onMoveListaTemporal,
+    onRemoveOneListaTemporal,
     isTemporalDisplay = false,
     totalPedidosInSubEtapa,
     indexEnColumna,
@@ -1081,6 +1083,7 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                                     {ETAPAS_PRODUCCION.map(etapa => {
                                         const esEtapaActual = etapa === pedido.etapaActual;
                                         const esTemporal = listasTemporales.includes(etapa);
+                                        const countTemporal = listasTemporales.filter(e => e === etapa).length;
                                         const inputId = `lista-temporal-${pedido.id}-${etapa}`;
                                         const isMoving = movingToEtapa === etapa;
                                         return (
@@ -1100,7 +1103,9 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                                                         disabled={esEtapaActual}
                                                         onChange={(ev) => {
                                                             ev.stopPropagation();
-                                                            Promise.resolve(onSetListaTemporal(etapa, ev.target.checked))
+                                                            // Multiplicity: when already temporal, clicking again ADDs another instance (never unchecks via checkbox)
+                                                            const effectiveChecked = esTemporal ? true : ev.target.checked;
+                                                            Promise.resolve(onSetListaTemporal(etapa, effectiveChecked))
                                                                 .catch(error => console.error('Error actualizando listas temporales:', error));
                                                         }}
                                                         className="w-3.5 h-3.5 text-amber-500 rounded border-gray-300 dark:border-gray-600 cursor-pointer disabled:cursor-default disabled:opacity-60"
@@ -1121,8 +1126,25 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                                                     )}
                                                     {!esEtapaActual && esTemporal && (
                                                         <span className="text-[9px] bg-amber-100 dark:bg-amber-800 text-amber-600 dark:text-amber-300 px-1 py-0.5 rounded font-semibold">
-                                                            Temporal
+                                                            {countTemporal > 1 ? `${countTemporal}×` : ''} Temporal
                                                         </span>
+                                                    )}
+                                                    {!esEtapaActual && esTemporal && onRemoveOneListaTemporal && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={async (ev) => {
+                                                                ev.stopPropagation();
+                                                                try {
+                                                                    await Promise.resolve(onRemoveOneListaTemporal(etapa));
+                                                                } catch (error) {
+                                                                    console.error('Error removing one lista temporal:', error);
+                                                                }
+                                                            }}
+                                                            className="text-[10px] font-bold px-1 py-0.5 rounded text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-200 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                                                            title="Quitar una instancia temporal"
+                                                        >
+                                                            ✕
+                                                        </button>
                                                     )}
                                                 </label>
                                                 {!esEtapaActual && esTemporal && onMoveListaTemporal && (

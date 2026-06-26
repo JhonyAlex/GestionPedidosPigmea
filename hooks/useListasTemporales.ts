@@ -95,37 +95,60 @@ export function useListasTemporales(
     /**
      * Marca o desmarca una etapa temporal para un pedido.
      * La etapa real del pedido (etapaActual) NUNCA se almacena aquí; es siempre implícita.
+     *
+     * When checked=true: always ADD a new instance (no dedup — repeated clicks create multiple rows).
+     * When checked=false: remove ALL instances for that stage (full uncheck via PUT replace).
      */
     const setListaTemporal = useCallback(async (pedidoId: string, etapa: Etapa, checked: boolean) => {
         let previousMap: ListasTemporalesMap = {};
-        let nextEtapas: Etapa[] = [];
 
-        setMap(prev => {
-            previousMap = prev;
-            const current = prev[pedidoId] || [];
-            if (checked) {
-                nextEtapas = current.includes(etapa) ? current : [...current, etapa];
-            } else {
-                nextEtapas = current.filter(e => e !== etapa);
-            }
-            const next = { ...prev };
-            if (nextEtapas.length === 0) {
-                delete next[pedidoId];
-            } else {
+        if (checked) {
+            // Optimistic: always APPEND the stage (multiplicity — repeated clicks create multiple instances)
+            setMap(prev => {
+                previousMap = prev;
+                const current = prev[pedidoId] || [];
+                const nextEtapas = [...current, etapa];
+                const next = { ...prev };
                 next[pedidoId] = nextEtapas;
-            }
-            return next;
-        });
-
-        try {
-            const response = await apiFetch<ListasTemporalesUpdatedPayload>(`/produccion/listas-temporales/${pedidoId}`, {
-                method: 'PUT',
-                body: JSON.stringify({ etapas: nextEtapas }),
+                return next;
             });
-            replacePedidoInMap(pedidoId, response.etapas || []);
-        } catch (error) {
-            setMap(previousMap);
-            throw error;
+
+            try {
+                const response = await apiFetch<ListasTemporalesUpdatedPayload>(`/produccion/listas-temporales/${pedidoId}`, {
+                    method: 'POST',
+                    body: JSON.stringify({ etapa }),
+                });
+                replacePedidoInMap(pedidoId, response.etapas || []);
+            } catch (error) {
+                setMap(previousMap);
+                throw error;
+            }
+        } else {
+            // Remove ALL instances for this stage (full uncheck)
+            let nextEtapas: Etapa[] = [];
+            setMap(prev => {
+                previousMap = prev;
+                const current = prev[pedidoId] || [];
+                nextEtapas = current.filter(e => e !== etapa);
+                const next = { ...prev };
+                if (nextEtapas.length === 0) {
+                    delete next[pedidoId];
+                } else {
+                    next[pedidoId] = nextEtapas;
+                }
+                return next;
+            });
+
+            try {
+                const response = await apiFetch<ListasTemporalesUpdatedPayload>(`/produccion/listas-temporales/${pedidoId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ etapas: nextEtapas }),
+                });
+                replacePedidoInMap(pedidoId, response.etapas || []);
+            } catch (error) {
+                setMap(previousMap);
+                throw error;
+            }
         }
     }, [replacePedidoInMap]);
 
@@ -174,6 +197,29 @@ export function useListasTemporales(
         }
     }, [replacePedidoInMap]);
 
+    /**
+     * Remove only ONE most recent instance for a specific stage (X button).
+     * Keeps the stage in the map if more instances remain after removal.
+     */
+    const removeOneListaTemporal = useCallback(async (pedidoId: string, etapa: Etapa) => {
+        let previousMap: ListasTemporalesMap = {};
+        setMap(prev => {
+            previousMap = { ...prev };
+            return prev; // optimistic no-op — server response decides
+        });
+
+        try {
+            const response = await apiFetch<ListasTemporalesUpdatedPayload>(`/produccion/listas-temporales/${pedidoId}/${etapa}`, {
+                method: 'DELETE',
+            });
+            replacePedidoInMap(pedidoId, response.etapas || []);
+        } catch (error) {
+            // No optimistic change to rollback — the server response is authoritative
+            console.error('Error removing one lista temporal:', error);
+            throw error;
+        }
+    }, [replacePedidoInMap]);
+
     const limpiarHuerfanos = useCallback((pedidoIds: string[]) => {
         setMap(prev => {
             const pidSet = new Set(pedidoIds);
@@ -209,6 +255,7 @@ export function useListasTemporales(
         setListaTemporal,
         replaceListaTemporal,
         resetListaTemporal,
+        removeOneListaTemporal,
         getListasTemporales,
         tieneListaTemporal,
         limpiarHuerfanos,

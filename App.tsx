@@ -210,6 +210,7 @@ const AppContent: React.FC = () => {
         setListaTemporal,
         replaceListaTemporal,
         resetListaTemporal,
+        removeOneListaTemporal,
         limpiarHuerfanos,
     } = useListasTemporales(subscribeToListasTemporalesUpdated, Boolean(user));
 
@@ -590,7 +591,9 @@ const AppContent: React.FC = () => {
     }, [filtrarSoloTemporales, listasTemporalesMap]);
 
     const updateKanbanManualOrderForStage = useCallback(async (stageId: Etapa, orderedIds: string[], options?: { strict?: boolean }) => {
-        const normalizedIds = Array.from(new Set(orderedIds.filter(Boolean)));
+        // Preserve multiplicity in orderedIds — a pedido can appear
+        // multiple times in the same stage via temporary-list instances.
+        const normalizedIds = orderedIds.filter(Boolean);
 
         setKanbanManualOrderMap(prev => {
             const previousIds = prev[stageId] || [];
@@ -874,14 +877,17 @@ const AppContent: React.FC = () => {
         }
 
         // --- STEP 7: Clean up temporary-list state. ---
-        // Temp promotion: only remove the promoted stage (it became real).
+        // Temp promotion: only remove ONE promoted instance (respect multiplicity —
+        // repeated clicks create multiple copies; removal must not collapse them).
         // Normal advance: remove all temp stages from the process group we left.
         try {
             const currentTemporales = listasTemporalesMap[pedidoToAdvance.id] || [];
             if (isTempPromotion) {
-                const filtered = currentTemporales.filter(e => e !== targetEtapa);
-                if (filtered.length !== currentTemporales.length) {
-                    await replaceListaTemporal(pedidoToAdvance.id, filtered);
+                const idx = currentTemporales.indexOf(targetEtapa);
+                if (idx !== -1) {
+                    const nextTemporales = [...currentTemporales];
+                    nextTemporales.splice(idx, 1);
+                    await replaceListaTemporal(pedidoToAdvance.id, nextTemporales);
                 }
             } else {
                 const originGroup = PROCESS_GROUP_FOR_STAGE[pedidoToAdvance.etapaActual];
@@ -967,12 +973,14 @@ const AppContent: React.FC = () => {
 
         if (requiresAntivahoConfirmation) return;
 
-        // Intercambio de lugar: la etapa de destino pasa a ser real y la anterior queda como temporal.
+        // Swap: target stage becomes real, origin stage becomes temporary.
+        // Preserve multiplicity — only remove ONE instance of the swapped-out stage.
         const currentTemporales = listasTemporalesMap[pedidoId] || [];
-        const nextTemporales = Array.from(new Set([
-            ...currentTemporales.filter(etapa => etapa !== targetEtapa),
-            etapaOrigen,
-        ]));
+        const targetIdx = currentTemporales.indexOf(targetEtapa);
+        const baseTemporales = targetIdx !== -1
+            ? [...currentTemporales.slice(0, targetIdx), ...currentTemporales.slice(targetIdx + 1)]
+            : currentTemporales;
+        const nextTemporales = [...baseTemporales, etapaOrigen];
         await replaceListaTemporal(pedidoId, nextTemporales);
 
         logAction(
@@ -1734,6 +1742,7 @@ const AppContent: React.FC = () => {
                                         onSetListaTemporal={handleSetListaTemporal}
                                         onResetListaTemporal={resetListaTemporal}
                                         onMoveListaTemporal={handleMoveToVisibleStage}
+                                        onRemoveOneListaTemporal={removeOneListaTemporal}
                                         onManualReorder={handleManualKanbanReorder}
                                     />
                                     );
@@ -1769,6 +1778,7 @@ const AppContent: React.FC = () => {
                                                 onSetListaTemporal={handleSetListaTemporal}
                                         onResetListaTemporal={resetListaTemporal}
                                         onMoveListaTemporal={handleMoveToVisibleStage}
+                                        onRemoveOneListaTemporal={removeOneListaTemporal}
                                         onManualReorder={handleManualKanbanReorder}
                                     />
                                             );

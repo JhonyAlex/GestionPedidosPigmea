@@ -1605,8 +1605,9 @@ class PostgreSQLClient {
             throw new Error(`Etapas inválidas para listas temporales: ${invalidEtapas.join(', ')}`);
         }
 
-        return Array.from(new Set(etapas))
-            .filter((etapa) => etapa !== etapaActual);
+        // Preserve multiplicity: do NOT deduplicate. Duplicate entries represent
+        // multiple independent temporary instances of the same stage.
+        return etapas.filter((etapa) => etapa !== etapaActual);
     }
 
     async getProduccionListasTemporalesMap() {
@@ -1619,7 +1620,7 @@ class PostgreSQLClient {
                 FROM limpio.produccion_listas_temporales lt
                 INNER JOIN limpio.pedidos p ON p.id = lt.pedido_id
                 WHERE lt.etapa <> COALESCE(p.etapa_actual, p.data->>'etapaActual')
-                ORDER BY lt.created_at ASC
+                ORDER BY lt.pedido_id, lt.etapa, lt.id
             `);
 
             return result.rows.reduce((acc, row) => {
@@ -1670,6 +1671,102 @@ class PostgreSQLClient {
 
             await client.query('COMMIT');
             return sanitizedEtapas;
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    async addProduccionListaTemporal(pedidoId, etapa, userId = null) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+
+        if (!ETAPAS_LISTAS_TEMPORALES_SET.has(etapa)) {
+            throw new Error(`Etapa inválida para listas temporales: ${etapa}`);
+        }
+
+        const client = await this.pool.connect();
+
+        try {
+            await client.query('BEGIN');
+
+            const pedidoResult = await client.query(
+                `SELECT COALESCE(etapa_actual, data->>'etapaActual') AS etapa_actual
+                 FROM limpio.pedidos
+                 WHERE id = $1`,
+                [pedidoId]
+            );
+
+            if (pedidoResult.rowCount === 0) {
+                throw new Error(`Pedido ${pedidoId} no encontrado`);
+            }
+
+            if (etapa === pedidoResult.rows[0].etapa_actual) {
+                throw new Error('No se puede agregar la etapa actual del pedido como lista temporal');
+            }
+
+            // Insert new row (no dedup — always append)
+            await client.query(
+                `INSERT INTO limpio.produccion_listas_temporales (pedido_id, etapa, created_by, updated_by)
+                 VALUES ($1, $2, $3, $3)`,
+                [pedidoId, etapa, userId]
+            );
+
+            // Return active stages preserving multiplicity (no DISTINCT)
+            const result = await client.query(
+                `SELECT etapa
+                 FROM limpio.produccion_listas_temporales
+                 WHERE pedido_id = $1
+                 ORDER BY id`,
+                [pedidoId]
+            );
+
+            await client.query('COMMIT');
+
+            return result.rows.map(r => r.etapa);
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    async removeLastProduccionListaTemporal(pedidoId, etapa) {
+        if (!this.isInitialized) throw new Error('Database not initialized');
+        const client = await this.pool.connect();
+
+        try {
+            await client.query('BEGIN');
+
+            // Delete only the most recently inserted row for this (pedido_id, etapa)
+            // Deterministic ordering by surrogate PK (id DESC) — avoids ties on created_at
+            const deleteResult = await client.query(
+                `DELETE FROM limpio.produccion_listas_temporales
+                 WHERE id = (
+                     SELECT id
+                     FROM limpio.produccion_listas_temporales
+                     WHERE pedido_id = $1 AND etapa = $2
+                     ORDER BY id DESC
+                     LIMIT 1
+                 )
+                 RETURNING id`,
+                [pedidoId, etapa]
+            );
+
+            // Return active stages preserving multiplicity (no DISTINCT)
+            const result = await client.query(
+                `SELECT etapa
+                 FROM limpio.produccion_listas_temporales
+                 WHERE pedido_id = $1
+                 ORDER BY id`,
+                [pedidoId]
+            );
+
+            await client.query('COMMIT');
+
+            return result.rows.map(r => r.etapa);
         } catch (error) {
             await client.query('ROLLBACK');
             throw error;
