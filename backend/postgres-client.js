@@ -1606,8 +1606,9 @@ class PostgreSQLClient {
         }
 
         // Preserve multiplicity: do NOT deduplicate. Duplicate entries represent
-        // multiple independent temporary instances of the same stage.
-        return etapas.filter((etapa) => etapa !== etapaActual);
+        // multiple independent temporary instances of the same stage. Same-stage
+        // temporary instances (including current etapaActual) are allowed.
+        return etapas;
     }
 
     async getProduccionListasTemporalesMap() {
@@ -1619,7 +1620,7 @@ class PostgreSQLClient {
                 SELECT lt.pedido_id, lt.etapa
                 FROM limpio.produccion_listas_temporales lt
                 INNER JOIN limpio.pedidos p ON p.id = lt.pedido_id
-                WHERE lt.etapa <> COALESCE(p.etapa_actual, p.data->>'etapaActual')
+                WHERE 1=1
                 ORDER BY lt.pedido_id, lt.etapa, lt.id
             `);
 
@@ -1702,11 +1703,8 @@ class PostgreSQLClient {
                 throw new Error(`Pedido ${pedidoId} no encontrado`);
             }
 
-            if (etapa === pedidoResult.rows[0].etapa_actual) {
-                throw new Error('No se puede agregar la etapa actual del pedido como lista temporal');
-            }
-
             // Insert new row (no dedup — always append)
+            // Same-stage temporary instances (including current etapa_actual) are allowed
             await client.query(
                 `INSERT INTO limpio.produccion_listas_temporales (pedido_id, etapa, created_by, updated_by)
                  VALUES ($1, $2, $3, $3)`,
