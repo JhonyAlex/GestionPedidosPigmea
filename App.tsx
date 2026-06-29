@@ -677,12 +677,38 @@ const AppContent: React.FC = () => {
 
     const kanbanAllPedidosByStage = useMemo(() => {
         return productionKanbanStages.reduce((acc, etapaId) => {
-            const columnPedidos = activePedidos.filter(p =>
-                p.etapaActual === etapaId ||
-                (listasTemporalesMap[p.id] || []).includes(etapaId)
-            );
+            // Expand: each pedido may appear multiple times in the same stage
+            // when listasTemporalesMap contains duplicate etapa entries (multiplicity).
+            // Real instance (etapaActual === etapaId) → instanceIndex 0.
+            // Each temporary occurrence → instanceIndex 1, 2, ...
+            const columnEntries: Pedido[] = [];
 
-            acc[etapaId] = sortKanbanColumnPedidos(columnPedidos, etapaId, kanbanManualOrderMap);
+            for (const pedido of activePedidos) {
+                const isReal = pedido.etapaActual === etapaId;
+                const temps = (listasTemporalesMap[pedido.id] || []);
+
+                // Real instance
+                if (isReal) {
+                    const entry = { ...pedido } as Pedido & { _kanbanInstanceIndex: number; _kanbanVisualKey: string };
+                    (entry as any)._kanbanInstanceIndex = 0;
+                    (entry as any)._kanbanVisualKey = `real:${pedido.id}:${etapaId}`;
+                    columnEntries.push(entry);
+                }
+
+                // Temporary instances: one entry per occurrence in the temp array for this stage
+                let tempCount = 0;
+                for (const tempEtapa of temps) {
+                    if (tempEtapa === etapaId) {
+                        tempCount++;
+                        const entry = { ...pedido } as Pedido & { _kanbanInstanceIndex: number; _kanbanVisualKey: string };
+                        (entry as any)._kanbanInstanceIndex = tempCount;
+                        (entry as any)._kanbanVisualKey = `temp:${pedido.id}:${etapaId}:${tempCount}`;
+                        columnEntries.push(entry);
+                    }
+                }
+            }
+
+            acc[etapaId] = sortKanbanColumnPedidos(columnEntries, etapaId, kanbanManualOrderMap);
             return acc;
         }, {} as Partial<Record<Etapa, Pedido[]>>);
     }, [activePedidos, listasTemporalesMap, kanbanManualOrderMap, productionKanbanStages]);
@@ -723,11 +749,11 @@ const AppContent: React.FC = () => {
         };
     }, [activePedidos]);
 
-    const handleManualKanbanReorder = useCallback((stageId: Etapa, pedidoId: string, destinationIndex: number) => {
+    const handleManualKanbanReorder = useCallback((stageId: Etapa, pedidoId: string, sourceIndex: number, destinationIndex: number) => {
         const visiblePedidos = kanbanVisiblePedidosByStage[stageId] || [];
-        const sourceIndex = visiblePedidos.findIndex(p => p.id === pedidoId);
         
         if (sourceIndex === -1 || sourceIndex === destinationIndex) return;
+        if (sourceIndex < 0 || sourceIndex >= visiblePedidos.length) return;
 
         const allPedidosInStage = kanbanAllPedidosByStage[stageId] || [];
         const finalOrderedIds = mergeVisibleKanbanReorder(

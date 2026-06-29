@@ -27,7 +27,7 @@ interface KanbanColumnProps {
     onResetListaTemporal?: (pedidoId: string) => Promise<void> | void;
     onMoveListaTemporal?: (pedidoId: string, etapa: Etapa) => Promise<void> | void;
     onRemoveOneListaTemporal?: (pedidoId: string, etapa: Etapa) => Promise<void> | void;
-    onManualReorder?: (etapaId: Etapa, pedidoId: string, destinationIndex: number) => void;
+    onManualReorder?: (etapaId: Etapa, pedidoId: string, sourceIndex: number, destinationIndex: number) => void;
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({ 
@@ -109,10 +109,14 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                             {...provided.droppableProps}
                             className={`flex-grow p-4 transition-colors duration-150 ease-in-out ${snapshot.isDraggingOver ? 'bg-gray-300 dark:bg-gray-700' : 'bg-gray-200 dark:bg-gray-800'} rounded-b-xl overflow-y-auto min-h-[300px] max-h-[48rem]`}
                         >
-                            {pedidos.map((pedido, index) => (
+                            {pedidos.map((pedido, index) => {
+                                const instanceIndex = (pedido as any)._kanbanInstanceIndex as number | undefined;
+                                const visualKey = (pedido as any)._kanbanVisualKey as string | undefined;
+                                const draggableId = buildKanbanDraggableId(pedido.id, etapa.id, instanceIndex);
+                                return (
                                 <Draggable
-                                    key={`${pedido.id}-${etapa.id}`}
-                                    draggableId={buildKanbanDraggableId(pedido.id, etapa.id)}
+                                    key={visualKey ?? `${pedido.id}-${etapa.id}`}
+                                    draggableId={draggableId}
                                     index={index}
                                 >
                                     {(provided, snapshot) => (
@@ -142,12 +146,13 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                                                     isTemporalDisplay={pedido.etapaActual !== etapa.id}
                                                     totalPedidosInSubEtapa={pedidos.length}
                                                     indexEnColumna={index}
-                                                    onReorderPedido={onManualReorder ? (newIndex) => onManualReorder(etapa.id, pedido.id, newIndex) : undefined}
+                                                    onReorderPedido={onManualReorder ? (newIndex) => onManualReorder(etapa.id, pedido.id, index, newIndex) : undefined}
                                                 />
                                         </div>
                                     )}
                                 </Draggable>
-                            ))}
+                                );
+                            })}
                             {provided.placeholder}
                         </div>
                     )}

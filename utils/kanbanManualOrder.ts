@@ -40,24 +40,37 @@ export const isProduccionKanbanStage = (stageId: string): stageId is Etapa => {
     return PRODUCCION_STAGE_SET.has(stageId as Etapa);
 };
 
-export const buildKanbanDraggableId = (pedidoId: string, stageId: Etapa): string => {
-    return `${pedidoId}${DRAGGABLE_ID_SEPARATOR}${stageId}`;
+/**
+ * Build a draggable ID for a kanban visual instance.
+ * If instanceIndex > 0, it's a temporary-list duplicate card and the ID includes
+ * the instance number so that React keys, draggable IDs, and manual order entries
+ * are unique per visual card even when the same pedido appears multiple times in
+ * one stage (multiplicity via listas temporales).
+ */
+export const buildKanbanDraggableId = (pedidoId: string, stageId: Etapa, instanceIndex?: number): string => {
+    const base = `${pedidoId}${DRAGGABLE_ID_SEPARATOR}${stageId}`;
+    if (instanceIndex != null && instanceIndex > 0) {
+        return `${base}${DRAGGABLE_ID_SEPARATOR}${instanceIndex}`;
+    }
+    return base;
 };
 
 const getKanbanOrderKey = (pedido: Pedido, stageId: Etapa): string => {
-    return buildKanbanDraggableId(pedido.id, stageId);
+    const instanceIdx = (pedido as any)._kanbanInstanceIndex as number | undefined;
+    return buildKanbanDraggableId(pedido.id, stageId, instanceIdx);
 };
 
-export const parseKanbanDraggableId = (draggableId: string): { pedidoId: string; visualStageId: Etapa | null } => {
-    const separatorIndex = draggableId.indexOf(DRAGGABLE_ID_SEPARATOR);
+export const parseKanbanDraggableId = (draggableId: string): { pedidoId: string; visualStageId: Etapa | null; instanceIndex: number } => {
+    const parts = draggableId.split(DRAGGABLE_ID_SEPARATOR);
 
-    if (separatorIndex === -1) {
-        return { pedidoId: draggableId, visualStageId: null };
+    if (parts.length < 2) {
+        return { pedidoId: draggableId, visualStageId: null, instanceIndex: 0 };
     }
 
     return {
-        pedidoId: draggableId.slice(0, separatorIndex),
-        visualStageId: draggableId.slice(separatorIndex + DRAGGABLE_ID_SEPARATOR.length) as Etapa,
+        pedidoId: parts[0],
+        visualStageId: parts[1] as Etapa,
+        instanceIndex: parts.length >= 3 ? parseInt(parts[2], 10) || 0 : 0,
     };
 };
 

@@ -1100,15 +1100,15 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                                                         id={inputId}
                                                         type="checkbox"
                                                         checked={esEtapaActual || esTemporal}
-                                                        disabled={esEtapaActual}
                                                         onChange={(ev) => {
                                                             ev.stopPropagation();
-                                                            // Multiplicity: when already temporal, clicking again ADDs another instance (never unchecks via checkbox)
-                                                            const effectiveChecked = esTemporal ? true : ev.target.checked;
+                                                            // Multiplicity: clicking a checked checkbox (real or temp) always ADDs another instance.
+                                                            // Unchecking a temp-only stage removes ALL its instances (full uncheck).
+                                                            const effectiveChecked = esEtapaActual ? true : (esTemporal ? true : ev.target.checked);
                                                             Promise.resolve(onSetListaTemporal(etapa, effectiveChecked))
                                                                 .catch(error => console.error('Error actualizando listas temporales:', error));
                                                         }}
-                                                        className="w-3.5 h-3.5 text-amber-500 rounded border-gray-300 dark:border-gray-600 cursor-pointer disabled:cursor-default disabled:opacity-60"
+                                                        className="w-3.5 h-3.5 text-amber-500 rounded border-gray-300 dark:border-gray-600 cursor-pointer"
                                                     />
                                                     <span className={`text-xs flex-1 ${
                                                         esEtapaActual
