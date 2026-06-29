@@ -1124,12 +1124,12 @@ const PedidoCard = React.memo<PedidoCardProps>(({
                                                             Actual
                                                         </span>
                                                     )}
-                                                    {!esEtapaActual && esTemporal && (
+                                                    {esTemporal && (
                                                         <span className="text-[9px] bg-amber-100 dark:bg-amber-800 text-amber-600 dark:text-amber-300 px-1 py-0.5 rounded font-semibold">
                                                             {countTemporal > 1 ? `${countTemporal}×` : ''} Temporal
                                                         </span>
                                                     )}
-                                                    {!esEtapaActual && esTemporal && onRemoveOneListaTemporal && (
+                                                    {esTemporal && onRemoveOneListaTemporal && (
                                                         <button
                                                             type="button"
                                                             onClick={async (ev) => {
