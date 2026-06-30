@@ -5,7 +5,7 @@ import { getDateRange, DateFilterOption } from '../utils/date';
 import { getCurrentWeek, isDateInWeek } from '../utils/weekUtils';
 import { useDebounce } from './useDebounce';
 import { normalizeSearchValue, pedidoMatchesSearch } from '../utils/search';
-import { buildKanbanDraggableId } from '../utils/kanbanManualOrder';
+import { parseKanbanDraggableId } from '../utils/kanbanManualOrder';
 
 // Clave para localStorage
 const FILTERS_STORAGE_KEY = 'gestionPedidos_userFilters';
@@ -441,14 +441,22 @@ export const useFiltrosYOrden = (pedidos: Pedido[], listasTemporalesMap: Record<
                             break;
                         }
 
-                        // Misma etapa visual: usar kanbanManualOrderMap (mismo orden que Producci�n)
+                        // Misma etapa visual: usar kanbanManualOrderMap (mismo orden que Producción)
                         const visualStageId = visualStageA as import('../types').Etapa;
                         const orderedIds = kanbanManualOrderMap[visualStageId] || [];
 
                         if (orderedIds.length > 0) {
-                            const orderIndex = new Map(orderedIds.map((id: string, index: number) => [id, index]));
-                            const indexA = orderIndex.get(buildKanbanDraggableId(a.id, visualStageId)) ?? orderIndex.get(a.id);
-                            const indexB = orderIndex.get(buildKanbanDraggableId(b.id, visualStageId)) ?? orderIndex.get(b.id);
+                            // Build pedidoId → first-occurrence index, matching on pedidoId
+                            // regardless of instanceIndex suffix (handles temp-list instances).
+                            const orderIndex = new Map<string, number>();
+                            for (let i = 0; i < orderedIds.length; i++) {
+                                const parsed = parseKanbanDraggableId(orderedIds[i]);
+                                if (!orderIndex.has(parsed.pedidoId)) {
+                                    orderIndex.set(parsed.pedidoId, i);
+                                }
+                            }
+                            const indexA = orderIndex.get(a.id);
+                            const indexB = orderIndex.get(b.id);
 
                             if (indexA != null && indexB != null) {
                                 comparison = indexA - indexB;

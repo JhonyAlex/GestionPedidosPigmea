@@ -25,6 +25,8 @@ interface PedidoListProps {
     // Vista Lista Temporal: pedidos que se muestran por override
     listasTemporalesMap?: Record<string, import('../types').Etapa[]>;
     selectedStages?: string[];
+    // Vista expandida: pedidos con _visualStage y _visualKey (pre-sorted, pre-expanded)
+    isExpandedView?: boolean;
     // Paginación para vista archivados
     isLoadingMore?: boolean;
     hasMore?: boolean;
@@ -73,15 +75,27 @@ const SortableHeaderTh = ({
     onSort,
     sortConfig,
     width = "",
-    className = ""
+    className = "",
+    isExpandedView = false,
 }: {
     label: string,
     sortKey: keyof Pedido,
     onSort: (key: keyof Pedido) => void,
     sortConfig: { key: keyof Pedido, direction: 'ascending' | 'descending' },
     width?: string,
-    className?: string
+    className?: string,
+    isExpandedView?: boolean,
 }) => {
+    // In expanded view, the list is pre-sorted by Production kanban order — sort
+    // headers are decorative labels only, not interactive controls.
+    if (isExpandedView) {
+        return (
+            <th className={`px-2 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${width} ${className}`}>
+                {label}
+            </th>
+        );
+    }
+
     const isSorting = sortConfig.key === sortKey;
     const direction = isSorting ? sortConfig.direction : null;
     return (
@@ -107,7 +121,8 @@ const PedidoRow: React.FC<{
     isSelected?: boolean,
     onToggleSelection?: (id: string) => void,
     isTemporalDisplay?: boolean,
-}> = ({ pedido, index, onSelectPedido, onArchiveToggle, isArchivedView, currentUserRole, onAdvanceStage, isHighlighted, highlightedPedidoId, isSelected, onToggleSelection, isTemporalDisplay }) => {
+    isExpandedView?: boolean,
+}> = ({ pedido, index, onSelectPedido, onArchiveToggle, isArchivedView, currentUserRole, onAdvanceStage, isHighlighted, highlightedPedidoId, isSelected, onToggleSelection, isTemporalDisplay: isTemporalDisplayProp, isExpandedView }) => {
     const { canMovePedidos, canArchivePedidos } = usePermissions();
 
     const { canAdvance, advanceButtonTitle } = useMemo(() => {
@@ -158,17 +173,23 @@ const PedidoRow: React.FC<{
         return { canAdvance: false, advanceButtonTitle: '' };
     }, [pedido]);
 
+    // In expanded view, derive isTemporalDisplay from the visual stage metadata.
+    // In non-expanded view, use the prop (computed from selectedStages + listasTemporalesMap).
+    const temporalDisplay = isExpandedView
+        ? ((pedido as any)._visualStage != null && (pedido as any)._visualStage !== pedido.etapaActual)
+        : (isTemporalDisplayProp ?? false);
+
     return (
         <tr
             onClick={() => onSelectPedido(pedido)}
             className={`${
                 pedido.atencionObservaciones
                     ? 'bg-red-100 dark:bg-red-950/30 hover:bg-red-200 dark:hover:bg-red-950/40'
-                    : isTemporalDisplay
+                    : temporalDisplay
                         ? 'bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30'
                         : 'hover:bg-gray-50 dark:hover:bg-gray-700'
             } cursor-pointer ${pedido.id === highlightedPedidoId ? 'card-highlight' : ''} ${
-                isTemporalDisplay ? 'border-l-4 border-amber-400 dark:border-amber-500' : ''
+                temporalDisplay ? 'border-l-4 border-amber-400 dark:border-amber-500' : ''
             }`}
         >
             {onToggleSelection && (
@@ -194,19 +215,25 @@ const PedidoRow: React.FC<{
                     {pedido.prioridad}
                 </span>
             </td>
-            <td className="px-6 py-4 text-gray-900 dark:text-white w-36">{ETAPAS[pedido.etapaActual]?.title ?? pedido.etapaActual}</td>
+            <td className="px-6 py-4 text-gray-900 dark:text-white w-36">
+                {isExpandedView && (pedido as any)._visualStage
+                    ? (ETAPAS[(pedido as any)._visualStage]?.title ?? (pedido as any)._visualStage)
+                    : (ETAPAS[pedido.etapaActual]?.title ?? pedido.etapaActual)}
+            </td>
             <td className="px-6 py-4 text-right text-gray-900 dark:text-white w-24">{formatMetros(pedido.metros)} m</td>
             <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-28">{pedido.tiempoProduccionPlanificado}</td>
             <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-28">{formatDateDDMMYYYY(pedido.fechaEntrega)}</td>
             <td className="px-6 py-4 text-center text-gray-900 dark:text-white w-32">{pedido.nuevaFechaEntrega ? formatDateDDMMYYYY(pedido.nuevaFechaEntrega) : '-'}</td>
             <td className="px-6 py-4 text-center w-28" onClick={(e) => e.stopPropagation()}>
                 <div className="flex justify-center items-center space-x-2">
-                    {canMovePedidos() && canAdvance && (
+                    {/* In expanded view, temporal rows show a visual (not real) stage;
+                        advance/archive would operate on the real stage, misleading users. */}
+                    {!temporalDisplay && canMovePedidos() && canAdvance && (
                         <button onClick={() => onAdvanceStage(pedido)} className="text-green-500 hover:text-green-400" title={advanceButtonTitle}>
                             <ArrowRightCircleIcon />
                         </button>
                     )}
-                    {canArchivePedidos() && (
+                    {!temporalDisplay && canArchivePedidos() && (
                         <>
                             {isArchivedView ? (
                                 <button onClick={() => onArchiveToggle(pedido)} className="text-green-500 hover:text-green-400 dark:text-green-400 dark:hover:text-green-300" title="Desarchivar">
@@ -227,17 +254,123 @@ const PedidoRow: React.FC<{
     );
 };
 
+/**
+ * Extract the pedido ID from a selection key in expanded view.
+ * Visual keys have format: `real:{pedidoId}:{stage}` or `temp:{pedidoId}:{stage}:{index}`.
+ * Returns the pedidoId string, or the original key if it doesn't match the pattern.
+ */
+const extractPedidoIdFromSelectionKey = (key: string): string => {
+    if (key.startsWith('real:') || key.startsWith('temp:')) {
+        const colonIdx = key.indexOf(':');
+        const secondColon = key.indexOf(':', colonIdx + 1);
+        if (colonIdx > -1 && secondColon > colonIdx) {
+            return key.substring(colonIdx + 1, secondColon);
+        }
+    }
+    return key;
+};
 
-const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArchiveToggle, isArchivedView, currentUserRole, onAdvanceStage, sortConfig, onSort, highlightedPedidoId, selectedIds, onToggleSelection, onSelectAll, listasTemporalesMap = {}, selectedStages = [], isLoadingMore, hasMore, totalItems, onLoadMore }) => {
+const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArchiveToggle, isArchivedView, currentUserRole, onAdvanceStage, sortConfig, onSort, highlightedPedidoId, selectedIds, onToggleSelection, onSelectAll, listasTemporalesMap = {}, selectedStages = [], isExpandedView = false, isLoadingMore, hasMore, totalItems, onLoadMore }) => {
     const [isMounted, setIsMounted] = useState(false);
     useEffect(() => {
         setIsMounted(true);
     }, []);
 
-    const allSelected = pedidos.length > 0 && pedidos.every(p => selectedIds?.includes(p.id));
+    // In expanded view, a pedido may appear multiple times (real + temp instances).
+    // Use _visualKey as the selection identity so rows are independently checkable.
+    // The parent selectedIds still tracks pedido IDs for bulk operations.
+    const [expandedSelectedKeys, setExpandedSelectedKeys] = useState<Set<string>>(new Set());
+
+    // Sync expanded visual selection with parent: when the parent clears ALL
+    // selections (e.g. view change, bulk operation complete), also clear
+    // expanded keys to prevent ghost checkboxes on stale visual rows.
+    useEffect(() => {
+        if (isExpandedView && (!selectedIds || selectedIds.length === 0)) {
+            setExpandedSelectedKeys(new Set());
+        }
+    }, [selectedIds, isExpandedView]);
+
+    // Helper: given a pedido, return the selection identity key.
+    const selectionKeyFor = (p: Pedido): string =>
+        isExpandedView ? ((p as any)._visualKey || p.id) : p.id;
+
+    // Extract unique pedido IDs from a set of visual keys.
+    const pedidoIdsFromKeys = (keys: Iterable<string>): string[] => {
+        const ids = new Set<string>();
+        for (const key of keys) {
+            const pedidoId = extractPedidoIdFromSelectionKey(key);
+            if (pedidoId) ids.add(pedidoId);
+        }
+        return [...ids];
+    };
+
+    const isRowSelected = (p: Pedido): boolean =>
+        isExpandedView ? expandedSelectedKeys.has(selectionKeyFor(p)) : (selectedIds?.includes(p.id) ?? false);
+
+    // "All selected" check: in expanded view use visual keys; otherwise use pedido IDs.
+    const allSelected = pedidos.length > 0 && (isExpandedView
+        ? pedidos.every(p => expandedSelectedKeys.has(selectionKeyFor(p)))
+        : pedidos.every(p => selectedIds?.includes(p.id)));
+
+    const handleRowToggle = (pedido: Pedido) => {
+        if (!onToggleSelection) return;
+
+        if (isExpandedView) {
+            const key = selectionKeyFor(pedido);
+            const pedidoId = pedido.id;
+
+            // Determine whether the pedido ID membership will change after this toggle.
+            // A pedido ID should be "selected" in the parent when AT LEAST ONE of its
+            // visual rows is selected. We only call onToggleSelection when the pedido
+            // transitions between "has any selected visual rows" and "has none".
+            const willBeSelected = !expandedSelectedKeys.has(key);
+
+            // Compute which pedido IDs would be selected AFTER the toggle
+            const nextSelectedPedidoIds = new Set<string>();
+            for (const k of expandedSelectedKeys) {
+                if (k !== key) {
+                    const pid = extractPedidoIdFromSelectionKey(k);
+                    if (pid) nextSelectedPedidoIds.add(pid);
+                }
+            }
+            if (willBeSelected) {
+                nextSelectedPedidoIds.add(pedidoId);
+            }
+
+            const wasInParent = selectedIds?.includes(pedidoId) ?? false;
+            const willBeInParent = nextSelectedPedidoIds.has(pedidoId);
+
+            // Only notify parent when pedido-ID membership actually changes,
+            // preventing odd-toggles from multi-instance rows.
+            if (wasInParent !== willBeInParent) {
+                onToggleSelection(pedidoId);
+            }
+
+            setExpandedSelectedKeys(prev => {
+                const next = new Set(prev);
+                next.has(key) ? next.delete(key) : next.add(key);
+                return next;
+            });
+        } else {
+            onToggleSelection(pedido.id);
+        }
+    };
 
     const handleSelectAll = () => {
         if (!onSelectAll) return;
+
+        if (isExpandedView) {
+            if (allSelected) {
+                setExpandedSelectedKeys(new Set());
+                onSelectAll([]);
+            } else {
+                const keys = new Set(pedidos.map(p => selectionKeyFor(p)));
+                setExpandedSelectedKeys(keys);
+                const uniqueIds = pedidoIdsFromKeys(keys);
+                onSelectAll(uniqueIds);
+            }
+            return;
+        }
 
         if (allSelected) {
             onSelectAll((selectedIds || []).filter(id => !pedidos.find(p => p.id === id)));
@@ -264,18 +397,18 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
                                         />
                                     </th>
                                 )}
-                                <SortableHeaderTh label="N° Pedido" sortKey="numeroPedidoCliente" onSort={onSort} sortConfig={sortConfig} width="w-24" />
-                                <SortableHeaderTh label="Cliente" sortKey="cliente" onSort={onSort} sortConfig={sortConfig} width="w-28" />
-                                <SortableHeaderTh label="Desarrollo" sortKey="desarrollo" onSort={onSort} sortConfig={sortConfig} width="w-28" />
-                                <SortableHeaderTh label="Capa" sortKey="capa" onSort={onSort} sortConfig={sortConfig} width="w-16" className="text-center" />
-                                <SortableHeaderTh label="Camisa" sortKey="camisa" onSort={onSort} sortConfig={sortConfig} width="w-24" />
-                                <SortableHeaderTh label="Antivaho" sortKey="antivaho" onSort={onSort} sortConfig={sortConfig} width="w-16" className="text-center" />
-                                <SortableHeaderTh label="Prioridad" sortKey="prioridad" onSort={onSort} sortConfig={sortConfig} width="w-24" />
-                                <SortableHeaderTh label="Etapa Actual" sortKey="etapaActual" onSort={onSort} sortConfig={sortConfig} width="w-32" />
-                                <SortableHeaderTh label="Metros" sortKey="metros" onSort={onSort} sortConfig={sortConfig} width="w-20" className="text-right" />
-                                <SortableHeaderTh label="T. Planificado" sortKey="tiempoProduccionPlanificado" onSort={onSort} sortConfig={sortConfig} width="w-24" className="text-center" />
-                                <SortableHeaderTh label="F. Entrega" sortKey="fechaEntrega" onSort={onSort} sortConfig={sortConfig} width="w-24" className="text-center" />
-                                <SortableHeaderTh label="Nueva F. Entrega" sortKey="nuevaFechaEntrega" onSort={onSort} sortConfig={sortConfig} width="w-28" className="text-center" />
+                                <SortableHeaderTh label="N° Pedido" sortKey="numeroPedidoCliente" onSort={onSort} sortConfig={sortConfig} width="w-24" isExpandedView={isExpandedView} />
+                                <SortableHeaderTh label="Cliente" sortKey="cliente" onSort={onSort} sortConfig={sortConfig} width="w-28" isExpandedView={isExpandedView} />
+                                <SortableHeaderTh label="Desarrollo" sortKey="desarrollo" onSort={onSort} sortConfig={sortConfig} width="w-28" isExpandedView={isExpandedView} />
+                                <SortableHeaderTh label="Capa" sortKey="capa" onSort={onSort} sortConfig={sortConfig} width="w-16" className="text-center" isExpandedView={isExpandedView} />
+                                <SortableHeaderTh label="Camisa" sortKey="camisa" onSort={onSort} sortConfig={sortConfig} width="w-24" isExpandedView={isExpandedView} />
+                                <SortableHeaderTh label="Antivaho" sortKey="antivaho" onSort={onSort} sortConfig={sortConfig} width="w-16" className="text-center" isExpandedView={isExpandedView} />
+                                <SortableHeaderTh label="Prioridad" sortKey="prioridad" onSort={onSort} sortConfig={sortConfig} width="w-24" isExpandedView={isExpandedView} />
+                                <SortableHeaderTh label="Etapa Actual" sortKey="etapaActual" onSort={onSort} sortConfig={sortConfig} width="w-32" isExpandedView={isExpandedView} />
+                                <SortableHeaderTh label="Metros" sortKey="metros" onSort={onSort} sortConfig={sortConfig} width="w-20" className="text-right" isExpandedView={isExpandedView} />
+                                <SortableHeaderTh label="T. Planificado" sortKey="tiempoProduccionPlanificado" onSort={onSort} sortConfig={sortConfig} width="w-24" className="text-center" isExpandedView={isExpandedView} />
+                                <SortableHeaderTh label="F. Entrega" sortKey="fechaEntrega" onSort={onSort} sortConfig={sortConfig} width="w-24" className="text-center" isExpandedView={isExpandedView} />
+                                <SortableHeaderTh label="Nueva F. Entrega" sortKey="nuevaFechaEntrega" onSort={onSort} sortConfig={sortConfig} width="w-28" className="text-center" isExpandedView={isExpandedView} />
                                 <th className="px-2 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center w-24">
                                     Acciones
                                 </th>
@@ -298,9 +431,13 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
                                         const isTemporalDisplay = selectedStages.length > 0
                                             && !selectedStages.includes(pedido.etapaActual)
                                             && selectedStages.some(s => temporalEtapas.includes(s as import('../types').Etapa));
+                                        // In expanded view, use _visualKey for unique React keys (pedidos may appear multiple times).
+                                        const rowKey = isExpandedView
+                                            ? ((pedido as any)._visualKey || `${pedido.id}-${(pedido as any)._visualStage}-${index}`)
+                                            : pedido.id;
                                         return (
                                         <PedidoRow
-                                            key={pedido.id}
+                                            key={rowKey}
                                             pedido={pedido}
                                             index={index}
                                             onSelectPedido={onSelectPedido}
@@ -310,9 +447,10 @@ const PedidoList: React.FC<PedidoListProps> = ({ pedidos, onSelectPedido, onArch
                                             onAdvanceStage={onAdvanceStage}
                                             isHighlighted={pedido.id === highlightedPedidoId}
                                             highlightedPedidoId={highlightedPedidoId}
-                                            isSelected={selectedIds?.includes(pedido.id)}
-                                            onToggleSelection={onToggleSelection}
+                                            isSelected={isRowSelected(pedido)}
+                                            onToggleSelection={() => handleRowToggle(pedido)}
                                             isTemporalDisplay={isTemporalDisplay}
+                                            isExpandedView={isExpandedView}
                                         />
                                         );
                                     })

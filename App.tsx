@@ -67,6 +67,7 @@ import {
     buildKanbanDraggableId,
     parseKanbanDraggableId
 } from './utils/kanbanManualOrder';
+import { buildExpandedPedidoList, interleaveExpandedList, preparePdfRows, ExpandedPedido, PdfRow } from './utils/listViewExpansion';
 
 
 const AppContent: React.FC = () => {
@@ -631,6 +632,46 @@ const AppContent: React.FC = () => {
     const preparacionPedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual === Etapa.PREPARACION && p.subEtapaActual !== PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION), [processedPedidos]);
     const listoProduccionPedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual === Etapa.PREPARACION && p.subEtapaActual === PREPARACION_SUB_ETAPAS_IDS.LISTO_PARA_PRODUCCION), [processedPedidos]);
     const activePedidos = useMemo(() => processedPedidos.filter(p => p.etapaActual !== Etapa.ARCHIVADO && p.etapaActual !== Etapa.PREPARACION), [processedPedidos]);
+
+    // Expanded pedido list for the List view and PDF export:
+    // Production-stage pedidos are expanded (real + temp instances), sorted by
+    // kanban manual order per stage, concatenated in production stage sequence.
+    // Non-production pedidos (PENDIENTE, COMPLETADO) appear first in their
+    // activePedidos sort order — they are NOT re-grouped by stage.
+    //
+    // Non-production pedidos that match the current filter only via temp-visibility
+    // (e.g. a COMPLETADO pedido with a temp in the filtered production stage)
+    // are excluded from nonProductionPedidos — they appear only as temp rows
+    // in the expanded production list.
+    const nonProductionPedidos = useMemo(() => {
+        const productionSet = new Set<Etapa>(productionKanbanStages as Etapa[]);
+        const filterAll = selectedStages.length === 0 && (filters.stage === 'all' || filters.stage === 'multiple');
+        return activePedidos.filter(p => {
+            const etapa = p.etapaActual as Etapa;
+            if (productionSet.has(etapa)) return false;
+            // Only include if pedido passes stage filter via its own etapaActual
+            // (not via temp-visibility, which is handled by the expanded list).
+            if (filterAll) return true;
+            if (selectedStages.includes(etapa)) return true;
+            if (filters.stage === etapa) return true;
+            return false;
+        });
+    }, [activePedidos, productionKanbanStages, selectedStages, filters.stage]);
+
+    const listViewPedidos: ExpandedPedido[] = useMemo(() => {
+        const expanded = buildExpandedPedidoList({
+            activePedidos,
+            listasTemporalesMap,
+            kanbanManualOrderMap,
+            productionKanbanStages,
+            selectedStages,
+            stageFilter: filters.stage,
+            sortKanbanColumnPedidos,
+        });
+        const productionSet = new Set<Etapa>(productionKanbanStages as Etapa[]);
+        const nonProdIds = new Set(nonProductionPedidos.map(p => p.id));
+        return interleaveExpandedList(activePedidos, expanded, nonProdIds, productionSet);
+    }, [activePedidos, nonProductionPedidos, listasTemporalesMap, kanbanManualOrderMap, productionKanbanStages, selectedStages, filters.stage]);
 
     // --- Archivados: estado separado con carga diferida ---
     const [archivedPedidos, setArchivedPedidos] = useState<Pedido[]>([]);
@@ -1641,7 +1682,12 @@ const AppContent: React.FC = () => {
     }
 
     const handleExportPDF = () => {
-        const pedidosToExport = view === 'list' ? activePedidos : (view === 'archived' ? archivedPedidos : []);
+        let pedidosToExport: Pedido[];
+        if (view === 'list') {
+            pedidosToExport = preparePdfRows(listViewPedidos);
+        } else {
+            pedidosToExport = view === 'archived' ? archivedPedidos : [];
+        }
         if (pedidosToExport.length > 0) {
             generatePedidosPDF(pedidosToExport, listasTemporalesMap, { stage: filters.stage, selectedStages });
         } else {
@@ -1833,7 +1879,7 @@ const AppContent: React.FC = () => {
                 );
             case 'list':
                 return <PedidoList
-                    pedidos={activePedidos}
+                    pedidos={listViewPedidos}
                     onSelectPedido={setSelectedPedido}
                     onArchiveToggle={handleArchiveToggle}
                     isArchivedView={false}
@@ -1845,8 +1891,7 @@ const AppContent: React.FC = () => {
                     selectedIds={selectedIds}
                     onToggleSelection={toggleSelection}
                     onSelectAll={selectAll}
-                    listasTemporalesMap={listasTemporalesMap}
-                    selectedStages={selectedStages}
+                    isExpandedView={true}
                 />;
             case 'archived':
                 return <PedidoList
