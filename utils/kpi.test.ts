@@ -2,8 +2,8 @@
  * Tests for generatePedidosPDF — the real PDF renderer contract.
  *
  * This file exercises generatePedidosPDF() directly (not a replica of its
- * algorithm) to freeze the visible contract for temporary rows: the
- * "[⏳ Prog.]" marker MUST appear in the autoTable body for temp rows.
+ * algorithm) to freeze the visible contract for temporary rows: temporary
+ * rows must preserve the original observation text without PDF-only markers.
  */
 
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
@@ -81,7 +81,7 @@ function spyOnAutoTable(): { calls: AutoTableOptions[]; restore: () => void } {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('generatePedidosPDF — temporal marker contract', () => {
+describe('generatePedidosPDF — temporal observations contract', () => {
     const originalSave = jsPDF.prototype.save;
 
     beforeAll(() => {
@@ -93,7 +93,7 @@ describe('generatePedidosPDF — temporal marker contract', () => {
         jsPDF.prototype.save = originalSave;
     });
 
-    it('renders [⏳ Prog.] visible marker in Observaciones for temp rows (real renderer)', () => {
+    it('keeps original observaciones text for temp rows (real renderer)', () => {
         // Build test data through the real preparePdfRows pipeline
         const ped = makePedido({
             id: 'p1',
@@ -110,7 +110,7 @@ describe('generatePedidosPDF — temporal marker contract', () => {
                 _visualKey: 'real:p1:IMPRESION_WM1',
                 _kanbanInstanceIndex: 0,
             },
-            // Temp row — [⏳ Prog.] marker expected
+            // Temp row — no extra marker should be injected
             {
                 ...ped,
                 _visualStage: Etapa.POST_DNT,
@@ -131,28 +131,19 @@ describe('generatePedidosPDF — temporal marker contract', () => {
             expect(calls.length).toBeGreaterThan(0);
             const body: any[] = calls[0].body;
 
-            // Column 11 is "Observaciones" — the renderer sets the marker here
-            const rowsWithMarker = body.filter((row: any[]) =>
-                typeof row[11] === 'string' && row[11].includes('[⏳ Prog.]'),
-            );
-            const rowsWithoutMarker = body.filter((row: any[]) =>
-                typeof row[11] === 'string' && !row[11].includes('[⏳ Prog.]'),
-            );
-
-            // Contract: exactly 1 temp row gets the marker
-            expect(rowsWithMarker.length).toBe(1);
-            expect(rowsWithMarker[0][11]).toContain('[⏳ Prog.]');
-            expect(rowsWithMarker[0][11]).toContain('Urgente');
-
-            // Contract: the real row does NOT get the marker
-            expect(rowsWithoutMarker.length).toBe(1);
-            expect(rowsWithoutMarker[0][11]).not.toContain('[⏳ Prog.]');
+            expect(body).toHaveLength(2);
+            expect(body[0][11]).toContain('Revisar color');
+            expect(body[0][11]).toContain('Urgente');
+            expect(body[1][11]).toContain('Revisar color');
+            expect(body[1][11]).toContain('Urgente');
+            expect(body[0][11]).not.toContain('[⏳ Prog.]');
+            expect(body[1][11]).not.toContain('[⏳ Prog.]');
         } finally {
             restore();
         }
     });
 
-    it('integration: preparePdfRows → generatePedidosPDF marker survives multi-temp scenario', () => {
+    it('integration: preparePdfRows → generatePedidosPDF keeps plain temp observations in multi-temp scenario', () => {
         // Pedido with 1 real + 2 temp instances in POST_DNT
         const ped = makePedido({
             id: 'multi',
@@ -193,18 +184,15 @@ describe('generatePedidosPDF — temporal marker contract', () => {
             // 3 rows total: 1 real + 2 temp
             expect(body).toHaveLength(3);
 
-            // Temp rows with empty observaciones → "[⏳ Prog.] -"
-            const tempMarkerCount = body.filter((row: any[]) =>
-                typeof row[11] === 'string' && row[11].startsWith('[⏳ Prog.]'),
-            ).length;
-
-            expect(tempMarkerCount).toBe(2);
+            expect(body[0][11]).toBe('-');
+            expect(body[1][11]).toBe('-');
+            expect(body[2][11]).toBe('-');
         } finally {
             restore();
         }
     });
 
-    it('non-temp rows never receive [⏳ Prog.] regardless of observaciones content', () => {
+    it('non-temp rows keep plain observations content', () => {
         const ped = makePedido({
             id: 'clean',
             etapaActual: Etapa.POST_DNT,
@@ -229,14 +217,15 @@ describe('generatePedidosPDF — temporal marker contract', () => {
 
             const body: any[] = calls[0].body;
             expect(body).toHaveLength(1);
-            // Column 11 = Observaciones — MUST NOT contain the temp marker
+            expect(body[0][11]).toContain('Tag importante');
+            expect(body[0][11]).toContain('Nota normal');
             expect(body[0][11]).not.toContain('[⏳ Prog.]');
         } finally {
             restore();
         }
     });
 
-    it('temp row with only observacionesRapidas still gets [⏳ Prog.] prefix', () => {
+    it('temp row with only observacionesRapidas keeps plain text', () => {
         const ped = makePedido({
             id: 'rapidas',
             etapaActual: Etapa.IMPRESION_WM1,
@@ -262,11 +251,10 @@ describe('generatePedidosPDF — temporal marker contract', () => {
             const body: any[] = calls[0].body;
             expect(body).toHaveLength(1);
 
-            // Contract: [⏳ Prog.] prefix + observacionesRapidas content
             const obs = body[0][11] as string;
-            expect(obs).toContain('[⏳ Prog.]');
             expect(obs).toContain('Urgente');
             expect(obs).toContain('Frágil');
+            expect(obs).not.toContain('[⏳ Prog.]');
         } finally {
             restore();
         }

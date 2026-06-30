@@ -603,10 +603,7 @@ describe('temporal visibility contract', () => {
         expect(pdfRows[1].etapaActual).toBe(Etapa.IMPRESION_WM1);
     });
 
-    it('PDF row observaciones field receives [⏳ Prog.] prefix for temp rows', () => {
-        // This test validates the contract preparePdfRows establishes so that
-        // generatePedidosPDF (kpi.ts line 443-444) can detect temp rows and
-        // prefix the observaciones column with "[⏳ Prog.]".
+    it('PDF row keeps temporal flag and visual etapa for renderer decisions', () => {
         const pedido = ped('p', Etapa.IMPRESION_WM1, { observaciones: 'Nota importante' });
         const expanded: ExpandedPedido[] = [
             {
@@ -619,9 +616,7 @@ describe('temporal visibility contract', () => {
 
         const pdfRows = preparePdfRows(expanded);
 
-        // The renderer reads _isTemporal to decide prefix
         expect(pdfRows[0]._isTemporal).toBe(true);
-        // The renderer reads etapaActual (already set to _visualStage)
         expect(pdfRows[0].etapaActual).toBe(Etapa.POST_DNT);
     });
 
@@ -713,11 +708,8 @@ describe('temporal visibility contract', () => {
         });
     });
 
-    describe('[⏳ Prog.] marker contract', () => {
-        it('_isTemporal flag is the single source of truth for the renderer marker', () => {
-            // The PDF renderer (generatePedidosPDF in kpi.ts) reads _isTemporal
-            // to decide whether to prefix observaciones with "[⏳ Prog.]".
-            // This test verifies the contract: temp rows get the flag, real don't.
+    describe('temporal PDF metadata contract', () => {
+        it('_isTemporal flag remains the source of truth for renderer-specific handling', () => {
             const ped = makePedido({
                 id: 'p1',
                 etapaActual: Etapa.IMPRESION_WM1,
@@ -734,20 +726,14 @@ describe('temporal visibility contract', () => {
             const tempRow = pdfRows.find(r => r._isTemporal);
             const realRow = pdfRows.find(r => !r._isTemporal);
 
-            // Temp row: flag signals renderer to emit "[⏳ Prog.]"
             expect(tempRow!._isTemporal).toBe(true);
-            // Real row: flag is false → no marker prefix
             expect(realRow!._isTemporal).toBe(false);
 
-            // Both rows carry the original observaciones field for the renderer
             expect(tempRow!.observaciones).toBe('Nota de prueba');
             expect(realRow!.observaciones).toBe('Nota de prueba');
         });
 
-        it('renderer contract: isTemporal flag + non-empty observaciones produces prefixed output', () => {
-            // Simulates the renderer logic from kpi.ts line 443-444:
-            //   const isTemporal = (p as any)._isTemporal === true;
-            //   const observacionesCombinadas = isTemporal ? `[⏳ Prog.] ${obsBase}` : obsBase;
+        it('renderer contract: temp rows preserve plain observations content', () => {
             const ped = makePedido({
                 id: 'p1',
                 etapaActual: Etapa.IMPRESION_WM1,
@@ -761,21 +747,13 @@ describe('temporal visibility contract', () => {
             const expanded = buildExpandedPedidoList(opts);
             const pdfRows = preparePdfRows(expanded);
 
-            // Replicate the exact renderer contract
             for (const row of pdfRows) {
-                const isTemporal = (row as any)._isTemporal === true;
                 const obsRapidas = row.observacionesRapidas
                     ? row.observacionesRapidas.split(' | ').filter(Boolean).join(' • ')
                     : '';
                 const obsNormal = row.observaciones || '';
                 const obsBase = [obsRapidas, obsNormal].filter(Boolean).join('\n') || '-';
-                const observacionesCombinadas = isTemporal ? `[⏳ Prog.] ${obsBase}` : obsBase;
-
-                if (isTemporal) {
-                    expect(observacionesCombinadas).toContain('[⏳ Prog.]');
-                } else {
-                    expect(observacionesCombinadas).not.toContain('[⏳ Prog.]');
-                }
+                expect(obsBase).toBe('Urgente');
             }
         });
     });

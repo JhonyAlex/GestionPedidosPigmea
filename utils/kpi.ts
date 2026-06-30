@@ -439,9 +439,7 @@ export const generatePedidosPDF = (
         const obsRapidas = p.observacionesRapidas ? p.observacionesRapidas.split(' | ').filter(Boolean).join(' • ') : '';
         const obsNormal = p.observaciones || '';
         const obsBase = [obsRapidas, obsNormal].filter(Boolean).join('\n') || '-';
-        // Mark temporal (expanded view duplicates) so the reader knows why this row repeats
-        const isTemporal = (p as any)._isTemporal === true;
-        const observacionesCombinadas = isTemporal ? `[⏳ Prog.] ${obsBase}` : obsBase;
+        const observacionesCombinadas = obsBase;
 
         // Formatear metros con separador de miles consistente desde 1.000
         const formattedMetros = formatMetrosForPdf(p.metros);
@@ -582,12 +580,6 @@ export const generatePedidosPDF = (
             if (pedido && data.section === 'body') {
                 if (data.row.index % 2 === 1) {
                     data.cell.styles.fillColor = [248, 250, 252];
-                }
-
-                // Temporal-entry background: amber tone so duplicated rows in expanded view
-                // are visually distinguishable from the pedido's real-stage row.
-                if ((pedido as any)._isTemporal === true) {
-                    data.cell.styles.fillColor = [254, 243, 199]; // amber-50
                 }
 
                 // "Cliente / # Pedido" column: Ensure text property reflects content size for row height calculation

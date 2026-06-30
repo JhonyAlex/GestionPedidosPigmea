@@ -198,8 +198,8 @@ export function interleaveExpandedList(
 /**
  * Normalize an expanded pedido for PDF export: for temporary entries, set
  * etapaActual to the visual stage so PDF subtitle/next-stage/stage display
- * all reflect the visual context. Set _isTemporal so the renderer can
- * distinguish temporary rows (amber background, "[⏳ Prog.]" prefix).
+ * all reflect the visual context. `_isTemporal` remains available as metadata
+ * for renderer decisions, without injecting PDF-only markers into observations.
  */
 export interface PdfRow extends Pedido {
     _isTemporal: boolean;
