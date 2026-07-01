@@ -620,6 +620,23 @@ const PedidoCard = React.memo<PedidoCardProps>(({
             }
 
             // Lógica normal para pedidos en secuencia
+            const positionIndex = pedido.secuenciaPositionIndex;
+            if (positionIndex != null && positionIndex >= 0) {
+                // Position-aware: next occurrence in sequence is at positionIndex.
+                if (positionIndex < normalizedSequence.length) {
+                    const nextStage = normalizedSequence[positionIndex];
+                    if (nextStage === pedido.etapaActual) {
+                        return { canAdvance: true, advanceButtonTitle: 'Repetir Etapa Actual' };
+                    }
+                    return { canAdvance: true, advanceButtonTitle: 'Siguiente Etapa' };
+                }
+                // All consumed — only then is completion allowed.
+                if (positionIndex >= normalizedSequence.length) {
+                    return { canAdvance: true, advanceButtonTitle: 'Marcar como Completado' };
+                }
+            }
+
+            // Legacy fallback: indexOf-based (doesn't handle repetitions).
             const currentIndex = normalizedSequence.indexOf(pedido.etapaActual);
             if (currentIndex > -1 && currentIndex < normalizedSequence.length - 1) {
                 return { canAdvance: true, advanceButtonTitle: 'Siguiente Etapa' };

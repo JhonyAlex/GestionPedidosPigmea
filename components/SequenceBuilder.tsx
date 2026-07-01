@@ -17,23 +17,28 @@ const UpIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox
 const DownIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>;
 
 const SequenceBuilder: React.FC<SequenceBuilderProps> = ({ sequence: rawSequence, onChange, isReadOnly, clienteName }) => {
-    // Filtrar: solo etapas de Post-Impresión son válidas en la secuencia de trabajo
+    // Filter: only post-impresión stages are valid in the work sequence.
     const validPostImpresionStages = KANBAN_FUNNELS.POST_IMPRESION.stages;
     const sequence = normalizePostImpresionSequence(rawSequence, clienteName).filter(stage => validPostImpresionStages.includes(stage));
     const showDntStage = isDntCliente(clienteName);
 
+    // Phase B: All machines remain visible in the "Available" panel at all times.
+    // Duplicates are allowed — each click adds another occurrence.
     const availableStages = validPostImpresionStages.filter(
-        stage => !sequence.includes(stage) && (showDntStage || stage !== Etapa.POST_DNT)
+        stage => showDntStage || stage !== Etapa.POST_DNT
     );
 
     const handleAdd = (stage: Etapa) => {
         if (isReadOnly) return;
+        // Append — normalizePostImpresionSequence handles DNT logic but preserves duplicates.
         onChange(normalizePostImpresionSequence([...sequence, stage], clienteName));
     };
 
-    const handleRemove = (stage: Etapa) => {
+    // Remove ONE occurrence at the given index (not all occurrences of that stage).
+    const handleRemoveAtIndex = (index: number) => {
         if (isReadOnly) return;
-        onChange(normalizePostImpresionSequence(sequence.filter(s => s !== stage), clienteName));
+        const newSequence = sequence.filter((_, i) => i !== index);
+        onChange(normalizePostImpresionSequence(newSequence, clienteName));
     };
 
     const handleMove = (index: number, direction: 'up' | 'down') => {
@@ -45,21 +50,29 @@ const SequenceBuilder: React.FC<SequenceBuilderProps> = ({ sequence: rawSequence
         onChange(normalizePostImpresionSequence(newSequence, clienteName));
     };
 
-    const StageButton = ({ stage, onClick, icon, disabled, title }: { stage: Etapa, onClick: () => void, icon: React.ReactNode, disabled: boolean, title: string }) => (
-        <li 
-            key={stage} 
+    const StageButton = ({ stage, index, onClick, icon, disabled, title, isAvailable }: {
+        stage: Etapa;
+        index?: number;
+        onClick: () => void;
+        icon: React.ReactNode;
+        disabled: boolean;
+        title: string;
+        isAvailable?: boolean;
+    }) => (
+        <li
+            key={isAvailable ? `avail-${stage}` : `${stage}-${index}`}
             className={`flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-700 rounded-md ${
-                !isReadOnly && title === 'Añadir a secuencia' ? 'cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600' : ''
+                !isReadOnly && isAvailable ? 'cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600' : ''
             }`}
-            onClick={title === 'Añadir a secuencia' && !isReadOnly ? onClick : undefined}
+            onClick={isAvailable && !isReadOnly ? onClick : undefined}
         >
             <span className="text-sm font-medium">{formatStageTitle(ETAPAS[stage].title)}</span>
             {!isReadOnly && (
-                <div className="flex items-center gap-1" onClick={(e) => title === 'Añadir a secuencia' && e.stopPropagation()}>
-                    {title === 'reorder' && (
+                <div className="flex items-center gap-1" onClick={(e) => isAvailable && e.stopPropagation()}>
+                    {title === 'reorder' && index != null && (
                         <>
-                            <button type="button" onClick={() => handleMove(sequence.indexOf(stage), 'up')} disabled={sequence.indexOf(stage) === 0} className="p-1 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Mover arriba"><UpIcon/></button>
-                            <button type="button" onClick={() => handleMove(sequence.indexOf(stage), 'down')} disabled={sequence.indexOf(stage) === sequence.length - 1} className="p-1 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Mover abajo"><DownIcon/></button>
+                            <button type="button" onClick={() => handleMove(index, 'up')} disabled={index === 0} className="p-1 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Mover arriba"><UpIcon/></button>
+                            <button type="button" onClick={() => handleMove(index, 'down')} disabled={index === sequence.length - 1} className="p-1 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Mover abajo"><DownIcon/></button>
                         </>
                     )}
                     <button type="button" onClick={onClick} className="p-1 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600" aria-label={title}>{icon}</button>
@@ -77,7 +90,15 @@ const SequenceBuilder: React.FC<SequenceBuilderProps> = ({ sequence: rawSequence
                     {availableStages.length > 0 ? (
                         <ul className="space-y-2">
                            {availableStages.map(stage => (
-                                <StageButton key={stage} stage={stage} onClick={() => handleAdd(stage)} icon={<PlusIcon />} disabled={isReadOnly} title="Añadir a secuencia" />
+                                <StageButton
+                                    key={`avail-${stage}`}
+                                    stage={stage}
+                                    onClick={() => handleAdd(stage)}
+                                    icon={<PlusIcon />}
+                                    disabled={isReadOnly}
+                                    title="Añadir a secuencia"
+                                    isAvailable={true}
+                                />
                             ))}
                         </ul>
                     ) : (
@@ -92,8 +113,16 @@ const SequenceBuilder: React.FC<SequenceBuilderProps> = ({ sequence: rawSequence
                  <div className="p-2 border border-gray-300 dark:border-gray-600 rounded-lg h-48 overflow-y-auto">
                     {sequence.length > 0 ? (
                         <ul className="space-y-2">
-                             {sequence.map(stage => (
-                                <StageButton key={stage} stage={stage} onClick={() => handleRemove(stage)} icon={<MinusIcon />} disabled={isReadOnly} title="reorder"/>
+                             {sequence.map((stage, index) => (
+                                <StageButton
+                                    key={`${stage}-${index}`}
+                                    stage={stage}
+                                    index={index}
+                                    onClick={() => handleRemoveAtIndex(index)}
+                                    icon={<MinusIcon />}
+                                    disabled={isReadOnly}
+                                    title="reorder"
+                                />
                             ))}
                         </ul>
                     ) : (

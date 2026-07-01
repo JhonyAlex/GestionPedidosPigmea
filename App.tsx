@@ -41,7 +41,7 @@ import { ToastContainer } from './components/Toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { MaterialesProvider } from './contexts/MaterialesContext';
 
-import { calcularSiguienteEtapa, estaFueraDeSecuencia } from './utils/etapaLogic';
+import { calcularSiguienteEtapa, estaFueraDeSecuencia, findNextOccurrenceIndex } from './utils/etapaLogic';
 import { normalizePostImpresionSequence } from './utils/dntWorkflow';
 import { procesarDragEnd } from './utils/dragLogic';
 import { usePedidosManager } from './hooks/usePedidosManager';
@@ -848,6 +848,11 @@ const AppContent: React.FC = () => {
     ]);
 
     const handleAdvanceStage = async (pedidoToAdvance: Pedido) => {
+        // --- Build normalized sequence once, used by all steps. ---
+        const normalizedSequence = pedidoToAdvance.cliente
+            ? normalizePostImpresionSequence(pedidoToAdvance.secuenciaTrabajo, pedidoToAdvance.cliente)
+            : [...(pedidoToAdvance.secuenciaTrabajo || [])];
+
         // --- STEP 0: Determine the effective stage for all downstream logic. ---
         // If the pedido's actual stage was replaced in secuenciaTrabajo via a
         // temporary-list sync, use the process-group equivalent from the sequence.
@@ -855,20 +860,14 @@ const AppContent: React.FC = () => {
         // the logically-current stage rather than the outdated physical stage.
         let effectiveEtapa: Etapa = pedidoToAdvance.etapaActual;
 
-        {
-            const normalizedSequence = pedidoToAdvance.cliente
-                ? normalizePostImpresionSequence(pedidoToAdvance.secuenciaTrabajo, pedidoToAdvance.cliente)
-                : [...(pedidoToAdvance.secuenciaTrabajo || [])];
-
-            if (!normalizedSequence.includes(effectiveEtapa) && normalizedSequence.length > 0) {
-                const currentGroup = PROCESS_GROUP_FOR_STAGE[effectiveEtapa];
-                if (currentGroup) {
-                    const groupStages = PROCESS_GROUP_STAGES[currentGroup];
-                    if (groupStages) {
-                        const groupStageInSequence = normalizedSequence.find(s => groupStages.includes(s));
-                        if (groupStageInSequence) {
-                            effectiveEtapa = groupStageInSequence;
-                        }
+        if (!normalizedSequence.includes(effectiveEtapa) && normalizedSequence.length > 0) {
+            const currentGroup = PROCESS_GROUP_FOR_STAGE[effectiveEtapa];
+            if (currentGroup) {
+                const groupStages = PROCESS_GROUP_STAGES[currentGroup];
+                if (groupStages) {
+                    const groupStageInSequence = normalizedSequence.find(s => groupStages.includes(s));
+                    if (groupStageInSequence) {
+                        effectiveEtapa = groupStageInSequence;
                     }
                 }
             }
@@ -900,19 +899,30 @@ const AppContent: React.FC = () => {
             return;
         }
 
-        // --- STEP 4: Compute target. ---
-        // Temp promotion: promote to the temp stage itself (in-place).
-        // Normal advance: compute next stage after effectiveEtapa.
+        // --- STEP 4: Compute target using position-index-aware logic. ---
+        // For pedidos with secuenciaPositionIndex, use it to find the next unconsumed
+        // occurrence. For legacy pedidos without it, fall back to indexOf behaviour.
+        const currentPositionIndex = pedidoToAdvance.secuenciaPositionIndex;
+        const isPositionTracked = currentPositionIndex != null && currentPositionIndex >= 0;
+
         const targetEtapa = isTempPromotion
             ? effectiveEtapa
-            : calcularSiguienteEtapa(effectiveEtapa, pedidoToAdvance.secuenciaTrabajo, pedidoToAdvance.cliente);
+            : isPositionTracked
+                ? calcularSiguienteEtapa(effectiveEtapa, pedidoToAdvance.secuenciaTrabajo, currentPositionIndex, pedidoToAdvance.cliente)
+                : calcularSiguienteEtapa(effectiveEtapa, pedidoToAdvance.secuenciaTrabajo, undefined, pedidoToAdvance.cliente);
 
         if (!targetEtapa) return;
 
+        // Determine if this is a same-stage repetition (pedido stays in the same
+        // column but gets repositioned to the end).
+        const isPrinting = KANBAN_FUNNELS.IMPRESION.stages.includes(effectiveEtapa);
+        const isSameStageRepetition = isPositionTracked
+            && !isPrinting
+            && !isTempPromotion
+            && targetEtapa !== Etapa.COMPLETADO
+            && targetEtapa === effectiveEtapa;
+
         // --- STEP 5: Visual slot preservation for temp promotion (Defect 1). ---
-        // Capture the pedido's current index in the target column BEFORE the stage
-        // update so we can write it into the kanban manual order afterwards.
-        // Save the previous order for rollback if the stage update fails.
         let previousKanbanOrder: string[] | undefined;
 
         if (isTempPromotion) {
@@ -922,7 +932,6 @@ const AppContent: React.FC = () => {
                 const draggableId = buildKanbanDraggableId(pedidoToAdvance.id, targetEtapa);
                 const existingOrder = kanbanManualOrderMap[targetEtapa]
                     || allPedidosInTarget.map(p => buildKanbanDraggableId(p.id, targetEtapa));
-                // Snapshot before mutation for potential rollback
                 previousKanbanOrder = [...existingOrder];
                 const filteredOrder = existingOrder.filter(id => parseKanbanDraggableId(id).pedidoId !== pedidoToAdvance.id);
                 filteredOrder.splice(currentIndex, 0, draggableId);
@@ -930,12 +939,40 @@ const AppContent: React.FC = () => {
             }
         }
 
-        // --- STEP 6: Execute stage change. ---
-        setHighlightedPedidoId(pedidoToAdvance.id);
+        // --- Reposition to end of column for same-stage repetitions. ---
+        if (isSameStageRepetition) {
+            const allPedidosInStage = kanbanAllPedidosByStage[targetEtapa] || [];
+            const existingOrder = kanbanManualOrderMap[targetEtapa]
+                || allPedidosInStage.map(p => buildKanbanDraggableId(p.id, targetEtapa));
+            previousKanbanOrder = [...existingOrder];
+            const draggableId = buildKanbanDraggableId(pedidoToAdvance.id, targetEtapa);
+            const filteredOrder = existingOrder.filter(id => parseKanbanDraggableId(id).pedidoId !== pedidoToAdvance.id);
+            filteredOrder.push(draggableId);
+            await updateKanbanManualOrderForStage(targetEtapa, filteredOrder, { strict: true });
+        }
 
-        const updateResult = await handleUpdatePedidoEtapa(pedidoToAdvance, targetEtapa);
+        // --- STEP 6: Execute stage change (skip for same-stage repetitions). ---
+        setHighlightedPedidoId(pedidoToAdvance.id);
+        let updateResult: any = true;
+
+        if (!isSameStageRepetition) {
+            updateResult = await handleUpdatePedidoEtapa(pedidoToAdvance, targetEtapa);
+        } else {
+            // Same-stage repetition: only save incremented secuenciaPositionIndex,
+            // no stage change needed.
+            try {
+                updateResult = await handleSavePedidoLogic({
+                    ...pedidoToAdvance,
+                    secuenciaPositionIndex: currentPositionIndex! + 1,
+                });
+            } catch (error) {
+                console.error('Error saving secuenciaPositionIndex for same-stage repetition:', error);
+                updateResult = undefined;
+            }
+        }
+
         if (!updateResult) {
-            // ROLLBACK: restore previous kanban order if promotion mutated it
+            // ROLLBACK: restore previous kanban order
             if (previousKanbanOrder) {
                 await updateKanbanManualOrderForStage(targetEtapa, previousKanbanOrder, { strict: true });
             }
@@ -943,34 +980,67 @@ const AppContent: React.FC = () => {
             return;
         }
 
+        // --- STEP 6b: Increment secuenciaPositionIndex after successful advance. ---
+        // For position-tracked pedidos advancing to a different stage (not same-stage
+        // repetition which already incremented above), increment the index now.
+        if (isPositionTracked && !isSameStageRepetition && targetEtapa !== Etapa.COMPLETADO) {
+            const nextIndex = currentPositionIndex! + 1;
+            try {
+                // Use the pedido that was actually saved by handleUpdatePedidoEtapa,
+                // NOT the stale pedidoToAdvance snapshot. Spreading pedidoToAdvance
+                // would revert etapaActual, subEtapaActual, and posicionEnEtapa to
+                // their pre-advance values, corrupting the pedido state.
+                const savedPedido = (updateResult as any)?.modifiedPedido as Pedido | undefined;
+                await handleSavePedidoLogic({
+                    ...(savedPedido || pedidoToAdvance),
+                    secuenciaPositionIndex: nextIndex,
+                });
+            } catch (error) {
+                console.error('Error saving secuenciaPositionIndex after advance:', error);
+                // Non-fatal: the pedido advanced but index may be stale.
+                // Next advance will use legacy fallback.
+            }
+        }
+
         // --- STEP 7: Clean up temporary-list state. ---
-        // Temp promotion: only remove ONE promoted instance (respect multiplicity —
-        // repeated clicks create multiple copies; removal must not collapse them).
-        // Normal advance: remove all temp stages from the process group we left.
+        // A. Remove temps from the origin process group (normal advance).
+        // B. Remove any remaining temps for the DESTINATION stage (Fase A bug 1 fix:
+        //    prevents real + temp duplication in the same destination column).
         try {
             const currentTemporales = listasTemporalesMap[pedidoToAdvance.id] || [];
+            let nextTemporales = [...currentTemporales];
+
             if (isTempPromotion) {
-                const idx = currentTemporales.indexOf(targetEtapa);
+                const idx = nextTemporales.indexOf(targetEtapa);
                 if (idx !== -1) {
-                    const nextTemporales = [...currentTemporales];
                     nextTemporales.splice(idx, 1);
-                    await replaceListaTemporal(pedidoToAdvance.id, nextTemporales);
                 }
-            } else {
+            } else if (!isSameStageRepetition) {
+                // Normal advance: remove all temps from the origin process group.
                 const originGroup = PROCESS_GROUP_FOR_STAGE[pedidoToAdvance.etapaActual];
                 if (originGroup) {
                     const groupStages = PROCESS_GROUP_STAGES[originGroup];
                     if (groupStages) {
-                        const filtered = currentTemporales.filter(e => !groupStages.includes(e));
-                        if (filtered.length !== currentTemporales.length) {
-                            await replaceListaTemporal(pedidoToAdvance.id, filtered);
-                        }
-                    } else {
-                        await resetListaTemporal(pedidoToAdvance.id);
+                        nextTemporales = nextTemporales.filter(e => !groupStages.includes(e));
                     }
-                } else {
-                    await resetListaTemporal(pedidoToAdvance.id);
                 }
+            }
+
+            // Fase A Bug 1 fix: also remove any temp entries for the TARGET stage.
+            // Prevents "real + temp" duplication when advancing to a destination
+            // that already had temporary entries.
+            if (!isSameStageRepetition && targetEtapa !== Etapa.COMPLETADO) {
+                const targetProcessGroup = PROCESS_GROUP_FOR_STAGE[targetEtapa];
+                if (targetProcessGroup) {
+                    const targetGroupStages = PROCESS_GROUP_STAGES[targetProcessGroup];
+                    if (targetGroupStages) {
+                        nextTemporales = nextTemporales.filter(e => !targetGroupStages.includes(e));
+                    }
+                }
+            }
+
+            if (nextTemporales.length !== currentTemporales.length) {
+                await replaceListaTemporal(pedidoToAdvance.id, nextTemporales);
             }
         } catch (error) {
             console.error('Error cleaning temp lists after stage advance:', error);
@@ -991,14 +1061,19 @@ const AppContent: React.FC = () => {
             }
         }
 
-        logAction(`Pedido ${pedidoToAdvance.numeroPedidoCliente} avanzado de ${ETAPAS[pedidoToAdvance.etapaActual].title} a ${ETAPAS[targetEtapa].title}.`, pedidoToAdvance.id);
+        const actionDescription = isSameStageRepetition
+            ? `Pedido ${pedidoToAdvance.numeroPedidoCliente} repetido en ${ETAPAS[targetEtapa].title} (consumiendo ocurrencia de secuencia).`
+            : `Pedido ${pedidoToAdvance.numeroPedidoCliente} avanzado de ${ETAPAS[pedidoToAdvance.etapaActual].title} a ${ETAPAS[targetEtapa].title}.`;
+        logAction(actionDescription, pedidoToAdvance.id);
 
         // 🎉 Notificación toast con opción de navegar
         const etapaAnterior = ETAPAS[pedidoToAdvance.etapaActual]?.title || pedidoToAdvance.etapaActual;
         const etapaNueva = ETAPAS[targetEtapa]?.title || targetEtapa;
 
         addToast(
-            `✅ Pedido ${pedidoToAdvance.numeroPedidoCliente} movido de "${etapaAnterior}" a "${etapaNueva}"`,
+            isSameStageRepetition
+                ? `🔄 Pedido ${pedidoToAdvance.numeroPedidoCliente} repetido en "${etapaNueva}"`
+                : `✅ Pedido ${pedidoToAdvance.numeroPedidoCliente} movido de "${etapaAnterior}" a "${etapaNueva}"`,
             'success',
             {
                 duration: 6000,

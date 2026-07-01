@@ -11,17 +11,9 @@ export const isValidPostImpresionStage = (etapa: Etapa): boolean =>
     KANBAN_FUNNELS.POST_IMPRESION.stages.includes(etapa);
 
 export const sanitizePostImpresionSequence = (sequence: Etapa[] | undefined): Etapa[] => {
-    const uniqueStages: Etapa[] = [];
-
-    (sequence || []).forEach((etapa) => {
-        if (!isValidPostImpresionStage(etapa) || uniqueStages.includes(etapa)) {
-            return;
-        }
-
-        uniqueStages.push(etapa);
-    });
-
-    return uniqueStages;
+    // Allow duplicates — repeated stages represent multiple passes through the same machine.
+    // Only filter invalid (non-post-impresión) stages.
+    return (sequence || []).filter(etapa => isValidPostImpresionStage(etapa));
 };
 
 export const normalizePostImpresionSequence = (

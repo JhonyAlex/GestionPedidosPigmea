@@ -111,6 +111,7 @@ export interface Pedido {
     anonimoPostImpresion?: string; // ✅ NUEVO: Campo para especificar el tipo de post-impresión en anónimos
     atencionObservaciones?: boolean; // Marca pedidos que requieren atención especial en observaciones
     posicionEnEtapa?: number; // Posición del pedido dentro de su etapa actual (para ordenamiento manual en Kanban)
+    secuenciaPositionIndex?: number; // 0-based index into secuenciaTrabajo tracking next unconsumed occurrence. Supports repeated stages
 
     /** El nombre o código del producto final. */
     producto?: string | null;

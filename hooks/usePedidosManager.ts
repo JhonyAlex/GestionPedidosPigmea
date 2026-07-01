@@ -891,6 +891,41 @@ export const usePedidosManager = (
 
         if (toImpresion) {
             updatedPedido.maquinaImpresion = ETAPAS[newEtapa]?.title;
+            // Initialize secuenciaPositionIndex when entering printing with a
+            // defined post-impresión sequence. This enables position-index-aware
+            // consumption for the entire post-impresión traversal. Without this,
+            // the legacy indexOf fallback is used, which cannot handle repeated
+            // stages in the sequence.
+            if (updatedPedido.secuenciaTrabajo && updatedPedido.secuenciaTrabajo.length > 0) {
+                updatedPedido.secuenciaPositionIndex = 0;
+            }
+        }
+
+        // Initialize secuenciaPositionIndex when entering post-impresión directly
+        // (e.g., handleCancelAntivaho skipping printing, or manual drag into a
+        // later post-impresión stage). Only set if not already present, to avoid
+        // overwriting an index carried over from a prior printing entry.
+        //
+        // Compute the index from the normalized sequence so the position reflects
+        // the actual stage the pedido is entering. Hardcoding 0 would cause a
+        // pedido dragged into a later stage (e.g., S2DT) to advance back to
+        // sequence[0] (DNT), breaking the golden rule.
+        const enteringPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(newEtapa)
+            && !fromPostImpresion;
+        if (enteringPostImpresion
+            && updatedPedido.secuenciaTrabajo
+            && updatedPedido.secuenciaTrabajo.length > 0
+            && updatedPedido.secuenciaPositionIndex == null) {
+            const normalizedSeq = normalizePostImpresionSequence(
+                updatedPedido.secuenciaTrabajo,
+                updatedPedido.cliente
+            );
+            const foundIndex = normalizedSeq.indexOf(newEtapa);
+            // Use the first occurrence of the stage as the starting position.
+            // If the stage is not in the sequence (out-of-sequence), fall back
+            // to 0 — the estaFueraDeSecuencia guard in handleAdvanceStage will
+            // intercept before any wrong advance fires.
+            updatedPedido.secuenciaPositionIndex = foundIndex >= 0 ? foundIndex : 0;
         }
 
         // Proceed with the stage change
@@ -951,6 +986,9 @@ export const usePedidosManager = (
 
             if (KANBAN_FUNNELS.IMPRESION.stages.includes(antivahoModalState.toEtapa)) {
                 finalUpdatedPedido.maquinaImpresion = ETAPAS[antivahoModalState.toEtapa]?.title;
+                if (finalUpdatedPedido.secuenciaTrabajo && finalUpdatedPedido.secuenciaTrabajo.length > 0) {
+                    finalUpdatedPedido.secuenciaPositionIndex = 0;
+                }
             }
 
             // ✅ Asignar posicionEnEtapa: siempre al final de la etapa destino
