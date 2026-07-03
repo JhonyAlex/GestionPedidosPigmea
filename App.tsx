@@ -111,6 +111,10 @@ const AppContent: React.FC = () => {
     const [showPdfImportModal, setShowPdfImportModal] = useState(false);
     const [kanbanManualOrderMap, setKanbanManualOrderMap] = useState<KanbanManualOrderMap>({});
     const kanbanManualOrderChangedRef = useRef(false);
+    /** Buffer used by handleSetListaTemporal → syncKanbanOrder to bridge the
+     *  computed order from inside the setKanbanManualOrderMap callback (where
+     *  `prev` is always current) to the fire-and-forget server save call. */
+    const kanbanOrderSyncBufferRef = useRef<{ etapa: Etapa; order: string[] } | null>(null);
 
     // Track original stage replaced in secuenciaTrabajo per pedido+processGroup
     // Used for revert-on-uncheck behavior (Defect 3).
@@ -237,34 +241,35 @@ const AppContent: React.FC = () => {
          * so it does not block the caller.
          */
         const syncKanbanOrder = async () => {
-            const currentOrder = kanbanManualOrderMap[etapa] || [];
-            let newOrder: string[];
-
-            if (checked) {
-                // Find the highest instance index already present among this pedido's
-                // entries in the current order (real=0, temp=1,2,…). The new temp
-                // entry gets the next index.
-                let maxInstanceIndex = 0;
-                for (const id of currentOrder) {
-                    const parsed = parseKanbanDraggableId(id);
-                    if (parsed.pedidoId === pedidoId) {
-                        maxInstanceIndex = Math.max(maxInstanceIndex, parsed.instanceIndex);
-                    }
-                }
-                const instanceIndex = maxInstanceIndex + 1;
-                const draggableId = buildKanbanDraggableId(pedidoId, etapa, instanceIndex);
-                newOrder = [...currentOrder, draggableId];
-            } else {
-                // Remove only temporary-instance entries (instanceIndex > 0); the real
-                // entry for this pedido in this stage (etapaActual === etapa) is preserved.
-                newOrder = currentOrder.filter(id => {
-                    const parsed = parseKanbanDraggableId(id);
-                    return !(parsed.pedidoId === pedidoId && parsed.instanceIndex > 0);
-                });
-            }
-
-            // Update local state
+            // Read `prev` inside the setState callback so we always work with the
+            // latest kanbanManualOrderMap — the closure's value may be stale if
+            // a WebSocket event or another state update landed between renders.
+            // We buffer the computed order via a ref so the server save below
+            // can send exactly what was written to React state.
             setKanbanManualOrderMap(prev => {
+                const currentOrder = [...(prev[etapa] || [])];
+                let newOrder: string[];
+
+                if (checked) {
+                    let maxInstanceIndex = 0;
+                    for (const id of currentOrder) {
+                        const parsed = parseKanbanDraggableId(id);
+                        if (parsed.pedidoId === pedidoId) {
+                            maxInstanceIndex = Math.max(maxInstanceIndex, parsed.instanceIndex);
+                        }
+                    }
+                    const instanceIndex = maxInstanceIndex + 1;
+                    const draggableId = buildKanbanDraggableId(pedidoId, etapa, instanceIndex);
+                    newOrder = [...currentOrder, draggableId];
+                } else {
+                    newOrder = currentOrder.filter(id => {
+                        const parsed = parseKanbanDraggableId(id);
+                        return !(parsed.pedidoId === pedidoId && parsed.instanceIndex > 0);
+                    });
+                }
+
+                kanbanOrderSyncBufferRef.current = { etapa, order: newOrder };
+
                 if (newOrder.length > 0) {
                     return { ...prev, [etapa]: newOrder };
                 }
@@ -273,11 +278,15 @@ const AppContent: React.FC = () => {
                 return next;
             });
 
-            // Persist to server — fire-and-forget (errors are logged but do not
-            // bubble up because the temp-list operation already succeeded).
-            saveKanbanManualOrderForStage(etapa, newOrder).catch(err => {
-                console.error('Error syncing kanban order after temp list change:', err);
-            });
+            // Persist to server — fire-and-forget. The ref was populated
+            // synchronously by the setState callback above.
+            const buf = kanbanOrderSyncBufferRef.current;
+            if (buf) {
+                kanbanOrderSyncBufferRef.current = null;
+                saveKanbanManualOrderForStage(buf.etapa, buf.order).catch(err => {
+                    console.error('Error syncing kanban order after temp list change:', err);
+                });
+            }
         };
 
         /**
