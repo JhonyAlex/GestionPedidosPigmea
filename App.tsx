@@ -226,21 +226,85 @@ const AppContent: React.FC = () => {
      * ROLLBACK: If sequence-save fails on CHECK or UNCHECK, the temp-list toggle is aborted.
      */
     const handleSetListaTemporal = useCallback(async (pedidoId: string, etapa: Etapa, checked: boolean) => {
+        /**
+         * Sync the kanban manual order map after a temp-list entry is created or removed.
+         *
+         * - CHECK (checked=true):  append a new draggable ID at the END of the stage's order
+         * - UNCHECK (checked=false): remove only the temp-instance draggable IDs (instanceIndex > 0)
+         *   for this pedido — the real entry (etapaActual === etapa) is never touched here.
+         *
+         * The local state is updated immediately; the server persistence is fire-and-forget
+         * so it does not block the caller.
+         */
+        const syncKanbanOrder = async () => {
+            const currentOrder = kanbanManualOrderMap[etapa] || [];
+            let newOrder: string[];
+
+            if (checked) {
+                // Find the highest instance index already present among this pedido's
+                // entries in the current order (real=0, temp=1,2,…). The new temp
+                // entry gets the next index.
+                let maxInstanceIndex = 0;
+                for (const id of currentOrder) {
+                    const parsed = parseKanbanDraggableId(id);
+                    if (parsed.pedidoId === pedidoId) {
+                        maxInstanceIndex = Math.max(maxInstanceIndex, parsed.instanceIndex);
+                    }
+                }
+                const instanceIndex = maxInstanceIndex + 1;
+                const draggableId = buildKanbanDraggableId(pedidoId, etapa, instanceIndex);
+                newOrder = [...currentOrder, draggableId];
+            } else {
+                // Remove only temporary-instance entries (instanceIndex > 0); the real
+                // entry for this pedido in this stage (etapaActual === etapa) is preserved.
+                newOrder = currentOrder.filter(id => {
+                    const parsed = parseKanbanDraggableId(id);
+                    return !(parsed.pedidoId === pedidoId && parsed.instanceIndex > 0);
+                });
+            }
+
+            // Update local state
+            setKanbanManualOrderMap(prev => {
+                if (newOrder.length > 0) {
+                    return { ...prev, [etapa]: newOrder };
+                }
+                const next = { ...prev };
+                delete next[etapa];
+                return next;
+            });
+
+            // Persist to server — fire-and-forget (errors are logged but do not
+            // bubble up because the temp-list operation already succeeded).
+            saveKanbanManualOrderForStage(etapa, newOrder).catch(err => {
+                console.error('Error syncing kanban order after temp list change:', err);
+            });
+        };
+
+        /**
+         * Thin wrapper: execute the temp-list mutation first, then sync the kanban
+         * manual order.  If the temp-list call throws the kanban sync is skipped
+         * (rollback is handled by the caller).
+         */
+        const doSetListaTemporal = async () => {
+            await setListaTemporal(pedidoId, etapa, checked);
+            await syncKanbanOrder();
+        };
+
         const pedido = pedidos.find(p => p.id === pedidoId);
         if (!pedido) {
-            await setListaTemporal(pedidoId, etapa, checked);
+            await doSetListaTemporal();
             return;
         }
 
         const processGroup = PROCESS_GROUP_FOR_STAGE[etapa];
         if (!processGroup) {
-            await setListaTemporal(pedidoId, etapa, checked);
+            await doSetListaTemporal();
             return;
         }
 
         const groupStages = PROCESS_GROUP_STAGES[processGroup];
         if (!groupStages) {
-            await setListaTemporal(pedidoId, etapa, checked);
+            await doSetListaTemporal();
             return;
         }
 
@@ -259,7 +323,7 @@ const AppContent: React.FC = () => {
             if (!currentGroupStage || currentGroupStage === etapa) {
                 // No process-group stage in sequence, or already the checked stage.
                 // Still allow the temp toggle, no sequence update needed.
-                await setListaTemporal(pedidoId, etapa, checked);
+                await doSetListaTemporal();
                 return;
             }
 
@@ -334,7 +398,7 @@ const AppContent: React.FC = () => {
         }
 
         try {
-            await setListaTemporal(pedidoId, etapa, checked);
+            await doSetListaTemporal();
         } catch (error) {
             if (sequenceChanged) {
                 const rollbackResult = await handleSavePedidoLogic({ ...pedido, secuenciaTrabajo: normalizedSequence });
@@ -353,7 +417,7 @@ const AppContent: React.FC = () => {
 
             throw error;
         }
-    }, [pedidos, setListaTemporal, handleSavePedidoLogic, listasTemporalesMap]);
+    }, [pedidos, setListaTemporal, handleSavePedidoLogic, listasTemporalesMap, kanbanManualOrderMap, setKanbanManualOrderMap]);
 
     // Estado para filtro de "Solo con lista temporal" en la vista Producción (kanban)
     const [filtrarSoloTemporales, setFiltrarSoloTemporales] = useState(false);
