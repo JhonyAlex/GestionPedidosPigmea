@@ -175,8 +175,11 @@ const PedidoRow: React.FC<{
 
     // In expanded view, derive isTemporalDisplay from the visual stage metadata.
     // In non-expanded view, use the prop (computed from selectedStages + listasTemporalesMap).
+    // Same-stage temp duplicates (instanceIndex > 0, visualStage === etapaActual)
+    // must also be treated as temporal — they are extra visual copies, not the real pedido.
     const temporalDisplay = isExpandedView
-        ? ((pedido as any)._visualStage != null && (pedido as any)._visualStage !== pedido.etapaActual)
+        ? ((pedido as any)._visualStage != null &&
+           ((pedido as any)._visualStage !== pedido.etapaActual || ((pedido as any)._kanbanInstanceIndex || 0) > 0))
         : (isTemporalDisplayProp ?? false);
 
     return (

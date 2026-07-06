@@ -233,8 +233,8 @@ export const sortKanbanColumnPedidos = (
             return 1;
         }
 
-        const isTemporalA = a.etapaActual !== stageId;
-        const isTemporalB = b.etapaActual !== stageId;
+        const isTemporalA = a.etapaActual !== stageId || ((a as any)._kanbanInstanceIndex || 0) > 0;
+        const isTemporalB = b.etapaActual !== stageId || ((b as any)._kanbanInstanceIndex || 0) > 0;
 
         if (isTemporalA && !isTemporalB) return 1;
         if (!isTemporalA && isTemporalB) return -1;

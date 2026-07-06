@@ -139,7 +139,7 @@ export function interleaveExpandedList(
     nonProductionIds: Set<string>,
     productionStages: Set<Etapa>,
 ): ExpandedPedido[] {
-    // Build pedidoId → expanded rows (preserving expanded order per pedido)
+    // Build pedidoId → expanded rows (preserving expanded order per pedido).
     const expandedByPedido = new Map<string, ExpandedPedido[]>();
     for (const row of expanded) {
         const rows = expandedByPedido.get(row.id);
@@ -153,30 +153,57 @@ export function interleaveExpandedList(
     const result: ExpandedPedido[] = [];
     const emittedExpandedFor = new Set<string>();
 
-    for (const pedido of activePedidos) {
-        const etapa = pedido.etapaActual as Etapa;
-        const expandedRows = expandedByPedido.get(pedido.id);
+    // Map each pedido ID to its first position in activePedidos so we can
+    // interleave non-production pedidos at their correct relative positions.
+    const activeOrder = new Map<string, number>();
+    activePedidos.forEach((p, i) => {
+        if (!activeOrder.has(p.id)) activeOrder.set(p.id, i);
+    });
 
-        if (productionStages.has(etapa)) {
-            // Production slot: emit expanded rows for this pedido
-            if (expandedRows && expandedRows.length > 0) {
-                result.push(...expandedRows);
-                emittedExpandedFor.add(pedido.id);
+    // Non-production pedidos in activePedidos order.
+    const nonProdPedidos = activePedidos.filter(p => nonProductionIds.has(p.id));
+    let nonProdCursor = 0;
+
+    // Walk expanded rows in their natural stage+kanban order instead of
+    // grouping all rows for a pedido into a single block.  This preserves
+    // the same order the user sees in the Production Kanban view.
+    for (const row of expanded) {
+        const rowActiveOrder = activeOrder.get(row.id) ?? Infinity;
+
+        // Emit any non-production pedidos whose activePedidos position
+        // is before this expanded row.
+        while (nonProdCursor < nonProdPedidos.length) {
+            const np = nonProdPedidos[nonProdCursor];
+            const npOrder = activeOrder.get(np.id) ?? Infinity;
+
+            // If this non-production pedido has its own expanded rows,
+            // those rows will be emitted at their natural positions inside
+            // the expanded walk — skip the bare pedido to avoid duplicates.
+            if (expandedByPedido.has(np.id)) {
+                nonProdCursor++;
+                continue;
             }
-            // If no expanded rows, the pedido is simply not emitted (filtered/edge).
-        } else if (nonProductionIds.has(pedido.id)) {
-            if (expandedRows && expandedRows.length > 0) {
-                // Non-production slot that also has expanded temp rows:
-                // emit the expanded representation (supersedes the original).
-                result.push(...expandedRows);
-                emittedExpandedFor.add(pedido.id);
+
+            if (npOrder < rowActiveOrder) {
+                result.push(np as unknown as ExpandedPedido);
+                nonProdCursor++;
             } else {
-                // Pure non-production slot: emit the pedido as-is.
-                result.push(pedido as unknown as ExpandedPedido);
+                break;
             }
         }
-        // Pedidos not in productionStages and not in nonProductionIds: skip
-        // (they were filtered out).
+
+        result.push(row);
+        emittedExpandedFor.add(row.id);
+    }
+
+    // Append any remaining non-production pedidos that appear after the
+    // last expanded row in activePedidos order.
+    while (nonProdCursor < nonProdPedidos.length) {
+        const np = nonProdPedidos[nonProdCursor];
+        if (!expandedByPedido.has(np.id)) {
+            result.push(np as unknown as ExpandedPedido);
+        }
+        nonProdCursor++;
     }
 
     // Edge case: expanded rows whose pedido was never consumed by the walk
@@ -208,8 +235,9 @@ export interface PdfRow extends Pedido {
 export function preparePdfRows(expandedPedidos: ExpandedPedido[]): PdfRow[] {
     return expandedPedidos.map(p => {
         const visualStage = (p as any)._visualStage as Etapa | undefined;
+        const instanceIndex = (p as any)._kanbanInstanceIndex as number | undefined;
         const isTemporal =
-            visualStage != null && visualStage !== p.etapaActual;
+            visualStage != null && (visualStage !== p.etapaActual || (instanceIndex || 0) > 0);
         if (isTemporal) {
             return {
                 ...p,
