@@ -124,6 +124,7 @@ const AVAILABLE_FIELDS = [
   // Fechas y plazos
   { value: 'fechaCreacion', label: '🕐 Fecha Creación' },
   { value: 'nuevaFechaEntrega', label: '📆 Nueva Fecha Entrega' },
+  { value: 'semana', label: '📅 Semana' },
   { value: 'compraCliche', label: '🛒 Fecha Compra Cliché' },
   { value: 'recepcionCliche', label: '📥 Fecha Recepción Cliché' },
   { value: 'fechaFinalizacion', label: '🏁 Fecha Finalización' },

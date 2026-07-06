@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Pedido, Etapa, Prioridad } from '../types';
 import { DateFilterOption, getDateRange, formatMetros, formatDecimalHoursToHHMM } from '../utils/date';
-import { getWeekNumber, getWeekDateRange } from '../utils/weekUtils';
+import { getWeekNumber, getWeekDateRange, parseSemanaLabel } from '../utils/weekUtils';
 import DateFilterCombined from './DateFilterCombined';
 import { MAQUINAS_IMPRESION, PREPARACION_SUB_ETAPAS_IDS, PREPARACION_COLUMNS, ETAPAS } from '../constants';
 import { parseTimeToMinutes } from '../utils/kpi';
@@ -438,15 +438,30 @@ const ReportView: React.FC<ReportViewProps> = ({
         });
 
         filteredPedidos.forEach(p => {
-            // Determine Week based on selected date field
-            const dateStr = p[dateField] as string || p.fechaEntrega || p.fechaCreacion;
-            if (!dateStr) return;
+            // Determine week and year — explicit semana takes priority
+            let weekNum: number;
+            let year: number;
+            let found = false;
 
-            const date = new Date(dateStr);
-            if (isNaN(date.getTime())) return;
+            // 1. Try explicit `semana` field first
+            if (p.semana) {
+                const parsed = parseSemanaLabel(p.semana);
+                if (parsed) {
+                    weekNum = parsed.week;
+                    year = parsed.year;
+                    found = true;
+                }
+            }
 
-            const weekNum = getWeekNumber(date);
-            const year = date.getFullYear();
+            // 2. Fallback to date derivation for legacy pedidos
+            if (!found) {
+                const dateStr = p[dateField] as string || p.fechaEntrega || p.fechaCreacion;
+                if (!dateStr) return;
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) return;
+                weekNum = getWeekNumber(date);
+                year = date.getFullYear();
+            }
 
             // Generate grouping key (YYYY-WW)
             const weekKey = `${year}-${weekNum.toString().padStart(2, '0')}`;

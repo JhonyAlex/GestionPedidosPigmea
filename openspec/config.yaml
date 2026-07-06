@@ -1,43 +1,57 @@
 schema: spec-driven
 
 context: |
-  Tech stack: React 18 + TypeScript + Vite frontend; Node.js 18+ + Express backend; PostgreSQL database.
-  Architecture: SPA at repo root with components/hooks/services/utils; monolithic Express API in backend/ with middleware/services/routes; SQL migrations in database/migrations/.
-  Testing: No automated test runner detected; only ad hoc backend scripts for manual verification.
-  Style: Frontend uses relative /api calls, auth headers on protected fetches, idempotent SQL migrations, and WebSocket broadcasts for realtime UI sync.
+  Stack: React 18 + TypeScript + Vite 6 + Tailwind CSS 4 frontend; Node.js 18+ + Express + PostgreSQL backend.
+  Architecture: SPA at repo root with hooks/ + services/ + utils/ + components/; monolithic Express API in backend/; PostgreSQL database.
+  Key libs: @hello-pangea/dnd (drag-drop), Socket.IO (real-time), Yjs + y-websocket (collaboration), Tiptap (rich text), jsPDF (PDF export).
+  Workflow: Kanban-style order management through stages: Preparacion -> Impresion -> Post-Impresion -> Completado.
+  Testing: Vitest 4 configured with jsdom, 6 test files detected, allowOnly:false guard active.
+  Style: Relative /api calls, auth headers on protected fetches, idempotent SQL migrations, WebSocket broadcasts for realtime sync.
+  Quality: No ESLint or Prettier; TypeScript via tsc --noEmit as sole quality tool.
 
-strict_tdd: false
+strict_tdd: true
 
 testing:
-  strict_tdd: false
-  detected_on: 2026-06-16
+  strict_tdd: true
+  detected_on: 2026-07-06
   test_runner:
-    available: false
-    framework: "—"
-    command: "—"
+    available: true
+    framework: vitest
+    version: 4.1.9
+    ci_command: npm test
+    watch_command: npm run test:watch
+  config_path: vitest.config.ts
   test_layers:
     unit:
-      available: false
-      tool: "—"
+      available: true
+      tool: vitest + @testing-library/react
+      paths:
+        - utils/**/*.test.ts
+        - utils/**/*.test.tsx
+        - components/**/*.test.tsx
     integration:
       available: false
-      tool: "—"
+      tool: null
     e2e:
       available: false
-      tool: "—"
+      tool: null
   coverage:
     available: false
-    command: "—"
+    command: null
   quality_tools:
     linter:
       available: false
-      command: "—"
+      command: null
     type_checker:
       available: true
-      command: "npx tsc --noEmit"
+      command: npx tsc --noEmit
     formatter:
       available: false
-      command: "—"
+      command: null
+  guards:
+    allow_only: true
+    allow_only_location: vitest.config.ts
+    allow_only_detail: "allowOnly: false blocks .only commits"
   manual_checks:
     - backend/test-bcrypt.js
     - backend/test-sql.sh
@@ -46,6 +60,7 @@ rules:
   proposal:
     - Include rollback plan for risky changes.
     - Reference API, database, and realtime impact when applicable.
+    - Include test impact assessment for affected utils/.
   specs:
     - Use Given/When/Then scenarios.
     - Use RFC 2119 keywords (MUST, SHOULD, MAY).
@@ -58,11 +73,12 @@ rules:
   apply:
     guardrails:
       - Follow existing /api relative routing, auth header, and WebSocket emission conventions.
-    tdd: false
-    test_command: "Manual verification only; no automated runner detected."
+    tdd: true
+    test_command: npm test
+    test_watch_command: npm run test:watch
   verify:
-    test_command: "Manual verification only; no automated runner detected."
-    build_command: "npm run build"
+    test_command: npm test
+    build_command: npm run build
     coverage_threshold: 0
   archive:
     - Warn before merging destructive deltas.

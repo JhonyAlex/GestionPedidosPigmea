@@ -20,6 +20,7 @@ import { formatStageTitle } from '../utils/formatStageTitle';
 import { useActionHistory } from '../hooks/useActionHistory';
 import { checkNumeroPedidoClienteExists } from '../services/storage';
 import { areStageSequencesEqual, normalizePostImpresionSequence } from '../utils/dntWorkflow';
+import { getSemanaFromDate, getWeeksSelectOptions } from '../utils/weekUtils';
 import webSocketService from '../services/websocket';
 
 const DuplicateIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m9.75 0h-3.375c-.621 0-1.125.504-1.125 1.125v6.75c0 .621.504 1.125 1.125 1.125h3.375c.621 0 1.125-.504 1.125-1.125v-6.75a1.125 1.125 0 0 0-1.125-1.125Z" /></svg>;
@@ -1230,6 +1231,9 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
         return {
             ...formData,
             metros: metrosValue,
+            semana: !formData.semana && formData.nuevaFechaEntrega
+                ? getSemanaFromDate(formData.nuevaFechaEntrega)
+                : formData.semana || undefined,
             secuenciaTrabajo: normalizePostImpresionSequence(formData.secuenciaTrabajo, formData.cliente)
         } as Pedido;
     };
@@ -2079,6 +2083,21 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                                         <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Nueva Fecha Entrega</label>
                                                         <input type="date" name="nuevaFechaEntrega" value={formData.nuevaFechaEntrega || ''} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50" />
                                                     </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Semana</label>
+                                                    <select
+                                                        name="semana"
+                                                        value={formData.semana || ''}
+                                                        onChange={handleChange}
+                                                        className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                                    >
+                                                        <option value="">-- Sin asignar --</option>
+                                                        {getWeeksSelectOptions().map(opt => (
+                                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                                        ))}
+                                                    </select>
                                                 </div>
 
                                                 <div>

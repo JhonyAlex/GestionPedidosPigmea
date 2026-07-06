@@ -8,6 +8,7 @@ import SearchableSelect from './SearchableSelect';
 import { useClientesManager, ClienteCreateRequest } from '../hooks/useClientesManager';
 import { useVendedoresManager } from '../hooks/useVendedoresManager';
 import { VendedorCreateRequest } from '../types/vendedor';
+import { getSemanaFromDate, getWeeksSelectOptions } from '../utils/weekUtils';
 import ClienteModalMejorado from './ClienteModalMejorado';
 import VendedorModal from './VendedorModal';
 import { useActionRecorder } from '../hooks/useActionRecorder';
@@ -74,6 +75,7 @@ const initialFormData = {
     metros: '',
     fechaEntrega: '',
     nuevaFechaEntrega: '',
+    semana: '',
     vendedorId: '',  // ✅ Cambiar vendedor a vendedorId
     vendedorNombre: '',  // ✅ Agregar vendedorNombre para mostrar
     prioridad: Prioridad.NORMAL,
@@ -527,8 +529,14 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
         }
 
         try {
+            // Auto-derive semana from nuevaFechaEntrega when untouched
+            let semana = formData.semana;
+            if (!semana && formData.nuevaFechaEntrega) {
+                semana = getSemanaFromDate(formData.nuevaFechaEntrega);
+            }
+
             const newPedido = await onAdd({ 
-                pedidoData: { ...formData, metros: metrosValue }, 
+                pedidoData: { ...formData, metros: metrosValue, semana }, 
                 secuenciaTrabajo: normalizedSequence,
                 initialStage,
                 readyForProduction,
@@ -888,6 +896,21 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                                 className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
                                             />
                                         </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Semana</label>
+                                        <select
+                                            name="semana"
+                                            value={formData.semana}
+                                            onChange={handleChange}
+                                            className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5"
+                                        >
+                                            <option value="">-- Sin asignar --</option>
+                                            {getWeeksSelectOptions().map(opt => (
+                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                            ))}
+                                        </select>
                                     </div>
 
                                     <div>

@@ -119,3 +119,47 @@ export const getYearAndWeek = (date: Date | string): { year: number; week: numbe
     week: getWeekNumber(d)
   };
 };
+
+/**
+ * Derives "Sem X - YYYY" from a date.
+ * Returns "" if the date is invalid or empty.
+ */
+export const getSemanaFromDate = (date: Date | string): string => {
+  if (!date) return '';
+
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return '';
+
+  const { year, week } = getYearAndWeek(d);
+  return `Sem ${week} - ${year}`;
+};
+
+/**
+ * Parses "Sem X - YYYY" → { week: number; year: number } or null on failure.
+ * Case-insensitive via /i flag.
+ */
+export const parseSemanaLabel = (label: string): { week: number; year: number } | null => {
+  if (!label) return null;
+
+  const match = label.match(/^Sem\s+(\d{1,2})\s*-\s*(\d{4})$/i);
+  if (!match) return null;
+
+  return {
+    week: parseInt(match[1], 10),
+    year: parseInt(match[2], 10),
+  };
+};
+
+/**
+ * Generates dropdown options for all weeks of the current year
+ * in "Sem X - YYYY" format.
+ */
+export const getWeeksSelectOptions = (): { value: string; label: string }[] => {
+  const currentYear = new Date().getFullYear();
+  const weeks = getWeeksOfYear(currentYear);
+
+  return weeks.map(({ week, year }) => {
+    const label = `Sem ${week} - ${year}`;
+    return { value: label, label };
+  });
+};

@@ -76,6 +76,7 @@ export interface Pedido {
     fechaCreacion: string; // ISO 8601 date string
     fechaEntrega: string; // YYYY-MM-DD
     nuevaFechaEntrega?: string; // YYYY-MM-DD
+    semana?: string; // "Sem X - YYYY" — explicit production week assignment
     fechaFinalizacion?: string; // ISO 8601 date string
     vendedorId?: string; // UUID del vendedor asignado
     vendedorNombre?: string; // Nombre del vendedor (para mostrar sin cargar todo el objeto)
