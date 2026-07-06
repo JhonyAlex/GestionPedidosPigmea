@@ -120,8 +120,10 @@ export const getYearAndWeek = (date: Date | string): { year: number; week: numbe
   };
 };
 
+const MONTHS_ABBR = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
 /**
- * Derives "Sem X - YYYY" from a date.
+ * Formats a week as "Sem X (DD-DD mes) YYYY" showing Monday-Friday range.
  * Returns "" if the date is invalid or empty.
  */
 export const getSemanaFromDate = (date: Date | string): string => {
@@ -131,17 +133,33 @@ export const getSemanaFromDate = (date: Date | string): string => {
   if (isNaN(d.getTime())) return '';
 
   const { year, week } = getYearAndWeek(d);
-  return `Sem ${week} - ${year}`;
+  return formatSemanaLabel(year, week);
 };
 
 /**
- * Parses "Sem X - YYYY" → { week: number; year: number } or null on failure.
+ * Builds "Sem X (DD-DD mes) YYYY" for the given ISO year and week.
+ */
+const formatSemanaLabel = (year: number, week: number): string => {
+  const { start } = getWeekDateRange(year, week);
+  const monday = new Date(start);
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 4);
+
+  const mondayDay = monday.getDate().toString().padStart(2, '0');
+  const fridayDay = friday.getDate().toString().padStart(2, '0');
+  const monthAbbr = MONTHS_ABBR[friday.getMonth()];
+
+  return `Sem ${week} (${mondayDay}-${fridayDay} ${monthAbbr}) ${year}`;
+};
+
+/**
+ * Parses "Sem X (DD-DD mes) YYYY" → { week: number; year: number } or null on failure.
  * Case-insensitive via /i flag.
  */
 export const parseSemanaLabel = (label: string): { week: number; year: number } | null => {
   if (!label) return null;
 
-  const match = label.match(/^Sem\s+(\d{1,2})\s*-\s*(\d{4})$/i);
+  const match = label.match(/^Sem\s+(\d{1,2})\s+\(\d{2}-\d{2}\s+[a-z]{3}\)\s+(\d{4})$/i);
   if (!match) return null;
 
   return {
@@ -152,14 +170,14 @@ export const parseSemanaLabel = (label: string): { week: number; year: number } 
 
 /**
  * Generates dropdown options for all weeks of the current year
- * in "Sem X - YYYY" format.
+ * in "Sem X (DD-DD mes) YYYY" format.
  */
 export const getWeeksSelectOptions = (): { value: string; label: string }[] => {
   const currentYear = new Date().getFullYear();
   const weeks = getWeeksOfYear(currentYear);
 
   return weeks.map(({ week, year }) => {
-    const label = `Sem ${week} - ${year}`;
+    const label = formatSemanaLabel(year, week);
     return { value: label, label };
   });
 };

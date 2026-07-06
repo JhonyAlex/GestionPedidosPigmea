@@ -2080,13 +2080,13 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                                         <input type="date" name="fechaEntrega" value={formData.fechaEntrega} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50" />
                                                     </div>
                                                     <div>
-                                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Nueva Fecha Entrega</label>
+                                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Nueva Fecha Entrega <span className="text-red-500">*</span></label>
                                                         <input type="date" name="nuevaFechaEntrega" value={formData.nuevaFechaEntrega || ''} onChange={handleChange} className="w-full bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50" />
                                                     </div>
                                                 </div>
 
                                                 <div>
-                                                    <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Semana</label>
+                                                    <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Semana <span className="text-red-500">*</span></label>
                                                     <select
                                                         name="semana"
                                                         value={formData.semana || (formData.nuevaFechaEntrega ? getSemanaFromDate(formData.nuevaFechaEntrega) : '')}

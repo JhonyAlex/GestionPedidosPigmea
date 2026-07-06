@@ -286,6 +286,13 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
         if (!formData.fechaEntrega) {
             errors.push('❌ Debe especificar la fecha de entrega');
         }
+        if (!formData.nuevaFechaEntrega) {
+            errors.push('❌ Debe especificar la nueva fecha de entrega');
+        }
+        // Semana: válida si el campo tiene valor explícito o se puede derivar de nuevaFechaEntrega
+        if (!formData.semana && !formData.nuevaFechaEntrega) {
+            errors.push('❌ Debe seleccionar una semana');
+        }
         if (!formData.maquinaImpresion || !formData.maquinaImpresion.trim()) {
             errors.push('❌ Debe seleccionar una Máquina de Impresión');
         }
@@ -887,7 +894,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                             />
                                         </div>
                                         <div>
-                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Nueva Fecha Entrega</label>
+                                            <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Nueva Fecha Entrega <span className="text-red-500">*</span></label>
                                             <input
                                                 type="date"
                                                 name="nuevaFechaEntrega"
@@ -899,7 +906,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                     </div>
 
                                     <div>
-                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Semana</label>
+                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Semana <span className="text-red-500">*</span></label>
                                         <select
                                             name="semana"
                                             value={formData.semana || (formData.nuevaFechaEntrega ? getSemanaFromDate(formData.nuevaFechaEntrega) : '')}
