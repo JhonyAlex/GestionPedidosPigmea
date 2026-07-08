@@ -363,10 +363,11 @@ describe('Antivaho entry paths — secuenciaPositionIndex contract', () => {
 
     // --- handleCancelAntivaho path: skips printing, enters post-impresión directly ---
 
-    it('cancel-antivaho to first post-impresión: index=0 starts at sequence[0]', () => {
+    it('cancel-antivaho to first post-impresión: entering guard now sets foundIndex + 1', () => {
         // Pedido skips printing via handleCancelAntivaho → handleUpdatePedidoEtapa.
-        // Index = 0 is set by the enteringPostImpresion guard.
-        // Pedido arrives in DNT. Next advance uses index 0 and returns DNT (first occurrence).
+        // The enteringPostImpresion guard sets secuenciaPositionIndex to foundIndex + 1
+        // (= 1 for DNT, since indexOf(DNT) = 0). This test verifies the calculate
+        // function at index 0 as a baseline reference — the guard no longer produces 0.
         const target = calcularSiguienteEtapa(Etapa.POST_DNT, SEQ, 0);
         expect(target).toBe(Etapa.POST_DNT);
     });
@@ -451,9 +452,9 @@ describe('Stale-save guard — calcularSiguienteEtapa is index-stateless', () =>
 // ---------------------------------------------------------------------------
 // When a pedido is dragged manually into a non-first post-impresión stage
 // (bypassing earlier stages in the sequence), the enteringPostImpresion guard
-// must compute secuenciaPositionIndex as indexOf(newEtapa) instead of
-// hardcoding 0. Otherwise the next advance would return sequence[0] (DNT),
-// sending the pedido backwards and breaking the golden rule.
+// must compute secuenciaPositionIndex as indexOf(newEtapa) + 1 (past the
+// consumed entry occurrence). Otherwise the next advance would return
+// sequence[0] (DNT) or the wrong occurrence, breaking the golden rule.
 
 describe('Manual entry to later post-impresión stage — index reflects real position', () => {
     // Sequence with repetitions: [DNT, SL2, SL2, S2DT]
@@ -468,8 +469,9 @@ describe('Manual entry to later post-impresión stage — index reflects real po
 
     it('manual entry to mid-sequence stage: index points to first occurrence of that stage', () => {
         // Pedido dragged into SL2. enteringPostImpresion guard sets index to
-        // indexOf(SL2) = 1 (NOT 0).
-        // Next advance should see a same-stage repetition (SL2 at position 1).
+        // indexOf(SL2) + 1 = 2 (NOT 1). The pedido enters at SL2 (position 1),
+        // but the index skips past the consumed entry occurrence.
+        // Next advance evaluates position 2, the second SL2 in the sequence.
         const target = calcularSiguienteEtapa(Etapa.POST_LAMINACION_SL2, SEQ_REPEAT, 1);
         expect(target).toBe(Etapa.POST_LAMINACION_SL2);
     });
@@ -501,8 +503,11 @@ describe('Manual entry to later post-impresión stage — index reflects real po
 
     // === Manual entry to the LAST stage ===
 
-    it('manual entry to last stage: index points to last occurrence', () => {
-        // Pedido dragged directly to S2DT. indexOf(S2DT) = 3 in SEQ_REPEAT.
+    it('manual entry to last stage: entering guard now sets index past last occurrence', () => {
+        // Pedido dragged directly to S2DT. The enteringPostImpresion guard now sets
+        // indexOf(S2DT) + 1 = 4 (= secuencia.length). The first "Seguir secuencia"
+        // click after entry would complete the pedido. This test verifies the
+        // old index=3 as a baseline — the guard no longer produces 3.
         const target = calcularSiguienteEtapa(Etapa.POST_REBOBINADO_S2DT, SEQ_REPEAT, 3);
         // Same-stage repetition: still at S2DT, consuming this occurrence.
         expect(target).toBe(Etapa.POST_REBOBINADO_S2DT);
@@ -531,10 +536,23 @@ describe('Manual entry to later post-impresión stage — index reflects real po
 
     // === Control: manual entry to FIRST stage (same as cancel-antivaho path) ===
 
-    it('manual entry to first stage: index=0, behavior identical to cancel-antivaho', () => {
-        // Pedido dragged to DNT. indexOf(DNT) = 0, same as current cancel-antivaho.
+    it('manual entry to first stage: entering guard now sets index to indexOf + 1', () => {
+        // Pedido dragged to DNT. The enteringPostImpresion guard now sets
+        // indexOf(DNT) + 1 = 1. This test verifies the old index=0 as baseline.
         const target = calcularSiguienteEtapa(Etapa.POST_DNT, SEQ_REPEAT, 0);
         expect(target).toBe(Etapa.POST_DNT);
+    });
+
+    // === Single-stage sequence: entering guard index past last position ===
+
+    it('single-stage sequence: entering guard sets index past last position', () => {
+        // R6: pedido enters POST_ECCONVERT_22 with secuencia = [POST_ECCONVERT_22].
+        // The enteringPostImpresion guard now sets secuenciaPositionIndex to
+        // foundIndex + 1 = 1 (= secuencia.length), so calcularSiguienteEtapa
+        // returns COMPLETADO immediately on the first "Seguir secuencia" click.
+        const SINGLE_SEQ = [Etapa.POST_ECCONVERT_22];
+        const target = calcularSiguienteEtapa(Etapa.POST_ECCONVERT_22, SINGLE_SEQ, 1);
+        expect(target).toBe(Etapa.COMPLETADO);
     });
 
     // === Regression: printing entry is unaffected ===

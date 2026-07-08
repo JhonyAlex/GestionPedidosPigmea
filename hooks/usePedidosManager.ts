@@ -921,11 +921,13 @@ export const usePedidosManager = (
                 updatedPedido.cliente
             );
             const foundIndex = normalizedSeq.indexOf(newEtapa);
-            // Use the first occurrence of the stage as the starting position.
-            // If the stage is not in the sequence (out-of-sequence), fall back
-            // to 0 — the estaFueraDeSecuencia guard in handleAdvanceStage will
-            // intercept before any wrong advance fires.
-            updatedPedido.secuenciaPositionIndex = foundIndex >= 0 ? foundIndex : 0;
+            // The entering occurrence is already consumed. Position the index
+            // PAST it (foundIndex + 1) so the first "Seguir secuencia" click
+            // evaluates the next unconsumed stage. If the stage is not in the
+            // sequence (out-of-sequence), fall back to 0 — the
+            // estaFueraDeSecuencia guard in handleAdvanceStage will intercept
+            // before any wrong advance fires.
+            updatedPedido.secuenciaPositionIndex = foundIndex >= 0 ? foundIndex + 1 : 0;
         }
 
         // Proceed with the stage change
