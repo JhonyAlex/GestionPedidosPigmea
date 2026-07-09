@@ -2,9 +2,13 @@ import { Pedido } from '../types';
 import { initialPedidos } from '../data/seedData';
 
 // --- CONFIGURACIÓN DE MODO ---
-// Cambia a 'false' para usar la API del backend real.
-// En 'true', la aplicación usará datos de ejemplo locales.
-const MODO_DESARROLLO = false;
+// Local mock mode: set VITE_USE_MOCK_DATA=true in the environment or .env.local.
+// When true, the app uses in-memory MockApiClient and no backend is required.
+// When absent or any other value, the real ApiClient hits /api/* endpoints.
+const MODO_DESARROLLO = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+
+/** Returns whether the app is running in local mock mode (no backend). */
+export const isMockMode = (): boolean => MODO_DESARROLLO;
 
 // --- INTERFAZ COMÚN ---
 export interface DataStore<T extends { id: string }> {

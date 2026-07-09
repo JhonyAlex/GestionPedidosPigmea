@@ -9,6 +9,9 @@ interface AuthProviderProps {
     children: ReactNode;
 }
 
+/** True when running in local mock mode with in-memory data (no backend). */
+const IS_MOCK_MODE = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
@@ -120,11 +123,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                         // Primero establecer el usuario con lo que tenemos en localStorage
                         setUser(enrichedUser);
                         
-                        // Luego sincronizar con el servidor
-                        const syncedUser = await syncPermissionsWithServer(enrichedUser);
-                        if (syncedUser !== enrichedUser) {
-                            setUser(syncedUser);
+                        // Luego sincronizar con el servidor (skip in mock mode — no backend)
+                        if (!IS_MOCK_MODE) {
+                            const syncedUser = await syncPermissionsWithServer(enrichedUser);
+                            if (syncedUser !== enrichedUser) {
+                                setUser(syncedUser);
+                            }
                         }
+                    } else if (IS_MOCK_MODE) {
+                        // ── LOCAL MOCK MODE ──
+                        // Auto-create a fake admin user so the UI is usable without
+                        // a backend. This ONLY runs when VITE_USE_MOCK_DATA=true AND
+                        // no user exists in localStorage. Never activates in production.
+                        const mockUser: User = {
+                            id: 'mock-admin-001',
+                            username: 'admin_mock',
+                            role: 'Administrador',
+                            displayName: 'Admin (Mock Local)',
+                        };
+                        const enrichedUser = enrichUserWithPermissions(mockUser);
+                        localStorage.setItem('pigmea_user', JSON.stringify(enrichedUser));
+                        setUser(enrichedUser);
+                        setLoading(false);
+                        return; // Skip server sync — no backend available
                     }
                 }
             } catch (error) {

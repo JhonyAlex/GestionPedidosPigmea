@@ -167,3 +167,38 @@ export const puedeAvanzarSecuencia = (
 
     return false;
 };
+
+/**
+ * Calcula el secuenciaPositionIndex al entrar a post-impresión desde una etapa
+ * que no es de post-impresión (ej. COMPLETADO, PREPARACION, o entrada manual).
+ *
+ * Cuándo recalcula:
+ *  - nuevaEtapa pertenece a post-impresión Y etapaActual NO pertenece a post-impresión
+ *  - Y NO viene de impresión (fromPrinting bloquea — el path toImpresion ya setea index=0)
+ *
+ * Retorna:
+ *  - `foundIndex + 1` para posicionar el índice PASADO la ocurrencia de entrada
+ *    (ej. indexOf(SL2)=0 → retorna 1, así el primer click de avance evalúa seq[1])
+ *  - `0` si la etapa no está en la secuencia (out-of-sequence fallback)
+ *  - `null` si no debe recalcularse (viene de impresión, ya está en post-impresión,
+ *    nuevaEtapa no es post-impresión, o secuencia vacía/undefined)
+ */
+export const calcularIndiceEntradaPostImpresion = (
+    etapaActual: Etapa,
+    nuevaEtapa: Etapa,
+    secuenciaTrabajo: Etapa[] | undefined,
+    cliente?: string
+): number | null => {
+    const fromPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(etapaActual);
+    const fromPrinting = KANBAN_FUNNELS.IMPRESION.stages.includes(etapaActual);
+    const enteringPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(nuevaEtapa)
+        && !fromPostImpresion;
+
+    if (!enteringPostImpresion || !secuenciaTrabajo || secuenciaTrabajo.length === 0 || fromPrinting) {
+        return null;
+    }
+
+    const normalizedSeq = normalizePostImpresionSequence(secuenciaTrabajo, cliente);
+    const foundIndex = normalizedSeq.indexOf(nuevaEtapa);
+    return foundIndex >= 0 ? foundIndex + 1 : 0;
+};

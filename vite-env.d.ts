@@ -3,6 +3,8 @@
 interface ImportMetaEnv {
   readonly VITE_API_BASE_URL: string;
   readonly VITE_WS_URL: string;
+  /** Set to 'true' to run in local mock mode with in-memory data (no backend). */
+  readonly VITE_USE_MOCK_DATA?: string;
 }
 
 interface ImportMeta {

@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Pedido, UserRole, Etapa, HistorialEntry } from '../types';
-import { store } from '../services/storage';
+import { store, isMockMode } from '../services/storage';
 import { ETAPAS, KANBAN_FUNNELS, PREPARACION_SUB_ETAPAS_IDS } from '../constants';
 import { determinarEtapaPreparacion } from '../utils/preparacionLogic';
 import { normalizePostImpresionSequence } from '../utils/dntWorkflow';
+import { calcularIndiceEntradaPostImpresion } from '../utils/etapaLogic';
 import AntivahoConfirmationModal from '../components/AntivahoConfirmationModal';
 
 // 🚀 Configuración de optimización
@@ -548,6 +549,12 @@ export const usePedidosManager = (
 
         try {
             await store.update(modifiedPedido);
+            // In mock mode, update local state directly — no WebSocket to broadcast.
+            if (isMockMode()) {
+                setPedidos(current =>
+                    current.map(p => p.id === modifiedPedido.id ? modifiedPedido : p)
+                );
+            }
             // El estado se actualizará vía WebSocket (evento 'pedido-updated')
             return { modifiedPedido, hasChanges };
         } catch (error) {
@@ -901,33 +908,18 @@ export const usePedidosManager = (
             }
         }
 
-        // Initialize secuenciaPositionIndex when entering post-impresión directly
-        // (e.g., handleCancelAntivaho skipping printing, or manual drag into a
-        // later post-impresión stage). Only set if not already present, to avoid
-        // overwriting an index carried over from a prior printing entry.
-        //
-        // Compute the index from the normalized sequence so the position reflects
-        // the actual stage the pedido is entering. Hardcoding 0 would cause a
-        // pedido dragged into a later stage (e.g., S2DT) to advance back to
-        // sequence[0] (DNT), breaking the golden rule.
-        const enteringPostImpresion = KANBAN_FUNNELS.POST_IMPRESION.stages.includes(newEtapa)
-            && !fromPostImpresion;
-        if (enteringPostImpresion
-            && updatedPedido.secuenciaTrabajo
-            && updatedPedido.secuenciaTrabajo.length > 0
-            && updatedPedido.secuenciaPositionIndex == null) {
-            const normalizedSeq = normalizePostImpresionSequence(
-                updatedPedido.secuenciaTrabajo,
-                updatedPedido.cliente
-            );
-            const foundIndex = normalizedSeq.indexOf(newEtapa);
-            // The entering occurrence is already consumed. Position the index
-            // PAST it (foundIndex + 1) so the first "Seguir secuencia" click
-            // evaluates the next unconsumed stage. If the stage is not in the
-            // sequence (out-of-sequence), fall back to 0 — the
-            // estaFueraDeSecuencia guard in handleAdvanceStage will intercept
-            // before any wrong advance fires.
-            updatedPedido.secuenciaPositionIndex = foundIndex >= 0 ? foundIndex + 1 : 0;
+        // Initialize secuenciaPositionIndex when entering post-impresión
+        // directly (e.g., handleCancelAntivaho skipping printing, manual drag
+        // into a later post-impresión stage, or re-entry from COMPLETADO with
+        // a stale index). Delegates to a pure helper for testability.
+        const newIndex = calcularIndiceEntradaPostImpresion(
+            pedido.etapaActual,
+            newEtapa,
+            updatedPedido.secuenciaTrabajo,
+            updatedPedido.cliente
+        );
+        if (newIndex !== null) {
+            updatedPedido.secuenciaPositionIndex = newIndex;
         }
 
         // Proceed with the stage change
