@@ -1141,6 +1141,13 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
         } else if (name === 'semana') {
             setFormData(prev => ({ ...prev, semana: value }));
             setSemanaManual(true);
+        } else if (name === 'nuevaFechaEntrega' && !semanaManual) {
+            // Live-update semana when date changes in auto mode
+            setFormData(prev => ({
+                ...prev,
+                nuevaFechaEntrega: value,
+                semana: value ? getSemanaFromDate(value) : ''
+            }));
         } else {
             const valueToSet = type === 'number' ? parseInt(value, 10) || 0 : value;
             setFormData(prev => ({ ...prev, [name]: valueToSet }));
