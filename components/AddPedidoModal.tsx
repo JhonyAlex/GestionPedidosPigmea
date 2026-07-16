@@ -127,6 +127,7 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
     const [numeroPedidoError, setNumeroPedidoError] = useState<string | null>(null);
     const [isCheckingNumeroPedido, setIsCheckingNumeroPedido] = useState(false);
     const numeroPedidoValidationId = useRef(0);
+    const [semanaManual, setSemanaManual] = useState(false);
 
     useEffect(() => {
         fetchClientes();
@@ -403,6 +404,9 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                 maquinaImpresion: value,
                 anonimo: value === 'Anónimo' ? true : prev.anonimo
             }));
+        } else if (name === 'semana') {
+            setFormData(prev => ({ ...prev, semana: value }));
+            setSemanaManual(true);
         } else if (type === 'checkbox') {
             const { checked } = e.target as HTMLInputElement;
             // Si se marca/desmarca el checkbox "anonimo", sincronizar con maquinaImpresion
@@ -536,14 +540,15 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
         }
 
         try {
-            // Auto-derive semana from nuevaFechaEntrega when untouched
             let semana = formData.semana;
-            if (!semana && formData.nuevaFechaEntrega) {
+            let semanaManualFinal = semanaManual;
+            if (!semanaManual && formData.nuevaFechaEntrega) {
                 semana = getSemanaFromDate(formData.nuevaFechaEntrega);
+                semanaManualFinal = false;
             }
 
             const newPedido = await onAdd({ 
-                pedidoData: { ...formData, metros: metrosValue, semana }, 
+                pedidoData: { ...formData, metros: metrosValue, semana, semanaManual: semanaManualFinal },
                 secuenciaTrabajo: normalizedSequence,
                 initialStage,
                 readyForProduction,
@@ -906,7 +911,14 @@ const AddPedidoModal: React.FC<AddPedidoModalProps> = ({ onClose, onAdd, cliente
                                     </div>
 
                                     <div>
-                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Semana <span className="text-red-500">*</span></label>
+                                        <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                            Semana <span className="text-red-500">*</span>
+                                            {semanaManual ? (
+                                                <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">📌 Manual</span>
+                                            ) : (
+                                                <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">🔄 Auto</span>
+                                            )}
+                                        </label>
                                         <select
                                             name="semana"
                                             value={formData.semana || (formData.nuevaFechaEntrega ? getSemanaFromDate(formData.nuevaFechaEntrega) : '')}

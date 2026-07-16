@@ -510,7 +510,8 @@ const PedidoCard = React.memo<PedidoCardProps>(({
             const updatedPedido = {
                 ...pedido,
                 nuevaFechaEntrega: tempFecha,
-                semana: undefined, // Clear so next modal save re-derives
+                semana: undefined,
+                semanaManual: false,
                 historial: [
                     ...(pedido.historial || []),
                     {

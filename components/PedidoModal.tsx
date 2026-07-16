@@ -162,6 +162,7 @@ const renderHistoryTimeline = (historyItems: any[], ringClassName: string) => {
 
 const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAutoSave, onArchiveToggle, onAdvanceStage, onSendToPrint, onDuplicate, onDelete, onSetReadyForProduction, onUpdateEtapa, isConnected = false }) => {
     const [formData, setFormData] = useState<Pedido>(JSON.parse(JSON.stringify(pedido)));
+    const [semanaManual, setSemanaManual] = useState<boolean>(pedido.semanaManual ?? false);
     const [tiempoProduccionDecimalInput, setTiempoProduccionDecimalInput] = useState<string>(() => formatDecimalForInput(pedido.tiempoProduccionDecimal));
     const [velocidadPosibleInput, setVelocidadPosibleInput] = useState<string>(() => formData.velocidadPosible?.toString() || '');
     const [showMetrosTracking, setShowMetrosTracking] = useState<boolean>(() => pedido.metrosLlevados !== null && pedido.metrosLlevados !== undefined);
@@ -250,6 +251,7 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
         clonedPedido.secuenciaTrabajo = normalizePostImpresionSequence(clonedPedido.secuenciaTrabajo, clonedPedido.cliente);
 
         setFormData(clonedPedido);
+        setSemanaManual(clonedPedido.semanaManual ?? false);
         setTiempoProduccionDecimalInput(formatDecimalForInput(clonedPedido.tiempoProduccionDecimal));
         setShowMetrosTracking(clonedPedido.metrosLlevados !== null && clonedPedido.metrosLlevados !== undefined);
     }, [pedido]);
@@ -1136,6 +1138,9 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
             } else {
                 setFormData(prev => ({ ...prev, [name]: checked }));
             }
+        } else if (name === 'semana') {
+            setFormData(prev => ({ ...prev, semana: value }));
+            setSemanaManual(true);
         } else {
             const valueToSet = type === 'number' ? parseInt(value, 10) || 0 : value;
             setFormData(prev => ({ ...prev, [name]: valueToSet }));
@@ -1228,12 +1233,18 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
             return null;
         }
 
+        let semana = formData.semana;
+        let semanaManualFinal = semanaManual;
+        if (!semanaManual && formData.nuevaFechaEntrega) {
+            semana = getSemanaFromDate(formData.nuevaFechaEntrega);
+            semanaManualFinal = false;
+        }
+
         return {
             ...formData,
             metros: metrosValue,
-            semana: !formData.semana && formData.nuevaFechaEntrega
-                ? getSemanaFromDate(formData.nuevaFechaEntrega)
-                : formData.semana || undefined,
+            semana: semana || undefined,
+            semanaManual: semanaManualFinal,
             secuenciaTrabajo: normalizePostImpresionSequence(formData.secuenciaTrabajo, formData.cliente)
         } as Pedido;
     };
@@ -2086,7 +2097,27 @@ const PedidoModal: React.FC<PedidoModalProps> = ({ pedido, onClose, onSave, onAu
                                                 </div>
 
                                                 <div>
-                                                    <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">Semana <span className="text-red-500">*</span></label>
+                                                    <label className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                        Semana <span className="text-red-500">*</span>
+                                                        {semanaManual ? (
+                                                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">📌 Manual</span>
+                                                        ) : (
+                                                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">🔄 Auto</span>
+                                                        )}
+                                                        {semanaManual && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setSemanaManual(false);
+                                                                    setFormData(prev => ({ ...prev, semana: '' }));
+                                                                }}
+                                                                className="ml-2 text-[10px] font-medium text-gray-500 hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400 underline transition-colors"
+                                                                title="Volver a modo automático (semana se deriva de Nueva Fecha Entrega)"
+                                                            >
+                                                                🔄 Volver a automático
+                                                            </button>
+                                                        )}
+                                                    </label>
                                                     <select
                                                         name="semana"
                                                         value={formData.semana || (formData.nuevaFechaEntrega ? getSemanaFromDate(formData.nuevaFechaEntrega) : '')}

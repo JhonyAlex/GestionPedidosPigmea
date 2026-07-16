@@ -2,7 +2,7 @@
 
 ## Overview
 
-Pedidos include an optional `semana` field that records the production week. The field auto-derives from `nuevaFechaEntrega` on first save when untouched, then stays independent. The "Carga Semanal por Máquina (Horas)" chart uses this field for week grouping with date-derived fallback for legacy pedidos.
+Pedidos include an optional `semana` field that records the production week. The field auto-derives from `nuevaFechaEntrega` on every save when the user has never manually selected a semana (`semanaManual: false`). Once the user manually selects a semana in the dropdown, auto-derivation stops (`semanaManual: true`) and the user controls the value. A "🔄 Auto" / "📌 Manual" indicator shows the current mode. The user may switch back to auto mode at any time. The "Carga Semanal por Máquina (Horas)" chart uses this field for week grouping with date-derived fallback for legacy pedidos.
 
 ## Requirements
 
@@ -15,32 +15,37 @@ The system MUST render a "Semana" `<select>` in AddPedidoModal and PedidoModal. 
 | R1 | Field empty by default | User opens AddPedidoModal | Form renders | Semana dropdown shows no pre-selected value; options list "Sem 1 - {year}" through "Sem 52 - {year}" |
 | R1 | Current year only | Year is 2026 | User opens dropdown | All options are "Sem X - 2026"; no other years appear |
 
-### R2: Auto-derive on first save
+### R2: Auto-derive when semanaManual is false
 
-The system MUST derive `semana` from `nuevaFechaEntrega` on first save when user never changed the field. If `nuevaFechaEntrega` is empty, `semana` MUST stay empty.
+The system MUST derive `semana` from `nuevaFechaEntrega` on every save when `semanaManual` is false or undefined. If `nuevaFechaEntrega` is empty, `semana` MUST stay empty. The system MUST set `semanaManual: false` on the saved pedido.
 
 | # | Scenario | Given | When | Then |
 |---|----------|-------|------|------|
-| R2 | Auto-derives | NuevaFechaEntrega = "2026-06-10", Semana left empty | User saves new pedido | pedido.semana = "Sem 24 - 2026" |
+| R2 | Auto-derives on create | NuevaFechaEntrega = "2026-06-10", Semana untouched | User saves new pedido | pedido.semana = "Sem 24 - 2026", pedido.semanaManual = false |
+| R2 | Auto-derives on edit | Pedido has semanaManual=false, nuevaFechaEntrega changed to "2026-07-01" | User saves in modal | pedido.semana = "Sem 27 - 2026" (re-derived) |
 | R2 | No fecha, no semana | NuevaFechaEntrega empty, Semana untouched | User saves | pedido.semana remains undefined |
-| R2 | Manual overrides auto | User selects "Sem 15 - 2026" in dropdown | User saves | pedido.semana = "Sem 15 - 2026"; fechaEntrega has no effect |
+| R2 | Manual overrides auto | User selects "Sem 15 - 2026" in dropdown | User saves | pedido.semana = "Sem 15 - 2026", pedido.semanaManual = true |
 
-### R3: Post-save independence
+### R3: Manual mode independence
 
-Once saved with a non-empty value, the system MUST NOT recalculate `semana` on subsequent `nuevaFechaEntrega` changes. User MAY manually change it at any time.
-
-| # | Scenario | Given | When | Then |
-|---|----------|-------|------|------|
-| R3 | Fecha change no effect | Pedido has semana = "Sem 24 - 2026" | User changes fechaEntrega, saves in modal | semana stays "Sem 24 - 2026" |
-| R3 | Manual change post-save | Pedido has semana = "Sem 24 - 2026" | User changes to "Sem 30 - 2026" in PedidoModal, saves | pedido.semana = "Sem 30 - 2026" |
-
-### R4: PedidoCard clearing
-
-When `nuevaFechaEntrega` is edited inline in PedidoCard, the system MUST clear `semana` to undefined so the next modal save re-derives it.
+Once `semanaManual` is true (user manually selected a semana), the system MUST NOT recalculate `semana` on subsequent `nuevaFechaEntrega` changes. The system MUST render a "📌 Manual" indicator. The user MAY switch back to auto mode via a "🔄 Volver a automático" control, which sets `semanaManual: false` and clears `semana` so the next save re-derives it.
 
 | # | Scenario | Given | When | Then |
 |---|----------|-------|------|------|
-| R4 | Inline clear | Pedido has semana = "Sem 24 - 2026" | User edits fechaEntrega inline in PedidoCard | pedido.semana cleared to undefined |
+| R3 | Fecha change no effect in manual | Pedido has semanaManual=true, semana="Sem 24 - 2026" | User changes fechaEntrega, saves in modal | semana stays "Sem 24 - 2026" |
+| R3 | Manual change sets flag | Pedido has semanaManual=false | User selects "Sem 30 - 2026" in dropdown, saves | pedido.semana = "Sem 30 - 2026", pedido.semanaManual = true |
+| R3 | Switch back to auto | Pedido has semanaManual=true | User clicks "🔄 Volver a automático", saves | pedido.semana re-derived from nuevaFechaEntrega, pedido.semanaManual = false |
+| R3 | Visual indicator auto | Pedido has semanaManual=false | Modal renders | "🔄 Auto" badge shown next to Semana label |
+| R3 | Visual indicator manual | Pedido has semanaManual=true | Modal renders | "📌 Manual" badge shown next to Semana label |
+
+### R4: PedidoCard inline reset to auto
+
+When `nuevaFechaEntrega` is edited inline in PedidoCard, the system MUST set `semanaManual: false` and clear `semana` to undefined so the next modal save re-derives it from the new date.
+
+| # | Scenario | Given | When | Then |
+|---|----------|-------|------|------|
+| R4 | Inline resets to auto | Pedido has semanaManual=true, semana="Sem 24 - 2026" | User edits fechaEntrega inline in PedidoCard | pedido.semana cleared to undefined, pedido.semanaManual = false |
+| R4 | Inline auto stays auto | Pedido has semanaManual=false | User edits fechaEntrega inline in PedidoCard | pedido.semana cleared to undefined, pedido.semanaManual = false (unchanged) |
 
 ### R5: Chart week grouping
 
