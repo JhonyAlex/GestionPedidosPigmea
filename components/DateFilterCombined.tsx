@@ -105,8 +105,12 @@ const DateFilterCombined = <T extends string = keyof Pedido>({
         };
     }, [weeksDropdownOpen]);
 
-    const currentFieldLabel = dateFieldOptions.find(opt => opt.value === dateField)?.label || 'Fecha';
-    const currentFieldIcon = dateFieldOptions.find(opt => opt.value === dateField)?.icon || '📅';
+    const currentFieldLabel = selectedWeeks.length > 0
+        ? 'Semana'
+        : dateFieldOptions.find(opt => opt.value === dateField)?.label || 'Fecha';
+    const currentFieldIcon = selectedWeeks.length > 0
+        ? '📆'
+        : dateFieldOptions.find(opt => opt.value === dateField)?.icon || '📅';
     
     const currentFilterLabel = selectedWeeks.length > 0
         ? `${selectedWeeks.length} Semana${selectedWeeks.length !== 1 ? 's' : ''}`
@@ -161,20 +165,30 @@ const DateFilterCombined = <T extends string = keyof Pedido>({
                             Campo a filtrar:
                         </label>
                         <div className="grid grid-cols-2 gap-2">
-                            {dateFieldOptions.map(option => (
+                            {selectedWeeks.length > 0 ? (
                                 <button
-                                    key={option.value}
-                                    onClick={() => handleFieldSelect(option.value)}
-                                    className={`flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${
-                                        dateField === option.value
-                                            ? 'bg-indigo-600 text-white font-medium'
-                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                                    }`}
+                                    type="button"
+                                    className="flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors bg-indigo-600 text-white font-medium col-span-2 cursor-default"
                                 >
-                                    <span>{option.icon}</span>
-                                    <span className="text-xs">{option.label}</span>
+                                    <span>📆</span>
+                                    <span className="text-xs">Semana de producción</span>
                                 </button>
-                            ))}
+                            ) : (
+                                dateFieldOptions.map(option => (
+                                    <button
+                                        key={option.value}
+                                        onClick={() => handleFieldSelect(option.value)}
+                                        className={`flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${
+                                            dateField === option.value
+                                                ? 'bg-indigo-600 text-white font-medium'
+                                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                        }`}
+                                    >
+                                        <span>{option.icon}</span>
+                                        <span className="text-xs">{option.label}</span>
+                                    </button>
+                                ))
+                            )}
                         </div>
                     </div>
 
