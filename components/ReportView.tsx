@@ -633,7 +633,7 @@ const ReportView: React.FC<ReportViewProps> = ({
             ) // Filtrar solo máquinas permitidas, excluir ANON y Sin Asignar
         };
 
-    }, [enrichedPedidos, selectedStages, selectedMachines, dateFilter, dateField, customDateRange, weeklyLocks]);
+    }, [enrichedPedidos, selectedStages, selectedMachines, dateFilter, dateField, customDateRange, selectedWeeks, weeklyLocks]);
 
     // Derived state for details table with sorting
     const selectedPedidos = useMemo(() => {
