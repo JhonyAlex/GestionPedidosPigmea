@@ -16,9 +16,8 @@ export const usePermissions = () => {
     };
 
     // Verificar si el usuario tiene un permiso específico
-    // Modo TODO PERMITIDO: devolver siempre true temporalmente
     const canAccess = (permissionId: string): boolean => {
-        return true;
+        return hasPermission(getUserPermissions(), permissionId);
     };
 
     // SISTEMA SIMPLIFICADO: Verificar acceso a vistas/secciones
@@ -42,38 +41,36 @@ export const usePermissions = () => {
     const canViewAudit = () => canAccess('admin.auditoria');
 
     // Acceso simplificado por rol
-    // Forzar roles para modo de pruebas: todos administradores
-    const isAdmin = () => true;
-    const isSupervisor = () => true;
-
-    const isVisualizador = () => false;
+    const isAdmin = () => user?.role === 'Administrador';
+    const isSupervisor = () => user?.role === 'Supervisor';
+    const isVisualizador = () => user?.role === 'Visualizador';
 
     // ============================================================
     // Compatibilidad (API antigua / acciones)
     // ============================================================
     // Nota: el sistema actual es por vistas. Para acciones (mover/archivar/crear),
     // aplicamos una regla segura: el rol Visualizador es solo lectura.
-    const canCreatePedidos = () => true;
-    const canEditPedidos = () => true;
-    const canDeletePedidos = () => true;
-    const canMovePedidos = () => true;
-    const canArchivePedidos = () => true;
+    const canCreatePedidos = () => !isVisualizador();
+    const canEditPedidos = () => !isVisualizador();
+    const canDeletePedidos = () => isAdmin() || isSupervisor();
+    const canMovePedidos = () => !isVisualizador();
+    const canArchivePedidos = () => isAdmin() || isSupervisor();
 
     // Gestión de usuarios
-    const canViewUsers = () => true;
-    const canCreateUsers = () => true;
-    const canEditUsers = () => true;
-    const canDeleteUsers = () => true;
-    const canManagePermissions = () => true;
+    const canViewUsers = () => isAdmin() || canManageUsers();
+    const canCreateUsers = () => isAdmin() || canManageUsers();
+    const canEditUsers = () => isAdmin() || canManageUsers();
+    const canDeleteUsers = () => isAdmin() || canManageUsers();
+    const canManagePermissions = () => isAdmin() || canManageUsers();
 
     // Reportes avanzados
-    const canViewKPI = () => true;
-    const canExportReports = () => true;
+    const canViewKPI = () => canViewReportes();
+    const canExportReports = () => canViewReportes();
 
     // Configuración y sistema
-    const canEditConfig = () => true;
-    const canViewSystemHealth = () => true;
-    const canAccessMaintenance = () => true;
+    const canEditConfig = () => isAdmin() || canManageConfig();
+    const canViewSystemHealth = () => isAdmin() || canManageConfig();
+    const canAccessMaintenance = () => isAdmin();
 
     // Alias históricos usados por algunos componentes
     const canViewReports = () => canViewReportes();
