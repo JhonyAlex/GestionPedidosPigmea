@@ -210,10 +210,29 @@ const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ onNav
         return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
     }, [searchText]);
 
+    const [selectedWeeks, setSelectedWeeks] = useState<string[]>(() => {
+        const stored = localStorage.getItem('tracking_selected_weeks');
+        return stored ? JSON.parse(stored) : [];
+    });
+
     // --- localStorage sync ---
     const handleDateFilterChange = useCallback((value: DateFilterOption) => {
         setDateFilter(value);
         localStorage.setItem('tracking_date_filter', value);
+        if (value !== 'all') {
+            setSelectedWeeks([]);
+            localStorage.setItem('tracking_selected_weeks', JSON.stringify([]));
+        }
+        setCurrentPage(1);
+    }, []);
+
+    const handleWeeksChange = useCallback((weeks: string[]) => {
+        setSelectedWeeks(weeks);
+        localStorage.setItem('tracking_selected_weeks', JSON.stringify(weeks));
+        if (weeks.length > 0) {
+            setDateFilter('all');
+            localStorage.setItem('tracking_date_filter', 'all');
+        }
         setCurrentPage(1);
     }, []);
 
@@ -291,6 +310,7 @@ const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ onNav
                     dateTo: apiDateRange.dateTo || undefined,
                     sortKey,
                     sortDir,
+                    semanas: selectedWeeks,
                 });
                 if (!cancelled) {
                     setTrackingRows(result.pedidos.map(buildTrackingRow));
@@ -305,7 +325,7 @@ const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ onNav
         }
         fetchPage();
         return () => { cancelled = true; };
-    }, [currentPage, pageSize, debouncedSearch, stageFilter, apiDateField, apiDateRange, sortKey, sortDir]);
+    }, [currentPage, pageSize, debouncedSearch, stageFilter, apiDateField, apiDateRange, sortKey, sortDir, selectedWeeks]);
 
     // --- Page size change ---
     const handlePageSizeChange = useCallback((newSize: number) => {
@@ -359,6 +379,8 @@ const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ onNav
                     onDateFieldChange={handleDateFieldChange}
                     onDateFilterChange={handleDateFilterChange}
                     onCustomDateChange={handleCustomDateChange}
+                    selectedWeeks={selectedWeeks}
+                    onWeeksChange={handleWeeksChange}
                     align="left"
                 />
 

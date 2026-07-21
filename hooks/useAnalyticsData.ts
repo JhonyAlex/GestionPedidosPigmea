@@ -66,6 +66,7 @@ export interface AnalyticsFilters {
     vendors?: string[];
     clients?: string[];
     priority?: string;
+    semanas?: string[];
 }
 
 const API_BASE = ''; // URL relativa — Vite proxy en dev, servidor real en prod
@@ -102,7 +103,7 @@ export const useAnalyticsData = (filters: AnalyticsFilters) => {
                 throw new Error(`Campo de fecha inválido: ${filters.dateField}`);
             }
 
-            if (filters.dateFilter !== 'all') {
+            if (filters.dateFilter !== 'all' && (!filters.semanas || filters.semanas.length === 0)) {
                 if (!filters.startDate || !filters.endDate) {
                     throw new Error('Debes indicar startDate y endDate para el filtro de fecha seleccionado');
                 }
@@ -150,6 +151,10 @@ export const useAnalyticsData = (filters: AnalyticsFilters) => {
 
             if (filters.priority && filters.priority !== 'all') {
                 params.append('priority', filters.priority);
+            }
+
+            if (filters.semanas && filters.semanas.length > 0) {
+                params.append('semanas', filters.semanas.join(','));
             }
 
             const response = await fetch(`/api/analytics/summary?${params.toString()}`, {

@@ -463,6 +463,8 @@ const AppContent: React.FC = () => {
         handleDateFilterChange,
         customDateRange,
         handleCustomDateChange,
+        selectedWeeks,
+        handleWeeksChange,
         sortConfig,
         handleSort,
         updateSortConfig,
@@ -2131,10 +2133,12 @@ const AppContent: React.FC = () => {
                     onDateFilterChange={handleDateFilterChange}
                     activeDateFilter={dateFilter}
                     customDateRange={customDateRange}
-                        onCustomDateChange={handleCustomDateChange}
-                        onAddPedido={() => setIsAddModalOpen(true)}
-                        onAddPedidoPrueba={() => setIsAddPedidoPruebaModalOpen(true)}
-                        onBulkImport={() => setShowBulkImportModal(true)}
+                    onCustomDateChange={handleCustomDateChange}
+                    selectedWeeks={selectedWeeks}
+                    onWeeksChange={handleWeeksChange}
+                    onAddPedido={() => setIsAddModalOpen(true)}
+                    onAddPedidoPrueba={() => setIsAddPedidoPruebaModalOpen(true)}
+                    onBulkImport={() => setShowBulkImportModal(true)}
                     onPdfImport={() => setShowPdfImportModal(true)}
                     onExportPDF={handleExportPDF}
                     onExportData={doExportData}

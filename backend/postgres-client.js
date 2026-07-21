@@ -1867,7 +1867,8 @@ class PostgreSQLClient {
             page = 1, limit = 50,
             search = '', stageFilter = '',
             dateField = 'fechaCreacion', dateFrom = '', dateTo = '',
-            sortKey = 'numeroPedidoCliente', sortDir = 'asc'
+            sortKey = 'numeroPedidoCliente', sortDir = 'asc',
+            semanas = []
         } = options;
 
         const offset = (page - 1) * limit;
@@ -1899,19 +1900,26 @@ class PostgreSQLClient {
                 paramIndex++;
             }
 
-            // Date range (whitelist dateField to prevent SQL injection)
-            const VALID_DATE_FIELDS = ['fechaCreacion', 'fechaEntrega', 'fechaFinalizacion'];
-            const safeDateField = VALID_DATE_FIELDS.includes(dateField) ? dateField : 'fechaCreacion';
+            // Weeks selection filter
+            if (semanas && semanas.length > 0) {
+                const placeholders = semanas.map(() => `$${paramIndex++}`).join(', ');
+                conditions.push(`data->>'semana' IN (${placeholders})`);
+                params.push(...semanas);
+            } else {
+                // Date range (whitelist dateField to prevent SQL injection)
+                const VALID_DATE_FIELDS = ['fechaCreacion', 'fechaEntrega', 'fechaFinalizacion'];
+                const safeDateField = VALID_DATE_FIELDS.includes(dateField) ? dateField : 'fechaCreacion';
 
-            if (dateFrom) {
-                conditions.push(`data->>'${safeDateField}' >= $${paramIndex}`);
-                params.push(dateFrom + 'T00:00:00.000Z');
-                paramIndex++;
-            }
-            if (dateTo) {
-                conditions.push(`data->>'${safeDateField}' <= $${paramIndex}`);
-                params.push(dateTo + 'T23:59:59.999Z');
-                paramIndex++;
+                if (dateFrom) {
+                    conditions.push(`data->>'${safeDateField}' >= $${paramIndex}`);
+                    params.push(dateFrom + 'T00:00:00.000Z');
+                    paramIndex++;
+                }
+                if (dateTo) {
+                    conditions.push(`data->>'${safeDateField}' <= $${paramIndex}`);
+                    params.push(dateTo + 'T23:59:59.999Z');
+                    paramIndex++;
+                }
             }
 
             // --- Build ORDER BY ---

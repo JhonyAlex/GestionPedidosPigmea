@@ -53,6 +53,7 @@ export interface TrackingQueryOptions {
   dateTo?: string;
   sortKey?: string;
   sortDir?: 'asc' | 'desc';
+  semanas?: string[];
 }
 
 // --- MODO DE PRODUCCIÓN (API REAL) ---
@@ -261,6 +262,7 @@ class ApiClient implements DataStore<Pedido> {
         if (options.dateTo) params.append('dateTo', options.dateTo);
         if (options.sortKey) params.append('sortKey', options.sortKey);
         if (options.sortDir) params.append('sortDir', options.sortDir);
+        if (options.semanas && options.semanas.length > 0) params.append('semanas', options.semanas.join(','));
         return apiRetryFetch<PaginatedResponse<Pedido>>(`/pedidos/tracking?${params.toString()}`);
     }
 
@@ -385,6 +387,9 @@ class MockApiClient implements DataStore<Pedido> {
         }
         if (options.stageFilter) {
             rows = rows.filter(p => p.etapaActual === options.stageFilter);
+        }
+        if (options.semanas && options.semanas.length > 0) {
+            rows = rows.filter(p => p.semana && options.semanas!.includes(p.semana));
         }
         const total = rows.length;
         const start = (options.page - 1) * options.limit;

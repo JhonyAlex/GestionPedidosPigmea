@@ -57,6 +57,8 @@ interface HeaderProps {
     activeDateFilter: DateFilterOption;
     customDateRange: { start: string; end: string };
     onCustomDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    selectedWeeks?: string[];
+    onWeeksChange?: (weeks: string[]) => void;
     onAddPedido: () => void;
     onAddPedidoPrueba?: () => void;
     onBulkImport: () => void; // Nueva prop para importación masiva
@@ -134,6 +136,8 @@ const Header: React.FC<HeaderProps> = ({
     activeDateFilter,
     customDateRange,
     onCustomDateChange,
+    selectedWeeks = [],
+    onWeeksChange,
     onAddPedido,
     onAddPedidoPrueba,
     onBulkImport,
@@ -694,6 +698,8 @@ const Header: React.FC<HeaderProps> = ({
                             onDateFieldChange={(field) => onFilterChange('dateField', field)}
                             onDateFilterChange={onDateFilterChange}
                             onCustomDateChange={onCustomDateChange}
+                            selectedWeeks={selectedWeeks}
+                            onWeeksChange={onWeeksChange}
                         />
 
                         {/* Filtro de Semana */}

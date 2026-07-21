@@ -25,6 +25,7 @@ interface PersistedFilters {
     dateFilter: DateFilterOption;
     customDateRange: { start: string; end: string };
     weekFilter: WeekFilter;
+    selectedWeeks: string[];
     sortConfig: { key: keyof Pedido; direction: 'ascending' | 'descending' };
 }
 
@@ -103,6 +104,10 @@ export const useFiltrosYOrden = (pedidos: Pedido[], listasTemporalesMap: Record<
         }
     );
 
+    const [selectedWeeks, setSelectedWeeks] = useState<string[]>(
+        savedFilters.selectedWeeks || []
+    );
+
     // 🔄 No validar automáticamente - dejar que los handlers manejen la lógica
     // El problema de "pegado" no es por IDs inválidos, sino por referencias perdidas
 
@@ -122,6 +127,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[], listasTemporalesMap: Record<
             dateFilter,
             customDateRange,
             weekFilter,
+            selectedWeeks,
             sortConfig
         };
         saveFiltersToStorage(filtersToSave);
@@ -139,15 +145,17 @@ export const useFiltrosYOrden = (pedidos: Pedido[], listasTemporalesMap: Record<
         dateFilter,
         customDateRange,
         weekFilter,
+        selectedWeeks,
         sortConfig
     ]);
 
     const handleFilterChange = (name: string, value: string) => setFilters(prev => ({ ...prev, [name]: value }));
     const handleDateFilterChange = (value: string) => {
         setDateFilter(value as DateFilterOption);
-        // Si se activa un filtro de fecha, desactivar el filtro de semana
+        // Si se activa un filtro de fecha, desactivar el filtro de semana y limpiar las semanas seleccionadas
         if (value !== 'all') {
             setWeekFilter(prev => ({ ...prev, enabled: false }));
+            setSelectedWeeks([]);
         }
     };
     const handleAntivahoFilterChange = (value: 'all' | 'con' | 'sin' | 'hecho') => setAntivahoFilter(value);
@@ -163,9 +171,10 @@ export const useFiltrosYOrden = (pedidos: Pedido[], listasTemporalesMap: Record<
     const handleWeekFilterToggle = useCallback(() => {
         setWeekFilter(prev => {
             const newEnabled = !prev.enabled;
-            // Si se activa el filtro de semana, resetear el filtro de fecha a 'all'
+            // Si se activa el filtro de semana, resetear el filtro de fecha a 'all' y limpiar semanas
             if (newEnabled) {
                 setDateFilter('all');
+                setSelectedWeeks([]);
             }
             return { ...prev, enabled: newEnabled };
         });
@@ -173,12 +182,21 @@ export const useFiltrosYOrden = (pedidos: Pedido[], listasTemporalesMap: Record<
 
     const handleWeekChange = useCallback((year: number, week: number) => {
         setWeekFilter(prev => ({ ...prev, year, week, enabled: true }));
-        // Al cambiar la semana, desactivar el filtro de fecha
+        // Al cambiar la semana, desactivar el filtro de fecha y limpiar semanas
         setDateFilter('all');
+        setSelectedWeeks([]);
     }, []);
 
     const handleWeekDateFieldChange = useCallback((dateField: DateField) => {
         setWeekFilter(prev => ({ ...prev, dateField }));
+    }, []);
+
+    const handleWeeksChange = useCallback((weeks: string[]) => {
+        setSelectedWeeks(weeks);
+        if (weeks.length > 0) {
+            setDateFilter('all');
+            setWeekFilter(prev => ({ ...prev, enabled: false }));
+        }
     }, []);
 
     const handleSort = useCallback((key: keyof Pedido) => {
@@ -278,6 +296,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[], listasTemporalesMap: Record<
         setAnonimoFilter('all');
         setDateFilter('all');
         setCustomDateRange({ start: '', end: '' });
+        setSelectedWeeks([]);
         setWeekFilter({
             enabled: false,
             year: currentWeek.year,
@@ -362,6 +381,12 @@ export const useFiltrosYOrden = (pedidos: Pedido[], listasTemporalesMap: Record<
                 selectedMaquinas.includes(p.maquinaImpresion || '') ||
                 (selectedMaquinas.includes('sin_maquina') && !p.maquinaImpresion);
 
+            // Filtro por campo semana (pedido.semana)
+            let weeksMatch = true;
+            if (selectedWeeks.length > 0) {
+                weeksMatch = p.semana ? selectedWeeks.includes(p.semana) : false;
+            }
+
             // Filtro de semana (tiene prioridad sobre filtro de fecha normal)
             let weekMatch = true;
             if (weekFilter.enabled) {
@@ -389,8 +414,14 @@ export const useFiltrosYOrden = (pedidos: Pedido[], listasTemporalesMap: Record<
                 }
             }
 
-            // Si el filtro de semana está activo, usar weekMatch en lugar de dateMatch
-            const finalDateMatch = weekFilter.enabled ? weekMatch : dateMatch;
+            // Si el filtro de semanas de producción está activo, usar weeksMatch
+            // Si el filtro de semana calendario está activo, usar weekMatch
+            // De lo contrario, usar dateMatch
+            const finalDateMatch = selectedWeeks.length > 0
+                ? weeksMatch
+                : weekFilter.enabled
+                ? weekMatch
+                : dateMatch;
 
             return searchTermMatch && priorityMatch && stageMatch && finalDateMatch && antivahoMatch && preparacionMatch && estadoClicheMatch && anonimoMatch && vendedorMatch && clienteMatch && maquinaMatch;
         });
@@ -556,7 +587,7 @@ export const useFiltrosYOrden = (pedidos: Pedido[], listasTemporalesMap: Record<
 
         return filtered;
 
-    }, [pedidos, debouncedSearchTerm, filters, selectedStages, selectedVendedores, selectedClientes, selectedMaquinas, antivahoFilter, preparacionFilter, estadoClicheFilter, anonimoFilter, dateFilter, sortConfig, customDateRange, weekFilter, listasTemporalesMap, kanbanManualOrderMap]);
+    }, [pedidos, debouncedSearchTerm, filters, selectedStages, selectedVendedores, selectedClientes, selectedMaquinas, antivahoFilter, preparacionFilter, estadoClicheFilter, anonimoFilter, dateFilter, sortConfig, customDateRange, weekFilter, selectedWeeks, listasTemporalesMap, kanbanManualOrderMap]);
 
     return {
         processedPedidos,
@@ -590,6 +621,8 @@ export const useFiltrosYOrden = (pedidos: Pedido[], listasTemporalesMap: Record<
         handleWeekFilterToggle,
         handleWeekChange,
         handleWeekDateFieldChange,
+        selectedWeeks,
+        handleWeeksChange,
         sortConfig,
         handleSort,
         updateSortConfig,

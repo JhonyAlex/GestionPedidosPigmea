@@ -2679,11 +2679,12 @@ app.get('/api/pedidos/tracking', async (req, res) => {
         const dateTo = (req.query.dateTo || '').toString().trim();
         const sortKey = (req.query.sortKey || 'numeroPedidoCliente').toString().trim();
         const sortDir = (req.query.sortDir || 'asc').toString().trim();
+        const semanas = req.query.semanas ? req.query.semanas.toString().split(',').map(s => s.trim()).filter(Boolean) : [];
 
         const result = await dbClient.getTrackingPaginated({
             page, limit, search, stageFilter,
             dateField, dateFrom, dateTo,
-            sortKey, sortDir
+            sortKey, sortDir, semanas
         });
 
         const timestamp = new Date().toISOString();
@@ -5579,7 +5580,8 @@ app.get('/api/analytics/summary', async (req, res) => {
             machines,
             vendors,
             clients,
-            priority
+            priority,
+            semanas
         } = req.query;
 
         const normalizedDateFilter = getSingleQueryValue(dateFilter) || 'all';
@@ -5587,6 +5589,7 @@ app.get('/api/analytics/summary', async (req, res) => {
         const normalizedStartDate = getSingleQueryValue(startDate);
         const normalizedEndDate = getSingleQueryValue(endDate);
         const normalizedPriority = getSingleQueryValue(priority);
+        const semanasArray = parseCsvFilter(semanas);
 
         if (!allowedDateFilters.has(normalizedDateFilter)) {
             return res.status(400).json({
@@ -5645,8 +5648,13 @@ app.get('/api/analytics/summary', async (req, res) => {
         // Excluir archivados siempre
         filters.push("etapa_actual != 'ARCHIVADO'");
 
-        // Filtro de fechas
-        if (normalizedDateFilter !== 'all' && normalizedStartDate && normalizedEndDate) {
+        // Filtro de semanas de producción (pedido.semana)
+        if (semanasArray && semanasArray.length > 0) {
+            filters.push(`data->>'semana' = ANY($${paramCount})`);
+            params.push(semanasArray);
+            paramCount++;
+        } else if (normalizedDateFilter !== 'all' && normalizedStartDate && normalizedEndDate) {
+            // Filtro de fechas (solo si no se filtran por semanas)
             filters.push(`${dateFieldTimestampExpr} IS NOT NULL`);
             filters.push(`${dateFieldTimestampExpr} >= $${paramCount}::timestamp AND ${dateFieldTimestampExpr} <= $${paramCount + 1}::timestamp`);
             params.push(normalizedStartDate, normalizedEndDate);

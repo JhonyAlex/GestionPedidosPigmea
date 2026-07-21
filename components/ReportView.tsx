@@ -162,6 +162,11 @@ const ReportView: React.FC<ReportViewProps> = ({
         return (localStorage.getItem(STORAGE_KEY_DATE_FIELD) as keyof Pedido) || 'nuevaFechaEntrega';
     });
 
+    const [selectedWeeks, setSelectedWeeks] = useState<string[]>(() => {
+        const saved = localStorage.getItem('report_selected_weeks');
+        return saved ? JSON.parse(saved) : [];
+    });
+
     const [customDateRange, setCustomDateRange] = useState(() => {
         const saved = localStorage.getItem(STORAGE_KEY_CUSTOM_DATE_RANGE);
         if (saved) {
@@ -291,7 +296,7 @@ const ReportView: React.FC<ReportViewProps> = ({
             // Limpiar cache para forzar regeneración con datos actuales
             clearAnalysisCache();
         }
-    }, [dateFilter, dateField, customDateRange, selectedStages, selectedMachines]);
+    }, [dateFilter, dateField, customDateRange, selectedStages, selectedMachines, selectedWeeks]);
 
     // Detectar cambios en instrucciones personalizadas y limpiar análisis
     useEffect(() => {
@@ -305,6 +310,21 @@ const ReportView: React.FC<ReportViewProps> = ({
             clearAnalysisCache();
         }
     }, [customInstructions]);
+
+    // --- Handlers de filtro con exclusión mutua ---
+    const handleDateFilterChange = (val: DateFilterOption) => {
+        setDateFilter(val);
+        if (val !== 'all') {
+            setSelectedWeeks([]);
+        }
+    };
+
+    const handleWeeksChange = (weeks: string[]) => {
+        setSelectedWeeks(weeks);
+        if (weeks.length > 0) {
+            setDateFilter('all');
+        }
+    };
 
     // --- Persistence Effects ---
     useEffect(() => {
@@ -326,6 +346,10 @@ const ReportView: React.FC<ReportViewProps> = ({
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY_CUSTOM_DATE_RANGE, JSON.stringify(customDateRange));
     }, [customDateRange]);
+
+    useEffect(() => {
+        localStorage.setItem('report_selected_weeks', JSON.stringify(selectedWeeks));
+    }, [selectedWeeks]);
 
     // --- Cargar instrucciones personalizadas y configurar Socket.IO ---
     useEffect(() => {
@@ -423,8 +447,10 @@ const ReportView: React.FC<ReportViewProps> = ({
 
             if (!stageMatch) return false;
 
-            // 3. Date Filtering
-            if (dateFilter !== 'all') {
+            // 3. Date / Weeks Filtering
+            if (selectedWeeks.length > 0) {
+                if (!p.semana || !selectedWeeks.includes(p.semana)) return false;
+            } else if (dateFilter !== 'all') {
                 const dateVal = p[dateField];
                 if (!dateVal) return false; // If filtering by date and date is missing, exclude it
                 const pDate = new Date(dateVal as string);
@@ -1200,8 +1226,10 @@ const ReportView: React.FC<ReportViewProps> = ({
                                 dateFilter={dateFilter}
                                 customDateRange={customDateRange}
                                 onDateFieldChange={(field) => setDateField(field as keyof Pedido)}
-                                onDateFilterChange={setDateFilter}
+                                onDateFilterChange={handleDateFilterChange}
                                 onCustomDateChange={(e) => setCustomDateRange({ ...customDateRange, [e.target.name]: e.target.value })}
+                                selectedWeeks={selectedWeeks}
+                                onWeeksChange={handleWeeksChange}
                                 align="right"
                             />
                         </div>

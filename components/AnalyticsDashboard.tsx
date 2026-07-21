@@ -117,6 +117,24 @@ export const AnalyticsDashboard: React.FC = () => {
 
     const [showFilters, setShowFilters] = useState(false);
     const [showExportMenu, setShowExportMenu] = useState(false);
+    const [selectedWeeks, setSelectedWeeks] = useState<string[]>(() => {
+        const saved = localStorage.getItem('analytics_selected_weeks');
+        return saved ? JSON.parse(saved) : [];
+    });
+
+    const handleDateFilterChange = useCallback((value: DateFilterOption) => {
+        setDateFilter(value);
+        if (value !== 'all') {
+            setSelectedWeeks([]);
+        }
+    }, []);
+
+    const handleWeeksChange = useCallback((weeks: string[]) => {
+        setSelectedWeeks(weeks);
+        if (weeks.length > 0) {
+            setDateFilter('all');
+        }
+    }, []);
 
     // --- Persistence Effects ---
     useEffect(() => {
@@ -130,6 +148,10 @@ export const AnalyticsDashboard: React.FC = () => {
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY_ANALYTICS_CUSTOM_DATE_RANGE, JSON.stringify(customDateRange));
     }, [customDateRange]);
+
+    useEffect(() => {
+        localStorage.setItem('analytics_selected_weeks', JSON.stringify(selectedWeeks));
+    }, [selectedWeeks]);
 
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY_ANALYTICS_STAGES, JSON.stringify(selectedStages));
@@ -165,9 +187,10 @@ export const AnalyticsDashboard: React.FC = () => {
             endDate,
             stages: selectedStages.length > 0 ? selectedStages : undefined,
             machines: selectedMachines.length > 0 ? selectedMachines : undefined,
-            priority: selectedPriority !== 'all' ? selectedPriority : undefined
+            priority: selectedPriority !== 'all' ? selectedPriority : undefined,
+            semanas: selectedWeeks.length > 0 ? selectedWeeks : undefined
         };
-    }, [dateFilter, dateField, customDateRange, selectedStages, selectedMachines, selectedPriority]);
+    }, [dateFilter, dateField, customDateRange, selectedStages, selectedMachines, selectedPriority, selectedWeeks]);
 
     // --- Fetch Data ---
     const { data, loading, error, refetch } = useAnalyticsData(filters);
@@ -381,8 +404,10 @@ export const AnalyticsDashboard: React.FC = () => {
                         dateFilter={dateFilter}
                         customDateRange={customDateRange}
                         onDateFieldChange={(field) => setDateField(field as any)}
-                        onDateFilterChange={setDateFilter}
+                        onDateFilterChange={handleDateFilterChange}
                         onCustomDateChange={(e) => setCustomDateRange({ ...customDateRange, [e.target.name]: e.target.value })}
+                        selectedWeeks={selectedWeeks}
+                        onWeeksChange={handleWeeksChange}
                         align="right"
                     />
                 </div>
