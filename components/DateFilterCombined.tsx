@@ -170,7 +170,6 @@ const DateFilterCombined = <T extends string = keyof Pedido>({
                                     type="button"
                                     onClick={() => {
                                         onWeeksChange([]);
-                                        onDateFilterChange('all');
                                     }}
                                     className="flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-all duration-200 bg-indigo-600 hover:bg-indigo-700 text-white font-medium col-span-2 cursor-pointer shadow-sm active:scale-95"
                                     title="Desactivar filtro de semanas"
@@ -270,9 +269,6 @@ const DateFilterCombined = <T extends string = keyof Pedido>({
                                                                     ? selectedWeeks.filter(w => w !== opt.value)
                                                                     : [...selectedWeeks, opt.value];
                                                                 onWeeksChange(newWeeks);
-                                                                if (newWeeks.length > 0) {
-                                                                    onDateFilterChange('all');
-                                                                }
                                                             }}
                                                             className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                                         />
