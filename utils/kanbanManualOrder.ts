@@ -6,10 +6,16 @@ const DRAGGABLE_ID_SEPARATOR = '::KANBAN::';
 
 export type KanbanManualOrderMap = Partial<Record<Etapa, string[]>>;
 
-const PRODUCCION_STAGE_SET = new Set<Etapa>([
-    ...KANBAN_FUNNELS.IMPRESION.stages,
-    ...KANBAN_FUNNELS.POST_IMPRESION.stages,
-]);
+let produccionStageSet: Set<Etapa> | null = null;
+const getProduccionStageSet = (): Set<Etapa> => {
+    if (!produccionStageSet) {
+        produccionStageSet = new Set<Etapa>([
+            ...(KANBAN_FUNNELS?.IMPRESION?.stages || []),
+            ...(KANBAN_FUNNELS?.POST_IMPRESION?.stages || []),
+        ]);
+    }
+    return produccionStageSet;
+};
 
 const dedupeIds = (ids: string[]): string[] => Array.from(new Set(ids.filter(Boolean)));
 
@@ -37,7 +43,7 @@ function getAuthHeaders(): Record<string, string> {
 }
 
 export const isProduccionKanbanStage = (stageId: string): stageId is Etapa => {
-    return PRODUCCION_STAGE_SET.has(stageId as Etapa);
+    return getProduccionStageSet().has(stageId as Etapa);
 };
 
 /**
@@ -173,22 +179,57 @@ export const saveKanbanManualOrderMap = (map: KanbanManualOrderMap): void => {
 
 export const pruneKanbanManualOrderMap = (
     map: KanbanManualOrderMap,
-    existingPedidoIds: Set<string>
+    existingPedidoMap?: Map<string, Pedido> | Set<string>,
+    listasTemporalesMap?: Record<string, Etapa[]>
 ): KanbanManualOrderMap => {
     const next: KanbanManualOrderMap = {};
+    const existingIds = existingPedidoMap instanceof Set
+        ? existingPedidoMap
+        : existingPedidoMap
+        ? new Set(existingPedidoMap.keys())
+        : null;
 
     for (const [stageId, ids] of Object.entries(map)) {
-        if (!isProduccionKanbanStage(stageId) || !Array.isArray(ids)) {
+        const etapa = stageId as Etapa;
+        if (!isProduccionKanbanStage(etapa) || !Array.isArray(ids)) {
             continue;
         }
 
-        const filteredIds = dedupeIds(ids.filter(id => {
+        const normalizedIds: string[] = [];
+
+        for (const id of ids) {
             const parsed = parseKanbanDraggableId(id);
-            return existingPedidoIds.has(parsed.pedidoId)
-                && (parsed.visualStageId == null || parsed.visualStageId === stageId);
-        }));
-        if (filteredIds.length > 0) {
-            next[stageId] = filteredIds;
+            if (existingIds && !existingIds.has(parsed.pedidoId)) {
+                continue;
+            }
+            if (parsed.visualStageId != null && parsed.visualStageId !== etapa) {
+                continue;
+            }
+
+            if (existingPedidoMap && existingPedidoMap instanceof Map && listasTemporalesMap) {
+                const pedido = existingPedidoMap.get(parsed.pedidoId);
+                if (pedido) {
+                    const isReal = pedido.etapaActual === etapa;
+                    const temps = listasTemporalesMap[pedido.id] || [];
+                    const isTemp = temps.includes(etapa);
+
+                    if (!isReal && !isTemp) {
+                        continue;
+                    }
+
+                    if (isReal && parsed.instanceIndex > 0 && !isTemp) {
+                        normalizedIds.push(buildKanbanDraggableId(pedido.id, etapa));
+                        continue;
+                    }
+                }
+            }
+
+            normalizedIds.push(id);
+        }
+
+        const deduped = dedupeIds(normalizedIds);
+        if (deduped.length > 0) {
+            next[etapa] = deduped;
         }
     }
 
@@ -213,8 +254,17 @@ export const sortKanbanColumnPedidos = (
     }
 
     const orderIndex = new Map(orderedIds.map((id, index) => [id, index]));
+    const orderIndexByPedidoId = new Map<string, number>();
+    for (let i = 0; i < orderedIds.length; i++) {
+        const parsed = parseKanbanDraggableId(orderedIds[i]);
+        if (!orderIndexByPedidoId.has(parsed.pedidoId)) {
+            orderIndexByPedidoId.set(parsed.pedidoId, i);
+        }
+    }
+
     const getOrderIndex = (pedido: Pedido): number | undefined => {
-        return orderIndex.get(getKanbanOrderKey(pedido, stageId)) ?? orderIndex.get(pedido.id);
+        const exactKey = getKanbanOrderKey(pedido, stageId);
+        return orderIndex.get(exactKey) ?? orderIndexByPedidoId.get(pedido.id);
     };
 
     return [...pedidos].sort((a, b) => {

@@ -619,13 +619,26 @@ const AppContent: React.FC = () => {
         }
     }, [pedidos, limpiarHuerfanos]);
 
+    // 🔄 Recargar orden del kanban tras reconexión WebSocket (ej. redeploy del servidor)
+    const wasConnectedRef = useRef(false);
+    useEffect(() => {
+        if (isConnected) {
+            if (wasConnectedRef.current) {
+                loadKanbanManualOrderMap().then(map => {
+                    setKanbanManualOrderMap(map);
+                }).catch(() => {});
+            }
+            wasConnectedRef.current = true;
+        }
+    }, [isConnected]);
+
     useEffect(() => {
         if (isLoading) return; // ✅ NO podar el mapa de ordenamiento si los pedidos aún se están cargando
         
-        const existingPedidoIds = new Set(pedidos.map(p => p.id));
+        const pedidoMap = new Map(pedidos.map(p => [p.id, p]));
 
         setKanbanManualOrderMap(prev => {
-            const next = pruneKanbanManualOrderMap(prev, existingPedidoIds);
+            const next = pruneKanbanManualOrderMap(prev, pedidoMap, listasTemporalesMap);
             const prevEntries = Object.entries(prev);
             const nextEntries = Object.entries(next);
             const isEqual = prevEntries.length === nextEntries.length
@@ -657,7 +670,7 @@ const AppContent: React.FC = () => {
             kanbanManualOrderChangedRef.current = true;
             return next;
         });
-    }, [pedidos, isLoading]);
+    }, [pedidos, isLoading, listasTemporalesMap]);
 
     // Si no quedan listas temporales, apagar el filtro para evitar pantalla en blanco.
     useEffect(() => {
