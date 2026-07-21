@@ -77,6 +77,8 @@ interface ReportViewProps {
     onBulkDelete?: () => void;
     onBulkArchive?: () => void;
     onClearSelection?: () => void;
+    selectedWeeks?: string[];
+    onWeeksChange?: (weeks: string[]) => void;
 }
 
 // Special filter constants
@@ -105,6 +107,8 @@ const ReportView: React.FC<ReportViewProps> = ({
     onBulkDelete,
     onBulkArchive,
     onClearSelection,
+    selectedWeeks: propsSelectedWeeks,
+    onWeeksChange: propsOnWeeksChange,
 }) => {
     // --- Tab State ---
     const [activeTab, setActiveTab] = useState<'planning' | 'analytics' | 'tracking' | 'audit'>('planning');
@@ -162,10 +166,16 @@ const ReportView: React.FC<ReportViewProps> = ({
         return (localStorage.getItem(STORAGE_KEY_DATE_FIELD) as keyof Pedido) || 'nuevaFechaEntrega';
     });
 
-    const [selectedWeeks, setSelectedWeeks] = useState<string[]>(() => {
+    const [localWeeks, setLocalWeeks] = useState<string[]>(() => {
         const saved = localStorage.getItem('report_selected_weeks');
         return saved ? JSON.parse(saved) : [];
     });
+
+    const selectedWeeks = propsSelectedWeeks !== undefined ? propsSelectedWeeks : localWeeks;
+    const setSelectedWeeks = propsOnWeeksChange !== undefined ? propsOnWeeksChange : (weeks: string[]) => {
+        setLocalWeeks(weeks);
+        localStorage.setItem('report_selected_weeks', JSON.stringify(weeks));
+    };
 
     const [customDateRange, setCustomDateRange] = useState(() => {
         const saved = localStorage.getItem(STORAGE_KEY_CUSTOM_DATE_RANGE);
@@ -314,9 +324,7 @@ const ReportView: React.FC<ReportViewProps> = ({
     // --- Handlers de filtro con exclusión mutua ---
     const handleDateFilterChange = (val: DateFilterOption) => {
         setDateFilter(val);
-        if (val !== 'all') {
-            setSelectedWeeks([]);
-        }
+        setSelectedWeeks([]);
     };
 
     const handleWeeksChange = (weeks: string[]) => {
@@ -1136,10 +1144,15 @@ const ReportView: React.FC<ReportViewProps> = ({
 
             {/* Conditional Content Based on Active Tab */}
             {activeTab === 'analytics' ? (
-                <AnalyticsDashboard />
+                <AnalyticsDashboard
+                    selectedWeeks={selectedWeeks}
+                    onWeeksChange={setSelectedWeeks}
+                />
             ) : activeTab === 'tracking' ? (
                 <ProductionTrackingTable
                     onNavigateToPedido={onSelectPedido}
+                    selectedWeeks={selectedWeeks}
+                    onWeeksChange={setSelectedWeeks}
                 />
             ) : activeTab === 'audit' ? (
                 <TrackingAuditSection

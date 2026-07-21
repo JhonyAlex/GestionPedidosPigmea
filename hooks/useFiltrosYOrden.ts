@@ -152,11 +152,8 @@ export const useFiltrosYOrden = (pedidos: Pedido[], listasTemporalesMap: Record<
     const handleFilterChange = (name: string, value: string) => setFilters(prev => ({ ...prev, [name]: value }));
     const handleDateFilterChange = (value: string) => {
         setDateFilter(value as DateFilterOption);
-        // Si se activa un filtro de fecha, desactivar el filtro de semana y limpiar las semanas seleccionadas
-        if (value !== 'all') {
-            setWeekFilter(prev => ({ ...prev, enabled: false }));
-            setSelectedWeeks([]);
-        }
+        setWeekFilter(prev => ({ ...prev, enabled: false }));
+        setSelectedWeeks([]);
     };
     const handleAntivahoFilterChange = (value: 'all' | 'con' | 'sin' | 'hecho') => setAntivahoFilter(value);
     const handlePreparacionFilterChange = (value: 'all' | 'sin-material' | 'sin-cliche' | 'listo') => setPreparacionFilter(value);

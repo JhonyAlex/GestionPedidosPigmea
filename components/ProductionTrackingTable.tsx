@@ -161,11 +161,17 @@ type TrackingStageFilter = 'COMPLETADO' | 'ARCHIVADO' | '';
 
 interface ProductionTrackingTableProps {
     onNavigateToPedido?: (pedido: Pedido) => void;
+    selectedWeeks?: string[];
+    onWeeksChange?: (weeks: string[]) => void;
 }
 
 // --- Component ---
 
-const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ onNavigateToPedido }) => {
+const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({
+    onNavigateToPedido,
+    selectedWeeks: propsSelectedWeeks,
+    onWeeksChange: propsOnWeeksChange,
+}) => {
     // --- Pagination state ---
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(50);
@@ -210,21 +216,25 @@ const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ onNav
         return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
     }, [searchText]);
 
-    const [selectedWeeks, setSelectedWeeks] = useState<string[]>(() => {
+    const [localWeeks, setLocalWeeks] = useState<string[]>(() => {
         const stored = localStorage.getItem('tracking_selected_weeks');
         return stored ? JSON.parse(stored) : [];
     });
+
+    const selectedWeeks = propsSelectedWeeks !== undefined ? propsSelectedWeeks : localWeeks;
+    const setSelectedWeeks = propsOnWeeksChange !== undefined ? propsOnWeeksChange : (weeks: string[]) => {
+        setLocalWeeks(weeks);
+        localStorage.setItem('tracking_selected_weeks', JSON.stringify(weeks));
+    };
 
     // --- localStorage sync ---
     const handleDateFilterChange = useCallback((value: DateFilterOption) => {
         setDateFilter(value);
         localStorage.setItem('tracking_date_filter', value);
-        if (value !== 'all') {
-            setSelectedWeeks([]);
-            localStorage.setItem('tracking_selected_weeks', JSON.stringify([]));
-        }
+        setSelectedWeeks([]);
+        localStorage.setItem('tracking_selected_weeks', JSON.stringify([]));
         setCurrentPage(1);
-    }, []);
+    }, [setSelectedWeeks]);
 
     const handleWeeksChange = useCallback((weeks: string[]) => {
         setSelectedWeeks(weeks);
@@ -234,7 +244,7 @@ const ProductionTrackingTable: React.FC<ProductionTrackingTableProps> = ({ onNav
             localStorage.setItem('tracking_date_filter', 'all');
         }
         setCurrentPage(1);
-    }, []);
+    }, [setSelectedWeeks]);
 
     const handleDateFieldChange = useCallback((field: keyof Pedido) => {
         setDateField(field);

@@ -80,7 +80,15 @@ const readStoredCustomDateRange = (): { start: string; end: string } => {
     }
 };
 
-export const AnalyticsDashboard: React.FC = () => {
+interface AnalyticsDashboardProps {
+    selectedWeeks?: string[];
+    onWeeksChange?: (weeks: string[]) => void;
+}
+
+export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
+    selectedWeeks: propsSelectedWeeks,
+    onWeeksChange: propsOnWeeksChange,
+}) => {
     // --- Filter State ---
     const [dateFilter, setDateFilter] = useState<DateFilterOption>(() => {
         const saved = localStorage.getItem(STORAGE_KEY_ANALYTICS_DATE_FILTER);
@@ -117,24 +125,27 @@ export const AnalyticsDashboard: React.FC = () => {
 
     const [showFilters, setShowFilters] = useState(false);
     const [showExportMenu, setShowExportMenu] = useState(false);
-    const [selectedWeeks, setSelectedWeeks] = useState<string[]>(() => {
+    const [localWeeks, setLocalWeeks] = useState<string[]>(() => {
         const saved = localStorage.getItem('analytics_selected_weeks');
         return saved ? JSON.parse(saved) : [];
     });
 
+    const selectedWeeks = propsSelectedWeeks !== undefined ? propsSelectedWeeks : localWeeks;
+    const setSelectedWeeks = propsOnWeeksChange !== undefined ? propsOnWeeksChange : (weeks: string[]) => {
+        setLocalWeeks(weeks);
+    };
+
     const handleDateFilterChange = useCallback((value: DateFilterOption) => {
         setDateFilter(value);
-        if (value !== 'all') {
-            setSelectedWeeks([]);
-        }
-    }, []);
+        setSelectedWeeks([]);
+    }, [setSelectedWeeks]);
 
     const handleWeeksChange = useCallback((weeks: string[]) => {
         setSelectedWeeks(weeks);
         if (weeks.length > 0) {
             setDateFilter('all');
         }
-    }, []);
+    }, [setSelectedWeeks]);
 
     // --- Persistence Effects ---
     useEffect(() => {

@@ -2080,6 +2080,8 @@ const AppContent: React.FC = () => {
                     onBulkDelete={() => setShowDeleteModal(true)}
                     onBulkArchive={() => setShowArchiveModal(true)}
                     onClearSelection={clearSelection}
+                    selectedWeeks={selectedWeeks}
+                    onWeeksChange={handleWeeksChange}
                 />;
 
             case 'permissions-debug':

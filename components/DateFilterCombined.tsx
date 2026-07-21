@@ -168,10 +168,15 @@ const DateFilterCombined = <T extends string = keyof Pedido>({
                             {selectedWeeks.length > 0 ? (
                                 <button
                                     type="button"
-                                    className="flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors bg-indigo-600 text-white font-medium col-span-2 cursor-default"
+                                    onClick={() => {
+                                        onWeeksChange([]);
+                                        onDateFilterChange('all');
+                                    }}
+                                    className="flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-all duration-200 bg-indigo-600 hover:bg-indigo-700 text-white font-medium col-span-2 cursor-pointer shadow-sm active:scale-95"
+                                    title="Desactivar filtro de semanas"
                                 >
                                     <span>📆</span>
-                                    <span className="text-xs">Semana de producción</span>
+                                    <span className="text-xs">Semana de producción (Desactivar)</span>
                                 </button>
                             ) : (
                                 dateFieldOptions.map(option => (
