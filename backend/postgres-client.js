@@ -4165,16 +4165,6 @@ class PostgreSQLClient {
 
             const result = await client.query(query, [pedidoId]);
 
-            // 🔍 DEBUG: Log de valores para debugging
-            if (result.rows.length > 0) {
-                console.log(`📦 Materiales para pedido ${pedidoId}:`, result.rows.map(r => ({
-                    id: r.id,
-                    numero: r.numero,
-                    pendienteRecibir: r.pendienteRecibir,
-                    pendienteGestion: r.pendienteGestion
-                })));
-            }
-
             return result.rows;
         } catch (error) {
             console.error(`❌ Error al obtener materiales del pedido ${pedidoId}:`, error);
