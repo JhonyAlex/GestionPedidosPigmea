@@ -3362,12 +3362,6 @@ app.post('/api/pedidos', requirePermission('pedidos.create'), async (req, res) =
     try {
         const newPedido = req.body;
 
-        // 🐛 DEBUG: Log para verificar clienteId
-        console.log('📦 Creando nuevo pedido:');
-        console.log('  - Cliente:', newPedido.cliente);
-        console.log('  - ClienteId:', newPedido.clienteId);
-        console.log('  - ID Pedido:', newPedido.id);
-
         // ✅ VALIDACIÓN: Campo Cliente obligatorio
         if (!newPedido || !newPedido.id) {
             return res.status(400).json({ message: 'Datos del pedido inválidos.' });
